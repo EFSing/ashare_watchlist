@@ -29,7 +29,18 @@ import time
 import requests
 
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-DATA_FILE = "/root/ashare_monitor/index_pairs.json"
+
+# 动态探测落盘位置，兼容 /root 与 /workspace 两种部署：
+# 若某目录下已存在 index_pairs.json 则原地更新；否则默认写到 /root/ashare_monitor
+# （与 README 及读取端 eod_review.py / review_after.py 的探测顺序一致）。
+def resolve_data_file():
+    for d in ("/root/ashare_monitor", "/workspace/ashare_monitor"):
+        p = os.path.join(d, "index_pairs.json")
+        if os.path.exists(p):
+            return p
+    return "/root/ashare_monitor/index_pairs.json"
+
+DATA_FILE = resolve_data_file()
 
 # 指数定义：(代码, 名称, 属性标签)
 INDICES = {
@@ -96,6 +107,7 @@ def load_data():
 
 
 def save_data(data):
+    os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
     json.dump(data, open(DATA_FILE, "w", encoding="utf-8"),
               ensure_ascii=False, indent=2)
 
