@@ -25,11 +25,25 @@ try:
 except Exception:
     pairs_module = None
 
-BASE = Path("/root/ashare_monitor")
+# 数据根目录动态探测（兼容 /root 与 /workspace 两种部署）
+def find_base():
+    for _c in (Path("/root/ashare_monitor"), Path("/workspace/ashare_monitor")):
+        if (_c / "positions.json").exists():
+            return _c
+    return Path("/root/ashare_monitor")
+BASE = find_base()
 WATCH_DIR = BASE / "watchlist"
 POS = BASE / "positions.json"
-# index_pairs.py 默认输出目录（配对数据）
-PAIRS_DATA = Path("/root/ashare_monitor/index_pairs.json")
+
+# index_pairs.py 输出（配对数据）：独立探测，兼容 /root 与 /workspace，
+# 不依赖 BASE（持仓/名单可能在 /workspace，而配对数据由 index_pairs.py 写到 /root，二者可能不同目录）。
+def find_pairs_data():
+    for _c in (Path("/root/ashare_monitor"), Path("/workspace/ashare_monitor")):
+        _p = _c / "index_pairs.json"
+        if _p.exists():
+            return _p
+    return None
+PAIRS_DATA = find_pairs_data()
 
 def prev_trade_date(now: datetime) -> str:
     """返回「前一交易日」的 YYYYMMDD（跳过周六周日）。"""
@@ -204,7 +218,7 @@ def main():
         lines.append("*无持仓数据*")
     lines.append("")
     # 三、配对指标（风格/行业轮动）—— 固定模块：逐日比值表 + 拆分小图
-    if pairs_module and PAIRS_DATA.exists():
+    if pairs_module and PAIRS_DATA is not None and PAIRS_DATA.exists():
         try:
             (BASE / "reports").mkdir(parents=True, exist_ok=True)
             chart_path = BASE / "reports" / f"配对指标每日比值_{wl_date}.html"

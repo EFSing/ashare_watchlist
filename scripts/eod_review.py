@@ -27,8 +27,16 @@ for _c in (Path("/workspace/ashare_monitor"), Path("/root/ashare_monitor")):
         break
 BASE = BASE or Path("/workspace/ashare_monitor")
 POS_FILE = BASE / "positions.json"
-# index_pairs.py 默认输出目录（配对数据）
-PAIRS_DATA = Path("/root/ashare_monitor/index_pairs.json")
+
+# index_pairs.py 输出（配对数据）：动态探测，兼容 /root 与 /workspace 两种部署，
+# 避免硬编码路径导致 PAIRS_DATA.exists() 为 False 而静默跳过配对段。
+def find_pairs_data():
+    for _c in (Path("/root/ashare_monitor"), Path("/workspace/ashare_monitor")):
+        _p = _c / "index_pairs.json"
+        if _p.exists():
+            return _p
+    return None
+PAIRS_DATA = find_pairs_data()
 
 
 def to_symbol(code: str) -> str:
@@ -125,7 +133,7 @@ def main():
           "- 持仓按体系纪律：止损触发即离场，不扩大止损",
           "- 大盘若转 C 级，主动降仓", ""]
     # 四、配对指标（风格/行业轮动）—— 固定模块：逐日比值表 + 拆分小图
-    if pairs_module and PAIRS_DATA.exists():
+    if pairs_module and PAIRS_DATA is not None and PAIRS_DATA.exists():
         try:
             sec = pairs_module.render_section_md(
                 str(PAIRS_DATA),
