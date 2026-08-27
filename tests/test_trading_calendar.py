@@ -5,6 +5,7 @@ import pytest
 from trading_calendar import (
     CalendarUnavailable,
     TradingCalendar,
+    default_calendar,
     previous_trading_day,
 )
 
@@ -21,3 +22,9 @@ def test_unknown_weekday_holiday_is_fail_safe_when_no_calendar_data_exists():
     with pytest.raises(CalendarUnavailable):
         calendar.is_trading_day(date(2026, 8, 27))
 
+
+def test_default_calendar_uses_real_xshg_session_and_holiday():
+    calendar = default_calendar()
+
+    assert calendar.is_trading_day(date(2024, 9, 30)) is True
+    assert calendar.is_trading_day(date(2024, 10, 1)) is False

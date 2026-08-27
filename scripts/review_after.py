@@ -27,6 +27,17 @@ def prev_trade_date(now: datetime, calendar: TradingCalendar | None = None) -> s
     return previous_trading_day(now, calendar=calendar)
 
 
+def resolve_review_dates(list_date_arg: str | None, run_at: datetime) -> tuple[str, date]:
+    """Resolve the watchlist date separately from the runtime market date.
+
+    ``--date`` selects the watchlist/list date only.  Historical market-data
+    replay is intentionally not part of this command yet.
+    """
+
+    list_date = list_date_arg or prev_trade_date(run_at)
+    return list_date, run_at.date()
+
+
 def review_watchlist(cands: list[dict[str, Any]], quotes: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
     validate_quotes(quotes, expected_codes=[c["code"] for c in cands])
     rows = []
@@ -106,18 +117,23 @@ def _load_positions(path: Path) -> list[dict[str, Any]]:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode", choices=["close", "midday"], default="close")
-    ap.add_argument("--date", default=None, help="名单日期 YYYYMMDD，默认前一交易日")
+    ap.add_argument(
+        "--date",
+        default=None,
+        help="名单/list 日期 YYYYMMDD；仅选择名单，不是历史行情 as-of 日期，默认前一交易日",
+    )
     args = ap.parse_args(argv)
     paths = DataPaths.from_env()
+    run_at = datetime.now()
+    wl_date, market_date = resolve_review_dates(args.date, run_at)
 
     try:
-        wl_date = args.date or prev_trade_date(datetime.now())
         watchlist = load_watchlist(paths.watchlist_file(wl_date))
         positions = _load_positions(paths.positions_file())
         candidates = watchlist["candidates"]
         codes = list(dict.fromkeys([c["code"] for c in candidates] + [p["code"] for p in positions]))
         print(f"[1/3] 拉取 {len(codes)} 只股票行情…", flush=True)
-        quotes = fetch_quotes(codes, expected_date=date.today())
+        quotes = fetch_quotes(codes, expected_date=market_date)
         wl_rows = review_watchlist(candidates, quotes)
         pos_rows = review_positions(positions, quotes)
     except (OSError, KeyError, ValueError, CalendarUnavailable, WatchlistSchemaError, QuoteDataError) as exc:
@@ -127,7 +143,14 @@ def main(argv: list[str] | None = None) -> int:
     print(f"[2/3] 复盘观察名单（{watchlist['date']}，{len(candidates)}只）…", flush=True)
     print(f"[3/3] 持仓风控（{len(positions)}只）…", flush=True)
     title = "盘后复盘" if args.mode == "close" else "午盘复盘"
-    lines = [f"# {title}（名单日期 {watchlist['date']}）", "", "## 一、观察名单复盘"]
+    quote_dates = {quote["quote_date"] for quote in quotes.values()}
+    quote_date = next(iter(quote_dates), market_date.isoformat())
+    lines = [
+        f"# {title}（名单日期 {watchlist['date']}）",
+        f"> 行情日期：{quote_date}（运行当日行情；--date 仅表示名单日期，未实现 historical replay）",
+        "",
+        "## 一、观察名单复盘",
+    ]
     lines.append(pd.DataFrame(wl_rows).to_markdown(index=False) if wl_rows else "*无观察名单数据*")
     lines.extend(["", "## 二、持仓风控"])
     lines.append(pd.DataFrame(pos_rows).to_markdown(index=False) if pos_rows else "*无持仓数据*")

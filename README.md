@@ -4,7 +4,7 @@ A 股观察名单与复盘量化工具。用于维护「观察名单」、盘前
 
 ## 功能
 
-- **观察名单管理**（`data/watchlist_*.json`）：每日盘前产出的候选股票名单，含买点/止损/目标位；canonical 字段为 `candidates` / `trigger`。
+- **观察名单管理**（生产目录 `data/watchlist_*.json`）：每日盘前产出的候选股票名单，含买点/止损/目标位；canonical 字段为 `candidates` / `trigger`。
 - **盘前复盘**（`scripts/preopen_review.py`）：开盘前回顾观察名单与持仓。
 - **盘后/午盘复盘**（`scripts/review_after.py`）：复盘前一交易日观察名单与持仓股走势、风控信号。数据源为腾讯行情快照 `qt.gtimg.cn`（GBK）。
 - **表现追踪**（`scripts/track_perf.py` + `data/perf_tracker.json`）：按稳定 `signal_id` 把选股事件沉淀为可统计的胜率/盈亏比数据。
@@ -23,6 +23,7 @@ A 股观察名单与复盘量化工具。用于维护「观察名单」、盘前
 │   └── pairs_module.py     # 配对指标公共模块
 ├── data/                   # 名单与持仓数据（可由 ASHARE_DATA_ROOT 覆盖）
 │   ├── watchlist_*.json    # 每日观察名单
+│   ├── legacy_invalid/     # 隔离的历史/非法名单，不参与生产扫描
 │   ├── positions.json      # 持仓清单
 │   ├── index_pairs.json    # 配对数据
 │   └── perf_tracker.json   # 表现统计
@@ -32,12 +33,10 @@ A 股观察名单与复盘量化工具。用于维护「观察名单」、盘前
 ## 环境依赖
 
 - Python 3.11 或 3.12
-- 依赖与版本见 `pyproject.toml`
+- 依赖与版本见 `pyproject.toml`；XSHG 真实交易日历是核心运行依赖
 
 ```bash
 python -m pip install -e ".[test]"
-# 可选：安装 XSHG 交易日历；未安装时未知工作日会 fail-safe
-python -m pip install -e ".[calendar]"
 ```
 
 ## 用法
@@ -51,7 +50,7 @@ python3.11 scripts/review_after.py --mode close
 # 午盘复盘
 python3.11 scripts/review_after.py --mode midday
 
-# 指定日期复盘
+# 指定名单/list 日期复盘；行情仍取运行当日，不是历史行情 as-of
 python3.11 scripts/review_after.py --mode close --date 20260821
 
 # 表现追踪 / 配对指标
@@ -59,7 +58,9 @@ python3.11 scripts/track_perf.py
 python3.11 scripts/index_pairs.py
 ```
 
-观察名单必须使用 `watchlist_YYYYMMDD.json` 文件名，payload 必须包含 `date`、`mode`、`market_env`、`sectors`、`candidates`；旧的 `items` / `trig` 结构会直接报错，不会静默转换。
+观察名单必须使用 `watchlist_YYYYMMDD.json` 文件名，payload 必须包含 `date`、`mode`、`market_env`、`sectors`、`candidates`；旧的 `items` / `trig` 结构会直接报错，不会静默转换。生产扫描只读取 `data/` 根目录下的 canonical 文件；`data/legacy_invalid/` 中的历史/非法文件保留供审计但不会参与 ingest。
+
+`review_after.py --date` 仅表示名单/list date。报告会同时显示名单日期与行情日期；当前行情日期始终是运行当日，尚未实现 historical replay。
 
 ## 说明
 

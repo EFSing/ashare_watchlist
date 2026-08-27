@@ -1,9 +1,9 @@
 """A-share trading-calendar boundary used by date-sensitive workflows.
 
 Weekdays are not assumed to be trading days.  Callers can inject an explicit
-holiday set/provider in tests and deployments.  The optional
-``exchange_calendars`` provider is used when installed; without either source
-of calendar data, a weekday raises ``CalendarUnavailable`` (fail-safe).
+holiday set/provider in tests and deployments.  The core runtime uses the
+``exchange_calendars`` XSHG provider; if that provider is unavailable or
+fails, a weekday raises ``CalendarUnavailable`` (fail-safe).
 """
 
 from __future__ import annotations
@@ -102,4 +102,3 @@ def trading_days_between(
             count += 1
         current += timedelta(days=1)
     return count
-
