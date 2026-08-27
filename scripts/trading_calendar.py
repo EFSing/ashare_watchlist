@@ -8,8 +8,11 @@ fails, a weekday raises ``CalendarUnavailable`` (fail-safe).
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from typing import Callable, Iterable
+
+
+_BJT = timezone(timedelta(hours=8))
 
 
 class CalendarUnavailable(RuntimeError):
@@ -34,9 +37,14 @@ class TradingCalendar:
         self,
         holidays: Iterable[date | datetime | str] | None = None,
         provider: Callable[[date], bool] | None = None,
+        *,
+        session_close_provider: Callable[[date], datetime] | None = None,
+        session_close_time: time | None = None,
     ) -> None:
         self._holidays = None if holidays is None else frozenset(_as_date(x) for x in holidays)
         self._provider = provider
+        self._session_close_provider = session_close_provider
+        self._session_close_time = session_close_time
 
     def is_trading_day(self, value: date | datetime | str) -> bool:
         day = _as_date(value)
@@ -53,6 +61,36 @@ class TradingCalendar:
             f"no A-share holiday calendar configured for weekday {day}; refusing to assume trading day"
         )
 
+    def session_close(self, value: date | datetime | str) -> datetime:
+        """Return the official XSHG session close as an Asia/Shanghai datetime.
+
+        ``default_calendar`` injects the exchange-calendars session-close
+        provider.  A lightweight injected calendar may provide an explicit
+        session-close provider or test-only close time; it never gets a
+        weekday-derived or post-close-buffer fallback.
+        """
+
+        day = _as_date(value)
+        if not self.is_trading_day(day):
+            raise CalendarUnavailable(f"{day} is not an XSHG trading session")
+        try:
+            if self._session_close_provider is not None:
+                close = self._session_close_provider(day)
+                if hasattr(close, "to_pydatetime"):
+                    close = close.to_pydatetime()
+                if not isinstance(close, datetime):
+                    raise TypeError("session close provider must return datetime")
+                if close.tzinfo is None:
+                    raise ValueError("session close provider must return an aware datetime")
+                return close.astimezone(_BJT)
+            if not isinstance(self._session_close_time, time):
+                raise CalendarUnavailable("no XSHG session close provider configured")
+            return datetime.combine(day, self._session_close_time, tzinfo=_BJT)
+        except CalendarUnavailable:
+            raise
+        except Exception as exc:  # pragma: no cover - provider-specific
+            raise CalendarUnavailable(f"session close provider failed for {day}: {exc}") from exc
+
 
 def default_calendar() -> TradingCalendar:
     """Return XSHG calendar when available, otherwise a fail-safe calendar."""
@@ -65,7 +103,10 @@ def default_calendar() -> TradingCalendar:
         def provider(day: date) -> bool:
             return bool(xshg.is_session(day))
 
-        return TradingCalendar(provider=provider)
+        def session_close_provider(day: date) -> datetime:
+            return xshg.session_close(day).to_pydatetime()
+
+        return TradingCalendar(provider=provider, session_close_provider=session_close_provider)
     except Exception:
         return TradingCalendar()
 
