@@ -27,20 +27,13 @@ import json
 import os
 import time
 import requests
+from data_paths import DataPaths
 
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
-# 动态探测落盘位置，兼容 /root 与 /workspace 两种部署：
-# 若某目录下已存在 index_pairs.json 则原地更新；否则默认写到 /root/ashare_monitor
-# （与 README 及读取端 eod_review.py / review_after.py 的探测顺序一致）。
-def resolve_data_file():
-    for d in ("/root/ashare_monitor", "/workspace/ashare_monitor"):
-        p = os.path.join(d, "index_pairs.json")
-        if os.path.exists(p):
-            return p
-    return "/root/ashare_monitor/index_pairs.json"
-
-DATA_FILE = resolve_data_file()
+PATHS = DataPaths.from_env()
+DATA_FILE = str(PATHS.index_pairs_file())
+RESULT_FILE = PATHS.index_pairs_result_file()
 
 # 指数定义：(代码, 名称, 属性标签)
 INDICES = {
@@ -245,9 +238,10 @@ def main():
         "industry_rotation": rot,
         "_note": "量化信号，仅供研究参考，不构成投资建议",
     }
-    json.dump(out, open("index_pairs_result.json", "w", encoding="utf-8"),
+    RESULT_FILE.parent.mkdir(parents=True, exist_ok=True)
+    json.dump(out, open(RESULT_FILE, "w", encoding="utf-8"),
               ensure_ascii=False, indent=2, default=str)
-    print("\n结果已保存至 index_pairs_result.json，原始数据已持久化至 index_pairs.json")
+    print(f"\n结果已保存至 {RESULT_FILE}，原始数据已持久化至 {DATA_FILE}")
 
 
 if __name__ == "__main__":

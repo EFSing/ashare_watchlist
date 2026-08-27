@@ -6,15 +6,18 @@
   1) pairs_table_md(data_path, days=5)      -> markdown 表格（最近 N 个交易日逐日比值 + 区间变化）
   2) pairs_chart_html(data_path, out_html)  -> 独立 HTML 文件（每对一张拆分小图，仅最近5天，关工具栏）
 
-数据来源：/root/ashare_monitor/index_pairs.json（由 index_pairs.py 每日更新）。
+数据来源：由统一 data resolver 指定的 index_pairs.json（由 index_pairs.py 每日更新）。
 
 健壮性说明：
   各指数每日刷新可能因网络/源站偶发失败而停在较早日期，导致「日期并集」里出现某指数没有的日期。
   本模块按「每个配对各自可用的日期」渲染：缺失日期填 '—'，绝不因单个配对缺值而让整段崩溃。
 """
 import json
+from pathlib import Path
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
+
+from data_paths import DataPaths
 
 # 8 对配对（与框架 index_pairs.py 完全一致）
 PAIRS = [
@@ -29,7 +32,12 @@ PAIRS = [
 ]
 
 
-def load_ratios(data_path):
+def _data_path(data_path=None) -> Path:
+    return Path(data_path) if data_path is not None else DataPaths.from_env().index_pairs_file()
+
+
+def load_ratios(data_path=None):
+    data_path = _data_path(data_path)
     d = json.load(open(data_path, encoding="utf-8"))
 
     def series(sym):
@@ -46,12 +54,13 @@ def load_ratios(data_path):
     return ratios, all_dates
 
 
-def pairs_conclusion_md(data_path, days=5):
+def pairs_conclusion_md(data_path=None, days=5):
     """返回 3 行简短结论（风格 + 行业轮动），供报告在表格后直接引用。
 
     基于 index_pairs.json 现场计算，不依赖 index_pairs_result.json，避免多一份文件同步。
     结论口径与框架 index_pairs.py 的 style_conclusion() / industry_rotation() 一致。
     """
+    data_path = _data_path(data_path)
     d = json.load(open(data_path, encoding="utf-8"))
 
     def name_of(sym):
@@ -110,12 +119,16 @@ def pairs_conclusion_md(data_path, days=5):
     return "\n".join(lines)
 
 
-def render_section_md(data_path, out_html, days=5, heading="## 四、配对指标（风格/行业轮动）"):
+def render_section_md(data_path=None, out_html=None, days=5, heading="## 四、配对指标（风格/行业轮动）"):
     """返回一段 markdown 章节（结论 + 表格 + 小图链接），供复盘/名单报告直接拼接。
 
     heading 可传，用于适配不同报告已有的章节编号（如复盘报告用"四"、观察名单用"三"）。
     用法： report_lines += pairs_module.render_section_md(data_path, out_html).splitlines()
     """
+    paths = DataPaths.from_env()
+    data_path = _data_path(data_path)
+    out_html = Path(out_html) if out_html is not None else paths.reports_dir() / "index_pairs.html"
+    out_html.parent.mkdir(parents=True, exist_ok=True)
     md = pairs_table_md(data_path, days)
     conclusion = pairs_conclusion_md(data_path, days)
     chart = pairs_chart_html(data_path, out_html, days)
@@ -127,7 +140,7 @@ def render_section_md(data_path, out_html, days=5, heading="## 四、配对指�
             f"📊 拆分小图（独立打开查看）：`{fname}`")
 
 
-def pairs_table_md(data_path, days=5):
+def pairs_table_md(data_path=None, days=5):
     """返回 markdown 表格：最近 days 个交易日逐日比值 + 区间变化%"""
     ratios, all_dates = load_ratios(data_path)
     last = all_dates[-days:] if len(all_dates) >= 1 else []
@@ -147,8 +160,12 @@ def pairs_table_md(data_path, days=5):
     return "\n".join(lines)
 
 
-def pairs_chart_html(data_path, out_html, days=5):
+def pairs_chart_html(data_path=None, out_html=None, days=5):
     """生成独立 HTML：每对一张拆分小图（独立Y轴真实比值，仅最近 days 天，无背景，关工具栏）"""
+    paths = DataPaths.from_env()
+    data_path = _data_path(data_path)
+    out_html = Path(out_html) if out_html is not None else paths.reports_dir() / "index_pairs.html"
+    out_html.parent.mkdir(parents=True, exist_ok=True)
     ratios, all_dates = load_ratios(data_path)
     last = all_dates[-days:] if len(all_dates) >= 1 else []
 
@@ -255,8 +272,8 @@ td:first-child,th:first-child{{text-align:left;font-weight:600;}}
 
 
 if __name__ == "__main__":
-    import os
-    dp = "/root/ashare_monitor/index_pairs.json"
-    out = "/workspace/配对指标每日比值_测试.html"
+    paths = DataPaths.from_env()
+    dp = paths.index_pairs_file()
+    out = paths.reports_dir() / "配对指标每日比值_测试.html"
     print(pairs_table_md(dp))
     print("HTML ->", pairs_chart_html(dp, out))
