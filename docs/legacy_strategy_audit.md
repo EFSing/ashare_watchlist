@@ -31,6 +31,15 @@
 - `REMOVED_RULE`：固定 V0 脚本明确移除，或当前正式路径明确不再承载的规则。
 - `UNKNOWN_ORIGIN`：数据中存在，但没有足够证据把它归因到固定脚本的规则/版本。
 
+当前正式仓库的数据契约本身可确认，但不等于旧扫描策略已恢复：
+
+| 当前契约 | 证据 | 标签 |
+|---|---|---|
+| canonical 名单文件使用 `data/watchlist_YYYYMMDD.json`，payload 包含 `date/mode/market_env/sectors/candidates` | 正式仓库 `README.md` 与 `scripts/watchlist_schema.py` | `VERIFIED_RULE` |
+| 旧 `items/trig` 结构不静默转换，生产扫描与 `data/legacy_invalid/` 隔离 | 正式仓库 `README.md`、schema/ingest 测试 | `VERIFIED_RULE` |
+
+这两项是当前正式数据入口的规则，不是 `screen_system.py` 的历史选股规则。
+
 ## 2. `screen_system.py` 的执行链
 
 固定脚本的声明顺序为：市场环境 → 板块 → 个股 → 位置/量价 → 买点 → 支撑/止损/目标 → 盈亏比 → 85 分量化评分 → 输出。实际执行顺序在 `main()` 中为：股票池、快照、市场环境、板块、指数相对强度、逐股分析、报告/名单输出。
@@ -267,6 +276,7 @@
 | 规则 | 状态 |
 |---|---|
 | `60/68/00/30` 股票池前缀 | `LEGACY_RULE`（代码事实可核验，非历史 as-of） |
+| 正式 canonical 名单文件/字段契约 | `VERIFIED_RULE`（当前生产数据契约，不代表旧策略已恢复） |
 | 腾讯快照字段解析 | `LEGACY_RULE` |
 | 腾讯 qfq 日 K | `LEGACY_RULE`，并有 `AS_OF_RISK` |
 | 市场环境 A/B/C 阈值 | `LEGACY_RULE` |
