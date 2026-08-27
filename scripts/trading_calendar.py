@@ -13,7 +13,6 @@ from typing import Callable, Iterable
 
 
 _BJT = timezone(timedelta(hours=8))
-XSHG_REGULAR_CLOSE = time(15, 0)
 
 
 class CalendarUnavailable(RuntimeError):
@@ -40,7 +39,7 @@ class TradingCalendar:
         provider: Callable[[date], bool] | None = None,
         *,
         session_close_provider: Callable[[date], datetime] | None = None,
-        session_close_time: time = XSHG_REGULAR_CLOSE,
+        session_close_time: time | None = None,
     ) -> None:
         self._holidays = None if holidays is None else frozenset(_as_date(x) for x in holidays)
         self._provider = provider
@@ -66,9 +65,9 @@ class TradingCalendar:
         """Return the official XSHG session close as an Asia/Shanghai datetime.
 
         ``default_calendar`` injects the exchange-calendars session-close
-        provider.  Lightweight injected calendars use the XSHG regular close
-        time (15:00) after their own trading-day classification, with no
-        artificial post-close buffer.
+        provider.  A lightweight injected calendar may provide an explicit
+        session-close provider or test-only close time; it never gets a
+        weekday-derived or post-close-buffer fallback.
         """
 
         day = _as_date(value)
@@ -85,7 +84,7 @@ class TradingCalendar:
                     raise ValueError("session close provider must return an aware datetime")
                 return close.astimezone(_BJT)
             if not isinstance(self._session_close_time, time):
-                raise TypeError("session_close_time must be a datetime.time")
+                raise CalendarUnavailable("no XSHG session close provider configured")
             return datetime.combine(day, self._session_close_time, tzinfo=_BJT)
         except CalendarUnavailable:
             raise

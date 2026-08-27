@@ -80,6 +80,9 @@ historical replay 均不支持。
 在 XSHG 当日正式 `session_close` 时点或之后。盘中输入拒绝为
 `SESSION_NOT_CLOSED`，不使用人工 15:05/15:10 缓冲。
 
+Phase 2B runtime calendar baseline 固定为 `exchange-calendars==4.13.2`；真实
+XSHG provider 已覆盖 2026 交易日、节假日与正式 session close 回归测试。
+
 输入 manifest、日期 fail-fast 校验、腾讯
 `PROVIDER_QFQ_SNAPSHOT` 语义、AkShare `LIVE_OBSERVED` 限制与 deterministic
 input fingerprint 见 [`docs/generation_input_contract.md`](docs/generation_input_contract.md)。

@@ -35,6 +35,11 @@ execution、把 T+1 数据用于 T 日信号，以及用当前数据冒充历史
 XSHG 日历接口，周末和法定节假日都会跳过。日历不可用或 T 不是 XSHG session
 时 fail-fast 为 `CALENDAR_ERROR`。
 
+Phase 2B 的 runtime calendar baseline 固定为
+`exchange-calendars==4.13.2`。默认 XSHG provider 的 2026 session、节假日和
+session close 已有真实 provider regression coverage；provider 不可用或超出
+支持范围时仍然 fail-safe 为 `CALENDAR_ERROR`，不会退回“周一至周五就是交易日”。
+
 ## 2. 独立输入 manifest
 
 `scripts/generation_contract.py` 提供以下不可变数据对象：

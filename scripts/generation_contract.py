@@ -28,6 +28,7 @@ XSHG_CALENDAR = "XSHG"
 LIVE_OBSERVED = "LIVE_OBSERVED"
 POINT_IN_TIME = "POINT_IN_TIME"
 PROVIDER_QFQ_SNAPSHOT = "PROVIDER_QFQ_SNAPSHOT"
+EXCHANGE_CALENDARS_VERSION = "4.13.2"
 
 READY_FOR_STRATEGY_EVALUATION = "READY_FOR_STRATEGY_EVALUATION"
 INPUT_DATE_MISMATCH = "INPUT_DATE_MISMATCH"
@@ -143,6 +144,17 @@ def _copy_mapping(value: Mapping[str, Any], field_name: str) -> dict[str, Any]:
     return copy.deepcopy(dict(value))
 
 
+def _provider_metadata(value: Mapping[str, Any], field_name: str) -> dict[str, Any]:
+    metadata = _copy_mapping(value, field_name)
+    recorded_version = metadata.get("exchange_calendars")
+    if recorded_version is not None and str(recorded_version) != EXCHANGE_CALENDARS_VERSION:
+        raise ValueError(
+            f"{field_name}.exchange_calendars must be {EXCHANGE_CALENDARS_VERSION}"
+        )
+    metadata["exchange_calendars"] = EXCHANGE_CALENDARS_VERSION
+    return metadata
+
+
 def _bar_date(bar: Mapping[str, Any]) -> str:
     value = bar.get("date", bar.get("bar_date"))
     if value is None:
@@ -215,7 +227,7 @@ class RunContext:
         object.__setattr__(
             self,
             "provider_version_metadata",
-            _copy_mapping(self.provider_version_metadata, "provider_version_metadata"),
+            _provider_metadata(self.provider_version_metadata, "provider_version_metadata"),
         )
 
     def earliest_execution_date(self, calendar: TradingCalendar | None = None) -> str:
@@ -480,7 +492,7 @@ class GenerationInputManifest:
         object.__setattr__(
             self,
             "provider_version_metadata",
-            _copy_mapping(self.provider_version_metadata, "provider_version_metadata"),
+            _provider_metadata(self.provider_version_metadata, "provider_version_metadata"),
         )
         if self.earliest_execution_date is None:
             object.__setattr__(self, "earliest_execution_date", self.run_context.earliest_execution_date())
@@ -731,6 +743,7 @@ def freeze_generation_inputs(
     metadata = {} if provider_version_metadata is None else provider_version_metadata
     if not isinstance(metadata, Mapping):
         raise TypeError("provider_version_metadata must be a mapping")
+    metadata = _provider_metadata(metadata, "provider_version_metadata")
     execution_date = _next_xshg_session(as_of_date, cal)
     return GenerationInputManifest(
         run_context=run_context,

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, time, timedelta
 
 import pytest
 
 from generation_contract import (
     ASIA_SHANGHAI,
     CALENDAR_ERROR,
+    EXCHANGE_CALENDARS_VERSION,
     FUTURE_DATA_DETECTED,
     GenerationContractError,
     INPUT_DATE_MISMATCH,
@@ -105,14 +106,17 @@ def _inputs(
         mode="close",
         timezone=ASIA_SHANGHAI,
         historical=historical,
-        provider_version_metadata={"exchange_calendars": "4.11.1"},
+        provider_version_metadata={"exchange_calendars": "4.13.2"},
     )
     return context, universe, quotes, stock_klines, index, sector
 
 
 def _freeze(**kwargs):
     values = _inputs(**kwargs)
-    return freeze_generation_inputs(*values, calendar=TradingCalendar(holidays=set()))
+    return freeze_generation_inputs(
+        *values,
+        calendar=TradingCalendar(holidays=set(), session_close_time=time(15, 0)),
+    )
 
 
 def test_complete_t_day_inputs_are_ready_and_record_qfq_evidence():
@@ -191,7 +195,10 @@ def test_premarket_generation_is_not_supported():
     values[0] = RunContext(as_of_date=AS_OF, mode="premarket")
 
     with pytest.raises(GenerationContractError) as caught:
-        freeze_generation_inputs(*values, calendar=TradingCalendar(holidays=set()))
+        freeze_generation_inputs(
+            *values,
+            calendar=TradingCalendar(holidays=set(), session_close_time=time(15, 0)),
+        )
 
     assert caught.value.status == UNSUPPORTED_MODE
 
@@ -240,7 +247,10 @@ def test_as_of_weekend_is_a_calendar_error():
     )
 
     with pytest.raises(GenerationContractError) as caught:
-        freeze_generation_inputs(*values, calendar=TradingCalendar(holidays=set()))
+        freeze_generation_inputs(
+            *values,
+            calendar=TradingCalendar(holidays=set(), session_close_time=time(15, 0)),
+        )
 
     assert caught.value.status == CALENDAR_ERROR
 
@@ -268,7 +278,10 @@ def test_retrieved_at_does_not_change_content_or_input_fingerprint():
 
 def test_actual_input_value_change_changes_fingerprint():
     values = list(_inputs())
-    first = freeze_generation_inputs(*values, calendar=TradingCalendar(holidays=set()))
+    first = freeze_generation_inputs(
+        *values,
+        calendar=TradingCalendar(holidays=set(), session_close_time=time(15, 0)),
+    )
     changed_quote = QuoteSnapshotManifest(
         as_of_date=AS_OF,
         retrieved_at_bjt=RETRIEVED_AT,
@@ -276,7 +289,10 @@ def test_actual_input_value_change_changes_fingerprint():
         quotes={"600000": {"code": "600000", "quote_date": AS_OF, "price": 10.01}},
     )
     values[2] = changed_quote
-    second = freeze_generation_inputs(*values, calendar=TradingCalendar(holidays=set()))
+    second = freeze_generation_inputs(
+        *values,
+        calendar=TradingCalendar(holidays=set(), session_close_time=time(15, 0)),
+    )
 
     assert first.quote_snapshot.content_sha256 != second.quote_snapshot.content_sha256
     assert first.input_fingerprint != second.input_fingerprint
@@ -287,3 +303,9 @@ def test_live_generation_requires_live_observed_sector_semantics():
         _freeze(sector_semantics=POINT_IN_TIME)
 
     assert caught.value.status == UNSUPPORTED_MODE
+
+
+def test_runtime_metadata_records_pinned_exchange_calendars_version():
+    assert RunContext(as_of_date=AS_OF).provider_version_metadata["exchange_calendars"] == (
+        EXCHANGE_CALENDARS_VERSION
+    )
