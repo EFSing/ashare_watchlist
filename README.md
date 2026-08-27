@@ -66,3 +66,17 @@ python3.11 scripts/index_pairs.py
 
 - 数据含个人持仓信息，建议仓库保持**私有**。
 - 行情数据为第三方公开快照，仅供学习研究，不构成投资建议。
+
+## Phase 2B：Generation Input & Timing Contract Freeze
+
+Phase 2B 只冻结 generation system 的 input/timing contract，尚无正式
+generation strategy。唯一支持 `close` generation：T 日数据完整后以
+`as_of_date=T` 生成信号，最早执行日是 XSHG 日历的下一个交易日 T+1，时区为
+`Asia/Shanghai`。premarket、same-bar execution、当前数据冒充历史日期和
+historical replay 均不支持。
+
+输入 manifest、日期 fail-fast 校验、腾讯
+`PROVIDER_QFQ_SNAPSHOT` 语义、AkShare `LIVE_OBSERVED` 限制与 deterministic
+input fingerprint 见 [`docs/generation_input_contract.md`](docs/generation_input_contract.md)。
+本阶段不实现 A/B/C/D、评分、选股、调参、调度或 historical replay；也不恢复
+`screen_system.py`、修改旧阈值/85 分评分、`perf_tracker` 或历史 watchlist。
