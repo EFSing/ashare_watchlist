@@ -36,6 +36,7 @@ INCOMPLETE_COVERAGE = "INCOMPLETE_COVERAGE"
 UNSUPPORTED_MODE = "UNSUPPORTED_MODE"
 UNSUPPORTED_HISTORICAL_REPLAY = "UNSUPPORTED_HISTORICAL_REPLAY"
 CALENDAR_ERROR = "CALENDAR_ERROR"
+SESSION_NOT_CLOSED = "SESSION_NOT_CLOSED"
 
 
 class GenerationContractError(ValueError):
@@ -279,6 +280,7 @@ class QuoteSnapshotManifest:
     source: str
     quotes: Mapping[str, Mapping[str, Any]]
     provider: str = "Tencent"
+    temporal_semantics: str = LIVE_OBSERVED
     content_sha256: str = field(init=False)
 
     def __post_init__(self) -> None:
@@ -286,6 +288,10 @@ class QuoteSnapshotManifest:
         object.__setattr__(self, "retrieved_at_bjt", _canonical_timestamp_bjt(self.retrieved_at_bjt))
         object.__setattr__(self, "source", _require_text(self.source, "source"))
         object.__setattr__(self, "provider", _require_text(self.provider, "provider"))
+        semantics = _require_text(self.temporal_semantics, "temporal_semantics").upper()
+        if semantics not in {LIVE_OBSERVED, POINT_IN_TIME}:
+            raise ValueError(f"unsupported temporal_semantics: {semantics}")
+        object.__setattr__(self, "temporal_semantics", semantics)
         if not isinstance(self.quotes, Mapping):
             raise ValueError("quotes must be a mapping keyed by symbol")
         normalized: dict[str, dict[str, Any]] = {}
@@ -308,6 +314,7 @@ class QuoteSnapshotManifest:
             "retrieved_at_bjt": self.retrieved_at_bjt,
             "source": self.source,
             "provider": self.provider,
+            "temporal_semantics": self.temporal_semantics,
             "quotes": copy.deepcopy(self.quotes),
             "content_sha256": self.content_sha256,
         }
@@ -324,6 +331,7 @@ class KlineManifest:
     provider: str = "Tencent"
     adjustment_mode: str = PROVIDER_QFQ_SNAPSHOT
     source: str = "Tencent qfq daily kline"
+    temporal_semantics: str = LIVE_OBSERVED
     first_bar_date: str | None = field(init=False)
     last_bar_date: str | None = field(init=False)
     bar_count: int = field(init=False)
@@ -336,6 +344,10 @@ class KlineManifest:
         object.__setattr__(self, "provider", _require_text(self.provider, "provider"))
         object.__setattr__(self, "adjustment_mode", _require_text(self.adjustment_mode, "adjustment_mode"))
         object.__setattr__(self, "source", _require_text(self.source, "source"))
+        semantics = _require_text(self.temporal_semantics, "temporal_semantics").upper()
+        if semantics not in {LIVE_OBSERVED, POINT_IN_TIME}:
+            raise ValueError(f"unsupported temporal_semantics: {semantics}")
+        object.__setattr__(self, "temporal_semantics", semantics)
         normalized_bars = _normalize_bars(self.bars)
         object.__setattr__(self, "bars", normalized_bars)
         object.__setattr__(self, "first_bar_date", normalized_bars[0]["date"] if normalized_bars else None)
@@ -359,6 +371,7 @@ class KlineManifest:
             "provider": self.provider,
             "adjustment_mode": self.adjustment_mode,
             "source": self.source,
+            "temporal_semantics": self.temporal_semantics,
             "first_bar_date": self.first_bar_date,
             "last_bar_date": self.last_bar_date,
             "bar_count": self.bar_count,
@@ -504,6 +517,15 @@ class GenerationInputManifest:
             "index_hash": self.index.normalized_data_sha256,
             "sector_hash": self.sector.content_sha256,
             "adjustment_mode": sorted({item.adjustment_mode for item in (*self.stock_klines, self.index)}),
+            "temporal_semantics": {
+                "universe": self.universe.temporal_semantics,
+                "quotes": self.quote_snapshot.temporal_semantics,
+                "stock_klines": {
+                    item.symbol: item.temporal_semantics for item in self.stock_klines
+                },
+                "index": self.index.temporal_semantics,
+                "sector": self.sector.temporal_semantics,
+            },
             "provider_version_metadata": {
                 **copy.deepcopy(self.run_context.provider_version_metadata),
                 **copy.deepcopy(self.provider_version_metadata),
@@ -571,6 +593,44 @@ def _validate_kline_dates(item: KlineManifest, as_of_date: str, label: str) -> N
             INPUT_DATE_MISMATCH,
             f"{label} {item.symbol} last_bar_date {item.last_bar_date} != {as_of_date}",
         )
+
+
+def _validate_live_observation_date(item: Any, as_of_date: str, label: str) -> None:
+    if item.temporal_semantics != LIVE_OBSERVED:
+        _fail(
+            UNSUPPORTED_MODE,
+            f"{label} must be marked {LIVE_OBSERVED} for live close generation",
+        )
+    observed_date = datetime.fromisoformat(item.retrieved_at_bjt).date().isoformat()
+    if observed_date != as_of_date:
+        _fail(
+            INPUT_DATE_MISMATCH,
+            f"{label} observation date {observed_date} != as_of_date {as_of_date}",
+        )
+
+
+def _validate_session_closed(
+    as_of_date: str,
+    calendar: TradingCalendar,
+    live_inputs: Sequence[tuple[str, Any]],
+) -> None:
+    try:
+        session_close = calendar.session_close(as_of_date)
+    except CalendarUnavailable as exc:
+        _fail(CALENDAR_ERROR, str(exc))
+    except Exception as exc:
+        _fail(CALENDAR_ERROR, f"XSHG session close lookup failed: {exc}")
+    if session_close.tzinfo is None:
+        _fail(CALENDAR_ERROR, "XSHG session close must be timezone-aware")
+    session_close_bjt = session_close.astimezone(timezone(timedelta(hours=8)))
+    for label, item in live_inputs:
+        retrieved_at = datetime.fromisoformat(item.retrieved_at_bjt)
+        if retrieved_at < session_close_bjt:
+            _fail(
+                SESSION_NOT_CLOSED,
+                f"{label} retrieved_at_bjt {item.retrieved_at_bjt} is before "
+                f"XSHG session close {session_close_bjt.isoformat()}",
+            )
 
 
 def freeze_generation_inputs(
@@ -657,19 +717,16 @@ def freeze_generation_inputs(
     _ensure_same_date(index.as_of_date, as_of_date, "index")
     _validate_kline_dates(index, as_of_date, "index kline")
 
-    # Current AkShare board/member data is explicitly observational.  It can
-    # be used for this day's close only; a future historical path needs a
-    # separate POINT_IN_TIME source and a later phase.
-    if universe.temporal_semantics != LIVE_OBSERVED:
-        _fail(
-            UNSUPPORTED_MODE,
-            "the current generation universe must be marked LIVE_OBSERVED",
-        )
-    if sector.temporal_semantics != LIVE_OBSERVED:
-        _fail(
-            UNSUPPORTED_MODE,
-            "the current generation sector input must be marked LIVE_OBSERVED",
-        )
+    live_inputs = [
+        ("universe", universe),
+        ("quote snapshot", quote_snapshot),
+        *[(f"stock kline {item.symbol}", item) for item in kline_by_symbol.values()],
+        ("index kline", index),
+        ("sector", sector),
+    ]
+    for label, item in live_inputs:
+        _validate_live_observation_date(item, as_of_date, label)
+    _validate_session_closed(as_of_date, cal, live_inputs)
 
     metadata = {} if provider_version_metadata is None else provider_version_metadata
     if not isinstance(metadata, Mapping):

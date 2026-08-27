@@ -22,6 +22,15 @@ execution、把 T+1 数据用于 T 日信号，以及用当前数据冒充历史
 若设置 `RunContext(historical=True)`，入口立即返回
 `UNSUPPORTED_HISTORICAL_REPLAY`；这不是 replay 的降级实现。
 
+`LIVE_OBSERVED` 不是装饰性标签：每个 live `UniverseManifest`、
+`QuoteSnapshotManifest`、stock `KlineManifest`、`IndexManifest` 和
+`SectorManifest` 的 `retrieved_at_bjt` 北京时间日期必须等于 T。仅有
+`historical=False` 不能绕过这项约束。
+
+`mode=close` 还要求每个 live 输入的 `retrieved_at_bjt` 不早于 XSHG 当日正式
+`session_close`。正式收盘时点本身可以通过；盘中时间必须 fail-fast 为
+`SESSION_NOT_CLOSED`，不添加 15:05、15:10 等人工缓冲。
+
 `next_execution_date()` 和 `RunContext.earliest_execution_date()` 使用现有的
 XSHG 日历接口，周末和法定节假日都会跳过。日历不可用或 T 不是 XSHG session
 时 fail-fast 为 `CALENDAR_ERROR`。
@@ -98,12 +107,14 @@ data SHA-256，不得改写旧证据。
 当前 AkShare 股票池必须标记 `LIVE_OBSERVED`，并记录 T、
 `retrieved_at_bjt`、source、排序后的 symbols、symbol count 和
 `content_sha256`（排序后的 symbols 与 temporal marker 的内容哈希）。它只能
-用于当日 close generation，不能用于过去日期 replay。
+用于 observation date 等于 T 且已过 XSHG session close 的当日 close
+generation，不能用于过去日期 replay。
 
 当前 AkShare 板块 definitions/members/rank input 也必须标记
 `LIVE_OBSERVED`，记录 BJT 获取时间、source、完整输入和
 `temporal_semantics`/`content_sha256`（definitions、members、rank input 与
-temporal marker 的内容哈希）。当前成员不能倒灌历史。未来真正的
+temporal marker 的内容哈希）。其 observation date 也必须等于 T，并且只能
+在正式 session close 后用于当日 close generation。当前成员不能倒灌历史。未来真正的
 historical replay 必须接入另一个 `POINT_IN_TIME` sector source，并在本阶段
 之外单独设计；本阶段即使拿到该标记也仍不实现 replay。
 
@@ -137,7 +148,7 @@ SHA-256，并进而改变总 fingerprint。
 
 `READY_FOR_STRATEGY_EVALUATION`、`INPUT_DATE_MISMATCH`、
 `FUTURE_DATA_DETECTED`、`INCOMPLETE_COVERAGE`、`UNSUPPORTED_MODE`、
-`UNSUPPORTED_HISTORICAL_REPLAY`、`CALENDAR_ERROR`。
+`UNSUPPORTED_HISTORICAL_REPLAY`、`CALENDAR_ERROR`、`SESSION_NOT_CLOSED`。
 
 本阶段明确不恢复 `screen_system.py`，不实现 A/B/C/D，不修改旧阈值、85 分
 评分、`perf_tracker` 或历史 watchlist，不接生产调度，不做 historical replay，

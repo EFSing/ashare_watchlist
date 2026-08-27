@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
@@ -14,6 +14,7 @@ from generation_contract import (
     POINT_IN_TIME,
     PROVIDER_QFQ_SNAPSHOT,
     READY_FOR_STRATEGY_EVALUATION,
+    SESSION_NOT_CLOSED,
     UNSUPPORTED_HISTORICAL_REPLAY,
     UNSUPPORTED_MODE,
     IndexManifest,
@@ -25,7 +26,7 @@ from generation_contract import (
     freeze_generation_inputs,
     next_execution_date,
 )
-from trading_calendar import TradingCalendar
+from trading_calendar import TradingCalendar, default_calendar
 
 
 AS_OF = "2026-08-27"
@@ -33,32 +34,37 @@ RETRIEVED_AT = "2026-08-27T15:05:00+08:00"
 
 
 def _bars(last_date: str = AS_OF) -> list[dict[str, object]]:
+    previous_date = (date.fromisoformat(last_date) - timedelta(days=1)).isoformat()
     return [
-        {"date": "2026-08-26", "open": 9.8, "high": 10.2, "low": 9.7, "close": 10.0, "volume": 100},
+        {"date": previous_date, "open": 9.8, "high": 10.2, "low": 9.7, "close": 10.0, "volume": 100},
         {"date": last_date, "open": 10.0, "high": 10.4, "low": 9.9, "close": 10.3, "volume": 120},
     ]
 
 
 def _inputs(
     *,
+    as_of_date: str = AS_OF,
     symbols: tuple[str, ...] = ("600000",),
-    quote_date: str = AS_OF,
-    stock_last_date: str = AS_OF,
-    index_last_date: str = AS_OF,
+    quote_date: str | None = None,
+    stock_last_date: str | None = None,
+    index_last_date: str | None = None,
     retrieved_at: str = RETRIEVED_AT,
     historical: bool = False,
     sector_semantics: str = LIVE_OBSERVED,
     universe_semantics: str = LIVE_OBSERVED,
 ):
+    quote_date = as_of_date if quote_date is None else quote_date
+    stock_last_date = as_of_date if stock_last_date is None else stock_last_date
+    index_last_date = as_of_date if index_last_date is None else index_last_date
     universe = UniverseManifest(
-        as_of_date=AS_OF,
+        as_of_date=as_of_date,
         retrieved_at_bjt=retrieved_at,
         source="akshare.stock_info_a_code_name",
         symbols=symbols,
         temporal_semantics=universe_semantics,
     )
     quotes = QuoteSnapshotManifest(
-        as_of_date=AS_OF,
+        as_of_date=as_of_date,
         retrieved_at_bjt=retrieved_at,
         source="qt.gtimg.cn",
         quotes={
@@ -73,7 +79,7 @@ def _inputs(
     stock_klines = tuple(
         KlineManifest(
             symbol=symbol,
-            as_of_date=AS_OF,
+            as_of_date=as_of_date,
             retrieved_at_bjt=retrieved_at,
             bars=_bars(stock_last_date),
         )
@@ -81,12 +87,12 @@ def _inputs(
     )
     index = IndexManifest(
         symbol="sh000001",
-        as_of_date=AS_OF,
+        as_of_date=as_of_date,
         retrieved_at_bjt=retrieved_at,
         bars=_bars(index_last_date),
     )
     sector = SectorManifest(
-        as_of_date=AS_OF,
+        as_of_date=as_of_date,
         retrieved_at_bjt=retrieved_at,
         source="akshare.stock_sector_detail",
         definitions={"banking": {"name": "银行"}},
@@ -95,7 +101,7 @@ def _inputs(
         temporal_semantics=sector_semantics,
     )
     context = RunContext(
-        as_of_date=AS_OF,
+        as_of_date=as_of_date,
         mode="close",
         timezone=ASIA_SHANGHAI,
         historical=historical,
@@ -131,6 +137,23 @@ def test_complete_t_day_inputs_are_ready_and_record_qfq_evidence():
 def test_quote_date_mismatch_fails_fast():
     with pytest.raises(GenerationContractError) as caught:
         _freeze(quote_date="2026-08-26")
+
+    assert caught.value.status == INPUT_DATE_MISMATCH
+
+
+def test_past_as_of_with_today_observation_is_rejected_without_historical_flag():
+    with pytest.raises(GenerationContractError) as caught:
+        _freeze(
+            as_of_date="2026-08-20",
+            retrieved_at="2026-08-27T15:30:00+08:00",
+        )
+
+    assert caught.value.status == INPUT_DATE_MISMATCH
+
+
+def test_live_observed_timestamp_date_must_equal_t():
+    with pytest.raises(GenerationContractError) as caught:
+        _freeze(retrieved_at="2026-08-26T15:30:00+08:00")
 
     assert caught.value.status == INPUT_DATE_MISMATCH
 
@@ -173,6 +196,25 @@ def test_premarket_generation_is_not_supported():
     assert caught.value.status == UNSUPPORTED_MODE
 
 
+def test_close_generation_before_xshg_session_close_is_rejected():
+    with pytest.raises(GenerationContractError) as caught:
+        _freeze(retrieved_at="2026-08-27T14:30:00+08:00")
+
+    assert caught.value.status == SESSION_NOT_CLOSED
+
+
+def test_close_generation_at_xshg_session_close_is_allowed():
+    manifest = _freeze(retrieved_at="2026-08-27T15:00:00+08:00")
+
+    assert manifest.status == READY_FOR_STRATEGY_EVALUATION
+
+
+def test_close_generation_after_xshg_session_close_is_allowed():
+    manifest = _freeze(retrieved_at="2026-08-27T15:01:00+08:00")
+
+    assert manifest.status == READY_FOR_STRATEGY_EVALUATION
+
+
 def test_next_execution_skips_weekend_and_holiday():
     calendar = TradingCalendar(holidays={date(2026, 8, 31)})
 
@@ -181,6 +223,10 @@ def test_next_execution_skips_weekend_and_holiday():
 
 def test_default_xshg_calendar_skips_national_day_holiday():
     assert next_execution_date("2024-09-30") == "2024-10-08"
+
+
+def test_default_xshg_calendar_exposes_official_session_close_in_bjt():
+    assert default_calendar().session_close("2024-09-30").isoformat() == "2024-09-30T15:00:00+08:00"
 
 
 def test_as_of_weekend_is_a_calendar_error():

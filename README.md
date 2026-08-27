@@ -75,6 +75,11 @@ generation strategy。唯一支持 `close` generation：T 日数据完整后以
 `Asia/Shanghai`。premarket、same-bar execution、当前数据冒充历史日期和
 historical replay 均不支持。
 
+`LIVE_OBSERVED` 不是标签而已：Universe、Quote、stock/index Kline 和 Sector
+的 `retrieved_at_bjt` 北京时间日期必须等于 T；`close` generation 还必须发生
+在 XSHG 当日正式 `session_close` 时点或之后。盘中输入拒绝为
+`SESSION_NOT_CLOSED`，不使用人工 15:05/15:10 缓冲。
+
 输入 manifest、日期 fail-fast 校验、腾讯
 `PROVIDER_QFQ_SNAPSHOT` 语义、AkShare `LIVE_OBSERVED` 限制与 deterministic
 input fingerprint 见 [`docs/generation_input_contract.md`](docs/generation_input_contract.md)。
