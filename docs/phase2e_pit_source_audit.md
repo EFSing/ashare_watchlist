@@ -1,8 +1,10 @@
 # Phase 2E：PIT Validation Dataset Source Audit
 
-审计日期：2026-08-28（Asia/Shanghai）  
-审计基线：`master@4ea7b5cf050c1cc50b0043ea3608acf6c14953e3`  
-适用协议：`PHASE2D_VALIDATION_PROTOCOL_V1`  
+审计日期：2026-08-28（Asia/Shanghai）
+
+审计基线：`master@4ea7b5cf050c1cc50b0043ea3608acf6c14953e3`
+
+适用协议：`PHASE2D_VALIDATION_PROTOCOL_V1`
 审计结论：`BLOCKED_NO_PIT_DATASET`
 
 ## 1. 审计标准
