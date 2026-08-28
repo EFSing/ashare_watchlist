@@ -1,0 +1,1140 @@
+{
+  "adjustment_semantics": {
+    "event_filter": "date < ex_date <= T",
+    "event_order": "ascending ex_date",
+    "formula": "(price - dividend_per_share + allotment_price*allotment_ratio)/(1 + per_share_bonus + allotment_ratio)",
+    "name": "HISTORICAL_T_ANCHOR_PRICE_RAW_VOLUME",
+    "price_fields_adjusted": [
+      "open",
+      "high",
+      "low",
+      "close"
+    ],
+    "provider_forward_used_as_t_anchor": false,
+    "volume_semantics": "raw unadjusted volume"
+  },
+  "content_sha256": "ffd2aa4f5bff38d8013cea7fec3e9a6f771e0aab1ed9a1e4341a12a2c4fa3c43",
+  "coverage_and_correctness": {
+    "all_evaluable_symbols_have_120_bars": true,
+    "all_evaluator_bars_end_at_T": true,
+    "all_events_used_have_ex_date_at_or_before_T": true,
+    "all_signal_dates_have_benchmark": true,
+    "benchmark_rows": 886,
+    "coverage_by_date": {
+      "2024-11-08": {
+        "evaluable_symbol_count": 5260,
+        "raw_symbol_count_at_T": 5305,
+        "warmup_or_missing_history_count": 45
+      },
+      "2024-11-11": {
+        "evaluable_symbol_count": 5255,
+        "raw_symbol_count_at_T": 5301,
+        "warmup_or_missing_history_count": 46
+      },
+      "2024-11-12": {
+        "evaluable_symbol_count": 5256,
+        "raw_symbol_count_at_T": 5302,
+        "warmup_or_missing_history_count": 46
+      },
+      "2024-11-13": {
+        "evaluable_symbol_count": 5256,
+        "raw_symbol_count_at_T": 5302,
+        "warmup_or_missing_history_count": 46
+      },
+      "2024-11-14": {
+        "evaluable_symbol_count": 5257,
+        "raw_symbol_count_at_T": 5303,
+        "warmup_or_missing_history_count": 46
+      },
+      "2024-11-15": {
+        "evaluable_symbol_count": 5259,
+        "raw_symbol_count_at_T": 5305,
+        "warmup_or_missing_history_count": 46
+      },
+      "2024-11-18": {
+        "evaluable_symbol_count": 5257,
+        "raw_symbol_count_at_T": 5303,
+        "warmup_or_missing_history_count": 46
+      },
+      "2024-11-19": {
+        "evaluable_symbol_count": 5259,
+        "raw_symbol_count_at_T": 5306,
+        "warmup_or_missing_history_count": 47
+      },
+      "2024-11-20": {
+        "evaluable_symbol_count": 5260,
+        "raw_symbol_count_at_T": 5308,
+        "warmup_or_missing_history_count": 48
+      },
+      "2024-11-21": {
+        "evaluable_symbol_count": 5260,
+        "raw_symbol_count_at_T": 5308,
+        "warmup_or_missing_history_count": 48
+      },
+      "2024-11-22": {
+        "evaluable_symbol_count": 5261,
+        "raw_symbol_count_at_T": 5310,
+        "warmup_or_missing_history_count": 49
+      },
+      "2024-11-25": {
+        "evaluable_symbol_count": 5261,
+        "raw_symbol_count_at_T": 5309,
+        "warmup_or_missing_history_count": 48
+      },
+      "2024-11-26": {
+        "evaluable_symbol_count": 5261,
+        "raw_symbol_count_at_T": 5310,
+        "warmup_or_missing_history_count": 49
+      },
+      "2024-11-27": {
+        "evaluable_symbol_count": 5260,
+        "raw_symbol_count_at_T": 5309,
+        "warmup_or_missing_history_count": 49
+      },
+      "2024-11-28": {
+        "evaluable_symbol_count": 5258,
+        "raw_symbol_count_at_T": 5307,
+        "warmup_or_missing_history_count": 49
+      },
+      "2024-11-29": {
+        "evaluable_symbol_count": 5263,
+        "raw_symbol_count_at_T": 5313,
+        "warmup_or_missing_history_count": 50
+      },
+      "2024-12-02": {
+        "evaluable_symbol_count": 5261,
+        "raw_symbol_count_at_T": 5311,
+        "warmup_or_missing_history_count": 50
+      },
+      "2024-12-03": {
+        "evaluable_symbol_count": 5262,
+        "raw_symbol_count_at_T": 5311,
+        "warmup_or_missing_history_count": 49
+      },
+      "2024-12-04": {
+        "evaluable_symbol_count": 5261,
+        "raw_symbol_count_at_T": 5311,
+        "warmup_or_missing_history_count": 50
+      },
+      "2024-12-05": {
+        "evaluable_symbol_count": 5264,
+        "raw_symbol_count_at_T": 5315,
+        "warmup_or_missing_history_count": 51
+      },
+      "2024-12-06": {
+        "evaluable_symbol_count": 5262,
+        "raw_symbol_count_at_T": 5313,
+        "warmup_or_missing_history_count": 51
+      },
+      "2024-12-09": {
+        "evaluable_symbol_count": 5260,
+        "raw_symbol_count_at_T": 5311,
+        "warmup_or_missing_history_count": 51
+      },
+      "2024-12-10": {
+        "evaluable_symbol_count": 5263,
+        "raw_symbol_count_at_T": 5314,
+        "warmup_or_missing_history_count": 51
+      },
+      "2024-12-11": {
+        "evaluable_symbol_count": 5263,
+        "raw_symbol_count_at_T": 5315,
+        "warmup_or_missing_history_count": 52
+      },
+      "2024-12-12": {
+        "evaluable_symbol_count": 5263,
+        "raw_symbol_count_at_T": 5316,
+        "warmup_or_missing_history_count": 53
+      },
+      "2024-12-13": {
+        "evaluable_symbol_count": 5264,
+        "raw_symbol_count_at_T": 5316,
+        "warmup_or_missing_history_count": 52
+      },
+      "2024-12-16": {
+        "evaluable_symbol_count": 5268,
+        "raw_symbol_count_at_T": 5320,
+        "warmup_or_missing_history_count": 52
+      },
+      "2024-12-17": {
+        "evaluable_symbol_count": 5265,
+        "raw_symbol_count_at_T": 5317,
+        "warmup_or_missing_history_count": 52
+      },
+      "2024-12-18": {
+        "evaluable_symbol_count": 5266,
+        "raw_symbol_count_at_T": 5319,
+        "warmup_or_missing_history_count": 53
+      },
+      "2024-12-19": {
+        "evaluable_symbol_count": 5267,
+        "raw_symbol_count_at_T": 5318,
+        "warmup_or_missing_history_count": 51
+      },
+      "2024-12-20": {
+        "evaluable_symbol_count": 5269,
+        "raw_symbol_count_at_T": 5322,
+        "warmup_or_missing_history_count": 53
+      },
+      "2024-12-23": {
+        "evaluable_symbol_count": 5267,
+        "raw_symbol_count_at_T": 5320,
+        "warmup_or_missing_history_count": 53
+      },
+      "2024-12-24": {
+        "evaluable_symbol_count": 5266,
+        "raw_symbol_count_at_T": 5320,
+        "warmup_or_missing_history_count": 54
+      },
+      "2024-12-25": {
+        "evaluable_symbol_count": 5263,
+        "raw_symbol_count_at_T": 5317,
+        "warmup_or_missing_history_count": 54
+      },
+      "2024-12-26": {
+        "evaluable_symbol_count": 5268,
+        "raw_symbol_count_at_T": 5322,
+        "warmup_or_missing_history_count": 54
+      },
+      "2024-12-27": {
+        "evaluable_symbol_count": 5266,
+        "raw_symbol_count_at_T": 5320,
+        "warmup_or_missing_history_count": 54
+      },
+      "2024-12-30": {
+        "evaluable_symbol_count": 5263,
+        "raw_symbol_count_at_T": 5317,
+        "warmup_or_missing_history_count": 54
+      },
+      "2024-12-31": {
+        "evaluable_symbol_count": 5266,
+        "raw_symbol_count_at_T": 5320,
+        "warmup_or_missing_history_count": 54
+      }
+    },
+    "look_ahead_scan": "PASS_FOR_OBSERVATION_DATES_AND_FILTERED_EVENTS",
+    "raw_daily_k_duplicate_keys": 0,
+    "raw_daily_k_negative_volume_rows": 0,
+    "raw_daily_k_null_numeric_fields": 0,
+    "signal_date_count": 38,
+    "timing_scan": "PASS_T_CLOSE_TO_NEXT_XSHG_SESSION"
+  },
+  "data_partition": "validation",
+  "dataset_version": "core-signal-hithink-continuous-2023-06-30-to-2026-08-28-v1",
+  "forbidden_metrics": [
+    "return",
+    "win_rate",
+    "mfe",
+    "mae",
+    "pnl",
+    "expectancy",
+    "profit_factor"
+  ],
+  "full_legacy_output_validation": {
+    "historical_sina_membership_required": true,
+    "score_85_status": "UNVERIFIED",
+    "status": "BLOCKED_HISTORICAL_SINA_MEMBERSHIP"
+  },
+  "manifest_sha256": "15596609e9ef68ddf6b20b0544d2495fd8607321f164ea3d0c2dca7a40b13792",
+  "market": "CN_STOCKS",
+  "provenance": {
+    "acquisition_at_bjt": "2026-08-28T16:20:26+08:00",
+    "acquisition_date": "2026-08-28",
+    "benchmark": {
+      "files": [
+        {
+          "bytes": 40966,
+          "path": "data/validation/core_signal_validation/raw/index_000001_SH_2023.json",
+          "sha256": "c118fb39d31065914740da150455fba2375d3bcaa83566730d265df0753bb51c"
+        },
+        {
+          "bytes": 40983,
+          "path": "data/validation/core_signal_validation/raw/index_000001_SH_2024.json",
+          "sha256": "53fc9e9f0989e67f8a826614c5c8f260171cf081801bf752df6301e69f4ae4bf"
+        },
+        {
+          "bytes": 41175,
+          "path": "data/validation/core_signal_validation/raw/index_000001_SH_2025.json",
+          "sha256": "27acba0bd5bfc0f54d349d7dbc41a86bf6836dfee3976a970cbb210b287f76a1"
+        },
+        {
+          "bytes": 27109,
+          "path": "data/validation/core_signal_validation/raw/index_000001_SH_2026.json",
+          "sha256": "183f472a1699811edb2550f3ce99b2b05d06c23473b5e2acff0ad2431eaf1514"
+        }
+      ],
+      "row_count": 886
+    },
+    "corporate_actions": {
+      "future_event_rows_after_dataset_end": 42,
+      "max_ex_date": "2026-09-07",
+      "min_ex_date": "1991-02-26",
+      "row_count": 57027,
+      "symbol_count": 5420
+    },
+    "known_at_limitation": "retrospective official dump has observation dates and acquisition hash, but no per-bar historical vintage timestamp",
+    "known_at_vintage_proof": false,
+    "raw_inputs": {
+      "content_sha256": "68d10afc4a0e3341c124f8a5e896292faf8ca271ab15cfbb7ac55fe485db8ccb",
+      "files": [
+        {
+          "bytes": 180203424,
+          "filename": "daily_k.parquet",
+          "logical_identity": "daily_k/daily_k.parquet",
+          "path": "data/validation/core_signal_validation/raw/daily_k.parquet",
+          "role": "daily_k",
+          "sha256": "61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426"
+        },
+        {
+          "bytes": 295284,
+          "filename": "adjustment_factors.parquet",
+          "logical_identity": "adjustment_factors/adjustment_factors.parquet",
+          "path": "data/validation/core_signal_validation/raw/adjustment_factors.parquet",
+          "role": "adjustment_factors",
+          "sha256": "a1b7d63c5826ccd3610dc9bdd949d82eeb0ba84ffad451bfb8bb30ca74962716"
+        },
+        {
+          "bytes": 40966,
+          "filename": "index_000001_SH_2023.json",
+          "logical_identity": "benchmark_index_2023/index_000001_SH_2023.json",
+          "path": "data/validation/core_signal_validation/raw/index_000001_SH_2023.json",
+          "role": "benchmark_index_2023",
+          "sha256": "c118fb39d31065914740da150455fba2375d3bcaa83566730d265df0753bb51c"
+        },
+        {
+          "bytes": 40983,
+          "filename": "index_000001_SH_2024.json",
+          "logical_identity": "benchmark_index_2024/index_000001_SH_2024.json",
+          "path": "data/validation/core_signal_validation/raw/index_000001_SH_2024.json",
+          "role": "benchmark_index_2024",
+          "sha256": "53fc9e9f0989e67f8a826614c5c8f260171cf081801bf752df6301e69f4ae4bf"
+        },
+        {
+          "bytes": 41175,
+          "filename": "index_000001_SH_2025.json",
+          "logical_identity": "benchmark_index_2025/index_000001_SH_2025.json",
+          "path": "data/validation/core_signal_validation/raw/index_000001_SH_2025.json",
+          "role": "benchmark_index_2025",
+          "sha256": "27acba0bd5bfc0f54d349d7dbc41a86bf6836dfee3976a970cbb210b287f76a1"
+        },
+        {
+          "bytes": 27109,
+          "filename": "index_000001_SH_2026.json",
+          "logical_identity": "benchmark_index_2026/index_000001_SH_2026.json",
+          "path": "data/validation/core_signal_validation/raw/index_000001_SH_2026.json",
+          "role": "benchmark_index_2026",
+          "sha256": "183f472a1699811edb2550f3ce99b2b05d06c23473b5e2acff0ad2431eaf1514"
+        }
+      ]
+    },
+    "source": "HiThink Financial-API",
+    "stock": {
+      "duplicate_key_count": 0,
+      "max_date": "2026-08-28",
+      "min_date": "2016-08-29",
+      "negative_volume_count": 0,
+      "null_numeric_count": 0,
+      "row_count": 10252571,
+      "symbol_count": 5551
+    }
+  },
+  "raw_data_range": {
+    "end": "2026-08-28",
+    "start": "2016-08-29"
+  },
+  "replay": {
+    "candidate_evaluations": 199960,
+    "core_output_fields": [
+      "as_of_date",
+      "signal_date",
+      "earliest_execution_date",
+      "symbol",
+      "setup_id",
+      "status",
+      "matched_conditions",
+      "failed_conditions",
+      "reject_reasons",
+      "support",
+      "trigger",
+      "stop",
+      "target",
+      "target_type",
+      "risk",
+      "rr",
+      "level_plan"
+    ],
+    "determinism_method": "canonical stream reread plus fixed sample evaluator double-pass",
+    "deterministic_second_pass_sha256": "b1174e9a5c57f1b2ab0bfab3c9ccaf47eeb1e5e6f3d44af1a9b4df7db141da78",
+    "engine": "formula",
+    "evaluator_chunk_size": 250,
+    "evaluator_workers": 1,
+    "full_evaluator_double_pass_hash_parity": false,
+    "hash_parity": true,
+    "per_date": [
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.00038022813688212925,
+        "candidate_count": 5260,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019011406844106463,
+        "signal_date": "2024-11-08",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5258,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.000570884871550904,
+        "candidate_count": 5255,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019029495718363463,
+        "signal_date": "2024-11-11",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5252,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.000380517503805175,
+        "candidate_count": 5256,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-12",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5254
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5256,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-13",
+        "status_counts": {
+          "NOT_MATCHED": 5256
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5257,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-14",
+        "status_counts": {
+          "NOT_MATCHED": 5257
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.00019015021867275147,
+        "candidate_count": 5259,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-15",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5258
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5257,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-18",
+        "status_counts": {
+          "NOT_MATCHED": 5257
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5259,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-19",
+        "status_counts": {
+          "NOT_MATCHED": 5259
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.00019011406844106463,
+        "candidate_count": 5260,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-20",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5259
+        }
+      },
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.00038022813688212925,
+        "candidate_count": 5260,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019011406844106463,
+        "signal_date": "2024-11-21",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5258,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5261,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-22",
+        "status_counts": {
+          "NOT_MATCHED": 5261
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5261,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-25",
+        "status_counts": {
+          "NOT_MATCHED": 5261
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5261,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-26",
+        "status_counts": {
+          "NOT_MATCHED": 5261
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5260,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-27",
+        "status_counts": {
+          "NOT_MATCHED": 5260
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5258,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-28",
+        "status_counts": {
+          "NOT_MATCHED": 5258
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5263,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-29",
+        "status_counts": {
+          "NOT_MATCHED": 5263
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.00019007793195210037,
+        "candidate_count": 5261,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-02",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5260
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5262,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-03",
+        "status_counts": {
+          "NOT_MATCHED": 5262
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5261,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-04",
+        "status_counts": {
+          "NOT_MATCHED": 5261
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5264,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-05",
+        "status_counts": {
+          "NOT_MATCHED": 5264
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5262,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-06",
+        "status_counts": {
+          "NOT_MATCHED": 5262
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5260,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-09",
+        "status_counts": {
+          "NOT_MATCHED": 5260
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5263,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-10",
+        "status_counts": {
+          "NOT_MATCHED": 5263
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.00019000570017100514,
+        "candidate_count": 5263,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-11",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5262
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.00019000570017100514,
+        "candidate_count": 5263,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-12",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5262
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5264,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-13",
+        "status_counts": {
+          "NOT_MATCHED": 5264
+        }
+      },
+      {
+        "a_match_count": 5,
+        "a_match_frequency": 0.0009491268033409263,
+        "candidate_count": 5268,
+        "matched_rejected_count": 4,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00018982536066818528,
+        "signal_date": "2024-12-16",
+        "status_counts": {
+          "MATCHED_REJECTED": 4,
+          "NOT_MATCHED": 5263,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5265,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-17",
+        "status_counts": {
+          "NOT_MATCHED": 5265
+        }
+      },
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.00037979491074819596,
+        "candidate_count": 5266,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-18",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5264
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5267,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-19",
+        "status_counts": {
+          "NOT_MATCHED": 5267
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5269,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-20",
+        "status_counts": {
+          "NOT_MATCHED": 5269
+        }
+      },
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.00037972280235428136,
+        "candidate_count": 5267,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 2,
+        "qualified_frequency": 0.00037972280235428136,
+        "signal_date": "2024-12-23",
+        "status_counts": {
+          "NOT_MATCHED": 5265,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5266,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-24",
+        "status_counts": {
+          "NOT_MATCHED": 5266
+        }
+      },
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.0003800114003420103,
+        "candidate_count": 5263,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019000570017100514,
+        "signal_date": "2024-12-25",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5261,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.00037965072133637056,
+        "candidate_count": 5268,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-26",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5266
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.000569692366122294,
+        "candidate_count": 5266,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00018989745537409798,
+        "signal_date": "2024-12-27",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5263,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 5,
+        "a_match_frequency": 0.0009500285008550256,
+        "candidate_count": 5263,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 5,
+        "qualified_frequency": 0.0009500285008550256,
+        "signal_date": "2024-12-30",
+        "status_counts": {
+          "NOT_MATCHED": 5258,
+          "QUALIFIED_LEGACY_BASELINE": 5
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.000569692366122294,
+        "candidate_count": 5266,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00018989745537409798,
+        "signal_date": "2024-12-31",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5263,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      }
+    ],
+    "projection_stream_sha256": "b1174e9a5c57f1b2ab0bfab3c9ccaf47eeb1e5e6f3d44af1a9b4df7db141da78",
+    "results_artifact": {
+      "bytes": 1009530,
+      "path": "data/validation/core_signal_validation_continuous_parts/part_a_resume/core_replay_results.jsonl.gz",
+      "sha256": "f99a1a10d769cd398891334c251014b9194f96bb0edcc4e1eec11c44c69acbae"
+    },
+    "sample_determinism": {
+      "evaluator_double_pass_hash_parity": true,
+      "formula_projection_vs_evaluator_parity": true,
+      "sample_date_counts": {
+        "2024-11-08": 12,
+        "2024-11-11": 12,
+        "2024-11-12": 12,
+        "2024-11-13": 12,
+        "2024-11-14": 12,
+        "2024-11-15": 12,
+        "2024-11-18": 12,
+        "2024-11-19": 12,
+        "2024-11-20": 12,
+        "2024-11-21": 12,
+        "2024-11-22": 12,
+        "2024-11-25": 12,
+        "2024-11-26": 12,
+        "2024-11-27": 12,
+        "2024-11-28": 12,
+        "2024-11-29": 12,
+        "2024-12-02": 12,
+        "2024-12-03": 12,
+        "2024-12-04": 12,
+        "2024-12-05": 12,
+        "2024-12-06": 12,
+        "2024-12-09": 12,
+        "2024-12-10": 12,
+        "2024-12-11": 12,
+        "2024-12-12": 12,
+        "2024-12-13": 12,
+        "2024-12-16": 12,
+        "2024-12-17": 12,
+        "2024-12-18": 12,
+        "2024-12-19": 12,
+        "2024-12-20": 12,
+        "2024-12-23": 12,
+        "2024-12-24": 12,
+        "2024-12-25": 12,
+        "2024-12-26": 12,
+        "2024-12-27": 12,
+        "2024-12-30": 12,
+        "2024-12-31": 12
+      },
+      "sample_projection_stream_sha256": "700e540404cf8890204012c3df2d1367f027eb730ea89e0987cd426698bdec48",
+      "sample_rows": 456
+    },
+    "score_fields_in_output": false,
+    "status_counts": {
+      "MATCHED_REJECTED": 24,
+      "NOT_MATCHED": 199922,
+      "QUALIFIED_LEGACY_BASELINE": 14
+    },
+    "structure": {
+      "by_month": {
+        "2024-11": {
+          "a_match_count": 11,
+          "a_match_frequency": 0.00013072982898161464,
+          "candidate_count": 84143,
+          "qualified_count": 3,
+          "qualified_frequency": 3.565358972225853e-05,
+          "sample_date_count": 16
+        },
+        "2024-12": {
+          "a_match_count": 27,
+          "a_match_frequency": 0.0002331263976790972,
+          "candidate_count": 115817,
+          "qualified_count": 11,
+          "qualified_frequency": 9.497742127666922e-05,
+          "sample_date_count": 22
+        }
+      },
+      "by_phase": {
+        "2024": {
+          "a_match_count": 38,
+          "a_match_frequency": 0.0001900380076015203,
+          "candidate_count": 199960,
+          "qualified_count": 14,
+          "qualified_frequency": 7.001400280056011e-05,
+          "sample_date_count": 38
+        }
+      },
+      "by_year": {
+        "2024": {
+          "a_match_count": 38,
+          "a_match_frequency": 0.0001900380076015203,
+          "candidate_count": 199960,
+          "qualified_count": 14,
+          "qualified_frequency": 7.001400280056011e-05,
+          "sample_date_count": 38
+        }
+      },
+      "frequency_diagnostics": {
+        "a_match": {
+          "anomaly_dates": [],
+          "anomaly_threshold_mean_plus_3_population_stddev": 0.0009744463191653134,
+          "mean_frequency": 0.00018999821420393845,
+          "peak": {
+            "frequency": 0.0009500285008550256,
+            "signal_date": "2024-12-30"
+          },
+          "population_stddev": 0.00026148270165379166
+        },
+        "qualified": {
+          "anomaly_dates": [
+            {
+              "frequency": 0.0009500285008550256,
+              "signal_date": "2024-12-30"
+            }
+          ],
+          "anomaly_threshold_mean_plus_3_population_stddev": 0.0005834949015746637,
+          "mean_frequency": 6.99973781279594e-05,
+          "peak": {
+            "frequency": 0.0009500285008550256,
+            "signal_date": "2024-12-30"
+          },
+          "population_stddev": 0.00017116584114890143
+        },
+        "rule": "daily frequency > mean + 3 population standard deviations; descriptive only"
+      },
+      "qualified_signal_event_count": 14,
+      "qualified_symbol_hhi": 0.07142857142857142,
+      "qualified_unique_symbol_count": 14,
+      "top1_symbol_share": 0.07142857142857142,
+      "top5_symbol_share": 0.3571428571428571,
+      "top_symbols": [
+        {
+          "qualified_count": 1,
+          "symbol": "000905.sz"
+        },
+        {
+          "qualified_count": 1,
+          "symbol": "001258.sz"
+        },
+        {
+          "qualified_count": 1,
+          "symbol": "002249.sz"
+        },
+        {
+          "qualified_count": 1,
+          "symbol": "002592.sz"
+        },
+        {
+          "qualified_count": 1,
+          "symbol": "002706.sz"
+        },
+        {
+          "qualified_count": 1,
+          "symbol": "301355.sz"
+        },
+        {
+          "qualified_count": 1,
+          "symbol": "600299.sh"
+        },
+        {
+          "qualified_count": 1,
+          "symbol": "600350.sh"
+        },
+        {
+          "qualified_count": 1,
+          "symbol": "600710.sh"
+        },
+        {
+          "qualified_count": 1,
+          "symbol": "603130.sh"
+        }
+      ]
+    }
+  },
+  "return_validation_gate": "READY_FOR_EXPLICIT_SCOPE_REVIEW; NO_RETURN_METRICS_COMPUTED",
+  "schema_version": "CORE_SIGNAL_VALIDATION_DATASET_MANIFEST_V1",
+  "sector_semantics": {
+    "historical_membership_included": false,
+    "legacy_taxonomy": "新浪行业",
+    "neutral_evaluator_sentinel_used": true,
+    "sector_report_status": "UNVERIFIED",
+    "sector_score_status": "UNVERIFIED",
+    "taxonomy_substitution": false
+  },
+  "signal_date_schedule": "continuous_xshg_sessions_within_frozen_validation_interval",
+  "signal_dates": [
+    "2024-11-08",
+    "2024-11-11",
+    "2024-11-12",
+    "2024-11-13",
+    "2024-11-14",
+    "2024-11-15",
+    "2024-11-18",
+    "2024-11-19",
+    "2024-11-20",
+    "2024-11-21",
+    "2024-11-22",
+    "2024-11-25",
+    "2024-11-26",
+    "2024-11-27",
+    "2024-11-28",
+    "2024-11-29",
+    "2024-12-02",
+    "2024-12-03",
+    "2024-12-04",
+    "2024-12-05",
+    "2024-12-06",
+    "2024-12-09",
+    "2024-12-10",
+    "2024-12-11",
+    "2024-12-12",
+    "2024-12-13",
+    "2024-12-16",
+    "2024-12-17",
+    "2024-12-18",
+    "2024-12-19",
+    "2024-12-20",
+    "2024-12-23",
+    "2024-12-24",
+    "2024-12-25",
+    "2024-12-26",
+    "2024-12-27",
+    "2024-12-30",
+    "2024-12-31"
+  ],
+  "status": "CORE_SIGNAL_VALIDATION_COMPLETE_NO_RETURN_METRICS",
+  "strategy": {
+    "protocol_semantic_sha256": "a7db6dc2d6f2dba2555855236fce5580f5e13e192e66991f0f9f63cb0eb9e7ee",
+    "spec_sha256": "7ce0bf660e3ae685405e01fb9d1ef8e27e7dec44a201ab290da5d8fa8079068d",
+    "strategy_source_modified": false,
+    "version": "A_PLATFORM_BREAKOUT_LEGACY_V1"
+  },
+  "timing_contract": {
+    "earliest_execution": "next XSHG session T+1 recorded per signal date",
+    "execution": "not run",
+    "future_bar_inputs": false,
+    "same_bar_execution": false,
+    "signal_uses": "T close only"
+  },
+  "universe_semantics": "historical daily-K rows present at T with >=120 bars through T",
+  "validation_interval": {
+    "end": "2026-08-28",
+    "final_oos_read": false,
+    "selection_rationale": "The original 14 dates were quarter-end common sessions plus the latest available session; the continuous extension keeps those frozen endpoints and expands only the same validation partition.",
+    "start": "2023-06-30"
+  },
+  "validation_layer": "CORE_SIGNAL_VALIDATION"
+}

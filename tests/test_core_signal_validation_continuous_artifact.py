@@ -35,9 +35,11 @@ def test_continuous_resume_checkpoint_is_self_consistent_and_core_only():
     assert root["signal_date_count"] == 769
     assert root["signal_dates_start"] == "2023-06-30"
     assert root["signal_dates_end"] == "2026-08-28"
+    assert root["checkpoint_status"] == "COMPLETE_CONTINUOUS_REPLAY"
     assert root["sector_score_status"] == "UNVERIFIED"
     assert root["full_legacy_output_validation"] == "BLOCKED_HISTORICAL_SINA_MEMBERSHIP"
     assert root["return_metrics_computed"] is False
+    assert root["completed_output"]["rows"] == 4041140
     _self_hash(root)
 
     for ref in root["parts"]:
@@ -49,6 +51,7 @@ def test_continuous_resume_checkpoint_is_self_consistent_and_core_only():
         assert checkpoint["sector_semantics"]["historical_membership_included"] is False
         assert checkpoint["sector_semantics"]["sector_score_status"] == "UNVERIFIED"
         assert checkpoint["forbidden_scope"]["return_metrics_computed"] is False
+        assert checkpoint["checkpoint_status"] == "COMPLETE_CONTINUOUS_REPLAY"
         progress = checkpoint["progress"]
         expected = checkpoint["expected_candidate_count_by_date"]
         completed = progress["completed_signal_dates"]
@@ -56,10 +59,10 @@ def test_continuous_resume_checkpoint_is_self_consistent_and_core_only():
         assert completed + pending == list(expected)
         assert progress["completed_date_count"] == len(completed)
         assert progress["expected_candidate_evaluations_completed"] == sum(expected[d] for d in completed)
-        assert progress["partial_current_date"] == pending[0]
-        assert checkpoint["resume"]["required_start_date"] == pending[0]
+        assert progress["partial_current_date"] is None
+        assert checkpoint["resume"]["required_start_date"] is None
         assert checkpoint["interrupted_output"]["gzip_readable"] is False
-        assert checkpoint["interrupted_output"]["rows_read"] > progress["expected_candidate_evaluations_completed"]
+        assert checkpoint["interrupted_output"]["rows_read"] > 0
         assert checkpoint["completed_output"]["rows"] == progress["expected_candidate_evaluations_completed"]
 
 

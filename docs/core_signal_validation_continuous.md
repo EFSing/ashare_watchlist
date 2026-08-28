@@ -14,25 +14,30 @@
 - 不加载历史新浪行业 membership；sector score/report 保持 `UNVERIFIED`
 - 结果 projection 只包含 core signal/level 字段，不含 85-score 或任何收益指标
 
-## 当前 checkpoint
+## 完成状态
 
-本轮在继续全量 replay 前已安全停止 A/B worker。两个中断流原样保留，但 gzip 尾部没有
-结束标记，因此不把最后一个部分交易日算作完成。按原始 T-day universe 逐日候选数对账后：
+已按原 checkpoint 从 `2024-11-08` 和 `2026-03-24` 继续，未重跑此前完成的 622 日。
+A/B 新增 147 日后共完成 769 个连续 XSHG session、4,041,140 个 candidate evaluations：
 
-- A：2023-06-30 至 2024-11-07 共 329 个完整交易日；2024-11-08 为部分日期，之后 38 个
-  日期待处理
-- B：2025-01-02 至 2026-03-23 共 293 个完整交易日；2026-03-24 为部分日期，之后 109 个
-  日期待处理
+- A：2023-06-30 至 2024-12-31，共 367 日、1,886,529 个 candidates
+- B：2025-01-02 至 2026-08-28，共 402 日、2,154,611 个 candidates
 
 每个分片都有详细的
 [`core_signal_validation_resume_checkpoint.json`](../data/validation/core_signal_validation_continuous_parts/part_a/core_signal_validation_resume_checkpoint.json)
-和完整日期 clean output；根索引为
+和完整日期 final output；根索引为
 [`core_signal_validation_resume_checkpoint.json`](../data/validation/core_signal_validation_continuous_parts/core_signal_validation_resume_checkpoint.json)。
-中断 output 不覆盖、不作为完整 artifact 使用。resume 必须从部分日期本身开始，clean output
-先与新 resume output 合并，不能重跑已完成日期。
+原始 interrupted output 仍保留为 resume evidence，未被覆盖；final output 是旧 clean output
+与本次 resume output 的按日期拼接。
 
-完整连续 manifest 尚未生成；因此本文件不把连续 replay 宣称为完成，也不写入任何收益指标。
-频率、年度/月度分布和 symbol concentration 只在所有日期完成且 manifest 构建后进行最终审计。
+完整 continuous manifest 已生成：
+[`core_signal_validation_manifest.json`](../data/validation/core_signal_validation_continuous_parts/core_signal_validation_manifest.json)。
+core projection SHA 为 `882b8925e787d67d7035de07f91cd3c941b7394661bd32d5d534cc62e3996c1b`。
+
+随后已按显式授权完成独立 DEVELOPMENT historical returns validation：
+[`development_historical_returns_manifest.json`](../data/validation/core_signal_validation_continuous_parts/development_returns/development_historical_returns_manifest.json)。
+它使用 T+1 XSHG open、raw unadjusted OHLC，输出 1D/3D/5D/10D return、positive rate、
+MFE/MAE、expectancy、年/月分层和 frequency/concentration；结果标记
+`RECONSTRUCTED_RETROSPECTIVE`，不写回 core projection。
 
 历史新浪行业 membership 仍缺失，因此 `FULL_LEGACY_OUTPUT_VALIDATION` 和 85-score
 parity 继续 blocked。retrospective dump 没有 per-bar historical vintage timestamp；该

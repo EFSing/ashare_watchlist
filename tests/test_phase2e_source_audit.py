@@ -64,8 +64,15 @@ def test_phase2e_audit_records_core_and_full_validation_decision_point():
     assert full["requires_historical_sina_membership"] is True
     assert full["sector_taxonomy"] == "新浪行业"
     assert full["claims_full_legacy_output_parity"] is True
+    development = layers["DEVELOPMENT_HISTORICAL_RETURNS_VALIDATION"]
+    assert development["status"] == "DEVELOPMENT_HISTORICAL_RETURNS_VALIDATION_COMPLETE"
+    assert development["retrospective_status"] == "RECONSTRUCTED_RETROSPECTIVE"
+    assert development["qualified_signal_count"] == 8463
+    assert development["entry"] == "T+1 XSHG session open"
+    assert development["score_85_status"] == "UNVERIFIED"
+    assert development["full_legacy_output_validation"] == "BLOCKED_HISTORICAL_SINA_MEMBERSHIP"
     assert layers["decision_point"] == (
-        "CORE_SIGNAL_VALIDATION_COMPLETE_PENDING_EXPLICIT_DECISION_TO_UNLOCK_RETURN_VALIDATION_WHILE_FULL_PARITY_REMAINS_BLOCKED"
+        "DEVELOPMENT_HISTORICAL_RETURNS_VALIDATION_COMPLETE_WHILE_FULL_PARITY_REMAINS_BLOCKED"
     )
 
 

@@ -1,9 +1,9 @@
 {
-  "checkpoint_sha256": "e91afb7ebc07c900de305b960f4954e66cc5a19267fced32c91d063cc0d97a83",
-  "checkpoint_status": "PAUSED_INCOMPLETE_CONTINUOUS_REPLAY",
+  "checkpoint_sha256": "b0bf94e419708e22cdd061731ed0e62335156efcfb7fd171402427ef7b7a96ac",
+  "checkpoint_status": "COMPLETE_CONTINUOUS_REPLAY",
   "completed_output": {
-    "bytes": 10225774,
-    "path": "data/validation/core_signal_validation_continuous_parts/part_a/core_replay_results.completed.jsonl.gz",
+    "bytes": 11235304,
+    "path": "data/validation/core_signal_validation_continuous_parts/part_a_final/core_replay_results.jsonl.gz",
     "per_date": [
       {
         "a_match_count": 39,
@@ -4869,15 +4869,533 @@
           "MATCHED_REJECTED": 2,
           "NOT_MATCHED": 5256
         }
+      },
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.00038022813688212925,
+        "candidate_count": 5260,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019011406844106463,
+        "signal_date": "2024-11-08",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5258,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.000570884871550904,
+        "candidate_count": 5255,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019029495718363463,
+        "signal_date": "2024-11-11",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5252,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.000380517503805175,
+        "candidate_count": 5256,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-12",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5254
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5256,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-13",
+        "status_counts": {
+          "NOT_MATCHED": 5256
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5257,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-14",
+        "status_counts": {
+          "NOT_MATCHED": 5257
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.00019015021867275147,
+        "candidate_count": 5259,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-15",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5258
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5257,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-18",
+        "status_counts": {
+          "NOT_MATCHED": 5257
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5259,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-19",
+        "status_counts": {
+          "NOT_MATCHED": 5259
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.00019011406844106463,
+        "candidate_count": 5260,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-20",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5259
+        }
+      },
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.00038022813688212925,
+        "candidate_count": 5260,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019011406844106463,
+        "signal_date": "2024-11-21",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5258,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5261,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-22",
+        "status_counts": {
+          "NOT_MATCHED": 5261
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5261,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-25",
+        "status_counts": {
+          "NOT_MATCHED": 5261
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5261,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-26",
+        "status_counts": {
+          "NOT_MATCHED": 5261
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5260,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-27",
+        "status_counts": {
+          "NOT_MATCHED": 5260
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5258,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-28",
+        "status_counts": {
+          "NOT_MATCHED": 5258
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5263,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-29",
+        "status_counts": {
+          "NOT_MATCHED": 5263
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.00019007793195210037,
+        "candidate_count": 5261,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-02",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5260
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5262,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-03",
+        "status_counts": {
+          "NOT_MATCHED": 5262
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5261,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-04",
+        "status_counts": {
+          "NOT_MATCHED": 5261
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5264,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-05",
+        "status_counts": {
+          "NOT_MATCHED": 5264
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5262,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-06",
+        "status_counts": {
+          "NOT_MATCHED": 5262
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5260,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-09",
+        "status_counts": {
+          "NOT_MATCHED": 5260
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5263,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-10",
+        "status_counts": {
+          "NOT_MATCHED": 5263
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.00019000570017100514,
+        "candidate_count": 5263,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-11",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5262
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.00019000570017100514,
+        "candidate_count": 5263,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-12",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5262
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5264,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-13",
+        "status_counts": {
+          "NOT_MATCHED": 5264
+        }
+      },
+      {
+        "a_match_count": 5,
+        "a_match_frequency": 0.0009491268033409263,
+        "candidate_count": 5268,
+        "matched_rejected_count": 4,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00018982536066818528,
+        "signal_date": "2024-12-16",
+        "status_counts": {
+          "MATCHED_REJECTED": 4,
+          "NOT_MATCHED": 5263,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5265,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-17",
+        "status_counts": {
+          "NOT_MATCHED": 5265
+        }
+      },
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.00037979491074819596,
+        "candidate_count": 5266,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-18",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5264
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5267,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-19",
+        "status_counts": {
+          "NOT_MATCHED": 5267
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5269,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-20",
+        "status_counts": {
+          "NOT_MATCHED": 5269
+        }
+      },
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.00037972280235428136,
+        "candidate_count": 5267,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 2,
+        "qualified_frequency": 0.00037972280235428136,
+        "signal_date": "2024-12-23",
+        "status_counts": {
+          "NOT_MATCHED": 5265,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5266,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-24",
+        "status_counts": {
+          "NOT_MATCHED": 5266
+        }
+      },
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.0003800114003420103,
+        "candidate_count": 5263,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019000570017100514,
+        "signal_date": "2024-12-25",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5261,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.00037965072133637056,
+        "candidate_count": 5268,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-12-26",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5266
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.000569692366122294,
+        "candidate_count": 5266,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00018989745537409798,
+        "signal_date": "2024-12-27",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5263,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 5,
+        "a_match_frequency": 0.0009500285008550256,
+        "candidate_count": 5263,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 5,
+        "qualified_frequency": 0.0009500285008550256,
+        "signal_date": "2024-12-30",
+        "status_counts": {
+          "NOT_MATCHED": 5258,
+          "QUALIFIED_LEGACY_BASELINE": 5
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.000569692366122294,
+        "candidate_count": 5266,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00018989745537409798,
+        "signal_date": "2024-12-31",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5263,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
       }
     ],
-    "projection_stream_sha256": "22f9308ac114e80a473879041e4c887938a7cfa23bbf23e6e5becf29089266fd",
-    "rows": 1686569,
-    "sha256": "a7e2e18c82b97428cfc024cc8c94fe107af7979995d4d8aeeaf479b118520774",
+    "projection_stream_sha256": "ea50f89aacf140f44475aea6930e0d788058092a6bab650a19521e3328fa2c9e",
+    "rows": 1886529,
+    "sha256": "a292c5513b6bf251d3d099716f4c90201e09402b19e15208e95a8b2895b2e9d1",
     "status_counts": {
-      "MATCHED_REJECTED": 7026,
-      "NOT_MATCHED": 1676183,
-      "QUALIFIED_LEGACY_BASELINE": 3360
+      "MATCHED_REJECTED": 7050,
+      "NOT_MATCHED": 1876105,
+      "QUALIFIED_LEGACY_BASELINE": 3374
     }
   },
   "dataset_version": "core-signal-hithink-continuous-2023-06-30-to-2026-08-28-v1",
@@ -5605,7 +6123,7 @@
   "manifest": {
     "frozen_14_day_manifest": {
       "bytes": 19836,
-      "path": "C:/Users/soush/Documents/ChatGPT/A股项目开发/data/validation/core_signal_validation/core_signal_validation_manifest.json",
+      "path": "C:/Users/soush/Documents/ChatGPT/A股交易系统/ashare_watchlist/data/validation/core_signal_validation/core_signal_validation_manifest.json",
       "sha256": "bcfd00f707c17cf426ccfa671509b8ddd87694355a87dd08894aefa2b94aef99"
     },
     "part_manifest": null,
@@ -5618,8 +6136,8 @@
     "requested_start": "2023-06-30"
   },
   "progress": {
-    "completed_date_count": 329,
-    "completed_end": "2024-11-07",
+    "completed_date_count": 367,
+    "completed_end": "2024-12-31",
     "completed_signal_dates": [
       "2023-06-30",
       "2023-07-03",
@@ -5949,61 +6467,7 @@
       "2024-11-04",
       "2024-11-05",
       "2024-11-06",
-      "2024-11-07"
-    ],
-    "completed_start": "2023-06-30",
-    "expected_candidate_evaluations_completed": 1686569,
-    "last_completed_trade_date": "2024-11-07",
-    "observed_rows_in_interrupted_stream": 1687761,
-    "partial_current_date": "2024-11-08",
-    "pending_ranges": [
-      {
-        "count": 1,
-        "end": "2024-11-08",
-        "start": "2024-11-08"
-      },
-      {
-        "count": 5,
-        "end": "2024-11-15",
-        "start": "2024-11-11"
-      },
-      {
-        "count": 5,
-        "end": "2024-11-22",
-        "start": "2024-11-18"
-      },
-      {
-        "count": 5,
-        "end": "2024-11-29",
-        "start": "2024-11-25"
-      },
-      {
-        "count": 5,
-        "end": "2024-12-06",
-        "start": "2024-12-02"
-      },
-      {
-        "count": 5,
-        "end": "2024-12-13",
-        "start": "2024-12-09"
-      },
-      {
-        "count": 5,
-        "end": "2024-12-20",
-        "start": "2024-12-16"
-      },
-      {
-        "count": 5,
-        "end": "2024-12-27",
-        "start": "2024-12-23"
-      },
-      {
-        "count": 2,
-        "end": "2024-12-31",
-        "start": "2024-12-30"
-      }
-    ],
-    "pending_signal_dates": [
+      "2024-11-07",
       "2024-11-08",
       "2024-11-11",
       "2024-11-12",
@@ -6042,15 +6506,22 @@
       "2024-12-27",
       "2024-12-30",
       "2024-12-31"
-    ]
+    ],
+    "completed_start": "2023-06-30",
+    "expected_candidate_evaluations_completed": 1886529,
+    "last_completed_trade_date": "2024-12-31",
+    "observed_rows_in_interrupted_stream": 1687761,
+    "partial_current_date": null,
+    "pending_ranges": [],
+    "pending_signal_dates": []
   },
   "resume": {
-    "command": "python scripts/core_signal_replay.py --raw-dir data/validation/core_signal_validation/raw --output-dir data/validation/core_signal_validation_continuous_parts/part_a_resume --schedule continuous --engine formula --start-date 2024-11-08 --end-date 2024-12-31",
-    "merge_completed_output_first": "data/validation/core_signal_validation_continuous_parts/part_a/core_replay_results.completed.jsonl.gz",
-    "merge_instruction": "After resume, merge the completed output followed by the resume output; then run the full continuous manifest builder only after every expected signal date is present.",
+    "command": null,
+    "merge_completed_output_first": "data/validation/core_signal_validation_continuous_parts/part_a_final/core_replay_results.jsonl.gz",
+    "merge_instruction": "Continuous replay is complete; no resume is required.",
     "output_dir": "data/validation/core_signal_validation_continuous_parts/part_a_resume",
-    "required_start_date": "2024-11-08",
-    "requires_matching_raw_input_hash": "b2a2f3166ec786c35a98dc2f4a08e54146f85c7b39738dc034c489459853b172"
+    "required_start_date": null,
+    "requires_matching_raw_input_hash": "68d10afc4a0e3341c124f8a5e896292faf8ca271ab15cfbb7ac55fe485db8ccb"
   },
   "schedule": "continuous_xshg_sessions_within_frozen_validation_interval",
   "schema_version": "CORE_SIGNAL_VALIDATION_RESUME_CHECKPOINT_V1",
@@ -6061,36 +6532,54 @@
     "taxonomy_substitution": false
   },
   "source": {
-    "content_sha256": "b2a2f3166ec786c35a98dc2f4a08e54146f85c7b39738dc034c489459853b172",
+    "content_sha256": "68d10afc4a0e3341c124f8a5e896292faf8ca271ab15cfbb7ac55fe485db8ccb",
     "files": [
       {
         "bytes": 180203424,
+        "filename": "daily_k.parquet",
+        "logical_identity": "daily_k/daily_k.parquet",
         "path": "data/validation/core_signal_validation/raw/daily_k.parquet",
+        "role": "daily_k",
         "sha256": "61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426"
       },
       {
         "bytes": 295284,
+        "filename": "adjustment_factors.parquet",
+        "logical_identity": "adjustment_factors/adjustment_factors.parquet",
         "path": "data/validation/core_signal_validation/raw/adjustment_factors.parquet",
+        "role": "adjustment_factors",
         "sha256": "a1b7d63c5826ccd3610dc9bdd949d82eeb0ba84ffad451bfb8bb30ca74962716"
       },
       {
         "bytes": 40966,
+        "filename": "index_000001_SH_2023.json",
+        "logical_identity": "benchmark_index_2023/index_000001_SH_2023.json",
         "path": "data/validation/core_signal_validation/raw/index_000001_SH_2023.json",
+        "role": "benchmark_index_2023",
         "sha256": "c118fb39d31065914740da150455fba2375d3bcaa83566730d265df0753bb51c"
       },
       {
         "bytes": 40983,
+        "filename": "index_000001_SH_2024.json",
+        "logical_identity": "benchmark_index_2024/index_000001_SH_2024.json",
         "path": "data/validation/core_signal_validation/raw/index_000001_SH_2024.json",
+        "role": "benchmark_index_2024",
         "sha256": "53fc9e9f0989e67f8a826614c5c8f260171cf081801bf752df6301e69f4ae4bf"
       },
       {
         "bytes": 41175,
+        "filename": "index_000001_SH_2025.json",
+        "logical_identity": "benchmark_index_2025/index_000001_SH_2025.json",
         "path": "data/validation/core_signal_validation/raw/index_000001_SH_2025.json",
+        "role": "benchmark_index_2025",
         "sha256": "27acba0bd5bfc0f54d349d7dbc41a86bf6836dfee3976a970cbb210b287f76a1"
       },
       {
         "bytes": 27109,
+        "filename": "index_000001_SH_2026.json",
+        "logical_identity": "benchmark_index_2026/index_000001_SH_2026.json",
         "path": "data/validation/core_signal_validation/raw/index_000001_SH_2026.json",
+        "role": "benchmark_index_2026",
         "sha256": "183f472a1699811edb2550f3ce99b2b05d06c23473b5e2acff0ad2431eaf1514"
       }
     ],

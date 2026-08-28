@@ -80,6 +80,14 @@ CHUNK_SIZE = 250
 MINIMUM_BARS = 120
 LOOKBACK_BARS = 260
 A_CONDITIONS = tuple(item["audit"] for item in LEGACY_SPEC["a_match"]["conditions_in_order"])
+REQUIRED_RAW_INPUTS = (
+    ("daily_k", "daily_k.parquet"),
+    ("adjustment_factors", "adjustment_factors.parquet"),
+    ("benchmark_index_2023", "index_000001_SH_2023.json"),
+    ("benchmark_index_2024", "index_000001_SH_2024.json"),
+    ("benchmark_index_2025", "index_000001_SH_2025.json"),
+    ("benchmark_index_2026", "index_000001_SH_2026.json"),
+)
 
 CORE_PROJECTION_FIELDS = (
     "as_of_date",
@@ -975,17 +983,40 @@ def _aggregate_structure(per_date: list[dict[str, Any]], qualified_counts: dict[
     }
 
 
+def canonical_source_content_sha256(files: Iterable[dict[str, Any]]) -> str:
+    """Hash raw source content without coupling it to a filesystem path."""
+
+    records = []
+    seen_identities: set[str] = set()
+    for file_metadata in files:
+        identity = str(file_metadata["logical_identity"])
+        if identity in seen_identities:
+            raise RuntimeError(f"duplicate raw input logical identity: {identity}")
+        seen_identities.add(identity)
+        records.append({
+            "logical_identity": identity,
+            "bytes": int(file_metadata["bytes"]),
+            "sha256": str(file_metadata["sha256"]),
+        })
+    records.sort(key=lambda item: item["logical_identity"])
+    return sha256_json(records)
+
+
 def _source_metadata(raw_dir: Path) -> dict[str, Any]:
-    names = ["daily_k.parquet", "adjustment_factors.parquet"] + [
-        f"index_000001_SH_{year}.json" for year in (2023, 2024, 2025, 2026)
-    ]
     files = []
-    for name in names:
+    for role, name in REQUIRED_RAW_INPUTS:
         path = raw_dir / name
         if not path.exists():
             raise RuntimeError(f"required raw input is missing: {path}")
-        files.append({"path": path.as_posix(), "bytes": path.stat().st_size, "sha256": file_sha256(path)})
-    return {"files": files, "content_sha256": sha256_json(files)}
+        files.append({
+            "logical_identity": f"{role}/{name}",
+            "role": role,
+            "filename": name,
+            "path": path.as_posix(),
+            "bytes": path.stat().st_size,
+            "sha256": file_sha256(path),
+        })
+    return {"files": files, "content_sha256": canonical_source_content_sha256(files)}
 
 
 def _stream_summary(path: Path) -> dict[str, Any]:
