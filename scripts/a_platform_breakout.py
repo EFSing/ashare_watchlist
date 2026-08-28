@@ -1,10 +1,8 @@
 """Auditable A-platform breakout legacy baseline evaluator.
 
-This module is deliberately a research-only consumer of the Phase 2B
-``GenerationInputManifest``.  It has no network access, no scheduler, no
-historical replay path, and no watchlist writer.  The implementation keeps the
-fixed V0 A-platform formulas while making their inputs, outcomes, and
-provenance explicit.
+Research-only consumer of the Phase 2B frozen GenerationInputManifest.  The
+legacy V0 A-platform formulas are intentionally preserved; Phase 2C.1 only
+hardens semantic provenance and gate-by-gate auditability.
 """
 
 from __future__ import annotations
@@ -21,9 +19,7 @@ import numpy as np
 
 from generation_contract import GenerationInputManifest, READY_FOR_STRATEGY_EVALUATION
 
-
 STRATEGY_VERSION = "A_PLATFORM_BREAKOUT_LEGACY_V1"
-# Readable public alias for callers that use the exact strategy-version name.
 A_PLATFORM_BREAKOUT_LEGACY_V1 = STRATEGY_VERSION
 SETUP_ID = "A_PLATFORM_BREAKOUT"
 
@@ -51,9 +47,9 @@ class StrategyInputError(ValueError):
 def _canonical_json(value: Any) -> str:
     def normalize(item: Any) -> Any:
         if is_dataclass(item):
-            return {field.name: normalize(getattr(item, field.name)) for field in fields(item)}
+            return {f.name: normalize(getattr(item, f.name)) for f in fields(item)}
         if isinstance(item, Mapping):
-            return {str(key): normalize(item[key]) for key in sorted(item, key=str)}
+            return {str(k): normalize(item[k]) for k in sorted(item, key=str)}
         if isinstance(item, (list, tuple)):
             return [normalize(child) for child in item]
         if isinstance(item, float) and not math.isfinite(item):
@@ -62,9 +58,13 @@ def _canonical_json(value: Any) -> str:
             return item
         raise TypeError(f"unsupported evaluation value: {type(item).__name__}")
 
-    return json.dumps(
-        normalize(value), ensure_ascii=False, sort_keys=True, separators=(",", ":")
-    )
+    return json.dumps(normalize(value), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def semantic_spec_sha256(spec: Mapping[str, Any]) -> str:
+    """Hash canonical semantic config only; source formatting/comments are irrelevant."""
+
+    return hashlib.sha256(_canonical_json(spec).encode("utf-8")).hexdigest()
 
 
 def _sha256(value: Any) -> str:
@@ -73,77 +73,169 @@ def _sha256(value: Any) -> str:
 
 def _jsonable(value: Any) -> Any:
     if is_dataclass(value):
-        return {field.name: _jsonable(getattr(value, field.name)) for field in fields(value)}
+        return {f.name: _jsonable(getattr(value, f.name)) for f in fields(value)}
     if isinstance(value, Mapping):
-        return {str(key): _jsonable(item) for key, item in value.items()}
-    if isinstance(value, tuple):
-        return [_jsonable(item) for item in value]
-    if isinstance(value, list):
-        return [_jsonable(item) for item in value]
+        return {str(k): _jsonable(v) for k, v in value.items()}
+    if isinstance(value, (tuple, list)):
+        return [_jsonable(v) for v in value]
     return value
 
 
-# The spec payload is intentionally data, rather than executable configuration.
-# Its hash is part of every evaluation's provenance and is independent of run
-# timestamps or transport ordering.
+# Canonical semantic strategy specification.  Every fixed rule below can alter
+# an evaluation result or its audit status; runtime timestamps and source text
+# are intentionally absent.
 LEGACY_SPEC: dict[str, Any] = {
-    "strategy_version": STRATEGY_VERSION,
-    "setup_id": SETUP_ID,
-    "minimum_bars": MINIMUM_BARS,
-    "a_setup": {
-        "platform_range_lte": 0.30,
-        "close_above_previous_60_close_high": True,
-        "volume_ratio_gte": 1.8,
-        "one_day_change_gte_pct": 3.0,
-        "close_above_ma20": True,
-        "breakout_price": "max(close[-61:-1])",
+    "identity": {
+        "strategy_version": STRATEGY_VERSION,
+        "setup_id": SETUP_ID,
+        "role": "RESEARCH_ONLY_LEGACY_BASELINE",
     },
-    "hard_rejects": {
-        "close_lte": 2.0,
-        "acceleration": "chg10 > 35 and bias20 > 15",
-        "gain_exhausted": "pos250 > 0.9 and chg20 > 40",
-        "risk_max": 0.09,
-        "rr_min": 2.0,
-        "overhang_rr": "overhang > 0.5 and rr < 2.5",
+    "input_contract": {
+        "required_manifest_status": READY_FOR_STRATEGY_EVALUATION,
+        "minimum_stock_bars": MINIMUM_BARS,
+        "minimum_index_bars_for_chg5": 6,
+        "numeric_validation": {
+            "prices": ">0",
+            "volume": ">=0",
+            "finite_required": True,
+        },
+        "sector_evidence": {
+            "required_fields": ["sector_name", "sector_rank", "sector_chg"],
+            "sector_name": "non-empty string",
+            "sector_rank": "finite numeric > 0",
+            "sector_chg": "finite numeric",
+            "silent_fallback": False,
+            "missing_status": INSUFFICIENT_DATA,
+        },
     },
-    "levels": {
-        "stop_multiplier": 0.98,
-        "pressure_buffer": 1.03,
-        "overhang_buffer": 1.02,
-        "trend_multiple": 2.5,
-        "volume_bins": 20,
-        "volume_window": 120,
+    "features": {
+        "ma5": "mean(close[-5:])",
+        "ma20": "mean(close[-20:])",
+        "vma20_prev": "mean(volume[-21:-1])",
+        "vol_ratio_k": "volume[-1]/vma20_prev if vma20_prev>0 else 0.0",
+        "chg1_pct": "(close[-1]/close[-2]-1)*100",
+        "chg5_pct": "(close[-1]/close[-6]-1)*100",
+        "chg10_pct": "(close[-1]/close[-11]-1)*100",
+        "chg20_pct": "(close[-1]/close[-21]-1)*100",
+        "bias20_pct": "(close/ma20-1)*100",
+        "llv250": "min(low[-250:])",
+        "hhv250": "max(high[-250:])",
+        "pos250": "(close-llv250)/(hhv250-llv250) if hhv250>llv250 else 0.5",
+        "prev60_hi_c": "max(close[-61:-1])",
+        "prev60_lo": "min(low[-61:-1])",
+        "plat_range": "(max(high[-61:-1])-prev60_lo)/prev60_lo",
+        "index_chg5_pct": "(index_close[-1]/index_close[-6]-1)*100",
+        "relative_strength": "chg5-index_chg5",
+        "ud_ratio": {
+            "price_diff": "np.diff(close[-21:])",
+            "volume_window": "volume[-20:]",
+            "up_volume": "volume[-20:][diff>0]",
+            "down_volume": "volume[-20:][diff<0]",
+            "formula": "mean(up_volume)/mean(down_volume)",
+            "fallback": 1.0,
+            "fallback_when": "either side empty or mean(down_volume)<=0",
+        },
     },
-    "score": {
-        "strong_sector": "rank <= 10: 10; rank <= 20: 6; else: 2",
-        "relative_low": "pos250 < .35 and chg10 <= 30: 15; pos250 < .5: 10; pos250 < .65: 5; else: 0",
-        "volume_price_health": "ud_ratio thresholds 1.3/1.1; volume ratio ranges 1.5..4/>4; A setup +3; cap 15",
-        "clear_support": "risk <= .04: 10; risk <= .06: 6; else: 3",
-        "five_day_strength": "close > ma5 and ma5 >= mean(close[-6:-1]): 5; close > ma5: 3; else: 0",
-        "sector_linkage": "sector_chg >= 1: 10; sector_chg > 0: 5; else: 1",
-        "relative_strength": "rs > 3: 10; rs > 0: 6; else: 2",
-        "risk_reward": "rr >= 3: 10; rr >= 2.5: 8; else: 5",
+    "a_match": {
+        "conditions_in_order": [
+            {"audit": "PLATFORM_RANGE_LE_30_PCT", "lhs": "plat_range", "op": "<=", "rhs": 0.30},
+            {"audit": "CLOSE_ABOVE_PREV_60_CLOSE_HIGH", "lhs": "close", "op": ">", "rhs": "prev60_hi_c"},
+            {"audit": "VOLUME_RATIO_K_GE_1_8", "lhs": "vol_ratio_k", "op": ">=", "rhs": 1.8},
+            {"audit": "CHG1_GE_3_PCT", "lhs": "chg1", "op": ">=", "rhs": 3.0},
+            {"audit": "CLOSE_ABOVE_MA20", "lhs": "close", "op": ">", "rhs": "ma20"},
+        ],
+        "bp_price": "max(close[-61:-1])",
+        "all_required": True,
     },
-    "risk_flags": {
-        "high_turnover": "quote.turnover > 10",
-        "overhang": "overhang > .35",
-        "twenty_day_gain": "chg20 > 30",
+    "hard_gates_in_order": [
+        {"audit": "SECTOR_EVIDENCE_COMPLETE", "pass": "all sector fields valid", "fail_status": INSUFFICIENT_DATA},
+        {"audit": "CLOSE_GT_2", "pass": "close>2", "reject": "close<=2", "reject_reason": REJECTED_CLOSE_TOO_LOW},
+        {"audit": "NO_ACCELERATION_OVEREXTENDED", "pass": "not(chg10>35 and bias20>15)", "reject": "chg10>35 and bias20>15", "reject_reason": ACCELERATION_OVEREXTENDED},
+        {"audit": "NO_GAIN_EXHAUSTED", "pass": "not(pos250>0.9 and chg20>40)", "reject": "pos250>0.9 and chg20>40", "reject_reason": GAIN_EXHAUSTED},
+        {"audit": "VALID_SUPPORT_EXISTS", "pass": "at least one support candidate < close", "reject_reason": REJECTED_NO_SUPPORT},
+        {"audit": "RISK_IN_0_TO_9_PCT", "pass": "risk>0 and risk<=0.09", "reject": "risk<=0 or risk>0.09", "reject_reason": REJECTED_STOP_DISTANCE},
+        {"audit": "RR_GE_2", "pass": "rr>=2", "reject": "rr<2", "reject_reason": REJECTED_RR},
+        {"audit": "OVERHANG_RR_COMBINATION_ACCEPTED", "pass": "not(overhang>0.5 and rr<2.5)", "reject": "overhang>0.5 and rr<2.5", "reject_reason": REJECTED_OVERHANG_RR},
+    ],
+    "support_stop_risk": {
+        "support_candidates_in_order": [
+            "ma20",
+            "bp_price",
+            "low_of_max_volume_bar_in_last_10_bars",
+            "min(low[-20:])",
+        ],
+        "support_filter": {"op": "<", "rhs": "close"},
+        "support_selection": "max(valid_supports)",
+        "stop": {"formula": "round(support*0.98,2)", "rounding": "python_round_ndigits_2"},
+        "risk": "(close-stop)/close",
+        "risk_pass": {"op": "0<risk<=0.09"},
+    },
+    "volume_price_distribution": {
+        "window_bars": 120,
+        "edges": "np.linspace(min(low[-120:]),max(high[-120:]),21)",
+        "digitize": "np.digitize(close[-120:],bins)-1",
+        "index_clip": [0, 19],
+        "bin_count": 20,
+        "aggregation": "sum volume[-120:] by clipped bin index",
+        "volume_bin_tie_break": "ascending first on equal volume",
+    },
+    "overhang": {
+        "buffer_multiplier": 1.02,
+        "formula": "sum(vol_by_price[bins[:-1]>close*1.02])/sum(vol_by_price) if total_vol>0 else 0.0",
+    },
+    "target_rr_trigger": {
+        "pressure_buffer_multiplier": 1.03,
+        "target_candidates_in_order": [
+            {"name": "h60", "formula": "max(high[-60:])", "include_if": "h60>close*1.03"},
+            {"name": "volume_bin", "formula": "bins[argmax(vol_by_price) among bins[index]>close*1.03]", "include_if": "eligible above bins exist", "tie_break": "ascending first"},
+            {"name": "hhv120", "formula": "max(high[-120:])", "include_if": "hhv120>close*1.03"},
+        ],
+        "pressure_target": "min(target_candidates)",
+        "pressure_target_type": "PRESSURE",
+        "no_pressure_target": "close*(1+2.5*risk)",
+        "no_pressure_multiple_r": 2.5,
+        "no_pressure_target_type": "TREND_2_5R",
+        "rr": "(target-close)/(close-stop)",
+        "rr_reject": "rr<2",
+        "overhang_rr_reject": "overhang>0.5 and rr<2.5",
+        "trigger": {"formula": "round(max(bp_price,ma5),2)", "rounding": "python_round_ndigits_2", "execution_semantics": "planned legacy trigger; earliest execution remains T+1"},
+    },
+    "score_85": {
+        "calculation_stage": "qualified only",
+        "strong_sector": {"max": 10, "rules": ["rank<=10:10", "rank<=20:6", "else:2"]},
+        "relative_low": {"max": 15, "rules": ["pos250<0.35 and chg10<=30:15", "pos250<0.5:10", "pos250<0.65:5", "else:0"]},
+        "volume_price_health": {"max": 15, "rules": ["ud_ratio>=1.3:8", "ud_ratio>=1.1:5", "else:2", "1.5<=vol_ratio_k<=4:4", "vol_ratio_k>4:2", "else:1", "A_setup:+3", "cap:15"]},
+        "clear_support": {"max": 10, "rules": ["risk<=0.04:10", "risk<=0.06:6", "else:3"]},
+        "five_day_strength": {"max": 5, "prior_five_mean": "mean(close[-6:-1])", "rules": ["close>ma5 and ma5>=prior_five_mean:5", "close>ma5:3", "else:0"]},
+        "sector_linkage": {"max": 10, "rules": ["sector_chg>=1:10", "sector_chg>0:5", "else:1"]},
+        "relative_strength": {"max": 10, "rs": "chg5-index_chg5", "rules": ["rs>3:10", "rs>0:6", "else:2"]},
+        "risk_reward": {"max": 10, "rules": ["rr>=3:10", "rr>=2.5:8", "else:5"]},
+        "total": "sum(all eight items)",
+        "score_cutoff": null,
+        "top_n": null,
+    },
+    "risk_flags": [
+        {"flag": "HIGH_TURNOVER", "condition": "quote.turnover>10"},
+        {"flag": "OVERHANG", "condition": "overhang>0.35"},
+        {"flag": "TWENTY_DAY_GAIN", "condition": "chg20>30"},
+    ],
+    "status_vocabulary": {
+        NOT_MATCHED: "A five conditions not all satisfied",
+        INSUFFICIENT_DATA: "required coverage/numeric/sector evidence incomplete",
+        MATCHED_REJECTED: "A matched but a legacy hard gate rejected",
+        QUALIFIED_LEGACY_BASELINE: "A matched and all legacy hard gates passed",
     },
 }
-STRATEGY_SPEC_SHA256 = _sha256(LEGACY_SPEC)
+STRATEGY_SPEC_SHA256 = semantic_spec_sha256(LEGACY_SPEC)
 STRATEGY_SPEC_HASH = STRATEGY_SPEC_SHA256
 
 
 def strategy_spec_sha256() -> str:
-    """Return the deterministic SHA-256 of the fixed legacy rule spec."""
-
     return STRATEGY_SPEC_SHA256
 
 
 @dataclass(frozen=True)
 class FeatureSnapshot:
-    """All scalar and volume-distribution features used by the evaluator."""
-
     symbol: str
     close: float
     ma5: float
@@ -182,8 +274,6 @@ class FeatureSnapshot:
 
 @dataclass(frozen=True)
 class LevelPlan:
-    """The legacy support, stop, trigger, target, and risk/return plan."""
-
     support: float
     trigger: float
     stop: float
@@ -199,8 +289,6 @@ class LevelPlan:
 
 @dataclass(frozen=True)
 class ScoreBreakdown:
-    """The complete eight-part legacy 85-point score."""
-
     strong_sector: int
     relative_low: int
     volume_price_health: int
@@ -217,8 +305,6 @@ class ScoreBreakdown:
 
 @dataclass(frozen=True)
 class CandidateEvaluation:
-    """One deterministic, audit-oriented result for one symbol."""
-
     strategy_version: str
     input_fingerprint: str
     as_of_date: str
@@ -246,8 +332,7 @@ class CandidateEvaluation:
     evaluation_hash: str = field(init=False)
 
     def __post_init__(self) -> None:
-        semantic_payload = self.to_dict(include_hash=False)
-        object.__setattr__(self, "evaluation_hash", _sha256(semantic_payload))
+        object.__setattr__(self, "evaluation_hash", _sha256(self.to_dict(include_hash=False)))
 
     @property
     def semantic_hash(self) -> str:
@@ -278,9 +363,7 @@ class CandidateEvaluation:
             "target_type": self.target_type,
             "risk": self.risk,
             "rr": self.rr,
-            "score_breakdown": None
-            if self.score_breakdown is None
-            else self.score_breakdown.to_dict(),
+            "score_breakdown": None if self.score_breakdown is None else self.score_breakdown.to_dict(),
             "score_total": self.score_total,
             "risk_flags": list(self.risk_flags),
             "level_plan": None if self.level_plan is None else self.level_plan.to_dict(),
@@ -292,8 +375,6 @@ class CandidateEvaluation:
 
 
 def _provenance(manifest: GenerationInputManifest) -> dict[str, Any]:
-    """Build semantic provenance without retrieved-at timestamps."""
-
     return {
         "strategy_version": STRATEGY_VERSION,
         "spec_sha256": STRATEGY_SPEC_SHA256,
@@ -304,9 +385,7 @@ def _provenance(manifest: GenerationInputManifest) -> dict[str, Any]:
         "mode": manifest.run_context.mode,
         "timezone": manifest.run_context.timezone,
         "calendar": manifest.run_context.calendar,
-        "adjustment_modes": sorted(
-            {item.adjustment_mode for item in (*manifest.stock_klines, manifest.index)}
-        ),
+        "adjustment_modes": sorted({x.adjustment_mode for x in (*manifest.stock_klines, manifest.index)}),
     }
 
 
@@ -355,20 +434,17 @@ def _require_manifest(manifest: GenerationInputManifest) -> None:
     if not isinstance(manifest, GenerationInputManifest):
         raise StrategyInputError("manifest must be a GenerationInputManifest")
     if manifest.status != READY_FOR_STRATEGY_EVALUATION:
-        raise StrategyInputError(
-            "strategy evaluation requires status=READY_FOR_STRATEGY_EVALUATION"
-        )
+        raise StrategyInputError("strategy evaluation requires status=READY_FOR_STRATEGY_EVALUATION")
 
 
 def _same_symbol(left: Any, right: str) -> bool:
-    left_text = str(left).strip().lower()
-    right_text = str(right).strip().lower()
+    left_text, right_text = str(left).strip().lower(), str(right).strip().lower()
     if left_text == right_text:
         return True
     for prefix in ("sh", "sz", "bj"):
-        if left_text.startswith(prefix) and left_text[len(prefix) :] == right_text:
+        if left_text.startswith(prefix) and left_text[len(prefix):] == right_text:
             return True
-        if right_text.startswith(prefix) and right_text[len(prefix) :] == left_text:
+        if right_text.startswith(prefix) and right_text[len(prefix):] == left_text:
             return True
     return False
 
@@ -393,25 +469,15 @@ def _sector_record(value: Any, symbol: str, *, mapping_key: Any = None) -> Mappi
 
 
 def _sector_evidence(manifest: GenerationInputManifest, symbol: str) -> tuple[str, float, float] | None:
-    """Read explicit per-stock evidence; never invent rank or change values."""
-
     for container in (manifest.sector.rank_input, manifest.sector.members):
         record = _sector_record(container, symbol)
         if record is None:
             continue
-        name = record.get("sector_name")
-        rank = record.get("sector_rank")
-        change = record.get("sector_chg")
+        name, rank, change = record.get("sector_name"), record.get("sector_rank"), record.get("sector_chg")
         if (
-            isinstance(name, str)
-            and bool(name.strip())
-            and isinstance(rank, (int, float))
-            and not isinstance(rank, bool)
-            and math.isfinite(float(rank))
-            and float(rank) > 0
-            and isinstance(change, (int, float))
-            and not isinstance(change, bool)
-            and math.isfinite(float(change))
+            isinstance(name, str) and name.strip()
+            and isinstance(rank, (int, float)) and not isinstance(rank, bool) and math.isfinite(float(rank)) and float(rank) > 0
+            and isinstance(change, (int, float)) and not isinstance(change, bool) and math.isfinite(float(change))
         ):
             return name.strip(), float(rank), float(change)
     return None
@@ -454,9 +520,7 @@ def _index_change(index_bars: Sequence[Mapping[str, Any]]) -> float:
     return (closes[-1] / closes[-6] - 1.0) * 100.0
 
 
-def _volume_distribution(
-    lows: np.ndarray, highs: np.ndarray, closes: np.ndarray, volumes: np.ndarray
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def _volume_distribution(lows: np.ndarray, highs: np.ndarray, closes: np.ndarray, volumes: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     bins = np.linspace(float(np.min(lows[-120:])), float(np.max(highs[-120:])), 21)
     indices = np.clip(np.digitize(closes[-120:], bins) - 1, 0, 19)
     vol_by_price = np.zeros(20, dtype=float)
@@ -465,63 +529,19 @@ def _volume_distribution(
     return bins, vol_by_price, indices
 
 
-def _score(
-    *,
-    sector_rank: float,
-    pos250: float,
-    chg10: float,
-    ud_ratio: float,
-    vol_ratio_k: float,
-    risk: float,
-    close: float,
-    ma5: float,
-    prior_five_mean: float,
-    sector_chg: float,
-    rs: float,
-    rr: float,
-) -> ScoreBreakdown:
+def _score(*, sector_rank: float, pos250: float, chg10: float, ud_ratio: float, vol_ratio_k: float, risk: float, close: float, ma5: float, prior_five_mean: float, sector_chg: float, rs: float, rr: float) -> ScoreBreakdown:
     strong_sector = 10 if sector_rank <= 10 else (6 if sector_rank <= 20 else 2)
-    relative_low = (
-        15
-        if pos250 < 0.35 and chg10 <= 30
-        else (10 if pos250 < 0.5 else (5 if pos250 < 0.65 else 0))
-    )
+    relative_low = 15 if pos250 < 0.35 and chg10 <= 30 else (10 if pos250 < 0.5 else (5 if pos250 < 0.65 else 0))
     volume_price_health = 8 if ud_ratio >= 1.3 else (5 if ud_ratio >= 1.1 else 2)
     volume_price_health += 4 if 1.5 <= vol_ratio_k <= 4 else (2 if vol_ratio_k > 4 else 1)
-    volume_price_health += 3
-    volume_price_health = min(volume_price_health, 15)
+    volume_price_health = min(volume_price_health + 3, 15)
     clear_support = 10 if risk <= 0.04 else (6 if risk <= 0.06 else 3)
-    five_day_strength = (
-        5
-        if close > ma5 and ma5 >= prior_five_mean
-        else (3 if close > ma5 else 0)
-    )
+    five_day_strength = 5 if close > ma5 and ma5 >= prior_five_mean else (3 if close > ma5 else 0)
     sector_linkage = 10 if sector_chg >= 1 else (5 if sector_chg > 0 else 1)
     relative_strength = 10 if rs > 3 else (6 if rs > 0 else 2)
     risk_reward = 10 if rr >= 3 else (8 if rr >= 2.5 else 5)
-    total = sum(
-        (
-            strong_sector,
-            relative_low,
-            volume_price_health,
-            clear_support,
-            five_day_strength,
-            sector_linkage,
-            relative_strength,
-            risk_reward,
-        )
-    )
-    return ScoreBreakdown(
-        strong_sector=strong_sector,
-        relative_low=relative_low,
-        volume_price_health=volume_price_health,
-        clear_support=clear_support,
-        five_day_strength=five_day_strength,
-        sector_linkage=sector_linkage,
-        relative_strength=relative_strength,
-        risk_reward=risk_reward,
-        total=total,
-    )
+    values = (strong_sector, relative_low, volume_price_health, clear_support, five_day_strength, sector_linkage, relative_strength, risk_reward)
+    return ScoreBreakdown(strong_sector, relative_low, volume_price_health, clear_support, five_day_strength, sector_linkage, relative_strength, risk_reward, sum(values))
 
 
 def evaluate_candidate(manifest: GenerationInputManifest, symbol: str) -> CandidateEvaluation:
@@ -535,13 +555,7 @@ def evaluate_candidate(manifest: GenerationInputManifest, symbol: str) -> Candid
 
     item = kline_by_symbol[normalized_symbol]
     if item.bar_count < MINIMUM_BARS:
-        return _base_result(
-            manifest,
-            normalized_symbol,
-            status=INSUFFICIENT_DATA,
-            failed=("MINIMUM_BARS_120",),
-            rejects=(INSUFFICIENT_DATA,),
-        )
+        return _base_result(manifest, normalized_symbol, status=INSUFFICIENT_DATA, failed=("MINIMUM_BARS_120",), rejects=(INSUFFICIENT_DATA,))
 
     quote = manifest.quote_snapshot.quotes.get(normalized_symbol)
     evidence = _sector_evidence(manifest, normalized_symbol)
@@ -550,28 +564,20 @@ def evaluate_candidate(manifest: GenerationInputManifest, symbol: str) -> Candid
             raise ValueError("quote is missing")
         turnover = _quote_number(quote, "turnover", "换手率")
         bars = item.bars
-        index_bars = manifest.index.bars
-        if len(index_bars) < 6:
+        if len(manifest.index.bars) < 6:
             raise ValueError("index has fewer than six bars")
         c = np.asarray([_bar_number(bar, "close") for bar in bars], dtype=float)
         v = np.asarray([_bar_number(bar, "volume") for bar in bars], dtype=float)
         hi = np.asarray([_bar_number(bar, "high") for bar in bars], dtype=float)
         lo = np.asarray([_bar_number(bar, "low") for bar in bars], dtype=float)
         if np.any(v < 0) or np.any(c <= 0) or np.any(hi <= 0) or np.any(lo <= 0):
-            raise ValueError("kline prices and volumes must be positive")
+            raise ValueError("kline prices must be positive and volumes non-negative")
         if evidence is None:
-            return _base_result(
-                manifest,
-                normalized_symbol,
-                status=INSUFFICIENT_DATA,
-                failed=("SECTOR_EVIDENCE_COMPLETE",),
-                rejects=(MISSING_SECTOR_EVIDENCE,),
-            )
+            return _base_result(manifest, normalized_symbol, status=INSUFFICIENT_DATA, failed=("SECTOR_EVIDENCE_COMPLETE",), rejects=(MISSING_SECTOR_EVIDENCE,))
         sector_name, sector_rank, sector_chg = evidence
 
         close = float(c[-1])
-        ma5 = float(np.mean(c[-5:]))
-        ma20 = float(np.mean(c[-20:]))
+        ma5, ma20 = float(np.mean(c[-5:])), float(np.mean(c[-20:]))
         vma20_prev = float(np.mean(v[-21:-1]))
         vol_ratio_k = float(v[-1] / vma20_prev) if vma20_prev > 0 else 0.0
         chg1 = float((c[-1] / c[-2] - 1) * 100)
@@ -579,19 +585,12 @@ def evaluate_candidate(manifest: GenerationInputManifest, symbol: str) -> Candid
         chg10 = float((c[-1] / c[-11] - 1) * 100)
         chg20 = float((c[-1] / c[-21] - 1) * 100)
         bias20 = float((close / ma20 - 1) * 100)
-        llv250 = float(np.min(lo[-250:]))
-        hhv250 = float(np.max(hi[-250:]))
+        llv250, hhv250 = float(np.min(lo[-250:])), float(np.max(hi[-250:]))
         pos250 = float((close - llv250) / (hhv250 - llv250)) if hhv250 > llv250 else 0.5
         diff = np.diff(c[-21:])
-        up_v = v[-20:][diff > 0]
-        dn_v = v[-20:][diff < 0]
-        ud_ratio = (
-            float(np.mean(up_v) / np.mean(dn_v))
-            if len(up_v) and len(dn_v) and np.mean(dn_v) > 0
-            else 1.0
-        )
-        prev60_hi_c = float(np.max(c[-61:-1]))
-        prev60_lo = float(np.min(lo[-61:-1]))
+        up_v, dn_v = v[-20:][diff > 0], v[-20:][diff < 0]
+        ud_ratio = float(np.mean(up_v) / np.mean(dn_v)) if len(up_v) and len(dn_v) and np.mean(dn_v) > 0 else 1.0
+        prev60_hi_c, prev60_lo = float(np.max(c[-61:-1])), float(np.min(lo[-61:-1]))
         plat_range = float((np.max(hi[-61:-1]) - prev60_lo) / prev60_lo)
         idx_chg5 = _index_change(manifest.index.bars)
         rs = float(chg5 - idx_chg5)
@@ -607,190 +606,77 @@ def evaluate_candidate(manifest: GenerationInputManifest, symbol: str) -> Candid
         failed = [name for name, passed in condition_pairs if not passed]
 
         bins, vol_by_price, _ = _volume_distribution(lo, hi, c, v)
-        h60 = float(np.max(hi[-60:]))
-        hhv120 = float(np.max(hi[-120:]))
+        h60, hhv120 = float(np.max(hi[-60:])), float(np.max(hi[-120:]))
         total_vol = float(np.sum(vol_by_price))
-        overhang = (
-            float(np.sum(vol_by_price[bins[:-1] > close * 1.02]) / total_vol)
-            if total_vol > 0
-            else 0.0
-        )
+        overhang = float(np.sum(vol_by_price[bins[:-1] > close * 1.02]) / total_vol) if total_vol > 0 else 0.0
         features = FeatureSnapshot(
-            symbol=normalized_symbol,
-            close=close,
-            ma5=ma5,
-            ma20=ma20,
-            vma20_prev=vma20_prev,
-            vol_ratio_k=vol_ratio_k,
-            chg1=chg1,
-            chg5=chg5,
-            chg10=chg10,
-            chg20=chg20,
-            bias20=bias20,
-            llv250=llv250,
-            hhv250=hhv250,
-            pos250=pos250,
-            prev60_hi_c=prev60_hi_c,
-            prev60_lo=prev60_lo,
-            plat_range=plat_range,
-            ud_ratio=ud_ratio,
-            vol_bar_lo=float(lo[-10:][int(np.argmax(v[-10:]))]),
-            h60=h60,
-            hhv120=hhv120,
-            overhang=overhang,
-            idx_chg5=idx_chg5,
-            rs=rs,
-            turnover=turnover,
-            sector_name=sector_name,
-            sector_rank=sector_rank,
-            sector_chg=sector_chg,
-            bins=tuple(float(value) for value in bins),
-            vol_by_price=tuple(float(value) for value in vol_by_price),
-            target_candidates=(),
+            normalized_symbol, close, ma5, ma20, vma20_prev, vol_ratio_k,
+            chg1, chg5, chg10, chg20, bias20, llv250, hhv250, pos250,
+            prev60_hi_c, prev60_lo, plat_range, ud_ratio,
+            float(lo[-10:][int(np.argmax(v[-10:]))]), h60, hhv120, overhang,
+            idx_chg5, rs, turnover, sector_name, sector_rank, sector_chg,
+            tuple(float(x) for x in bins), tuple(float(x) for x in vol_by_price), (),
         )
         if failed:
-            return _base_result(
-                manifest,
-                normalized_symbol,
-                status=NOT_MATCHED,
-                features=features,
-                matched=matched,
-                failed=failed,
-            )
+            return _base_result(manifest, normalized_symbol, status=NOT_MATCHED, features=features, matched=matched, failed=failed)
 
         matched.append("SECTOR_EVIDENCE_COMPLETE")
         if close <= 2:
-            return _base_result(
-                manifest,
-                normalized_symbol,
-                status=MATCHED_REJECTED,
-                features=features,
-                matched=matched,
-                failed=("CLOSE_GT_2",),
-                rejects=(REJECTED_CLOSE_TOO_LOW,),
-            )
+            return _base_result(manifest, normalized_symbol, status=MATCHED_REJECTED, features=features, matched=matched, failed=("CLOSE_GT_2",), rejects=(REJECTED_CLOSE_TOO_LOW,))
+        matched.append("CLOSE_GT_2")
+
         if chg10 > 35 and bias20 > 15:
-            return _base_result(
-                manifest,
-                normalized_symbol,
-                status=MATCHED_REJECTED,
-                features=features,
-                matched=matched,
-                failed=("NOT_ACCELERATION_OVEREXTENDED",),
-                rejects=(ACCELERATION_OVEREXTENDED,),
-            )
+            return _base_result(manifest, normalized_symbol, status=MATCHED_REJECTED, features=features, matched=matched, failed=("NO_ACCELERATION_OVEREXTENDED",), rejects=(ACCELERATION_OVEREXTENDED,))
+        matched.append("NO_ACCELERATION_OVEREXTENDED")
+
         if pos250 > 0.9 and chg20 > 40:
-            return _base_result(
-                manifest,
-                normalized_symbol,
-                status=MATCHED_REJECTED,
-                features=features,
-                matched=matched,
-                failed=("NOT_GAIN_EXHAUSTED",),
-                rejects=(GAIN_EXHAUSTED,),
-            )
+            return _base_result(manifest, normalized_symbol, status=MATCHED_REJECTED, features=features, matched=matched, failed=("NO_GAIN_EXHAUSTED",), rejects=(GAIN_EXHAUSTED,))
+        matched.append("NO_GAIN_EXHAUSTED")
 
         bp_price = prev60_hi_c
         support_candidates = [ma20, bp_price, features.vol_bar_lo, float(np.min(lo[-20:]))]
         valid_supports = [value for value in support_candidates if value < close]
         if not valid_supports:
-            return _base_result(
-                manifest,
-                normalized_symbol,
-                status=MATCHED_REJECTED,
-                features=features,
-                matched=matched,
-                failed=("VALID_SUPPORT_EXISTS",),
-                rejects=(REJECTED_NO_SUPPORT,),
-            )
+            return _base_result(manifest, normalized_symbol, status=MATCHED_REJECTED, features=features, matched=matched, failed=("VALID_SUPPORT_EXISTS",), rejects=(REJECTED_NO_SUPPORT,))
+        matched.append("VALID_SUPPORT_EXISTS")
+
         support = float(max(valid_supports))
         stop = round(support * 0.98, 2)
         risk = float((close - stop) / close)
         if risk <= 0 or risk > 0.09:
-            return _base_result(
-                manifest,
-                normalized_symbol,
-                status=MATCHED_REJECTED,
-                features=features,
-                matched=matched,
-                failed=("RISK_IN_0_TO_9_PCT",),
-                rejects=(REJECTED_STOP_DISTANCE,),
-            )
+            return _base_result(manifest, normalized_symbol, status=MATCHED_REJECTED, features=features, matched=matched, failed=("RISK_IN_0_TO_9_PCT",), rejects=(REJECTED_STOP_DISTANCE,))
+        matched.append("RISK_IN_0_TO_9_PCT")
 
         target_candidates: list[float] = []
         if h60 > close * 1.03:
             target_candidates.append(h60)
-        above_bin_indices = [
-            index for index in range(20) if bins[index] > close * 1.03
-        ]
+        above_bin_indices = [index for index in range(20) if bins[index] > close * 1.03]
         if above_bin_indices:
-            # ``max`` keeps the first index on a volume tie, matching the
-            # ascending ``above_bins`` list in the fixed V0 script.
             peak_index = max(above_bin_indices, key=lambda index: vol_by_price[index])
             target_candidates.append(float(bins[peak_index]))
         if hhv120 > close * 1.03:
             target_candidates.append(hhv120)
         if target_candidates:
-            target = float(min(target_candidates))
-            target_type = "PRESSURE"
+            target, target_type = float(min(target_candidates)), "PRESSURE"
         else:
-            target = float(close * (1 + 2.5 * risk))
-            target_type = "TREND_2_5R"
-        denominator = close - stop
-        rr = float((target - close) / denominator)
-        features = FeatureSnapshot(
-            **{
-                **features.__dict__,
-                "target_candidates": tuple(target_candidates),
-            }
-        )
+            target, target_type = float(close * (1 + 2.5 * risk)), "TREND_2_5R"
+        rr = float((target - close) / (close - stop))
+        features = FeatureSnapshot(**{**features.__dict__, "target_candidates": tuple(target_candidates)})
         trigger = round(max(bp_price, ma5), 2)
-        level_plan = LevelPlan(
-            support=support,
-            trigger=trigger,
-            stop=stop,
-            target=target,
-            target_type=target_type,
-            risk=risk,
-            rr=rr,
-            overhang=overhang,
-        )
+        level_plan = LevelPlan(support, trigger, stop, target, target_type, risk, rr, overhang)
+
         if rr < 2:
-            return _base_result(
-                manifest,
-                normalized_symbol,
-                status=MATCHED_REJECTED,
-                features=features,
-                matched=matched,
-                failed=("RR_GE_2",),
-                rejects=(REJECTED_RR,),
-                level_plan=level_plan,
-            )
+            return _base_result(manifest, normalized_symbol, status=MATCHED_REJECTED, features=features, matched=matched, failed=("RR_GE_2",), rejects=(REJECTED_RR,), level_plan=level_plan)
+        matched.append("RR_GE_2")
+
         if overhang > 0.5 and rr < 2.5:
-            return _base_result(
-                manifest,
-                normalized_symbol,
-                status=MATCHED_REJECTED,
-                features=features,
-                matched=matched,
-                failed=("OVERHANG_RR_COMBINATION_ACCEPTED",),
-                rejects=(REJECTED_OVERHANG_RR,),
-                level_plan=level_plan,
-            )
+            return _base_result(manifest, normalized_symbol, status=MATCHED_REJECTED, features=features, matched=matched, failed=("OVERHANG_RR_COMBINATION_ACCEPTED",), rejects=(REJECTED_OVERHANG_RR,), level_plan=level_plan)
+        matched.append("OVERHANG_RR_COMBINATION_ACCEPTED")
 
         score = _score(
-            sector_rank=sector_rank,
-            pos250=pos250,
-            chg10=chg10,
-            ud_ratio=ud_ratio,
-            vol_ratio_k=vol_ratio_k,
-            risk=risk,
-            close=close,
-            ma5=ma5,
-            prior_five_mean=float(np.mean(c[-6:-1])),
-            sector_chg=sector_chg,
-            rs=rs,
-            rr=rr,
+            sector_rank=sector_rank, pos250=pos250, chg10=chg10, ud_ratio=ud_ratio,
+            vol_ratio_k=vol_ratio_k, risk=risk, close=close, ma5=ma5,
+            prior_five_mean=float(np.mean(c[-6:-1])), sector_chg=sector_chg, rs=rs, rr=rr,
         )
         risk_flags: list[str] = []
         if turnover > 10:
@@ -799,102 +685,41 @@ def evaluate_candidate(manifest: GenerationInputManifest, symbol: str) -> Candid
             risk_flags.append("OVERHANG")
         if chg20 > 30:
             risk_flags.append("TWENTY_DAY_GAIN")
-        matched.extend(
-            (
-                "CLOSE_GT_2",
-                "NO_ACCELERATION_OVEREXTENDED",
-                "NO_GAIN_EXHAUSTED",
-                "VALID_SUPPORT_EXISTS",
-                "RISK_IN_0_TO_9_PCT",
-                "RR_GE_2",
-                "OVERHANG_RR_COMBINATION_ACCEPTED",
-            )
-        )
-        return _base_result(
-            manifest,
-            normalized_symbol,
-            status=QUALIFIED_LEGACY_BASELINE,
-            features=features,
-            matched=matched,
-            score=score,
-            risk_flags=risk_flags,
-            level_plan=level_plan,
-        )
+        return _base_result(manifest, normalized_symbol, status=QUALIFIED_LEGACY_BASELINE, features=features, matched=matched, score=score, risk_flags=risk_flags, level_plan=level_plan)
     except (TypeError, ValueError, ZeroDivisionError):
-        return _base_result(
-            manifest,
-            normalized_symbol,
-            status=INSUFFICIENT_DATA,
-            failed=("NUMERIC_INPUT_COMPLETE",),
-            rejects=(INSUFFICIENT_DATA,),
-        )
+        return _base_result(manifest, normalized_symbol, status=INSUFFICIENT_DATA, failed=("NUMERIC_INPUT_COMPLETE",), rejects=(INSUFFICIENT_DATA,))
 
 
 def evaluate_universe(manifest: GenerationInputManifest) -> tuple[CandidateEvaluation, ...]:
-    """Evaluate every frozen-universe stock in stable symbol order.
-
-    This returns audit evaluations only.  It deliberately has no ranking,
-    score cut, TOP N, portfolio, position-sizing, or canonical watchlist path.
-    """
+    """Return stable per-symbol audits only; no selection, ranking, or publication."""
 
     _require_manifest(manifest)
     return tuple(evaluate_candidate(manifest, symbol) for symbol in manifest.universe.symbols)
 
 
 def evaluate_batch(manifest: GenerationInputManifest) -> tuple[CandidateEvaluation, ...]:
-    """Readability alias for :func:`evaluate_universe`."""
-
     return evaluate_universe(manifest)
 
 
 def evaluate_generation_inputs(manifest: GenerationInputManifest) -> tuple[CandidateEvaluation, ...]:
-    """Public batch entrypoint named after the Phase 2B input boundary."""
-
     return evaluate_universe(manifest)
 
 
-def evaluate_a_platform(
-    manifest: GenerationInputManifest, symbol: str
-) -> CandidateEvaluation:
-    """Readable alias for the single-symbol A-platform evaluation."""
-
+def evaluate_a_platform(manifest: GenerationInputManifest, symbol: str) -> CandidateEvaluation:
     return evaluate_candidate(manifest, symbol)
 
 
 def evaluate_manifest(manifest: GenerationInputManifest) -> tuple[CandidateEvaluation, ...]:
-    """Readable alias for the frozen-universe batch evaluation."""
-
     return evaluate_universe(manifest)
 
 
 __all__ = [
-    "ACCELERATION_OVEREXTENDED",
-    "A_PLATFORM_BREAKOUT_LEGACY_V1",
-    "CandidateEvaluation",
-    "FeatureSnapshot",
-    "GAIN_EXHAUSTED",
-    "INSUFFICIENT_DATA",
-    "LevelPlan",
-    "MATCHED_REJECTED",
-    "MISSING_SECTOR_EVIDENCE",
-    "NOT_MATCHED",
-    "QUALIFIED_LEGACY_BASELINE",
-    "REJECTED_CLOSE_TOO_LOW",
-    "REJECTED_NO_SUPPORT",
-    "REJECTED_OVERHANG_RR",
-    "REJECTED_RR",
-    "REJECTED_STOP_DISTANCE",
-    "SETUP_ID",
-    "ScoreBreakdown",
-    "STRATEGY_SPEC_SHA256",
-    "STRATEGY_SPEC_HASH",
-    "STRATEGY_VERSION",
-    "StrategyInputError",
-    "evaluate_batch",
-    "evaluate_a_platform",
-    "evaluate_candidate",
-    "evaluate_generation_inputs",
-    "evaluate_manifest",
-    "evaluate_universe",
-    "strategy_spec_sha256",
+    "ACCELERATION_OVEREXTENDED", "A_PLATFORM_BREAKOUT_LEGACY_V1", "CandidateEvaluation",
+    "FeatureSnapshot", "GAIN_EXHAUSTED", "INSUFFICIENT_DATA", "LEGACY_SPEC", "LevelPlan",
+    "MATCHED_REJECTED", "MISSING_SECTOR_EVIDENCE", "NOT_MATCHED", "QUALIFIED_LEGACY_BASELINE",
+    "REJECTED_CLOSE_TOO_LOW", "REJECTED_NO_SUPPORT", "REJECTED_OVERHANG_RR", "REJECTED_RR",
+    "REJECTED_STOP_DISTANCE", "SETUP_ID", "ScoreBreakdown", "STRATEGY_SPEC_SHA256",
+    "STRATEGY_SPEC_HASH", "STRATEGY_VERSION", "StrategyInputError", "evaluate_a_platform",
+    "evaluate_batch", "evaluate_candidate", "evaluate_generation_inputs", "evaluate_manifest",
+    "evaluate_universe", "semantic_spec_sha256", "strategy_spec_sha256",
 ]
