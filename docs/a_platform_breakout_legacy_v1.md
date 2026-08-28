@@ -1,51 +1,18 @@
 # Phase 2C：A Platform Breakout Legacy Baseline
 
-本文件定义 `A_PLATFORM_BREAKOUT_LEGACY_V1` 的 research baseline evaluator。
-它是从 V0 固定脚本恢复的可审计、确定性基线，不是已验证的 production
-strategy。
+本文件定义 `A_PLATFORM_BREAKOUT_LEGACY_V1`。该实现仅用于 research baseline / legacy parity，不是 production strategy，不代表参数已经验证有效，也不可直接用于交易。
 
-## 范围与输入边界
+## 输入与执行边界
 
-唯一入口是 `scripts/a_platform_breakout.py` 的
-`evaluate_candidate()` / `evaluate_universe()`。入口只接受 Phase 2B
-`GenerationInputManifest`，且要求：
+唯一策略入口为 `scripts/a_platform_breakout.py` 的 `evaluate_candidate()` / `evaluate_universe()`，仅接受 Phase 2B 状态为 `READY_FOR_STRATEGY_EVALUATION` 的冻结 `GenerationInputManifest`。策略不联网、不读取 raw 当前行情、不做 historical replay、不读取 `perf_tracker`、不写 canonical watchlist，也不做 TOP N、score cutoff、portfolio selection 或 position sizing。
 
-```text
-status == READY_FOR_STRATEGY_EVALUATION
-```
+`signal_date=T`，`earliest_execution_date` 继续由 Phase 2B XSHG 日历定义为下一交易日 T+1。`trigger` 仅为 legacy planned trigger，不是 T 日成交价或 same-bar execution 价格。
 
-策略只读取冻结 manifest 中的个股 K 线、指数 K 线、quote turnover 和
-Sector evidence；不联网、不读取 raw 当前数据、不做 historical replay、不
-读取 `perf_tracker`，也不写入 canonical watchlist。
+每只股票必须有完整 Sector evidence：`sector_name`、`sector_rank`、`sector_chg`。缺少、不可解释或数值无效时返回 `INSUFFICIENT_DATA`；禁止恢复 V0 的 `rank=50`、`sector_chg=0` silent fallback。个股 K 线少于 120 根同样为 `INSUFFICIENT_DATA`。
 
-Phase 2B 的 `signal_date` 是 T，`earliest_execution_date` 是 XSHG 日历的下
-一个交易日 T+1。`trigger` 是 legacy planned trigger，不是 T 日成交价，
-也不是 same-bar execution 价格。
+## A 平台突破固定公式
 
-每个股票的 `SectorManifest.rank_input`（或 `members`）必须能够通过股票代码
-解释出以下完整记录：
-
-```json
-{
-  "600000": {
-    "sector_name": "银行",
-    "sector_rank": 5,
-    "sector_chg": 1.5
-  }
-}
-```
-
-缺少任一字段、字段不可解释或数值无效时，结果为
-`INSUFFICIENT_DATA`。不会恢复 V0 在板块失败时偷偷使用 `rank=50`、
-`sector_chg=0` 的 silent fallback。
-
-个股 K 线少于 120 根时为 `INSUFFICIENT_DATA`。K 线日期、T、T+1 和复权/来源
-语义由 Phase 2B 合同负责；本策略不重新定义日期或日历。
-
-## A 平台突破公式
-
-令 `c`、`v`、`hi`、`lo` 分别为 manifest 中按日期排序的 close、volume、high、
-low 序列：
+令 `c`、`v`、`hi`、`lo` 分别为冻结个股 K 线的 close、volume、high、low 序列：
 
 ```text
 close = c[-1]
@@ -67,9 +34,10 @@ pos250 = (close - llv250) / (hhv250 - llv250) if hhv250 > llv250 else 0.5
 prev60_hi_c = max(c[-61:-1])
 prev60_lo = min(lo[-61:-1])
 plat_range = (max(hi[-61:-1]) - prev60_lo) / prev60_lo
+bp_price = prev60_hi_c
 ```
 
-A 只在以下条件全部满足时 matched：
+A 必须同时满足：
 
 ```text
 plat_range <= 0.30
@@ -79,109 +47,126 @@ chg1 >= 3
 close > ma20
 ```
 
-`bp_price = prev60_hi_c`。量价健康仍使用旧口径：`np.diff(c[-21:])` 对应
-`v[-20:]`，上涨日均量除以下跌日均量；任一组为空或下跌日均量不大于零时
-`ud_ratio = 1.0`。
+`ud_ratio` 严格使用 `np.diff(c[-21:])` 对应 `v[-20:]`；上涨日均量除以下跌日均量；任一组为空或下跌日均量不大于 0 时固定 fallback 为 `1.0`。
 
-## Legacy hard rejects 与价位
+## Legacy hard gates、support、target 与 RR
 
-匹配 A 后，以下规则和阈值原样保留：
+A matched 后，hard gates 按以下顺序执行：
 
-- `close <= 2` → `REJECTED_CLOSE_TOO_LOW`；
-- `chg10 > 35 and bias20 > 15` → `ACCELERATION_OVEREXTENDED`；
-- `pos250 > 0.9 and chg20 > 40` → `GAIN_EXHAUSTED`；
-- 支撑候选为 `ma20`、`bp_price`、近十日最大量 K 线 low、`min(lo[-20:])`，
-  只保留小于 close 的值并取最大者；没有候选 → `REJECTED_NO_SUPPORT`；
-- `stop = round(support * 0.98, 2)`，`risk = (close - stop) / close`；
-  `risk <= 0` 或 `risk > 0.09` → `REJECTED_STOP_DISTANCE`；
-- 120 日价格成交量分布使用
-  `bins = np.linspace(min(lo[-120:]), max(hi[-120:]), 21)`，20 个 bin，
-  按 `np.digitize(c[-120:], bins)` 累加 volume；
-- `h60`、上方 volume bin、`hhv120` 中的有效压力候选取最小值，
-  `target_type = PRESSURE`；没有候选时使用
-  `target = close * (1 + 2.5 * risk)`，`target_type = TREND_2_5R`；
-- `rr = (target - close) / (close - stop)`，`rr < 2` → `REJECTED_RR`；
-- `overhang > 0.5 and rr < 2.5` → `REJECTED_OVERHANG_RR`；
-- `trigger = round(max(bp_price, ma5), 2)`。
+```text
+SECTOR_EVIDENCE_COMPLETE
+CLOSE_GT_2
+NO_ACCELERATION_OVEREXTENDED
+NO_GAIN_EXHAUSTED
+VALID_SUPPORT_EXISTS
+RISK_IN_0_TO_9_PCT
+RR_GE_2
+OVERHANG_RR_COMBINATION_ACCEPTED
+```
 
-上述风险否决只属于 legacy baseline；它们不代表生产规则已经冻结。
+固定否决条件：
 
-## 85 分 breakdown
+- `close <= 2`；
+- `chg10 > 35 and bias20 > 15`；
+- `pos250 > 0.9 and chg20 > 40`；
+- 无有效 support；
+- `risk <= 0` 或 `risk > 0.09`；
+- `rr < 2`；
+- `overhang > 0.5 and rr < 2.5`。
 
-只有通过全部 hard conditions 的 A candidate 才计算分数。输出始终保存完整的
-`ScoreBreakdown`，不会只保留 total：
+support candidates 固定为：`ma20`、`bp_price`、近 10 日最大成交量 K 线 low、`min(lo[-20:])`。仅保留 `< close` 的候选并取最大值。
 
-| English field | 旧规则 | 最大分 |
+```text
+stop = round(support * 0.98, 2)
+risk = (close - stop) / close
+```
+
+120 日 volume-price distribution 固定为：
+
+```text
+bins = np.linspace(min(lo[-120:]), max(hi[-120:]), 21)
+indices = np.digitize(c[-120:], bins) - 1
+indices = clip(indices, 0, 19)
+20 bins
+```
+
+按 clipped bin index 累加 `v[-120:]`。上方 volume bin 的候选要求 bin price `> close * 1.03`；如成交量并列，按 ascending bin 顺序选择第一个。
+
+三类 pressure candidate 为：
+
+- `h60=max(hi[-60:])`，且 `h60 > close*1.03`；
+- 上述最高成交量的上方 volume bin；
+- `hhv120=max(hi[-120:])`，且 `hhv120 > close*1.03`。
+
+存在候选时 `target=min(candidates)`，`target_type=PRESSURE`；无候选时：
+
+```text
+target = close * (1 + 2.5 * risk)
+target_type = TREND_2_5R
+```
+
+```text
+rr = (target - close) / (close - stop)
+overhang = sum(vol_by_price[bins[:-1] > close*1.02]) / sum(vol_by_price)
+trigger = round(max(bp_price, ma5), 2)
+```
+
+当总成交量为 0 时 `overhang=0.0`。
+
+## 85 分 Legacy Score
+
+仅通过全部 hard gates 的 candidate 计算完整八项 breakdown：
+
+| 项目 | 固定规则 | 最大分 |
 | --- | --- | ---: |
-| `strong_sector` | rank ≤10: 10；≤20: 6；否则 2 | 10 |
-| `relative_low` | pos250 <.35 且 chg10 ≤30: 15；否则 pos250 <.5: 10；否则 pos250 <.65: 5；否则 0 | 15 |
-| `volume_price_health` | ud_ratio 按 1.3/1.1 分档，加 volume ratio 1.5..4/>4 分档，再加 A setup 3，封顶 15 | 15 |
-| `clear_support` | risk ≤.04: 10；≤.06: 6；否则 3 | 10 |
-| `five_day_strength` | close>ma5 且 ma5≥前五日均值: 5；仅 close>ma5: 3；否则 0 | 5 |
-| `sector_linkage` | sector_chg ≥1: 10；>0: 5；否则 1 | 10 |
-| `relative_strength` | `rs=chg5-index_chg5`，rs>3: 10；>0: 6；否则 2 | 10 |
-| `risk_reward` | rr≥3: 10；≥2.5: 8；否则 5 | 10 |
+| `strong_sector` | rank≤10:10；rank≤20:6；否则2 | 10 |
+| `relative_low` | pos250<0.35 且 chg10≤30:15；否则 pos250<0.5:10；否则 pos250<0.65:5；否则0 | 15 |
+| `volume_price_health` | ud_ratio≥1.3:8；≥1.1:5；否则2；再按 1.5≤vol_ratio_k≤4 加4、>4 加2、否则加1；A setup 加3；封顶15 | 15 |
+| `clear_support` | risk≤0.04:10；≤0.06:6；否则3 | 10 |
+| `five_day_strength` | close>ma5 且 ma5≥mean(c[-6:-1]):5；仅 close>ma5:3；否则0 | 5 |
+| `sector_linkage` | sector_chg≥1:10；>0:5；否则1 | 10 |
+| `relative_strength` | rs=chg5-index_chg5；rs>3:10；>0:6；否则2 | 10 |
+| `risk_reward` | rr≥3:10；rr≥2.5:8；否则5 | 10 |
 
-八项之和为 `score_total`，没有 score cutoff、TOP N、排序发布、组合选择或
-仓位分配。
+总分为八项之和，最高 85。Phase 2C 不设置 score cutoff，也不进行排序发布或组合构建。
 
-## 输出、状态与 provenance
+## Risk flags 与状态词汇
 
-输出模型为 `FeatureSnapshot`、`LevelPlan`、`ScoreBreakdown` 和
-`CandidateEvaluation`。`CandidateEvaluation` 至少保存：策略版本、input
-fingerprint、T/T+1 元数据、symbol/setup/status、完整 features、匹配/失败
-条件、reject reasons、support/trigger/stop/target、risk/rr、完整 score
-breakdown、score total 和 risk flags。
+Risk flags 只记录，不增加 hard reject：
 
-状态含义：
+```text
+quote.turnover > 10 -> HIGH_TURNOVER
+overhang > 0.35 -> OVERHANG
+chg20 > 30 -> TWENTY_DAY_GAIN
+```
 
-- `NOT_MATCHED`：A 五项条件未全部满足；
-- `INSUFFICIENT_DATA`：覆盖、数值或 Sector evidence 不足；
-- `MATCHED_REJECTED`：A 已匹配，但触发 legacy hard reject；
-- `QUALIFIED_LEGACY_BASELINE`：通过 legacy hard conditions，可计算 85 分。
+状态词汇固定为：
 
-风险标记只记录、不新增 hard reject：quote turnover `>10` →
-`HIGH_TURNOVER`，overhang `>0.35` → `OVERHANG`，chg20 `>30` →
-`TWENTY_DAY_GAIN`。
+- `NOT_MATCHED`：A 五项未全部满足；
+- `INSUFFICIENT_DATA`：覆盖、数值或 Sector evidence 不完整；
+- `MATCHED_REJECTED`：A 已 matched，但 legacy hard gate 否决；
+- `QUALIFIED_LEGACY_BASELINE`：A matched 且全部 legacy hard gates 通过。
 
-`STRATEGY_SPEC_SHA256` 是固定规则 spec/config 的 deterministic SHA-256，写入
-每个结果的 `provenance.spec_sha256`。provenance 同时写入 strategy version、
-input fingerprint、T、signal date、T+1、calendar、timezone 和 adjustment
-mode，但不写入 `retrieved_at_bjt` 或运行时间。`evaluation_hash` 由完整语义
-结果计算，因此同一 `GenerationInputManifest + strategy_version` 必须产生
-相同 evaluation hash；任何输入 fingerprint 变化都会反映到 provenance 和
-evaluation hash。
+## Phase 2C.1 semantic provenance
+
+`LEGACY_SPEC` 是 canonical semantic config，而不是 Python source hash。它覆盖 minimum bars、全部 feature 窗口/fallback、A 五项精确比较符、全部 hard gates、support/stop/risk、120 日 volume distribution、target/RR/overhang/trigger、八项 85 分、三个 risk flags、Sector evidence hardening 以及 status vocabulary。因此源码注释、格式化或文档文字变化不会改变 spec hash；任何进入 canonical payload 的核心规则变化都会改变 hash。
+
+当前固定：
+
+```text
+STRATEGY_SPEC_SHA256 = 7ce0bf660e3ae685405e01fb9d1ef8e27e7dec44a201ab290da5d8fa8079068d
+```
+
+该 SHA 写入每个 `CandidateEvaluation.provenance.spec_sha256`。`provenance` 不包含 `retrieved_at_bjt` 或运行时间；Phase 2B 的 content/input fingerprint 同样排除这些非语义时间戳，因此仅改变 retrieval/runtime metadata 不应改变 `evaluation_hash`。
+
+`matched_conditions` / `failed_conditions` 按实际执行顺序记录。每个 hard gate 一旦通过就立即进入 `matched_conditions`，中途 reject 不会丢失此前已经通过的 gate；失败 gate 单独进入 `failed_conditions`。
+
+## Differential parity witness
+
+Phase 2C.1 新增独立 reference calculation 测试。reference 不调用 evaluator 内部 helper，直接按冻结 V0 公式对 synthetic inputs 计算 A match、support、stop、120 日 volume distribution、pressure/2.5R target、RR 以及完整 score breakdown，并覆盖 qualified、pressure target 和 RR reject。该测试只验证 legacy parity，不读取 forward return、胜率、MFE、MAE、P&L 或 `perf_tracker`，也不用于调参。
 
 ## 明确不代表什么
 
-Phase 2C 不表示：
+本阶段不表示 A 的阈值已经优化或验证有效，不表示 85 分具有预测有效性，不表示 target/stop 已经经过收益验证，也不表示 production rule 已冻结。B/C/D、scheduler、historical replay、canonical watchlist、TOP N、score cutoff、portfolio/position sizing 和 production promotion 均未进入 Phase 2C/2C.1。
 
-- A 的 30%、1.8、3%、9%、RR 等参数已被优化或验证有效；
-- 正式 production rule 已冻结；
-- 85 分具有预测有效性；
-- target/stop 经过历史收益、MFE/MAE 或 performance tracker 验证；
-- 结果可以直接交易；
-- B/C/D、scheduler、historical replay 或 canonical watchlist 已恢复。
-
-Phase 2D 仍需单独决定：是否需要 point-in-time universe/sector/adjustment
-source、production promotion gate、正式输出契约和后续验证设计。本阶段不替
-这些未知决策做选择。
-
-## Legacy 与 hardening 的差异
-
-以下内容保持 V0 legacy baseline 的公式和阈值：A 的五个 matched 条件、
-`close <= 2`、连续加速/高位透支否决、四类支撑候选、止损与 9% 风险上限、
-120 日成交量价格分布、压力/2.5R target、RR/overhang 组合否决、trigger、
-八项 85 分评分和三个风险标记。Phase 2C 没有用收益、胜率、P&L、MFE/MAE
-或 `perf_tracker` 选择或修改这些参数。
-
-以下内容是 Phase 2C 的审计 hardening，不是策略阈值变化：
-
-- 输入必须来自 Phase 2B READY manifest，禁止联网、raw 当前数据和 replay；
-- Sector 必须提供逐股票的 `sector_name`、`sector_rank`、`sector_chg`，缺失即
-  `INSUFFICIENT_DATA`，不使用 rank=50/chg=0 fallback；
-- 每只股票都保留 matched/failed/reject 路径、完整 features 和 score breakdown；
-- 规则 spec、输入 fingerprint、T/T+1 和来源/复权身份进入 deterministic
-  provenance，并计算 `evaluation_hash`；
-- batch 只返回逐股审计结果，不做 TOP N、score cutoff、组合/仓位选择或
-  canonical watchlist publish。
+Phase 2D 的 point-in-time universe/sector/adjustment source、frozen validation dataset、promotion gate 和 replay protocol 仍需后续独立设计；Phase 2C.1 不启动 Phase 2D。
