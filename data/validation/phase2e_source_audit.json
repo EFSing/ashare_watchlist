@@ -241,13 +241,13 @@
     "signal_date_schedule": "continuous_xshg_sessions_within_frozen_validation_interval",
     "signal_date_count": 769,
     "root_checkpoint_path": "data/validation/core_signal_validation_continuous_parts/core_signal_validation_resume_checkpoint.json",
-    "root_checkpoint_file_sha256": "eef78cf1378fda8e2f3c4577b7ca187bcc45ed13557ac37a538fd093ac6f1c68",
-    "root_checkpoint_content_sha256": "f4fc64960545dff47031bc3be787b24d798d7082193cb41fb3e108969d7a3b89",
+    "root_checkpoint_file_sha256": "8e7558a46de74612d4ce60f1a9310f8458b8bc9426c85fdc41a1bb41a5a30b9b",
+    "root_checkpoint_content_sha256": "0ae15c6e212fb1c16e900806ccebbf753709b8176c4a413f103cf5f74e95f1f7",
     "parts": {
       "A": {
         "partition": "2023-06-30/2024-12-31",
         "checkpoint_path": "data/validation/core_signal_validation_continuous_parts/part_a/core_signal_validation_resume_checkpoint.json",
-        "checkpoint_file_sha256": "7bfaf8c2e277615836f2402bf38cd3628642589124ef21e77f7aca09f0351fe7",
+        "checkpoint_file_sha256": "10f494e3ff38dcae11e895dbecad1cd0014981a5935cb21300c7c05f5100b09c",
         "checkpoint_content_sha256": "e91afb7ebc07c900de305b960f4954e66cc5a19267fced32c91d063cc0d97a83",
         "last_completed_trade_date": "2024-11-07",
         "partial_current_date": "2024-11-08",
@@ -260,7 +260,7 @@
       "B": {
         "partition": "2025-01-01/2026-08-28",
         "checkpoint_path": "data/validation/core_signal_validation_continuous_parts/part_b/core_signal_validation_resume_checkpoint.json",
-        "checkpoint_file_sha256": "dfcaed64b003bf90da5c3b4e96c42d7f3f625cb85ae6a3d24bc4944e30b12bf1",
+        "checkpoint_file_sha256": "a4d098bf1a152f1f7f0555fa6a82eb62c3afe3db76e54bba7e29f535ccf63119",
         "checkpoint_content_sha256": "39210c11bec475bac4b79e012ac42718088a4ee53c4e31266f020ffd1f6c5d81",
         "last_completed_trade_date": "2026-03-23",
         "partial_current_date": "2026-03-24",

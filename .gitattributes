@@ -1,0 +1,4 @@
+# Checkpoint byte hashes are part of the cross-device resume contract.
+data/validation/core_signal_validation_continuous_parts/core_signal_validation_resume_checkpoint.json -text
+data/validation/core_signal_validation_continuous_parts/part_a/core_signal_validation_resume_checkpoint.json -text
+data/validation/core_signal_validation_continuous_parts/part_b/core_signal_validation_resume_checkpoint.json -text

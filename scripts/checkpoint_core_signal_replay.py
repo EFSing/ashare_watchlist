@@ -278,7 +278,8 @@ def _checkpoint_part(
     }
     checkpoint["checkpoint_sha256"] = _sha256_json(checkpoint)
     checkpoint_path = part_dir / "core_signal_validation_resume_checkpoint.json"
-    checkpoint_path.write_text(json.dumps(checkpoint, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    with checkpoint_path.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(checkpoint, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
     return checkpoint
 
 
@@ -347,7 +348,8 @@ def main() -> None:
     }
     results["checkpoint_sha256"] = _sha256_json(results)
     root_path = args.parts_root / "core_signal_validation_resume_checkpoint.json"
-    root_path.write_text(json.dumps(results, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    with root_path.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(results, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
     print(json.dumps({
         "path": root_path.as_posix(),
         "bytes": root_path.stat().st_size,
