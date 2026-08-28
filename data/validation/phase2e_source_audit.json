@@ -1,0 +1,125 @@
+{
+  "schema_version": "PHASE2E_SOURCE_AUDIT_V1",
+  "audit_date": "2026-08-28",
+  "timezone": "Asia/Shanghai",
+  "protocol_version": "PHASE2D_VALIDATION_PROTOCOL_V1",
+  "baseline_commit": "4ea7b5cf050c1cc50b0043ea3608acf6c14953e3",
+  "status": "BLOCKED_NO_PIT_DATASET",
+  "dataset": {
+    "frozen": false,
+    "dataset_version": null,
+    "content_sha256": null,
+    "manifest_sha256": null,
+    "data_partition": null
+  },
+  "required_contract": {
+    "known_at_relation": "known_at<=T",
+    "universe": "POINT_IN_TIME T-day snapshot",
+    "sector": [
+      "POINT_IN_TIME membership",
+      "POINT_IN_TIME rank",
+      "POINT_IN_TIME sector_chg"
+    ],
+    "ohlcv": "historical OHLCV with adjustment semantics",
+    "adjustment": "independent POINT_IN_TIME adjustment evidence for adjusted bars",
+    "hashes": ["source_version", "content_sha256", "manifest_sha256"]
+  },
+  "runtime_inventory": {
+    "configured_clients": [],
+    "configured_credentials": false,
+    "current_data_fetched": false,
+    "strategy_validation_run": false
+  },
+  "sources": [
+    {
+      "source": "Tencent qfqday/ifzq",
+      "source_version": "Phase 2B provider contract",
+      "families": ["ohlcv", "adjustment"],
+      "status": "REJECTED_NO_PIT_PROOF",
+      "temporal_semantics": "PROVIDER_QFQ_SNAPSHOT",
+      "known_at_proof": false,
+      "content_sha256": null,
+      "reason": "Current provider qfq snapshot has no T-day adjustment vintage or independent PIT adjustment evidence."
+    },
+    {
+      "source": "AkShare live universe/sector",
+      "source_version": "Phase 2B live contract",
+      "families": ["universe", "sector"],
+      "status": "REJECTED_CURRENT_DATA",
+      "temporal_semantics": "LIVE_OBSERVED",
+      "known_at_proof": false,
+      "content_sha256": null,
+      "reason": "Current members/rank/change cannot be backfilled to historical T."
+    },
+    {
+      "source": "AkShare public board/index endpoints",
+      "source_version": "documentation reviewed 2026-08-28",
+      "families": ["universe", "sector", "ohlcv", "adjustment"],
+      "status": "REJECTED_NO_PIT_PROOF",
+      "temporal_semantics": null,
+      "known_at_proof": false,
+      "content_sha256": null,
+      "reason": "Documentation exposes current or retrospective results but no immutable vintage and known_at<=T proof for the required contract."
+    },
+    {
+      "source": "Tushare Pro stock_basic/index_member_all/index_weight/pro_bar/adj_factor",
+      "source_version": "documentation reviewed 2026-08-28",
+      "families": ["universe", "sector", "ohlcv", "adjustment"],
+      "status": "REJECTED_NO_PIT_PROOF",
+      "temporal_semantics": null,
+      "known_at_proof": false,
+      "content_sha256": null,
+      "reason": "Effective dates and historical queries are not an immutable T-day vintage; no same-day sector membership/rank/sector_chg and adjustment vintage is proven."
+    },
+    {
+      "source": "BaoStock historical K data",
+      "source_version": "documentation reviewed 2026-08-28",
+      "families": ["universe", "ohlcv", "adjustment"],
+      "status": "REJECTED_NO_PIT_PROOF",
+      "temporal_semantics": null,
+      "known_at_proof": false,
+      "content_sha256": null,
+      "reason": "Historical/no-adjusted bars do not include a verifiable T-day archive vintage, and the source does not provide the required PIT sector rank/change contract."
+    },
+    {
+      "source": "Wind/CSMAR/JoinQuant commercial PIT products",
+      "source_version": "not configured",
+      "families": ["universe", "sector", "ohlcv", "adjustment"],
+      "status": "NOT_AVAILABLE_FOR_AUDIT",
+      "temporal_semantics": null,
+      "known_at_proof": false,
+      "content_sha256": null,
+      "reason": "No entitlement, export, product version, or immutable vintage evidence is present in this workspace."
+    }
+  ],
+  "blockers": [
+    {
+      "id": "PIT_SECTOR_EVIDENCE_UNAVAILABLE",
+      "status": "MISSING_POINT_IN_TIME_EVIDENCE",
+      "scope": ["sector.membership", "sector.rank", "sector.sector_chg"],
+      "details": "No audited source provides all three T-day sector payloads with known_at<=T and content hashes."
+    },
+    {
+      "id": "PIT_ADJUSTMENT_EVIDENCE_UNAVAILABLE",
+      "status": "MISSING_POINT_IN_TIME_EVIDENCE",
+      "scope": ["adjustment_evidence", "historical_qfq"],
+      "details": "No audited source provides a T-day adjustment vintage; provider qfq cannot be relabeled as historical PIT qfq."
+    },
+    {
+      "id": "PIT_UNIVERSE_AND_OHLCV_VINTAGE_UNAVAILABLE",
+      "status": "MISSING_POINT_IN_TIME_EVIDENCE",
+      "scope": ["universe", "ohlcv"],
+      "details": "Available historical/effective-date endpoints do not prove complete T-day snapshots or known_at<=T."
+    }
+  ],
+  "forbidden_actions": [
+    "current_universe_backfill",
+    "current_sector_backfill",
+    "provider_qfq_relabel_as_historical_qfq",
+    "known_at_fabrication",
+    "historical_strategy_validation",
+    "parameter_tuning",
+    "final_oos",
+    "production_promotion"
+  ]
+}
