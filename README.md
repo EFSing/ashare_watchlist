@@ -88,3 +88,19 @@ XSHG provider 已覆盖 2026 交易日、节假日与正式 session close 回归
 input fingerprint 见 [`docs/generation_input_contract.md`](docs/generation_input_contract.md)。
 本阶段不实现 A/B/C/D、评分、选股、调参、调度或 historical replay；也不恢复
 `screen_system.py`、修改旧阈值/85 分评分、`perf_tracker` 或历史 watchlist。
+
+## Phase 2C：A Platform Breakout Legacy Baseline
+
+Phase 2C 新增 `A_PLATFORM_BREAKOUT_LEGACY_V1` research baseline evaluator。它只
+消费 Phase 2B `READY_FOR_STRATEGY_EVALUATION` 的冻结
+`GenerationInputManifest`，恢复 V0 A 平台突破、支撑/止损、target/RR、风险标
+记和完整 85 分 breakdown，并为每只股票输出可审计的
+`CandidateEvaluation`。详细公式、状态、Sector evidence 和 provenance 见
+[`docs/a_platform_breakout_legacy_v1.md`](docs/a_platform_breakout_legacy_v1.md)。
+
+该基线不联网、不使用 raw 当前数据、不做 historical replay，不读取
+`perf_tracker`，不实现 B/C/D，不接 scheduler，不写历史或 canonical watchlist，
+不做 TOP N、score cutoff、portfolio selection 或仓位分配。它不代表 A 参数已验
+证、production rule 已冻结、85 分具有预测有效性、target/stop 已经历史验证，
+也不可直接交易。Phase 2D 的 promotion、point-in-time source 和正式输出决策仍
+未确定。
