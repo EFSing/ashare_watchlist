@@ -43,6 +43,14 @@ Sector 也必须是 `POINT_IN_TIME` 的 T 日证据，不能只提供一个当�
 - `sector_chg`：同一 T 日可用的板块变化值；
 - `source`、`source_version`、`as_of_date=T`、`known_at<=T`、`content_sha256`。
 
+冻结的 payload 形状为：`membership` 是非空的
+`symbol -> [sector_name, ...]` mapping；`rank` 是非空的
+`sector_name -> finite positive number` mapping；`sector_chg` 是非空的
+`sector_name -> finite number` mapping。`rank` 与 `sector_chg` 必须覆盖同一
+组板块，membership 中引用的板块必须有对应 rank/change。`sector_chg=0` 是
+合法数值，不代表字段缺失；任意 truthy 的字符串、对象、非 finite 数值或错误
+结构都会返回 `INVALID_SECTOR_EVIDENCE`。
+
 Phase 2B 的当前 AkShare 板块成员和现货排名是 `LIVE_OBSERVED`，不能用于
 历史 replay。当前 sector classification 不得静默回填过去；缺 membership、
 rank 或 `sector_chg` 时返回 `MISSING_POINT_IN_TIME_EVIDENCE`。
@@ -89,6 +97,11 @@ manifest 至少包含：
 | `created_at`, `retrieved_at` | provenance/runtime metadata，不参与 protocol semantic hash |
 | `*_provenance` | 完整 PIT evidence，保留 source/version/date/known_at/hash |
 | `protocol_semantic_sha256` | 本协议规则 hash |
+
+加载 manifest 时，`schema_version` 必须严格等于
+`FROZEN_VALIDATION_DATASET_MANIFEST_V1`，`protocol_version` 必须严格等于
+`PHASE2D_VALIDATION_PROTOCOL_V1`；缺失或错误版本均 fail-safe，不能被 pop 后
+忽略。
 
 canonical manifest 使用 UTF-8、无空白分隔符、稳定 key 顺序、稳定的日期/时间
 表示；mapping 顺序、JSON 缩进和字段排版不影响 canonical payload。manifest 的
@@ -160,7 +173,9 @@ predictive score。target/stop、score cutoff、TOP N、portfolio/position sizin
 `MISSING_POINT_IN_TIME_EVIDENCE`、`CURRENT_DATA_BACKFILL`、
 `FUTURE_DATA_INPUT`、`INPUT_DATE_MISMATCH`、`UNSUPPORTED_ADJUSTMENT_SEMANTICS`、
 `SAME_BAR_EXECUTION`、`REPLAY_TIMING_INVALID`、`FINAL_OOS_FORBIDDEN`、
-`PARTITION_FORBIDDEN`、`MANIFEST_HASH_MISMATCH`。
+`PARTITION_FORBIDDEN`、`MANIFEST_HASH_MISMATCH`、
+`MANIFEST_SCHEMA_VERSION_INVALID`、`MANIFEST_PROTOCOL_VERSION_INVALID`、
+`INVALID_SECTOR_EVIDENCE`。
 
 这些状态只描述输入/治理问题；没有任何状态会自动切换到当前数据或把
 Phase 2B live snapshot 视为历史证据。

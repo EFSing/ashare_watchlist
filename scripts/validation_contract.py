@@ -16,6 +16,7 @@ import copy
 import hashlib
 import json
 import math
+import numbers
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
@@ -71,6 +72,9 @@ REPLAY_TIMING_INVALID = "REPLAY_TIMING_INVALID"
 SAME_BAR_EXECUTION = "SAME_BAR_EXECUTION"
 EXECUTION_BEFORE_EARLIEST = "EXECUTION_BEFORE_EARLIEST"
 CALENDAR_ERROR = "CALENDAR_ERROR"
+MANIFEST_SCHEMA_VERSION_INVALID = "MANIFEST_SCHEMA_VERSION_INVALID"
+MANIFEST_PROTOCOL_VERSION_INVALID = "MANIFEST_PROTOCOL_VERSION_INVALID"
+INVALID_SECTOR_EVIDENCE = "INVALID_SECTOR_EVIDENCE"
 
 
 class ValidationContractError(ValueError):
@@ -488,12 +492,34 @@ def validate_sector_evidence(
     if "rank" not in normalized and "sector_rank" in normalized:
         normalized["rank"] = normalized["sector_rank"]
     required_payload = ("membership", "rank", "sector_chg")
-    missing = [field_name for field_name in required_payload if not normalized.get(field_name)]
+    missing = [field_name for field_name in required_payload if field_name not in normalized]
     if missing:
         _fail(
             MISSING_POINT_IN_TIME_EVIDENCE,
             f"sector missing PIT payload: {', '.join(missing)}",
         )
+    membership = _normalize_sector_membership(normalized["membership"])
+    rank = _normalize_sector_numeric_map(normalized["rank"], "sector.rank", positive=True)
+    sector_chg = _normalize_sector_numeric_map(normalized["sector_chg"], "sector.sector_chg")
+    if set(rank) != set(sector_chg):
+        _fail(INVALID_SECTOR_EVIDENCE, "sector.rank and sector_chg must cover the same sectors")
+    unknown_membership_sectors = sorted(
+        {
+            sector_name
+            for sectors in membership.values()
+            for sector_name in sectors
+            if sector_name not in rank
+        }
+    )
+    if unknown_membership_sectors:
+        _fail(
+            INVALID_SECTOR_EVIDENCE,
+            "sector.membership references sectors without rank/chg: "
+            + ", ".join(unknown_membership_sectors),
+        )
+    normalized["membership"] = membership
+    normalized["rank"] = rank
+    normalized["sector_chg"] = sector_chg
     return PointInTimeEvidence(
         kind="sector",
         source=normalized["source"],
@@ -503,6 +529,61 @@ def validate_sector_evidence(
         content_sha256=normalized["content_sha256"],
         payload=normalized,
     )
+
+
+def _normalize_sector_membership(value: Any) -> dict[str, list[str]]:
+    if not isinstance(value, Mapping) or not value:
+        _fail(INVALID_SECTOR_EVIDENCE, "sector.membership must be a non-empty mapping")
+    normalized: dict[str, list[str]] = {}
+    for raw_symbol, raw_sectors in value.items():
+        try:
+            symbol = _normalize_symbol(raw_symbol)
+        except ValueError as exc:
+            _fail(INVALID_SECTOR_EVIDENCE, str(exc))
+        if symbol in normalized:
+            _fail(INVALID_SECTOR_EVIDENCE, f"duplicate normalized membership symbol: {symbol}")
+        if isinstance(raw_sectors, (str, bytes)) or not isinstance(raw_sectors, Sequence):
+            _fail(
+                INVALID_SECTOR_EVIDENCE,
+                f"sector.membership[{symbol}] must be a non-empty sector-name sequence",
+            )
+        sectors: list[str] = []
+        for raw_sector in raw_sectors:
+            try:
+                sector_name = _require_text(raw_sector, "sector name")
+            except ValueError as exc:
+                _fail(INVALID_SECTOR_EVIDENCE, str(exc))
+            if sector_name in sectors:
+                _fail(INVALID_SECTOR_EVIDENCE, f"duplicate sector in membership[{symbol}]")
+            sectors.append(sector_name)
+        if not sectors:
+            _fail(INVALID_SECTOR_EVIDENCE, f"sector.membership[{symbol}] must not be empty")
+        normalized[symbol] = sorted(sectors)
+    return dict(sorted(normalized.items()))
+
+
+def _normalize_sector_numeric_map(
+    value: Any, field_name: str, *, positive: bool = False
+) -> dict[str, float]:
+    if not isinstance(value, Mapping) or not value:
+        _fail(INVALID_SECTOR_EVIDENCE, f"{field_name} must be a non-empty mapping")
+    normalized: dict[str, float] = {}
+    for raw_sector, raw_number in value.items():
+        try:
+            sector_name = _require_text(raw_sector, f"{field_name} key")
+        except ValueError as exc:
+            _fail(INVALID_SECTOR_EVIDENCE, str(exc))
+        if sector_name in normalized:
+            _fail(INVALID_SECTOR_EVIDENCE, f"duplicate normalized {field_name} key: {sector_name}")
+        if isinstance(raw_number, bool) or not isinstance(raw_number, numbers.Real):
+            _fail(INVALID_SECTOR_EVIDENCE, f"{field_name}[{sector_name}] must be numeric")
+        number = float(raw_number)
+        if not math.isfinite(number):
+            _fail(INVALID_SECTOR_EVIDENCE, f"{field_name}[{sector_name}] must be finite")
+        if positive and number <= 0:
+            _fail(INVALID_SECTOR_EVIDENCE, f"{field_name}[{sector_name}] must be > 0")
+        normalized[sector_name] = number
+    return dict(sorted(normalized.items()))
 
 
 def validate_historical_bars(
@@ -752,10 +833,22 @@ class ValidationDatasetManifest:
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "ValidationDatasetManifest":
         raw = _copy_mapping(value, "manifest")
+        schema_version = raw.get("schema_version")
+        if schema_version != VALIDATION_DATASET_SCHEMA_VERSION:
+            _fail(
+                MANIFEST_SCHEMA_VERSION_INVALID,
+                "schema_version must be " + VALIDATION_DATASET_SCHEMA_VERSION,
+            )
+        protocol_version = raw.get("protocol_version")
+        if protocol_version != VALIDATION_PROTOCOL_VERSION:
+            _fail(
+                MANIFEST_PROTOCOL_VERSION_INVALID,
+                "protocol_version must be " + VALIDATION_PROTOCOL_VERSION,
+            )
         supplied_manifest_hash = raw.pop("manifest_sha256", None)
         supplied_protocol_hash = raw.pop("protocol_semantic_sha256", None)
-        raw.pop("schema_version", None)
-        raw.pop("protocol_version", None)
+        raw.pop("schema_version")
+        raw.pop("protocol_version")
         try:
             manifest = cls(**raw)
         except ValidationContractError:

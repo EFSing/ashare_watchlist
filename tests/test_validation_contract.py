@@ -12,7 +12,10 @@ from validation_contract import (
     INPUT_DATE_MISMATCH,
     LEGACY_STRATEGY_SPEC_SHA256,
     LEGACY_STRATEGY_VERSION,
+    INVALID_SECTOR_EVIDENCE,
+    MANIFEST_PROTOCOL_VERSION_INVALID,
     MANIFEST_HASH_MISMATCH,
+    MANIFEST_SCHEMA_VERSION_INVALID,
     MISSING_POINT_IN_TIME_EVIDENCE,
     PROTOCOL_SEMANTIC_SHA256,
     REPLAY_TIMING_INVALID,
@@ -148,6 +151,39 @@ def test_manifest_round_trip_and_hash_mismatch_fail_safe(tmp_path):
     assert error.value.status == MANIFEST_HASH_MISMATCH
 
 
+@pytest.mark.parametrize(
+    ("field", "value", "status"),
+    [
+        ("schema_version", "wrong-schema", MANIFEST_SCHEMA_VERSION_INVALID),
+        ("schema_version", None, MANIFEST_SCHEMA_VERSION_INVALID),
+        ("protocol_version", "wrong-protocol", MANIFEST_PROTOCOL_VERSION_INVALID),
+        ("protocol_version", None, MANIFEST_PROTOCOL_VERSION_INVALID),
+    ],
+)
+def test_manifest_requires_exact_schema_and_protocol_versions(field, value, status):
+    universe, sector, ohlcv = _evidence()
+    manifest = freeze_validation_dataset(
+        dataset_version="validation-fixture-v1",
+        market="CN_STOCKS",
+        symbol="000001",
+        date_range=("2026-08-27", SIGNAL_DATE),
+        universe=universe,
+        sector=sector,
+        ohlcv=ohlcv,
+        content_sha256=SHA,
+        created_at="2026-08-28T17:00:00+08:00",
+        retrieved_at="2026-08-28T16:01:00+08:00",
+    )
+    payload = manifest.to_dict()
+    if value is None:
+        del payload[field]
+    else:
+        payload[field] = value
+    with pytest.raises(ValidationContractError) as error:
+        ValidationDatasetManifest.from_dict(payload)
+    assert error.value.status == status
+
+
 def test_current_universe_backfill_is_rejected():
     universe, _, _ = _evidence()
     universe["temporal_semantics"] = "LIVE_OBSERVED"
@@ -175,6 +211,48 @@ def test_missing_sector_payload_fails_without_rank_or_change_fallback():
     with pytest.raises(ValidationContractError) as error:
         validate_sector_evidence(sector, signal_date=SIGNAL_DATE)
     assert error.value.status == MISSING_POINT_IN_TIME_EVIDENCE
+
+
+def test_zero_sector_change_is_valid_and_preserved():
+    _, sector, _ = _evidence()
+    sector["sector_chg"] = {"银行": 0}
+    result = validate_sector_evidence(sector, signal_date=SIGNAL_DATE)
+    assert result.payload["sector_chg"] == {"银行": 0.0}
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("membership", ["银行"]),
+        ("membership", {"000001": "银行"}),
+        ("membership", {"000001": []}),
+        ("rank", {"银行": "3"}),
+        ("rank", {"银行": float("nan")}),
+        ("rank", {"银行": float("inf")}),
+        ("sector_chg", {"银行": {"value": 0}}),
+        ("sector_chg", {"银行": float("-inf")}),
+    ],
+)
+def test_sector_rejects_truthy_or_non_finite_invalid_payloads(field, value):
+    _, sector, _ = _evidence()
+    sector[field] = value
+    with pytest.raises(ValidationContractError) as error:
+        validate_sector_evidence(sector, signal_date=SIGNAL_DATE)
+    assert error.value.status == INVALID_SECTOR_EVIDENCE
+
+
+def test_sector_rejects_mismatched_or_uncovered_sector_keys():
+    _, sector, _ = _evidence()
+    sector["sector_chg"] = {"非银行": 0}
+    with pytest.raises(ValidationContractError) as error:
+        validate_sector_evidence(sector, signal_date=SIGNAL_DATE)
+    assert error.value.status == INVALID_SECTOR_EVIDENCE
+
+    _, sector, _ = _evidence()
+    sector["membership"] = {"000001": ["不存在的板块"]}
+    with pytest.raises(ValidationContractError) as error:
+        validate_sector_evidence(sector, signal_date=SIGNAL_DATE)
+    assert error.value.status == INVALID_SECTOR_EVIDENCE
 
 
 def test_provider_qfq_snapshot_is_not_historical_adjustment_semantics():
