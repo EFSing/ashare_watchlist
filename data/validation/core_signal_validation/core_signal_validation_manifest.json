@@ -1,0 +1,604 @@
+{
+  "adjustment_semantics": {
+    "event_filter": "date < ex_date <= T",
+    "event_order": "ascending ex_date",
+    "formula": "(price - dividend_per_share + allotment_price*allotment_ratio)/(1 + per_share_bonus + allotment_ratio)",
+    "name": "HISTORICAL_T_ANCHOR_PRICE_RAW_VOLUME",
+    "price_fields_adjusted": [
+      "open",
+      "high",
+      "low",
+      "close"
+    ],
+    "provider_forward_used_as_t_anchor": false,
+    "volume_semantics": "raw unadjusted volume"
+  },
+  "content_sha256": "f854d20d470cc4508aed8783416715262d267321d8b61cbb4dd10ec957bbebcb",
+  "coverage_and_correctness": {
+    "all_evaluable_symbols_have_120_bars": true,
+    "all_evaluator_bars_end_at_T": true,
+    "all_events_used_have_ex_date_at_or_before_T": true,
+    "all_signal_dates_have_benchmark": true,
+    "benchmark_rows": 886,
+    "coverage_by_date": {
+      "2023-06-30": {
+        "evaluable_symbol_count": 4908,
+        "raw_symbol_count_at_T": 5087,
+        "warmup_or_missing_history_count": 179
+      },
+      "2023-09-28": {
+        "evaluable_symbol_count": 4991,
+        "raw_symbol_count_at_T": 5179,
+        "warmup_or_missing_history_count": 188
+      },
+      "2023-12-29": {
+        "evaluable_symbol_count": 5095,
+        "raw_symbol_count_at_T": 5229,
+        "warmup_or_missing_history_count": 134
+      },
+      "2024-03-29": {
+        "evaluable_symbol_count": 5178,
+        "raw_symbol_count_at_T": 5260,
+        "warmup_or_missing_history_count": 82
+      },
+      "2024-06-28": {
+        "evaluable_symbol_count": 5230,
+        "raw_symbol_count_at_T": 5277,
+        "warmup_or_missing_history_count": 47
+      },
+      "2024-09-30": {
+        "evaluable_symbol_count": 5260,
+        "raw_symbol_count_at_T": 5296,
+        "warmup_or_missing_history_count": 36
+      },
+      "2024-12-31": {
+        "evaluable_symbol_count": 5266,
+        "raw_symbol_count_at_T": 5320,
+        "warmup_or_missing_history_count": 54
+      },
+      "2025-03-31": {
+        "evaluable_symbol_count": 5293,
+        "raw_symbol_count_at_T": 5352,
+        "warmup_or_missing_history_count": 59
+      },
+      "2025-06-30": {
+        "evaluable_symbol_count": 5320,
+        "raw_symbol_count_at_T": 5372,
+        "warmup_or_missing_history_count": 52
+      },
+      "2025-09-30": {
+        "evaluable_symbol_count": 5352,
+        "raw_symbol_count_at_T": 5400,
+        "warmup_or_missing_history_count": 48
+      },
+      "2025-12-31": {
+        "evaluable_symbol_count": 5374,
+        "raw_symbol_count_at_T": 5437,
+        "warmup_or_missing_history_count": 63
+      },
+      "2026-03-31": {
+        "evaluable_symbol_count": 5394,
+        "raw_symbol_count_at_T": 5465,
+        "warmup_or_missing_history_count": 71
+      },
+      "2026-06-30": {
+        "evaluable_symbol_count": 5428,
+        "raw_symbol_count_at_T": 5504,
+        "warmup_or_missing_history_count": 76
+      },
+      "2026-08-28": {
+        "evaluable_symbol_count": 5466,
+        "raw_symbol_count_at_T": 5547,
+        "warmup_or_missing_history_count": 81
+      }
+    },
+    "look_ahead_scan": "PASS_FOR_OBSERVATION_DATES_AND_FILTERED_EVENTS",
+    "raw_daily_k_duplicate_keys": 0,
+    "raw_daily_k_negative_volume_rows": 0,
+    "raw_daily_k_null_numeric_fields": 0,
+    "signal_date_count": 14,
+    "timing_scan": "PASS_T_CLOSE_TO_NEXT_XSHG_SESSION"
+  },
+  "data_partition": "validation",
+  "dataset_version": "core-signal-hithink-quarter-end-2023-06-to-2026-08-v1",
+  "forbidden_metrics": [
+    "return",
+    "win_rate",
+    "mfe",
+    "mae",
+    "pnl",
+    "expectancy",
+    "profit_factor"
+  ],
+  "full_legacy_output_validation": {
+    "historical_sina_membership_required": true,
+    "score_85_status": "UNVERIFIED",
+    "status": "BLOCKED_HISTORICAL_SINA_MEMBERSHIP"
+  },
+  "manifest_sha256": "29c73d764de37b35e2ad3ce6fa61da6e18dddad53cf0037e76939c98e76ecdf0",
+  "market": "CN_STOCKS",
+  "provenance": {
+    "acquisition_at_bjt": "2026-08-28T16:20:26+08:00",
+    "acquisition_date": "2026-08-28",
+    "benchmark": {
+      "files": [
+        {
+          "bytes": 40966,
+          "path": "data/validation/core_signal_validation/raw/index_000001_SH_2023.json",
+          "sha256": "c118fb39d31065914740da150455fba2375d3bcaa83566730d265df0753bb51c"
+        },
+        {
+          "bytes": 40983,
+          "path": "data/validation/core_signal_validation/raw/index_000001_SH_2024.json",
+          "sha256": "53fc9e9f0989e67f8a826614c5c8f260171cf081801bf752df6301e69f4ae4bf"
+        },
+        {
+          "bytes": 41175,
+          "path": "data/validation/core_signal_validation/raw/index_000001_SH_2025.json",
+          "sha256": "27acba0bd5bfc0f54d349d7dbc41a86bf6836dfee3976a970cbb210b287f76a1"
+        },
+        {
+          "bytes": 27109,
+          "path": "data/validation/core_signal_validation/raw/index_000001_SH_2026.json",
+          "sha256": "183f472a1699811edb2550f3ce99b2b05d06c23473b5e2acff0ad2431eaf1514"
+        }
+      ],
+      "row_count": 886
+    },
+    "corporate_actions": {
+      "future_event_rows_after_dataset_end": 42,
+      "max_ex_date": "2026-09-07",
+      "min_ex_date": "1991-02-26",
+      "row_count": 57027,
+      "symbol_count": 5420
+    },
+    "known_at_limitation": "retrospective official dump has observation dates and acquisition hash, but no per-bar historical vintage timestamp",
+    "known_at_vintage_proof": false,
+    "raw_inputs": {
+      "content_sha256": "b2a2f3166ec786c35a98dc2f4a08e54146f85c7b39738dc034c489459853b172",
+      "files": [
+        {
+          "bytes": 180203424,
+          "path": "data/validation/core_signal_validation/raw/daily_k.parquet",
+          "sha256": "61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426"
+        },
+        {
+          "bytes": 295284,
+          "path": "data/validation/core_signal_validation/raw/adjustment_factors.parquet",
+          "sha256": "a1b7d63c5826ccd3610dc9bdd949d82eeb0ba84ffad451bfb8bb30ca74962716"
+        },
+        {
+          "bytes": 40966,
+          "path": "data/validation/core_signal_validation/raw/index_000001_SH_2023.json",
+          "sha256": "c118fb39d31065914740da150455fba2375d3bcaa83566730d265df0753bb51c"
+        },
+        {
+          "bytes": 40983,
+          "path": "data/validation/core_signal_validation/raw/index_000001_SH_2024.json",
+          "sha256": "53fc9e9f0989e67f8a826614c5c8f260171cf081801bf752df6301e69f4ae4bf"
+        },
+        {
+          "bytes": 41175,
+          "path": "data/validation/core_signal_validation/raw/index_000001_SH_2025.json",
+          "sha256": "27acba0bd5bfc0f54d349d7dbc41a86bf6836dfee3976a970cbb210b287f76a1"
+        },
+        {
+          "bytes": 27109,
+          "path": "data/validation/core_signal_validation/raw/index_000001_SH_2026.json",
+          "sha256": "183f472a1699811edb2550f3ce99b2b05d06c23473b5e2acff0ad2431eaf1514"
+        }
+      ]
+    },
+    "source": "HiThink Financial-API",
+    "stock": {
+      "duplicate_key_count": 0,
+      "max_date": "2026-08-28",
+      "min_date": "2016-08-29",
+      "negative_volume_count": 0,
+      "null_numeric_count": 0,
+      "row_count": 10252571,
+      "symbol_count": 5551
+    }
+  },
+  "raw_data_range": {
+    "end": "2026-08-28",
+    "start": "2016-08-29"
+  },
+  "replay": {
+    "candidate_evaluations": 73555,
+    "core_output_fields": [
+      "as_of_date",
+      "signal_date",
+      "earliest_execution_date",
+      "symbol",
+      "setup_id",
+      "status",
+      "matched_conditions",
+      "failed_conditions",
+      "reject_reasons",
+      "support",
+      "trigger",
+      "stop",
+      "target",
+      "target_type",
+      "risk",
+      "rr",
+      "level_plan"
+    ],
+    "determinism_method": "two independent full evaluator runs plus canonical stream reread and fixed sample double-pass",
+    "deterministic_second_pass_sha256": "a599791eeed2d2338d5baacfbb4609c946dd37094b3eee0fa81c0c24dd594093",
+    "full_evaluator_double_pass_hash_parity": true,
+    "hash_parity": true,
+    "per_date": [
+      {
+        "a_match_count": 39,
+        "a_match_frequency": 0.007946210268948655,
+        "candidate_count": 4908,
+        "matched_rejected_count": 25,
+        "phase": "2023_H2",
+        "qualified_count": 14,
+        "qualified_frequency": 0.0028524857375713123,
+        "signal_date": "2023-06-30",
+        "status_counts": {
+          "MATCHED_REJECTED": 25,
+          "NOT_MATCHED": 4869,
+          "QUALIFIED_LEGACY_BASELINE": 14
+        }
+      },
+      {
+        "a_match_count": 24,
+        "a_match_frequency": 0.004808655580044079,
+        "candidate_count": 4991,
+        "matched_rejected_count": 12,
+        "phase": "2023_H2",
+        "qualified_count": 12,
+        "qualified_frequency": 0.0024043277900220395,
+        "signal_date": "2023-09-28",
+        "status_counts": {
+          "MATCHED_REJECTED": 12,
+          "NOT_MATCHED": 4967,
+          "QUALIFIED_LEGACY_BASELINE": 12
+        }
+      },
+      {
+        "a_match_count": 49,
+        "a_match_frequency": 0.009617271835132482,
+        "candidate_count": 5095,
+        "matched_rejected_count": 27,
+        "phase": "2023_H2",
+        "qualified_count": 22,
+        "qualified_frequency": 0.0043179587831207065,
+        "signal_date": "2023-12-29",
+        "status_counts": {
+          "MATCHED_REJECTED": 27,
+          "NOT_MATCHED": 5046,
+          "QUALIFIED_LEGACY_BASELINE": 22
+        }
+      },
+      {
+        "a_match_count": 4,
+        "a_match_frequency": 0.000772499034376207,
+        "candidate_count": 5178,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0005793742757821553,
+        "signal_date": "2024-03-29",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5174,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 6,
+        "a_match_frequency": 0.001147227533460803,
+        "candidate_count": 5230,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0007648183556405354,
+        "signal_date": "2024-06-28",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5224,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 2306,
+        "a_match_frequency": 0.43840304182509504,
+        "candidate_count": 5260,
+        "matched_rejected_count": 1760,
+        "phase": "2024",
+        "qualified_count": 546,
+        "qualified_frequency": 0.10380228136882129,
+        "signal_date": "2024-09-30",
+        "status_counts": {
+          "MATCHED_REJECTED": 1760,
+          "NOT_MATCHED": 2954,
+          "QUALIFIED_LEGACY_BASELINE": 546
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.000569692366122294,
+        "candidate_count": 5266,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00018989745537409798,
+        "signal_date": "2024-12-31",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5263,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 12,
+        "a_match_frequency": 0.0022671452862270923,
+        "candidate_count": 5293,
+        "matched_rejected_count": 8,
+        "phase": "2025",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0007557150954090308,
+        "signal_date": "2025-03-31",
+        "status_counts": {
+          "MATCHED_REJECTED": 8,
+          "NOT_MATCHED": 5281,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 20,
+        "a_match_frequency": 0.0037593984962406013,
+        "candidate_count": 5320,
+        "matched_rejected_count": 13,
+        "phase": "2025",
+        "qualified_count": 7,
+        "qualified_frequency": 0.0013157894736842105,
+        "signal_date": "2025-06-30",
+        "status_counts": {
+          "MATCHED_REJECTED": 13,
+          "NOT_MATCHED": 5300,
+          "QUALIFIED_LEGACY_BASELINE": 7
+        }
+      },
+      {
+        "a_match_count": 29,
+        "a_match_frequency": 0.005418535127055307,
+        "candidate_count": 5352,
+        "matched_rejected_count": 15,
+        "phase": "2025",
+        "qualified_count": 14,
+        "qualified_frequency": 0.002615844544095665,
+        "signal_date": "2025-09-30",
+        "status_counts": {
+          "MATCHED_REJECTED": 15,
+          "NOT_MATCHED": 5323,
+          "QUALIFIED_LEGACY_BASELINE": 14
+        }
+      },
+      {
+        "a_match_count": 27,
+        "a_match_frequency": 0.005024190547078526,
+        "candidate_count": 5374,
+        "matched_rejected_count": 13,
+        "phase": "2025",
+        "qualified_count": 14,
+        "qualified_frequency": 0.0026051358392259025,
+        "signal_date": "2025-12-31",
+        "status_counts": {
+          "MATCHED_REJECTED": 13,
+          "NOT_MATCHED": 5347,
+          "QUALIFIED_LEGACY_BASELINE": 14
+        }
+      },
+      {
+        "a_match_count": 15,
+        "a_match_frequency": 0.0027808676307007787,
+        "candidate_count": 5394,
+        "matched_rejected_count": 8,
+        "phase": "2026_YTD",
+        "qualified_count": 7,
+        "qualified_frequency": 0.0012977382276603633,
+        "signal_date": "2026-03-31",
+        "status_counts": {
+          "MATCHED_REJECTED": 8,
+          "NOT_MATCHED": 5379,
+          "QUALIFIED_LEGACY_BASELINE": 7
+        }
+      },
+      {
+        "a_match_count": 4,
+        "a_match_frequency": 0.0007369196757553427,
+        "candidate_count": 5428,
+        "matched_rejected_count": 2,
+        "phase": "2026_YTD",
+        "qualified_count": 2,
+        "qualified_frequency": 0.00036845983787767134,
+        "signal_date": "2026-06-30",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5424,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 28,
+        "a_match_frequency": 0.005122575923893158,
+        "candidate_count": 5466,
+        "matched_rejected_count": 17,
+        "phase": "2026_YTD",
+        "qualified_count": 11,
+        "qualified_frequency": 0.002012440541529455,
+        "signal_date": "2026-08-28",
+        "status_counts": {
+          "MATCHED_REJECTED": 17,
+          "NOT_MATCHED": 5438,
+          "QUALIFIED_LEGACY_BASELINE": 11
+        }
+      }
+    ],
+    "projection_stream_sha256": "a599791eeed2d2338d5baacfbb4609c946dd37094b3eee0fa81c0c24dd594093",
+    "results_artifact": {
+      "bytes": 540507,
+      "path": "data/validation/core_signal_validation/core_replay_results.jsonl.gz",
+      "sha256": "3c43a66b6e49cc654a9f141fabf841f9531c45e318826fe112a13915e0a963ea"
+    },
+    "sample_determinism": {
+      "evaluator_double_pass_hash_parity": true,
+      "sample_date_counts": {
+        "2023-06-30": 12,
+        "2023-09-28": 12,
+        "2023-12-29": 12,
+        "2024-03-29": 12,
+        "2024-06-28": 12,
+        "2024-09-30": 12,
+        "2024-12-31": 12,
+        "2025-03-31": 12,
+        "2025-06-30": 12,
+        "2025-09-30": 12,
+        "2025-12-31": 12,
+        "2026-03-31": 12,
+        "2026-06-30": 12,
+        "2026-08-28": 12
+      },
+      "sample_projection_stream_sha256": "9bc1a875561b0ec79b55b2d08664e187c81c45fe8b4b99cac655c5196183ecee",
+      "sample_rows": 168
+    },
+    "score_fields_in_output": false,
+    "status_counts": {
+      "MATCHED_REJECTED": 1905,
+      "NOT_MATCHED": 70989,
+      "QUALIFIED_LEGACY_BASELINE": 661
+    },
+    "structure": {
+      "by_phase": {
+        "2023_H2": {
+          "a_match_count": 112,
+          "a_match_frequency": 0.007469654528478058,
+          "candidate_count": 14994,
+          "qualified_count": 48,
+          "qualified_frequency": 0.003201280512204882,
+          "sample_date_count": 3
+        },
+        "2024": {
+          "a_match_count": 2319,
+          "a_match_frequency": 0.11077672685583262,
+          "candidate_count": 20934,
+          "qualified_count": 554,
+          "qualified_frequency": 0.02646412534632655,
+          "sample_date_count": 4
+        },
+        "2025": {
+          "a_match_count": 88,
+          "a_match_frequency": 0.004123904587843854,
+          "candidate_count": 21339,
+          "qualified_count": 39,
+          "qualified_frequency": 0.0018276395332489808,
+          "sample_date_count": 4
+        },
+        "2026_YTD": {
+          "a_match_count": 47,
+          "a_match_frequency": 0.002885559921414538,
+          "candidate_count": 16288,
+          "qualified_count": 20,
+          "qualified_frequency": 0.0012278978388998035,
+          "sample_date_count": 3
+        }
+      },
+      "qualified_signal_event_count": 661,
+      "qualified_symbol_hhi": 0.0016135640081387712,
+      "qualified_unique_symbol_count": 639,
+      "top1_symbol_share": 0.0030257186081694403,
+      "top5_symbol_share": 0.015128593040847202,
+      "top_symbols": [
+        {
+          "qualified_count": 2,
+          "symbol": "000672.sz"
+        },
+        {
+          "qualified_count": 2,
+          "symbol": "000905.sz"
+        },
+        {
+          "qualified_count": 2,
+          "symbol": "002092.sz"
+        },
+        {
+          "qualified_count": 2,
+          "symbol": "002286.sz"
+        },
+        {
+          "qualified_count": 2,
+          "symbol": "002391.sz"
+        },
+        {
+          "qualified_count": 2,
+          "symbol": "002449.sz"
+        },
+        {
+          "qualified_count": 2,
+          "symbol": "002456.sz"
+        },
+        {
+          "qualified_count": 2,
+          "symbol": "002683.sz"
+        },
+        {
+          "qualified_count": 2,
+          "symbol": "002707.sz"
+        },
+        {
+          "qualified_count": 2,
+          "symbol": "600278.sh"
+        }
+      ]
+    }
+  },
+  "return_validation_gate": "READY_FOR_EXPLICIT_SCOPE_REVIEW; NO_RETURN_METRICS_COMPUTED",
+  "schema_version": "CORE_SIGNAL_VALIDATION_DATASET_MANIFEST_V1",
+  "sector_semantics": {
+    "historical_membership_included": false,
+    "legacy_taxonomy": "新浪行业",
+    "neutral_evaluator_sentinel_used": true,
+    "sector_report_status": "UNVERIFIED",
+    "sector_score_status": "UNVERIFIED",
+    "taxonomy_substitution": false
+  },
+  "signal_date_schedule": "quarter_end_common_sessions_plus_latest",
+  "signal_dates": [
+    "2023-06-30",
+    "2023-09-28",
+    "2023-12-29",
+    "2024-03-29",
+    "2024-06-28",
+    "2024-09-30",
+    "2024-12-31",
+    "2025-03-31",
+    "2025-06-30",
+    "2025-09-30",
+    "2025-12-31",
+    "2026-03-31",
+    "2026-06-30",
+    "2026-08-28"
+  ],
+  "status": "CORE_SIGNAL_VALIDATION_COMPLETE_NO_RETURN_METRICS",
+  "strategy": {
+    "protocol_semantic_sha256": "a7db6dc2d6f2dba2555855236fce5580f5e13e192e66991f0f9f63cb0eb9e7ee",
+    "spec_sha256": "7ce0bf660e3ae685405e01fb9d1ef8e27e7dec44a201ab290da5d8fa8079068d",
+    "strategy_source_modified": false,
+    "version": "A_PLATFORM_BREAKOUT_LEGACY_V1"
+  },
+  "timing_contract": {
+    "earliest_execution": "next XSHG session T+1 recorded per signal date",
+    "execution": "not run",
+    "future_bar_inputs": false,
+    "same_bar_execution": false,
+    "signal_uses": "T close only"
+  },
+  "universe_semantics": "historical daily-K rows present at T with >=120 bars through T",
+  "validation_layer": "CORE_SIGNAL_VALIDATION"
+}

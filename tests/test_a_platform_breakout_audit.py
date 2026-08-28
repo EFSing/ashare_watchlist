@@ -8,6 +8,7 @@ import pytest
 
 from a_platform_breakout import (
     LEGACY_SPEC,
+    LEGACY_SECTOR_PROVENANCE,
     MATCHED_REJECTED,
     QUALIFIED_LEGACY_BASELINE,
     REJECTED_OVERHANG_RR,
@@ -61,7 +62,12 @@ def _base_bars() -> list[dict[str, object]]:
     return bars
 
 
-def _manifest(bars: list[dict[str, object]], *, retrieved_at: str = DEFAULT_RETRIEVED_AT):
+def _manifest(
+    bars: list[dict[str, object]],
+    *,
+    retrieved_at: str = DEFAULT_RETRIEVED_AT,
+    sector_evidence: dict[str, object] | None = None,
+):
     universe = UniverseManifest(
         as_of_date=AS_OF,
         retrieved_at_bjt=retrieved_at,
@@ -105,7 +111,11 @@ def _manifest(bars: list[dict[str, object]], *, retrieved_at: str = DEFAULT_RETR
         source="frozen-test-sector",
         definitions={"银行": {"name": "银行"}},
         members={},
-        rank_input={SYMBOL: {"sector_name": "银行", "sector_rank": 5, "sector_chg": 1.5}},
+        rank_input=(
+            {SYMBOL: {"sector_name": "银行", "sector_rank": 5, "sector_chg": 1.5}}
+            if sector_evidence is None
+            else sector_evidence
+        ),
     )
     return freeze_generation_inputs(
         RunContext(as_of_date=AS_OF),
@@ -304,6 +314,127 @@ def test_differential_witness_covers_qualified_pressure_and_rr_reject_cases():
     assert pressure.target_type == "PRESSURE"
     assert rr_reject.status == MATCHED_REJECTED
     assert rr_reject.reject_reasons == (REJECTED_RR,)
+
+
+def _stop_reject_bars() -> list[dict[str, object]]:
+    bars = _base_bars()
+    for item in bars[:-1]:
+        item["close"] = 8.2
+        item["high"] = 8.4
+        item["low"] = 7.8
+    bars[-1]["low"] = 8.0
+    return bars
+
+
+def _overhang_reject_bars() -> list[dict[str, object]]:
+    bars = _base_bars()
+    for item in bars[-120:-61]:
+        item["close"] = 11.7
+        item["high"] = 11.8
+        item["low"] = 11.6
+        item["volume"] = 1000
+    return bars
+
+
+def _sector_independent_signal_identity(result):
+    return {
+        field_name: getattr(result, field_name)
+        for field_name in (
+            "symbol",
+            "setup_id",
+            "status",
+            "matched_conditions",
+            "failed_conditions",
+            "reject_reasons",
+            "support",
+            "trigger",
+            "stop",
+            "target",
+            "target_type",
+            "risk",
+            "rr",
+            "level_plan",
+        )
+    }
+
+
+@pytest.mark.parametrize(
+    "bars_factory",
+    [_base_bars, _rr_reject_bars, _stop_reject_bars, _overhang_reject_bars],
+)
+def test_sector_rank_and_change_do_not_change_a_gates_levels_or_qualified_identity(bars_factory):
+    bars = bars_factory()
+    baseline = evaluate_candidate(
+        _manifest(
+            deepcopy(bars),
+            sector_evidence={SYMBOL: {"sector_name": "银行", "sector_rank": 5, "sector_chg": 1.5}},
+        ),
+        SYMBOL,
+    )
+    changed = evaluate_candidate(
+        _manifest(
+            deepcopy(bars),
+            sector_evidence={SYMBOL: {"sector_name": "银行", "sector_rank": 50, "sector_chg": -1.0}},
+        ),
+        SYMBOL,
+    )
+
+    assert _sector_independent_signal_identity(changed) == _sector_independent_signal_identity(baseline)
+    assert baseline.features is not None and changed.features is not None
+    assert baseline.features.sector_rank == 5
+    assert changed.features.sector_rank == 50
+    assert baseline.features.sector_chg == 1.5
+    assert changed.features.sector_chg == -1.0
+    if baseline.status == QUALIFIED_LEGACY_BASELINE:
+        assert changed.status == QUALIFIED_LEGACY_BASELINE
+        assert baseline.score_total != changed.score_total
+        assert baseline.score_breakdown is not None and changed.score_breakdown is not None
+        assert baseline.score_breakdown.strong_sector != changed.score_breakdown.strong_sector
+        assert baseline.score_breakdown.sector_linkage != changed.score_breakdown.sector_linkage
+    else:
+        assert baseline.score_breakdown is None
+        assert changed.score_breakdown is None
+
+
+def test_sector_name_changes_reported_sector_only_not_signal_or_score():
+    bars = _base_bars()
+    baseline = evaluate_candidate(
+        _manifest(
+            deepcopy(bars),
+            sector_evidence={SYMBOL: {"sector_name": "银行", "sector_rank": 5, "sector_chg": 1.5}},
+        ),
+        SYMBOL,
+    )
+    changed = evaluate_candidate(
+        _manifest(
+            deepcopy(bars),
+            sector_evidence={SYMBOL: {"sector_name": "医药", "sector_rank": 5, "sector_chg": 1.5}},
+        ),
+        SYMBOL,
+    )
+
+    assert _sector_independent_signal_identity(changed) == _sector_independent_signal_identity(baseline)
+    assert baseline.features is not None and changed.features is not None
+    assert baseline.features.sector_name == "银行"
+    assert changed.features.sector_name == "医药"
+    assert baseline.score_breakdown == changed.score_breakdown
+    assert baseline.score_total == changed.score_total
+    assert baseline.input_fingerprint != changed.input_fingerprint
+
+
+def test_legacy_sector_provenance_is_exact_and_taxonomy_substitution_is_explicitly_forbidden():
+    assert LEGACY_SECTOR_PROVENANCE == {
+        "version": "V0",
+        "getter": "get_sectors",
+        "provider": "AKShare",
+        "taxonomy": "新浪行业",
+        "spot_method": "stock_sector_spot",
+        "detail_method": "stock_sector_detail",
+        "exact_legacy_taxonomy": True,
+        "forbidden_substitutions": ["申万行业", "同花顺行业"],
+    }
+    result = evaluate_candidate(_manifest(_base_bars()), SYMBOL)
+    assert result.provenance["legacy_sector_provenance"] == LEGACY_SECTOR_PROVENANCE
 
 
 def test_acceleration_reject_records_all_prior_passed_gates():

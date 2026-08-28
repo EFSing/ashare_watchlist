@@ -1,0 +1,174 @@
+{
+  "schema_version": "PHASE2E_HITHINK_PROBE_V1",
+  "probe_date": "2026-08-28",
+  "timezone": "Asia/Shanghai",
+  "source": "HiThink REST API",
+  "base_url": "https://fuyao.aicubes.cn",
+  "authentication": {
+    "environment_variable": "HITHINK_FINANCE_API_KEY",
+    "key_value_logged": false,
+    "key_present": true,
+    "authenticated_http_200_code_0": true
+  },
+  "environment_variable_audit": {
+    "scopes_checked": ["Process", "User", "Machine"],
+    "recorded_fields_only": ["name", "exists", "empty"],
+    "variables": [
+      {
+        "scope": "Process",
+        "name": "HITHINK_FINANCE_API_KEY",
+        "exists": true,
+        "empty": false
+      },
+      {
+        "scope": "Process",
+        "name": "PATH",
+        "exists": true,
+        "empty": false
+      },
+      {
+        "scope": "User",
+        "name": "Path",
+        "exists": true,
+        "empty": false
+      },
+      {
+        "scope": "Machine",
+        "name": "Path",
+        "exists": true,
+        "empty": false
+      }
+    ],
+    "related_non_path_variable_names_not_found": true,
+    "path_matching_ifind_like_entry_count": 0,
+    "secret_values_logged": false
+  },
+  "runtime": {
+    "bundled_python_checked": true,
+    "official_financial_api_path_verified": true,
+    "classic_ifind_path_required": false
+  },
+  "date_parameter_probes": {
+    "universe": {
+      "endpoint": "/api/meta/tickers/list",
+      "as_of_date": "2024-01-10",
+      "default_item_count": 5,
+      "as_of_item_count": 5,
+      "semantic_data_equal": true,
+      "default_timestamp_ms": 1787875207092,
+      "as_of_timestamp_ms": 1787875207092,
+      "result": "CURRENT_SNAPSHOT_ONLY"
+    },
+    "sector_membership": {
+      "endpoint": "/api/a-share-index/constituents/ths-stock-list",
+      "thscode": "886042.TI",
+      "as_of_date": "2024-01-10",
+      "default_item_count": 203,
+      "as_of_item_count": 203,
+      "items_semantic_equal": true,
+      "items_sha256": "47d4a92a16bf43ff0ac558f4b858bec146d759f8e445c40f12d00de2766feba4",
+      "result": "CURRENT_SNAPSHOT_ONLY"
+    }
+  },
+  "historical_probes": {
+    "dates": ["2024-01-10", "2025-06-18", "2026-08-20"],
+    "stock": {
+      "endpoint": "/api/a-share/prices/historical",
+      "thscode": "600519.SH",
+      "adjust_modes": ["none", "forward"],
+      "all_dates_http_200_code_0": true,
+      "all_dates_one_bar_at_requested_utc_date": true,
+      "sample_none_response_sha256": "ced385b3a626dbb3dd6109f912702324b45c80d4a7f1819ed0d10d455fa5becc"
+    },
+    "sector_index": {
+      "endpoint": "/api/a-share-index/prices/historical",
+      "thscode": "886042.TI",
+      "all_dates_http_200_code_0": true,
+      "all_dates_one_bar_at_requested_utc_date": true,
+      "sample_response_sha256": "d4dce3a07c8a2e4f19ea1125abc2a7ea852c13dc1c3eea651cc85f39a13f862c"
+    },
+    "adjustment_events": {
+      "endpoint": "/api/a-share/corporate-actions/adjustment-factors",
+      "thscode": "600519.SH",
+      "to_dates": ["2024-01-10", "2025-06-18", "2026-08-20"],
+      "item_counts": [25, 27, 30],
+      "latest_ex_dates_are_not_after_to": true,
+      "response_has_pit_known_at_or_vintage": false,
+      "response_exposes_adjust_factor": false,
+      "response_exposes_allotment_fields": false,
+      "result": "T_FILTERED_RETROSPECTIVE_EVENT_STREAM"
+    }
+  },
+  "forward_anchor_probe": {
+    "target_thscode": "600519.SH",
+    "target_date": "2024-06-17",
+    "short_window_end": "2024-06-19",
+    "long_window_end": "2026-08-21",
+    "short_window_forward_close": 1387.0877699999999,
+    "long_window_forward_close": 1387.0877699999999,
+    "same_value": true,
+    "interpretation": "Current provider forward adjustment is not a T-anchor proof; it does not change when the query end is moved after later corporate actions."
+  },
+  "market_dump_capability": {
+    "daily_k_download_url_http_200_code_0": true,
+    "adjustment_factors_download_url_http_200_code_0": true,
+    "presigned_urls_logged": false,
+    "adjustment_factors_probe_downloaded": true,
+    "adjustment_factors_probe_file_bytes": 295126,
+    "adjustment_factors_probe_sha256": "da1227be82f4e1d7cf9602a6ea6a0005542a9e0cca4b0626e7e98178aaa425f6",
+    "adjustment_factors_probe_rows": 57010,
+    "adjustment_factors_probe_thscode_count": 5419,
+    "adjustment_factors_probe_columns": [
+      "thscode",
+      "ticker",
+      "ex_date_ms",
+      "dividend_per_share",
+      "per_share_bonus",
+      "allotment_ratio",
+      "allotment_price",
+      "currency"
+    ],
+    "adjustment_factors_probe_nonzero_allotment_rows": 987,
+    "adjustment_factors_probe_nonzero_bonus_rows": 12297,
+    "adjustment_factors_probe_nonzero_dividend_rows": 52626,
+    "pit_vintage_proof": false
+  },
+  "adjustment_t_anchor_probe": {
+    "formula": "sequential affine event transform: (price - dividend_per_share + allotment_price*allotment_ratio)/(1 + per_share_bonus + allotment_ratio); apply only date < ex_date <= anchor in ascending ex_date order",
+    "provider_forward_is_not_used_as_t_anchor": true,
+    "cash_only_rest_sample": {
+      "thscode": "600519.SH",
+      "raw_bar_count": 773,
+      "event_count": 7,
+      "max_provider_forward_absolute_error": 0.0,
+      "anchor_identity_checks": {
+        "2024-06-18": 1521.5,
+        "2025-06-18": 1425.0,
+        "2026-08-20": 1291.5
+      },
+      "t_anchor_2025_06_18_from_2024_06_18": 1466.742,
+      "t_anchor_2026_08_20_from_2024_06_18": 1387.0877699999999
+    },
+    "dump_allotment_sample": {
+      "thscode": "000049.SZ",
+      "dump_sha256": "da1227be82f4e1d7cf9602a6ea6a0005542a9e0cca4b0626e7e98178aaa425f6",
+      "dump_event_rows_since_2023": 5,
+      "raw_bar_count": 880,
+      "forward_bar_count": 880,
+      "max_provider_forward_absolute_error": 0.0,
+      "all_anchor_identity_checks_passed": true,
+      "allotment_event": {
+        "ex_date": "2023-12-08",
+        "allotment_ratio": 0.3,
+        "allotment_price": 21.16,
+        "previous_raw_close": 31.54
+      }
+    },
+    "result": "DETERMINISTIC_T_ANCHOR_CONSTRUCTION_VERIFIED_ON_REAL_API_AND_DUMP_SAMPLES"
+  },
+  "raw_payloads_archived": false,
+  "strategy_validation_run": false,
+  "final_oos_read": false,
+  "parameter_tuning_run": false,
+  "next_required_probe": "Resolve historical sector membership with effective-date or T-day snapshot semantics; no classic iFinD client is required for the current Financial-API path."
+}

@@ -1,0 +1,6100 @@
+{
+  "checkpoint_sha256": "e91afb7ebc07c900de305b960f4954e66cc5a19267fced32c91d063cc0d97a83",
+  "checkpoint_status": "PAUSED_INCOMPLETE_CONTINUOUS_REPLAY",
+  "completed_output": {
+    "bytes": 10225774,
+    "path": "data/validation/core_signal_validation_continuous_parts/part_a/core_replay_results.completed.jsonl.gz",
+    "per_date": [
+      {
+        "a_match_count": 39,
+        "a_match_frequency": 0.007946210268948655,
+        "candidate_count": 4908,
+        "matched_rejected_count": 25,
+        "phase": "2023_H2",
+        "qualified_count": 14,
+        "qualified_frequency": 0.0028524857375713123,
+        "signal_date": "2023-06-30",
+        "status_counts": {
+          "MATCHED_REJECTED": 25,
+          "NOT_MATCHED": 4869,
+          "QUALIFIED_LEGACY_BASELINE": 14
+        }
+      },
+      {
+        "a_match_count": 34,
+        "a_match_frequency": 0.006919006919006919,
+        "candidate_count": 4914,
+        "matched_rejected_count": 19,
+        "phase": "2023_H2",
+        "qualified_count": 15,
+        "qualified_frequency": 0.0030525030525030525,
+        "signal_date": "2023-07-03",
+        "status_counts": {
+          "MATCHED_REJECTED": 19,
+          "NOT_MATCHED": 4880,
+          "QUALIFIED_LEGACY_BASELINE": 15
+        }
+      },
+      {
+        "a_match_count": 61,
+        "a_match_frequency": 0.012413512413512413,
+        "candidate_count": 4914,
+        "matched_rejected_count": 30,
+        "phase": "2023_H2",
+        "qualified_count": 31,
+        "qualified_frequency": 0.006308506308506308,
+        "signal_date": "2023-07-04",
+        "status_counts": {
+          "MATCHED_REJECTED": 30,
+          "NOT_MATCHED": 4853,
+          "QUALIFIED_LEGACY_BASELINE": 31
+        }
+      },
+      {
+        "a_match_count": 32,
+        "a_match_frequency": 0.006509357200976403,
+        "candidate_count": 4916,
+        "matched_rejected_count": 21,
+        "phase": "2023_H2",
+        "qualified_count": 11,
+        "qualified_frequency": 0.0022375915378356386,
+        "signal_date": "2023-07-05",
+        "status_counts": {
+          "MATCHED_REJECTED": 21,
+          "NOT_MATCHED": 4884,
+          "QUALIFIED_LEGACY_BASELINE": 11
+        }
+      },
+      {
+        "a_match_count": 22,
+        "a_match_frequency": 0.0044742729306487695,
+        "candidate_count": 4917,
+        "matched_rejected_count": 17,
+        "phase": "2023_H2",
+        "qualified_count": 5,
+        "qualified_frequency": 0.001016880211511084,
+        "signal_date": "2023-07-06",
+        "status_counts": {
+          "MATCHED_REJECTED": 17,
+          "NOT_MATCHED": 4895,
+          "QUALIFIED_LEGACY_BASELINE": 5
+        }
+      },
+      {
+        "a_match_count": 15,
+        "a_match_frequency": 0.0030494002846106934,
+        "candidate_count": 4919,
+        "matched_rejected_count": 10,
+        "phase": "2023_H2",
+        "qualified_count": 5,
+        "qualified_frequency": 0.0010164667615368977,
+        "signal_date": "2023-07-07",
+        "status_counts": {
+          "MATCHED_REJECTED": 10,
+          "NOT_MATCHED": 4904,
+          "QUALIFIED_LEGACY_BASELINE": 5
+        }
+      },
+      {
+        "a_match_count": 19,
+        "a_match_frequency": 0.0038633590890605938,
+        "candidate_count": 4918,
+        "matched_rejected_count": 9,
+        "phase": "2023_H2",
+        "qualified_count": 10,
+        "qualified_frequency": 0.0020333468889792597,
+        "signal_date": "2023-07-10",
+        "status_counts": {
+          "MATCHED_REJECTED": 9,
+          "NOT_MATCHED": 4899,
+          "QUALIFIED_LEGACY_BASELINE": 10
+        }
+      },
+      {
+        "a_match_count": 39,
+        "a_match_frequency": 0.007931665649786455,
+        "candidate_count": 4917,
+        "matched_rejected_count": 21,
+        "phase": "2023_H2",
+        "qualified_count": 18,
+        "qualified_frequency": 0.0036607687614399025,
+        "signal_date": "2023-07-11",
+        "status_counts": {
+          "MATCHED_REJECTED": 21,
+          "NOT_MATCHED": 4878,
+          "QUALIFIED_LEGACY_BASELINE": 18
+        }
+      },
+      {
+        "a_match_count": 21,
+        "a_match_frequency": 0.0042691603984549705,
+        "candidate_count": 4919,
+        "matched_rejected_count": 15,
+        "phase": "2023_H2",
+        "qualified_count": 6,
+        "qualified_frequency": 0.0012197601138442774,
+        "signal_date": "2023-07-12",
+        "status_counts": {
+          "MATCHED_REJECTED": 15,
+          "NOT_MATCHED": 4898,
+          "QUALIFIED_LEGACY_BASELINE": 6
+        }
+      },
+      {
+        "a_match_count": 28,
+        "a_match_frequency": 0.005691056910569106,
+        "candidate_count": 4920,
+        "matched_rejected_count": 17,
+        "phase": "2023_H2",
+        "qualified_count": 11,
+        "qualified_frequency": 0.0022357723577235773,
+        "signal_date": "2023-07-13",
+        "status_counts": {
+          "MATCHED_REJECTED": 17,
+          "NOT_MATCHED": 4892,
+          "QUALIFIED_LEGACY_BASELINE": 11
+        }
+      },
+      {
+        "a_match_count": 29,
+        "a_match_frequency": 0.005894308943089431,
+        "candidate_count": 4920,
+        "matched_rejected_count": 17,
+        "phase": "2023_H2",
+        "qualified_count": 12,
+        "qualified_frequency": 0.0024390243902439024,
+        "signal_date": "2023-07-14",
+        "status_counts": {
+          "MATCHED_REJECTED": 17,
+          "NOT_MATCHED": 4891,
+          "QUALIFIED_LEGACY_BASELINE": 12
+        }
+      },
+      {
+        "a_match_count": 40,
+        "a_match_frequency": 0.008130081300813009,
+        "candidate_count": 4920,
+        "matched_rejected_count": 21,
+        "phase": "2023_H2",
+        "qualified_count": 19,
+        "qualified_frequency": 0.003861788617886179,
+        "signal_date": "2023-07-17",
+        "status_counts": {
+          "MATCHED_REJECTED": 21,
+          "NOT_MATCHED": 4880,
+          "QUALIFIED_LEGACY_BASELINE": 19
+        }
+      },
+      {
+        "a_match_count": 38,
+        "a_match_frequency": 0.007725147387680423,
+        "candidate_count": 4919,
+        "matched_rejected_count": 27,
+        "phase": "2023_H2",
+        "qualified_count": 11,
+        "qualified_frequency": 0.002236226875381175,
+        "signal_date": "2023-07-18",
+        "status_counts": {
+          "MATCHED_REJECTED": 27,
+          "NOT_MATCHED": 4881,
+          "QUALIFIED_LEGACY_BASELINE": 11
+        }
+      },
+      {
+        "a_match_count": 25,
+        "a_match_frequency": 0.0050792360828931325,
+        "candidate_count": 4922,
+        "matched_rejected_count": 14,
+        "phase": "2023_H2",
+        "qualified_count": 11,
+        "qualified_frequency": 0.0022348638764729785,
+        "signal_date": "2023-07-19",
+        "status_counts": {
+          "MATCHED_REJECTED": 14,
+          "NOT_MATCHED": 4897,
+          "QUALIFIED_LEGACY_BASELINE": 11
+        }
+      },
+      {
+        "a_match_count": 15,
+        "a_match_frequency": 0.003045685279187817,
+        "candidate_count": 4925,
+        "matched_rejected_count": 9,
+        "phase": "2023_H2",
+        "qualified_count": 6,
+        "qualified_frequency": 0.001218274111675127,
+        "signal_date": "2023-07-20",
+        "status_counts": {
+          "MATCHED_REJECTED": 9,
+          "NOT_MATCHED": 4910,
+          "QUALIFIED_LEGACY_BASELINE": 6
+        }
+      },
+      {
+        "a_match_count": 34,
+        "a_match_frequency": 0.006904955320877335,
+        "candidate_count": 4924,
+        "matched_rejected_count": 27,
+        "phase": "2023_H2",
+        "qualified_count": 7,
+        "qualified_frequency": 0.001421608448415922,
+        "signal_date": "2023-07-21",
+        "status_counts": {
+          "MATCHED_REJECTED": 27,
+          "NOT_MATCHED": 4890,
+          "QUALIFIED_LEGACY_BASELINE": 7
+        }
+      },
+      {
+        "a_match_count": 25,
+        "a_match_frequency": 0.005076142131979695,
+        "candidate_count": 4925,
+        "matched_rejected_count": 16,
+        "phase": "2023_H2",
+        "qualified_count": 9,
+        "qualified_frequency": 0.0018274111675126903,
+        "signal_date": "2023-07-24",
+        "status_counts": {
+          "MATCHED_REJECTED": 16,
+          "NOT_MATCHED": 4900,
+          "QUALIFIED_LEGACY_BASELINE": 9
+        }
+      },
+      {
+        "a_match_count": 95,
+        "a_match_frequency": 0.01928151004668155,
+        "candidate_count": 4927,
+        "matched_rejected_count": 49,
+        "phase": "2023_H2",
+        "qualified_count": 46,
+        "qualified_frequency": 0.009336310127866856,
+        "signal_date": "2023-07-25",
+        "status_counts": {
+          "MATCHED_REJECTED": 49,
+          "NOT_MATCHED": 4832,
+          "QUALIFIED_LEGACY_BASELINE": 46
+        }
+      },
+      {
+        "a_match_count": 66,
+        "a_match_frequency": 0.013390139987827145,
+        "candidate_count": 4929,
+        "matched_rejected_count": 48,
+        "phase": "2023_H2",
+        "qualified_count": 18,
+        "qualified_frequency": 0.0036518563603164943,
+        "signal_date": "2023-07-26",
+        "status_counts": {
+          "MATCHED_REJECTED": 48,
+          "NOT_MATCHED": 4863,
+          "QUALIFIED_LEGACY_BASELINE": 18
+        }
+      },
+      {
+        "a_match_count": 36,
+        "a_match_frequency": 0.007303712720632989,
+        "candidate_count": 4929,
+        "matched_rejected_count": 29,
+        "phase": "2023_H2",
+        "qualified_count": 7,
+        "qualified_frequency": 0.0014201663623453033,
+        "signal_date": "2023-07-27",
+        "status_counts": {
+          "MATCHED_REJECTED": 29,
+          "NOT_MATCHED": 4893,
+          "QUALIFIED_LEGACY_BASELINE": 7
+        }
+      },
+      {
+        "a_match_count": 106,
+        "a_match_frequency": 0.02150101419878296,
+        "candidate_count": 4930,
+        "matched_rejected_count": 58,
+        "phase": "2023_H2",
+        "qualified_count": 48,
+        "qualified_frequency": 0.00973630831643002,
+        "signal_date": "2023-07-28",
+        "status_counts": {
+          "MATCHED_REJECTED": 58,
+          "NOT_MATCHED": 4824,
+          "QUALIFIED_LEGACY_BASELINE": 48
+        }
+      },
+      {
+        "a_match_count": 116,
+        "a_match_frequency": 0.023519870235198703,
+        "candidate_count": 4932,
+        "matched_rejected_count": 63,
+        "phase": "2023_H2",
+        "qualified_count": 53,
+        "qualified_frequency": 0.010746147607461476,
+        "signal_date": "2023-07-31",
+        "status_counts": {
+          "MATCHED_REJECTED": 63,
+          "NOT_MATCHED": 4816,
+          "QUALIFIED_LEGACY_BASELINE": 53
+        }
+      },
+      {
+        "a_match_count": 54,
+        "a_match_frequency": 0.01095112553234638,
+        "candidate_count": 4931,
+        "matched_rejected_count": 41,
+        "phase": "2023_H2",
+        "qualified_count": 13,
+        "qualified_frequency": 0.0026363820726019063,
+        "signal_date": "2023-08-01",
+        "status_counts": {
+          "MATCHED_REJECTED": 41,
+          "NOT_MATCHED": 4877,
+          "QUALIFIED_LEGACY_BASELINE": 13
+        }
+      },
+      {
+        "a_match_count": 27,
+        "a_match_frequency": 0.005474452554744526,
+        "candidate_count": 4932,
+        "matched_rejected_count": 18,
+        "phase": "2023_H2",
+        "qualified_count": 9,
+        "qualified_frequency": 0.0018248175182481751,
+        "signal_date": "2023-08-02",
+        "status_counts": {
+          "MATCHED_REJECTED": 18,
+          "NOT_MATCHED": 4905,
+          "QUALIFIED_LEGACY_BASELINE": 9
+        }
+      },
+      {
+        "a_match_count": 49,
+        "a_match_frequency": 0.00992706645056726,
+        "candidate_count": 4936,
+        "matched_rejected_count": 28,
+        "phase": "2023_H2",
+        "qualified_count": 21,
+        "qualified_frequency": 0.0042544570502431114,
+        "signal_date": "2023-08-03",
+        "status_counts": {
+          "MATCHED_REJECTED": 28,
+          "NOT_MATCHED": 4887,
+          "QUALIFIED_LEGACY_BASELINE": 21
+        }
+      },
+      {
+        "a_match_count": 34,
+        "a_match_frequency": 0.006886773344136115,
+        "candidate_count": 4937,
+        "matched_rejected_count": 21,
+        "phase": "2023_H2",
+        "qualified_count": 13,
+        "qualified_frequency": 0.0026331780433461616,
+        "signal_date": "2023-08-04",
+        "status_counts": {
+          "MATCHED_REJECTED": 21,
+          "NOT_MATCHED": 4903,
+          "QUALIFIED_LEGACY_BASELINE": 13
+        }
+      },
+      {
+        "a_match_count": 22,
+        "a_match_frequency": 0.004456147457970428,
+        "candidate_count": 4937,
+        "matched_rejected_count": 13,
+        "phase": "2023_H2",
+        "qualified_count": 9,
+        "qualified_frequency": 0.0018229694146242657,
+        "signal_date": "2023-08-07",
+        "status_counts": {
+          "MATCHED_REJECTED": 13,
+          "NOT_MATCHED": 4915,
+          "QUALIFIED_LEGACY_BASELINE": 9
+        }
+      },
+      {
+        "a_match_count": 24,
+        "a_match_frequency": 0.004860267314702308,
+        "candidate_count": 4938,
+        "matched_rejected_count": 15,
+        "phase": "2023_H2",
+        "qualified_count": 9,
+        "qualified_frequency": 0.0018226002430133657,
+        "signal_date": "2023-08-08",
+        "status_counts": {
+          "MATCHED_REJECTED": 15,
+          "NOT_MATCHED": 4914,
+          "QUALIFIED_LEGACY_BASELINE": 9
+        }
+      },
+      {
+        "a_match_count": 22,
+        "a_match_frequency": 0.004454342984409799,
+        "candidate_count": 4939,
+        "matched_rejected_count": 12,
+        "phase": "2023_H2",
+        "qualified_count": 10,
+        "qualified_frequency": 0.002024701356549909,
+        "signal_date": "2023-08-09",
+        "status_counts": {
+          "MATCHED_REJECTED": 12,
+          "NOT_MATCHED": 4917,
+          "QUALIFIED_LEGACY_BASELINE": 10
+        }
+      },
+      {
+        "a_match_count": 37,
+        "a_match_frequency": 0.007483818770226537,
+        "candidate_count": 4944,
+        "matched_rejected_count": 24,
+        "phase": "2023_H2",
+        "qualified_count": 13,
+        "qualified_frequency": 0.0026294498381877023,
+        "signal_date": "2023-08-10",
+        "status_counts": {
+          "MATCHED_REJECTED": 24,
+          "NOT_MATCHED": 4907,
+          "QUALIFIED_LEGACY_BASELINE": 13
+        }
+      },
+      {
+        "a_match_count": 19,
+        "a_match_frequency": 0.003841488071168621,
+        "candidate_count": 4946,
+        "matched_rejected_count": 15,
+        "phase": "2023_H2",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0008087343307723412,
+        "signal_date": "2023-08-11",
+        "status_counts": {
+          "MATCHED_REJECTED": 15,
+          "NOT_MATCHED": 4927,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 25,
+        "a_match_frequency": 0.005054589567327133,
+        "candidate_count": 4946,
+        "matched_rejected_count": 17,
+        "phase": "2023_H2",
+        "qualified_count": 8,
+        "qualified_frequency": 0.0016174686615446825,
+        "signal_date": "2023-08-14",
+        "status_counts": {
+          "MATCHED_REJECTED": 17,
+          "NOT_MATCHED": 4921,
+          "QUALIFIED_LEGACY_BASELINE": 8
+        }
+      },
+      {
+        "a_match_count": 27,
+        "a_match_frequency": 0.005456750202101859,
+        "candidate_count": 4948,
+        "matched_rejected_count": 21,
+        "phase": "2023_H2",
+        "qualified_count": 6,
+        "qualified_frequency": 0.0012126111560226355,
+        "signal_date": "2023-08-15",
+        "status_counts": {
+          "MATCHED_REJECTED": 21,
+          "NOT_MATCHED": 4921,
+          "QUALIFIED_LEGACY_BASELINE": 6
+        }
+      },
+      {
+        "a_match_count": 16,
+        "a_match_frequency": 0.0032323232323232323,
+        "candidate_count": 4950,
+        "matched_rejected_count": 9,
+        "phase": "2023_H2",
+        "qualified_count": 7,
+        "qualified_frequency": 0.0014141414141414141,
+        "signal_date": "2023-08-16",
+        "status_counts": {
+          "MATCHED_REJECTED": 9,
+          "NOT_MATCHED": 4934,
+          "QUALIFIED_LEGACY_BASELINE": 7
+        }
+      },
+      {
+        "a_match_count": 18,
+        "a_match_frequency": 0.0036363636363636364,
+        "candidate_count": 4950,
+        "matched_rejected_count": 15,
+        "phase": "2023_H2",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0006060606060606061,
+        "signal_date": "2023-08-17",
+        "status_counts": {
+          "MATCHED_REJECTED": 15,
+          "NOT_MATCHED": 4932,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 26,
+        "a_match_frequency": 0.0052525252525252525,
+        "candidate_count": 4950,
+        "matched_rejected_count": 19,
+        "phase": "2023_H2",
+        "qualified_count": 7,
+        "qualified_frequency": 0.0014141414141414141,
+        "signal_date": "2023-08-18",
+        "status_counts": {
+          "MATCHED_REJECTED": 19,
+          "NOT_MATCHED": 4924,
+          "QUALIFIED_LEGACY_BASELINE": 7
+        }
+      },
+      {
+        "a_match_count": 26,
+        "a_match_frequency": 0.0052525252525252525,
+        "candidate_count": 4950,
+        "matched_rejected_count": 16,
+        "phase": "2023_H2",
+        "qualified_count": 10,
+        "qualified_frequency": 0.00202020202020202,
+        "signal_date": "2023-08-21",
+        "status_counts": {
+          "MATCHED_REJECTED": 16,
+          "NOT_MATCHED": 4924,
+          "QUALIFIED_LEGACY_BASELINE": 10
+        }
+      },
+      {
+        "a_match_count": 10,
+        "a_match_frequency": 0.0020197939810139365,
+        "candidate_count": 4951,
+        "matched_rejected_count": 2,
+        "phase": "2023_H2",
+        "qualified_count": 8,
+        "qualified_frequency": 0.0016158351848111492,
+        "signal_date": "2023-08-22",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 4941,
+          "QUALIFIED_LEGACY_BASELINE": 8
+        }
+      },
+      {
+        "a_match_count": 24,
+        "a_match_frequency": 0.004843592330978809,
+        "candidate_count": 4955,
+        "matched_rejected_count": 15,
+        "phase": "2023_H2",
+        "qualified_count": 9,
+        "qualified_frequency": 0.0018163471241170535,
+        "signal_date": "2023-08-23",
+        "status_counts": {
+          "MATCHED_REJECTED": 15,
+          "NOT_MATCHED": 4931,
+          "QUALIFIED_LEGACY_BASELINE": 9
+        }
+      },
+      {
+        "a_match_count": 24,
+        "a_match_frequency": 0.004843592330978809,
+        "candidate_count": 4955,
+        "matched_rejected_count": 14,
+        "phase": "2023_H2",
+        "qualified_count": 10,
+        "qualified_frequency": 0.0020181634712411706,
+        "signal_date": "2023-08-24",
+        "status_counts": {
+          "MATCHED_REJECTED": 14,
+          "NOT_MATCHED": 4931,
+          "QUALIFIED_LEGACY_BASELINE": 10
+        }
+      },
+      {
+        "a_match_count": 15,
+        "a_match_frequency": 0.003026023804720597,
+        "candidate_count": 4957,
+        "matched_rejected_count": 11,
+        "phase": "2023_H2",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0008069396812588259,
+        "signal_date": "2023-08-25",
+        "status_counts": {
+          "MATCHED_REJECTED": 11,
+          "NOT_MATCHED": 4942,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 21,
+        "a_match_frequency": 0.004234724742891712,
+        "candidate_count": 4959,
+        "matched_rejected_count": 12,
+        "phase": "2023_H2",
+        "qualified_count": 9,
+        "qualified_frequency": 0.0018148820326678765,
+        "signal_date": "2023-08-28",
+        "status_counts": {
+          "MATCHED_REJECTED": 12,
+          "NOT_MATCHED": 4938,
+          "QUALIFIED_LEGACY_BASELINE": 9
+        }
+      },
+      {
+        "a_match_count": 54,
+        "a_match_frequency": 0.010889292196007259,
+        "candidate_count": 4959,
+        "matched_rejected_count": 27,
+        "phase": "2023_H2",
+        "qualified_count": 27,
+        "qualified_frequency": 0.0054446460980036296,
+        "signal_date": "2023-08-29",
+        "status_counts": {
+          "MATCHED_REJECTED": 27,
+          "NOT_MATCHED": 4905,
+          "QUALIFIED_LEGACY_BASELINE": 27
+        }
+      },
+      {
+        "a_match_count": 25,
+        "a_match_frequency": 0.005039306591413021,
+        "candidate_count": 4961,
+        "matched_rejected_count": 12,
+        "phase": "2023_H2",
+        "qualified_count": 13,
+        "qualified_frequency": 0.002620439427534771,
+        "signal_date": "2023-08-30",
+        "status_counts": {
+          "MATCHED_REJECTED": 12,
+          "NOT_MATCHED": 4936,
+          "QUALIFIED_LEGACY_BASELINE": 13
+        }
+      },
+      {
+        "a_match_count": 17,
+        "a_match_frequency": 0.0034253475720330447,
+        "candidate_count": 4963,
+        "matched_rejected_count": 10,
+        "phase": "2023_H2",
+        "qualified_count": 7,
+        "qualified_frequency": 0.0014104372355430183,
+        "signal_date": "2023-08-31",
+        "status_counts": {
+          "MATCHED_REJECTED": 10,
+          "NOT_MATCHED": 4946,
+          "QUALIFIED_LEGACY_BASELINE": 7
+        }
+      },
+      {
+        "a_match_count": 33,
+        "a_match_frequency": 0.006646525679758308,
+        "candidate_count": 4965,
+        "matched_rejected_count": 18,
+        "phase": "2023_H2",
+        "qualified_count": 15,
+        "qualified_frequency": 0.0030211480362537764,
+        "signal_date": "2023-09-01",
+        "status_counts": {
+          "MATCHED_REJECTED": 18,
+          "NOT_MATCHED": 4932,
+          "QUALIFIED_LEGACY_BASELINE": 15
+        }
+      },
+      {
+        "a_match_count": 97,
+        "a_match_frequency": 0.019532823197744662,
+        "candidate_count": 4966,
+        "matched_rejected_count": 60,
+        "phase": "2023_H2",
+        "qualified_count": 37,
+        "qualified_frequency": 0.007450664518727346,
+        "signal_date": "2023-09-04",
+        "status_counts": {
+          "MATCHED_REJECTED": 60,
+          "NOT_MATCHED": 4869,
+          "QUALIFIED_LEGACY_BASELINE": 37
+        }
+      },
+      {
+        "a_match_count": 18,
+        "a_match_frequency": 0.0036224592473334677,
+        "candidate_count": 4969,
+        "matched_rejected_count": 14,
+        "phase": "2023_H2",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0008049909438518816,
+        "signal_date": "2023-09-05",
+        "status_counts": {
+          "MATCHED_REJECTED": 14,
+          "NOT_MATCHED": 4951,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 35,
+        "a_match_frequency": 0.007039420756234915,
+        "candidate_count": 4972,
+        "matched_rejected_count": 22,
+        "phase": "2023_H2",
+        "qualified_count": 13,
+        "qualified_frequency": 0.002614641995172969,
+        "signal_date": "2023-09-06",
+        "status_counts": {
+          "MATCHED_REJECTED": 22,
+          "NOT_MATCHED": 4937,
+          "QUALIFIED_LEGACY_BASELINE": 13
+        }
+      },
+      {
+        "a_match_count": 6,
+        "a_match_frequency": 0.0012065151819827067,
+        "candidate_count": 4973,
+        "matched_rejected_count": 4,
+        "phase": "2023_H2",
+        "qualified_count": 2,
+        "qualified_frequency": 0.0004021717273275689,
+        "signal_date": "2023-09-07",
+        "status_counts": {
+          "MATCHED_REJECTED": 4,
+          "NOT_MATCHED": 4967,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 27,
+        "a_match_frequency": 0.005427135678391959,
+        "candidate_count": 4975,
+        "matched_rejected_count": 16,
+        "phase": "2023_H2",
+        "qualified_count": 11,
+        "qualified_frequency": 0.0022110552763819095,
+        "signal_date": "2023-09-08",
+        "status_counts": {
+          "MATCHED_REJECTED": 16,
+          "NOT_MATCHED": 4948,
+          "QUALIFIED_LEGACY_BASELINE": 11
+        }
+      },
+      {
+        "a_match_count": 25,
+        "a_match_frequency": 0.00502411575562701,
+        "candidate_count": 4976,
+        "matched_rejected_count": 16,
+        "phase": "2023_H2",
+        "qualified_count": 9,
+        "qualified_frequency": 0.0018086816720257234,
+        "signal_date": "2023-09-11",
+        "status_counts": {
+          "MATCHED_REJECTED": 16,
+          "NOT_MATCHED": 4951,
+          "QUALIFIED_LEGACY_BASELINE": 9
+        }
+      },
+      {
+        "a_match_count": 13,
+        "a_match_frequency": 0.0026109660574412533,
+        "candidate_count": 4979,
+        "matched_rejected_count": 7,
+        "phase": "2023_H2",
+        "qualified_count": 6,
+        "qualified_frequency": 0.0012050612572805785,
+        "signal_date": "2023-09-12",
+        "status_counts": {
+          "MATCHED_REJECTED": 7,
+          "NOT_MATCHED": 4966,
+          "QUALIFIED_LEGACY_BASELINE": 6
+        }
+      },
+      {
+        "a_match_count": 8,
+        "a_match_frequency": 0.0016067483430407712,
+        "candidate_count": 4979,
+        "matched_rejected_count": 4,
+        "phase": "2023_H2",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0008033741715203856,
+        "signal_date": "2023-09-13",
+        "status_counts": {
+          "MATCHED_REJECTED": 4,
+          "NOT_MATCHED": 4971,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 24,
+        "a_match_frequency": 0.004819277108433735,
+        "candidate_count": 4980,
+        "matched_rejected_count": 15,
+        "phase": "2023_H2",
+        "qualified_count": 9,
+        "qualified_frequency": 0.0018072289156626507,
+        "signal_date": "2023-09-14",
+        "status_counts": {
+          "MATCHED_REJECTED": 15,
+          "NOT_MATCHED": 4956,
+          "QUALIFIED_LEGACY_BASELINE": 9
+        }
+      },
+      {
+        "a_match_count": 17,
+        "a_match_frequency": 0.003414340228961639,
+        "candidate_count": 4979,
+        "matched_rejected_count": 10,
+        "phase": "2023_H2",
+        "qualified_count": 7,
+        "qualified_frequency": 0.0014059048001606748,
+        "signal_date": "2023-09-15",
+        "status_counts": {
+          "MATCHED_REJECTED": 10,
+          "NOT_MATCHED": 4962,
+          "QUALIFIED_LEGACY_BASELINE": 7
+        }
+      },
+      {
+        "a_match_count": 27,
+        "a_match_frequency": 0.005421686746987952,
+        "candidate_count": 4980,
+        "matched_rejected_count": 13,
+        "phase": "2023_H2",
+        "qualified_count": 14,
+        "qualified_frequency": 0.002811244979919679,
+        "signal_date": "2023-09-18",
+        "status_counts": {
+          "MATCHED_REJECTED": 13,
+          "NOT_MATCHED": 4953,
+          "QUALIFIED_LEGACY_BASELINE": 14
+        }
+      },
+      {
+        "a_match_count": 22,
+        "a_match_frequency": 0.00441678377835776,
+        "candidate_count": 4981,
+        "matched_rejected_count": 14,
+        "phase": "2023_H2",
+        "qualified_count": 8,
+        "qualified_frequency": 0.0016061031921300944,
+        "signal_date": "2023-09-19",
+        "status_counts": {
+          "MATCHED_REJECTED": 14,
+          "NOT_MATCHED": 4959,
+          "QUALIFIED_LEGACY_BASELINE": 8
+        }
+      },
+      {
+        "a_match_count": 6,
+        "a_match_frequency": 0.001203852327447833,
+        "candidate_count": 4984,
+        "matched_rejected_count": 4,
+        "phase": "2023_H2",
+        "qualified_count": 2,
+        "qualified_frequency": 0.0004012841091492777,
+        "signal_date": "2023-09-20",
+        "status_counts": {
+          "MATCHED_REJECTED": 4,
+          "NOT_MATCHED": 4978,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 9,
+        "a_match_frequency": 0.0018054162487462387,
+        "candidate_count": 4985,
+        "matched_rejected_count": 4,
+        "phase": "2023_H2",
+        "qualified_count": 5,
+        "qualified_frequency": 0.0010030090270812437,
+        "signal_date": "2023-09-21",
+        "status_counts": {
+          "MATCHED_REJECTED": 4,
+          "NOT_MATCHED": 4976,
+          "QUALIFIED_LEGACY_BASELINE": 5
+        }
+      },
+      {
+        "a_match_count": 11,
+        "a_match_frequency": 0.0022057349107679966,
+        "candidate_count": 4987,
+        "matched_rejected_count": 6,
+        "phase": "2023_H2",
+        "qualified_count": 5,
+        "qualified_frequency": 0.0010026067776218166,
+        "signal_date": "2023-09-22",
+        "status_counts": {
+          "MATCHED_REJECTED": 6,
+          "NOT_MATCHED": 4976,
+          "QUALIFIED_LEGACY_BASELINE": 5
+        }
+      },
+      {
+        "a_match_count": 16,
+        "a_match_frequency": 0.0032076984763432237,
+        "candidate_count": 4988,
+        "matched_rejected_count": 11,
+        "phase": "2023_H2",
+        "qualified_count": 5,
+        "qualified_frequency": 0.0010024057738572574,
+        "signal_date": "2023-09-25",
+        "status_counts": {
+          "MATCHED_REJECTED": 11,
+          "NOT_MATCHED": 4972,
+          "QUALIFIED_LEGACY_BASELINE": 5
+        }
+      },
+      {
+        "a_match_count": 14,
+        "a_match_frequency": 0.0028044871794871795,
+        "candidate_count": 4992,
+        "matched_rejected_count": 11,
+        "phase": "2023_H2",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0006009615384615385,
+        "signal_date": "2023-09-26",
+        "status_counts": {
+          "MATCHED_REJECTED": 11,
+          "NOT_MATCHED": 4978,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 30,
+        "a_match_frequency": 0.006008411776487082,
+        "candidate_count": 4993,
+        "matched_rejected_count": 18,
+        "phase": "2023_H2",
+        "qualified_count": 12,
+        "qualified_frequency": 0.002403364710594833,
+        "signal_date": "2023-09-27",
+        "status_counts": {
+          "MATCHED_REJECTED": 18,
+          "NOT_MATCHED": 4963,
+          "QUALIFIED_LEGACY_BASELINE": 12
+        }
+      },
+      {
+        "a_match_count": 24,
+        "a_match_frequency": 0.004808655580044079,
+        "candidate_count": 4991,
+        "matched_rejected_count": 12,
+        "phase": "2023_H2",
+        "qualified_count": 12,
+        "qualified_frequency": 0.0024043277900220395,
+        "signal_date": "2023-09-28",
+        "status_counts": {
+          "MATCHED_REJECTED": 12,
+          "NOT_MATCHED": 4967,
+          "QUALIFIED_LEGACY_BASELINE": 12
+        }
+      },
+      {
+        "a_match_count": 28,
+        "a_match_frequency": 0.005598880223955209,
+        "candidate_count": 5001,
+        "matched_rejected_count": 21,
+        "phase": "2023_H2",
+        "qualified_count": 7,
+        "qualified_frequency": 0.0013997200559888023,
+        "signal_date": "2023-10-09",
+        "status_counts": {
+          "MATCHED_REJECTED": 21,
+          "NOT_MATCHED": 4973,
+          "QUALIFIED_LEGACY_BASELINE": 7
+        }
+      },
+      {
+        "a_match_count": 22,
+        "a_match_frequency": 0.00439736158305017,
+        "candidate_count": 5003,
+        "matched_rejected_count": 10,
+        "phase": "2023_H2",
+        "qualified_count": 12,
+        "qualified_frequency": 0.0023985608634819106,
+        "signal_date": "2023-10-10",
+        "status_counts": {
+          "MATCHED_REJECTED": 10,
+          "NOT_MATCHED": 4981,
+          "QUALIFIED_LEGACY_BASELINE": 12
+        }
+      },
+      {
+        "a_match_count": 33,
+        "a_match_frequency": 0.006597361055577769,
+        "candidate_count": 5002,
+        "matched_rejected_count": 20,
+        "phase": "2023_H2",
+        "qualified_count": 13,
+        "qualified_frequency": 0.0025989604158336665,
+        "signal_date": "2023-10-11",
+        "status_counts": {
+          "MATCHED_REJECTED": 20,
+          "NOT_MATCHED": 4969,
+          "QUALIFIED_LEGACY_BASELINE": 13
+        }
+      },
+      {
+        "a_match_count": 23,
+        "a_match_frequency": 0.004597241655006996,
+        "candidate_count": 5003,
+        "matched_rejected_count": 17,
+        "phase": "2023_H2",
+        "qualified_count": 6,
+        "qualified_frequency": 0.0011992804317409553,
+        "signal_date": "2023-10-12",
+        "status_counts": {
+          "MATCHED_REJECTED": 17,
+          "NOT_MATCHED": 4980,
+          "QUALIFIED_LEGACY_BASELINE": 6
+        }
+      },
+      {
+        "a_match_count": 35,
+        "a_match_frequency": 0.006995802518488907,
+        "candidate_count": 5003,
+        "matched_rejected_count": 24,
+        "phase": "2023_H2",
+        "qualified_count": 11,
+        "qualified_frequency": 0.002198680791525085,
+        "signal_date": "2023-10-13",
+        "status_counts": {
+          "MATCHED_REJECTED": 24,
+          "NOT_MATCHED": 4968,
+          "QUALIFIED_LEGACY_BASELINE": 11
+        }
+      },
+      {
+        "a_match_count": 43,
+        "a_match_frequency": 0.008591408591408592,
+        "candidate_count": 5005,
+        "matched_rejected_count": 27,
+        "phase": "2023_H2",
+        "qualified_count": 16,
+        "qualified_frequency": 0.003196803196803197,
+        "signal_date": "2023-10-16",
+        "status_counts": {
+          "MATCHED_REJECTED": 27,
+          "NOT_MATCHED": 4962,
+          "QUALIFIED_LEGACY_BASELINE": 16
+        }
+      },
+      {
+        "a_match_count": 24,
+        "a_match_frequency": 0.004790419161676647,
+        "candidate_count": 5010,
+        "matched_rejected_count": 14,
+        "phase": "2023_H2",
+        "qualified_count": 10,
+        "qualified_frequency": 0.001996007984031936,
+        "signal_date": "2023-10-17",
+        "status_counts": {
+          "MATCHED_REJECTED": 14,
+          "NOT_MATCHED": 4986,
+          "QUALIFIED_LEGACY_BASELINE": 10
+        }
+      },
+      {
+        "a_match_count": 25,
+        "a_match_frequency": 0.004989024146876871,
+        "candidate_count": 5011,
+        "matched_rejected_count": 19,
+        "phase": "2023_H2",
+        "qualified_count": 6,
+        "qualified_frequency": 0.001197365795250449,
+        "signal_date": "2023-10-18",
+        "status_counts": {
+          "MATCHED_REJECTED": 19,
+          "NOT_MATCHED": 4986,
+          "QUALIFIED_LEGACY_BASELINE": 6
+        }
+      },
+      {
+        "a_match_count": 11,
+        "a_match_frequency": 0.0021938571998404467,
+        "candidate_count": 5014,
+        "matched_rejected_count": 10,
+        "phase": "2023_H2",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019944156362185878,
+        "signal_date": "2023-10-19",
+        "status_counts": {
+          "MATCHED_REJECTED": 10,
+          "NOT_MATCHED": 5003,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 15,
+        "a_match_frequency": 0.0029904306220095694,
+        "candidate_count": 5016,
+        "matched_rejected_count": 9,
+        "phase": "2023_H2",
+        "qualified_count": 6,
+        "qualified_frequency": 0.0011961722488038277,
+        "signal_date": "2023-10-20",
+        "status_counts": {
+          "MATCHED_REJECTED": 9,
+          "NOT_MATCHED": 5001,
+          "QUALIFIED_LEGACY_BASELINE": 6
+        }
+      },
+      {
+        "a_match_count": 14,
+        "a_match_frequency": 0.002789400278940028,
+        "candidate_count": 5019,
+        "matched_rejected_count": 9,
+        "phase": "2023_H2",
+        "qualified_count": 5,
+        "qualified_frequency": 0.0009962143853357243,
+        "signal_date": "2023-10-23",
+        "status_counts": {
+          "MATCHED_REJECTED": 9,
+          "NOT_MATCHED": 5005,
+          "QUALIFIED_LEGACY_BASELINE": 5
+        }
+      },
+      {
+        "a_match_count": 24,
+        "a_match_frequency": 0.004780876494023904,
+        "candidate_count": 5020,
+        "matched_rejected_count": 15,
+        "phase": "2023_H2",
+        "qualified_count": 9,
+        "qualified_frequency": 0.0017928286852589642,
+        "signal_date": "2023-10-24",
+        "status_counts": {
+          "MATCHED_REJECTED": 15,
+          "NOT_MATCHED": 4996,
+          "QUALIFIED_LEGACY_BASELINE": 9
+        }
+      },
+      {
+        "a_match_count": 27,
+        "a_match_frequency": 0.005377414857598088,
+        "candidate_count": 5021,
+        "matched_rejected_count": 18,
+        "phase": "2023_H2",
+        "qualified_count": 9,
+        "qualified_frequency": 0.0017924716191993627,
+        "signal_date": "2023-10-25",
+        "status_counts": {
+          "MATCHED_REJECTED": 18,
+          "NOT_MATCHED": 4994,
+          "QUALIFIED_LEGACY_BASELINE": 9
+        }
+      },
+      {
+        "a_match_count": 33,
+        "a_match_frequency": 0.00657239593706433,
+        "candidate_count": 5021,
+        "matched_rejected_count": 17,
+        "phase": "2023_H2",
+        "qualified_count": 16,
+        "qualified_frequency": 0.003186616211909978,
+        "signal_date": "2023-10-26",
+        "status_counts": {
+          "MATCHED_REJECTED": 17,
+          "NOT_MATCHED": 4988,
+          "QUALIFIED_LEGACY_BASELINE": 16
+        }
+      },
+      {
+        "a_match_count": 57,
+        "a_match_frequency": 0.011352320254929297,
+        "candidate_count": 5021,
+        "matched_rejected_count": 24,
+        "phase": "2023_H2",
+        "qualified_count": 33,
+        "qualified_frequency": 0.00657239593706433,
+        "signal_date": "2023-10-27",
+        "status_counts": {
+          "MATCHED_REJECTED": 24,
+          "NOT_MATCHED": 4964,
+          "QUALIFIED_LEGACY_BASELINE": 33
+        }
+      },
+      {
+        "a_match_count": 79,
+        "a_match_frequency": 0.015737051792828687,
+        "candidate_count": 5020,
+        "matched_rejected_count": 38,
+        "phase": "2023_H2",
+        "qualified_count": 41,
+        "qualified_frequency": 0.008167330677290837,
+        "signal_date": "2023-10-30",
+        "status_counts": {
+          "MATCHED_REJECTED": 38,
+          "NOT_MATCHED": 4941,
+          "QUALIFIED_LEGACY_BASELINE": 41
+        }
+      },
+      {
+        "a_match_count": 39,
+        "a_match_frequency": 0.007762738853503185,
+        "candidate_count": 5024,
+        "matched_rejected_count": 16,
+        "phase": "2023_H2",
+        "qualified_count": 23,
+        "qualified_frequency": 0.004578025477707006,
+        "signal_date": "2023-10-31",
+        "status_counts": {
+          "MATCHED_REJECTED": 16,
+          "NOT_MATCHED": 4985,
+          "QUALIFIED_LEGACY_BASELINE": 23
+        }
+      },
+      {
+        "a_match_count": 30,
+        "a_match_frequency": 0.005968961400716275,
+        "candidate_count": 5026,
+        "matched_rejected_count": 20,
+        "phase": "2023_H2",
+        "qualified_count": 10,
+        "qualified_frequency": 0.0019896538002387586,
+        "signal_date": "2023-11-01",
+        "status_counts": {
+          "MATCHED_REJECTED": 20,
+          "NOT_MATCHED": 4996,
+          "QUALIFIED_LEGACY_BASELINE": 10
+        }
+      },
+      {
+        "a_match_count": 22,
+        "a_match_frequency": 0.004377238360525269,
+        "candidate_count": 5026,
+        "matched_rejected_count": 15,
+        "phase": "2023_H2",
+        "qualified_count": 7,
+        "qualified_frequency": 0.001392757660167131,
+        "signal_date": "2023-11-02",
+        "status_counts": {
+          "MATCHED_REJECTED": 15,
+          "NOT_MATCHED": 5004,
+          "QUALIFIED_LEGACY_BASELINE": 7
+        }
+      },
+      {
+        "a_match_count": 29,
+        "a_match_frequency": 0.005766553986876119,
+        "candidate_count": 5029,
+        "matched_rejected_count": 15,
+        "phase": "2023_H2",
+        "qualified_count": 14,
+        "qualified_frequency": 0.0027838536488367467,
+        "signal_date": "2023-11-03",
+        "status_counts": {
+          "MATCHED_REJECTED": 15,
+          "NOT_MATCHED": 5000,
+          "QUALIFIED_LEGACY_BASELINE": 14
+        }
+      },
+      {
+        "a_match_count": 55,
+        "a_match_frequency": 0.010947452229299362,
+        "candidate_count": 5024,
+        "matched_rejected_count": 33,
+        "phase": "2023_H2",
+        "qualified_count": 22,
+        "qualified_frequency": 0.004378980891719745,
+        "signal_date": "2023-11-06",
+        "status_counts": {
+          "MATCHED_REJECTED": 33,
+          "NOT_MATCHED": 4969,
+          "QUALIFIED_LEGACY_BASELINE": 22
+        }
+      },
+      {
+        "a_match_count": 54,
+        "a_match_frequency": 0.010739856801909307,
+        "candidate_count": 5028,
+        "matched_rejected_count": 36,
+        "phase": "2023_H2",
+        "qualified_count": 18,
+        "qualified_frequency": 0.003579952267303103,
+        "signal_date": "2023-11-07",
+        "status_counts": {
+          "MATCHED_REJECTED": 36,
+          "NOT_MATCHED": 4974,
+          "QUALIFIED_LEGACY_BASELINE": 18
+        }
+      },
+      {
+        "a_match_count": 53,
+        "a_match_frequency": 0.010534684953289604,
+        "candidate_count": 5031,
+        "matched_rejected_count": 39,
+        "phase": "2023_H2",
+        "qualified_count": 14,
+        "qualified_frequency": 0.0027827469687934803,
+        "signal_date": "2023-11-08",
+        "status_counts": {
+          "MATCHED_REJECTED": 39,
+          "NOT_MATCHED": 4978,
+          "QUALIFIED_LEGACY_BASELINE": 14
+        }
+      },
+      {
+        "a_match_count": 29,
+        "a_match_frequency": 0.005764261578215067,
+        "candidate_count": 5031,
+        "matched_rejected_count": 20,
+        "phase": "2023_H2",
+        "qualified_count": 9,
+        "qualified_frequency": 0.0017889087656529517,
+        "signal_date": "2023-11-09",
+        "status_counts": {
+          "MATCHED_REJECTED": 20,
+          "NOT_MATCHED": 5002,
+          "QUALIFIED_LEGACY_BASELINE": 9
+        }
+      },
+      {
+        "a_match_count": 34,
+        "a_match_frequency": 0.006756756756756757,
+        "candidate_count": 5032,
+        "matched_rejected_count": 19,
+        "phase": "2023_H2",
+        "qualified_count": 15,
+        "qualified_frequency": 0.0029809220985691576,
+        "signal_date": "2023-11-10",
+        "status_counts": {
+          "MATCHED_REJECTED": 19,
+          "NOT_MATCHED": 4998,
+          "QUALIFIED_LEGACY_BASELINE": 15
+        }
+      },
+      {
+        "a_match_count": 49,
+        "a_match_frequency": 0.009729944400317712,
+        "candidate_count": 5036,
+        "matched_rejected_count": 29,
+        "phase": "2023_H2",
+        "qualified_count": 20,
+        "qualified_frequency": 0.003971405877680699,
+        "signal_date": "2023-11-13",
+        "status_counts": {
+          "MATCHED_REJECTED": 29,
+          "NOT_MATCHED": 4987,
+          "QUALIFIED_LEGACY_BASELINE": 20
+        }
+      },
+      {
+        "a_match_count": 44,
+        "a_match_frequency": 0.008731891248263544,
+        "candidate_count": 5039,
+        "matched_rejected_count": 31,
+        "phase": "2023_H2",
+        "qualified_count": 13,
+        "qualified_frequency": 0.002579876959714229,
+        "signal_date": "2023-11-14",
+        "status_counts": {
+          "MATCHED_REJECTED": 31,
+          "NOT_MATCHED": 4995,
+          "QUALIFIED_LEGACY_BASELINE": 13
+        }
+      },
+      {
+        "a_match_count": 58,
+        "a_match_frequency": 0.011507936507936509,
+        "candidate_count": 5040,
+        "matched_rejected_count": 43,
+        "phase": "2023_H2",
+        "qualified_count": 15,
+        "qualified_frequency": 0.002976190476190476,
+        "signal_date": "2023-11-15",
+        "status_counts": {
+          "MATCHED_REJECTED": 43,
+          "NOT_MATCHED": 4982,
+          "QUALIFIED_LEGACY_BASELINE": 15
+        }
+      },
+      {
+        "a_match_count": 25,
+        "a_match_frequency": 0.00496031746031746,
+        "candidate_count": 5040,
+        "matched_rejected_count": 20,
+        "phase": "2023_H2",
+        "qualified_count": 5,
+        "qualified_frequency": 0.000992063492063492,
+        "signal_date": "2023-11-16",
+        "status_counts": {
+          "MATCHED_REJECTED": 20,
+          "NOT_MATCHED": 5015,
+          "QUALIFIED_LEGACY_BASELINE": 5
+        }
+      },
+      {
+        "a_match_count": 62,
+        "a_match_frequency": 0.012294269284156256,
+        "candidate_count": 5043,
+        "matched_rejected_count": 36,
+        "phase": "2023_H2",
+        "qualified_count": 26,
+        "qualified_frequency": 0.005155661312710688,
+        "signal_date": "2023-11-17",
+        "status_counts": {
+          "MATCHED_REJECTED": 36,
+          "NOT_MATCHED": 4981,
+          "QUALIFIED_LEGACY_BASELINE": 26
+        }
+      },
+      {
+        "a_match_count": 87,
+        "a_match_frequency": 0.01723796314642362,
+        "candidate_count": 5047,
+        "matched_rejected_count": 60,
+        "phase": "2023_H2",
+        "qualified_count": 27,
+        "qualified_frequency": 0.005349712700614226,
+        "signal_date": "2023-11-20",
+        "status_counts": {
+          "MATCHED_REJECTED": 60,
+          "NOT_MATCHED": 4960,
+          "QUALIFIED_LEGACY_BASELINE": 27
+        }
+      },
+      {
+        "a_match_count": 143,
+        "a_match_frequency": 0.028316831683168318,
+        "candidate_count": 5050,
+        "matched_rejected_count": 122,
+        "phase": "2023_H2",
+        "qualified_count": 21,
+        "qualified_frequency": 0.004158415841584159,
+        "signal_date": "2023-11-21",
+        "status_counts": {
+          "MATCHED_REJECTED": 122,
+          "NOT_MATCHED": 4907,
+          "QUALIFIED_LEGACY_BASELINE": 21
+        }
+      },
+      {
+        "a_match_count": 114,
+        "a_match_frequency": 0.022574257425742573,
+        "candidate_count": 5050,
+        "matched_rejected_count": 92,
+        "phase": "2023_H2",
+        "qualified_count": 22,
+        "qualified_frequency": 0.004356435643564357,
+        "signal_date": "2023-11-22",
+        "status_counts": {
+          "MATCHED_REJECTED": 92,
+          "NOT_MATCHED": 4936,
+          "QUALIFIED_LEGACY_BASELINE": 22
+        }
+      },
+      {
+        "a_match_count": 56,
+        "a_match_frequency": 0.011084718923198733,
+        "candidate_count": 5052,
+        "matched_rejected_count": 41,
+        "phase": "2023_H2",
+        "qualified_count": 15,
+        "qualified_frequency": 0.0029691211401425177,
+        "signal_date": "2023-11-23",
+        "status_counts": {
+          "MATCHED_REJECTED": 41,
+          "NOT_MATCHED": 4996,
+          "QUALIFIED_LEGACY_BASELINE": 15
+        }
+      },
+      {
+        "a_match_count": 47,
+        "a_match_frequency": 0.009299564701226752,
+        "candidate_count": 5054,
+        "matched_rejected_count": 27,
+        "phase": "2023_H2",
+        "qualified_count": 20,
+        "qualified_frequency": 0.003957261574990107,
+        "signal_date": "2023-11-24",
+        "status_counts": {
+          "MATCHED_REJECTED": 27,
+          "NOT_MATCHED": 5007,
+          "QUALIFIED_LEGACY_BASELINE": 20
+        }
+      },
+      {
+        "a_match_count": 38,
+        "a_match_frequency": 0.007514336563179751,
+        "candidate_count": 5057,
+        "matched_rejected_count": 24,
+        "phase": "2023_H2",
+        "qualified_count": 14,
+        "qualified_frequency": 0.002768439786434645,
+        "signal_date": "2023-11-27",
+        "status_counts": {
+          "MATCHED_REJECTED": 24,
+          "NOT_MATCHED": 5019,
+          "QUALIFIED_LEGACY_BASELINE": 14
+        }
+      },
+      {
+        "a_match_count": 51,
+        "a_match_frequency": 0.010087025316455696,
+        "candidate_count": 5056,
+        "matched_rejected_count": 36,
+        "phase": "2023_H2",
+        "qualified_count": 15,
+        "qualified_frequency": 0.0029667721518987344,
+        "signal_date": "2023-11-28",
+        "status_counts": {
+          "MATCHED_REJECTED": 36,
+          "NOT_MATCHED": 5005,
+          "QUALIFIED_LEGACY_BASELINE": 15
+        }
+      },
+      {
+        "a_match_count": 30,
+        "a_match_frequency": 0.005931198102016607,
+        "candidate_count": 5058,
+        "matched_rejected_count": 20,
+        "phase": "2023_H2",
+        "qualified_count": 10,
+        "qualified_frequency": 0.0019770660340055358,
+        "signal_date": "2023-11-29",
+        "status_counts": {
+          "MATCHED_REJECTED": 20,
+          "NOT_MATCHED": 5028,
+          "QUALIFIED_LEGACY_BASELINE": 10
+        }
+      },
+      {
+        "a_match_count": 32,
+        "a_match_frequency": 0.006325360743229888,
+        "candidate_count": 5059,
+        "matched_rejected_count": 20,
+        "phase": "2023_H2",
+        "qualified_count": 12,
+        "qualified_frequency": 0.0023720102787112077,
+        "signal_date": "2023-11-30",
+        "status_counts": {
+          "MATCHED_REJECTED": 20,
+          "NOT_MATCHED": 5027,
+          "QUALIFIED_LEGACY_BASELINE": 12
+        }
+      },
+      {
+        "a_match_count": 40,
+        "a_match_frequency": 0.007903576368306658,
+        "candidate_count": 5061,
+        "matched_rejected_count": 29,
+        "phase": "2023_H2",
+        "qualified_count": 11,
+        "qualified_frequency": 0.0021734835012843312,
+        "signal_date": "2023-12-01",
+        "status_counts": {
+          "MATCHED_REJECTED": 29,
+          "NOT_MATCHED": 5021,
+          "QUALIFIED_LEGACY_BASELINE": 11
+        }
+      },
+      {
+        "a_match_count": 43,
+        "a_match_frequency": 0.008496344595929657,
+        "candidate_count": 5061,
+        "matched_rejected_count": 27,
+        "phase": "2023_H2",
+        "qualified_count": 16,
+        "qualified_frequency": 0.0031614305473226635,
+        "signal_date": "2023-12-04",
+        "status_counts": {
+          "MATCHED_REJECTED": 27,
+          "NOT_MATCHED": 5018,
+          "QUALIFIED_LEGACY_BASELINE": 16
+        }
+      },
+      {
+        "a_match_count": 17,
+        "a_match_frequency": 0.0033570300157977884,
+        "candidate_count": 5064,
+        "matched_rejected_count": 13,
+        "phase": "2023_H2",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0007898894154818325,
+        "signal_date": "2023-12-05",
+        "status_counts": {
+          "MATCHED_REJECTED": 13,
+          "NOT_MATCHED": 5047,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 40,
+        "a_match_frequency": 0.007897334649555774,
+        "candidate_count": 5065,
+        "matched_rejected_count": 28,
+        "phase": "2023_H2",
+        "qualified_count": 12,
+        "qualified_frequency": 0.0023692003948667323,
+        "signal_date": "2023-12-06",
+        "status_counts": {
+          "MATCHED_REJECTED": 28,
+          "NOT_MATCHED": 5025,
+          "QUALIFIED_LEGACY_BASELINE": 12
+        }
+      },
+      {
+        "a_match_count": 31,
+        "a_match_frequency": 0.006121642969984202,
+        "candidate_count": 5064,
+        "matched_rejected_count": 22,
+        "phase": "2023_H2",
+        "qualified_count": 9,
+        "qualified_frequency": 0.0017772511848341231,
+        "signal_date": "2023-12-07",
+        "status_counts": {
+          "MATCHED_REJECTED": 22,
+          "NOT_MATCHED": 5033,
+          "QUALIFIED_LEGACY_BASELINE": 9
+        }
+      },
+      {
+        "a_match_count": 25,
+        "a_match_frequency": 0.0049338859285573316,
+        "candidate_count": 5067,
+        "matched_rejected_count": 16,
+        "phase": "2023_H2",
+        "qualified_count": 9,
+        "qualified_frequency": 0.0017761989342806395,
+        "signal_date": "2023-12-08",
+        "status_counts": {
+          "MATCHED_REJECTED": 16,
+          "NOT_MATCHED": 5042,
+          "QUALIFIED_LEGACY_BASELINE": 9
+        }
+      },
+      {
+        "a_match_count": 33,
+        "a_match_frequency": 0.006510159794831328,
+        "candidate_count": 5069,
+        "matched_rejected_count": 18,
+        "phase": "2023_H2",
+        "qualified_count": 15,
+        "qualified_frequency": 0.002959163543105149,
+        "signal_date": "2023-12-11",
+        "status_counts": {
+          "MATCHED_REJECTED": 18,
+          "NOT_MATCHED": 5036,
+          "QUALIFIED_LEGACY_BASELINE": 15
+        }
+      },
+      {
+        "a_match_count": 38,
+        "a_match_frequency": 0.007496547642533044,
+        "candidate_count": 5069,
+        "matched_rejected_count": 28,
+        "phase": "2023_H2",
+        "qualified_count": 10,
+        "qualified_frequency": 0.0019727756954034327,
+        "signal_date": "2023-12-12",
+        "status_counts": {
+          "MATCHED_REJECTED": 28,
+          "NOT_MATCHED": 5031,
+          "QUALIFIED_LEGACY_BASELINE": 10
+        }
+      },
+      {
+        "a_match_count": 34,
+        "a_match_frequency": 0.006703470031545741,
+        "candidate_count": 5072,
+        "matched_rejected_count": 22,
+        "phase": "2023_H2",
+        "qualified_count": 12,
+        "qualified_frequency": 0.002365930599369085,
+        "signal_date": "2023-12-13",
+        "status_counts": {
+          "MATCHED_REJECTED": 22,
+          "NOT_MATCHED": 5038,
+          "QUALIFIED_LEGACY_BASELINE": 12
+        }
+      },
+      {
+        "a_match_count": 42,
+        "a_match_frequency": 0.008277493102089082,
+        "candidate_count": 5074,
+        "matched_rejected_count": 29,
+        "phase": "2023_H2",
+        "qualified_count": 13,
+        "qualified_frequency": 0.002562081198265668,
+        "signal_date": "2023-12-14",
+        "status_counts": {
+          "MATCHED_REJECTED": 29,
+          "NOT_MATCHED": 5032,
+          "QUALIFIED_LEGACY_BASELINE": 13
+        }
+      },
+      {
+        "a_match_count": 27,
+        "a_match_frequency": 0.00531810124089029,
+        "candidate_count": 5077,
+        "matched_rejected_count": 21,
+        "phase": "2023_H2",
+        "qualified_count": 6,
+        "qualified_frequency": 0.0011818002757533978,
+        "signal_date": "2023-12-15",
+        "status_counts": {
+          "MATCHED_REJECTED": 21,
+          "NOT_MATCHED": 5050,
+          "QUALIFIED_LEGACY_BASELINE": 6
+        }
+      },
+      {
+        "a_match_count": 15,
+        "a_match_frequency": 0.002955082742316785,
+        "candidate_count": 5076,
+        "matched_rejected_count": 10,
+        "phase": "2023_H2",
+        "qualified_count": 5,
+        "qualified_frequency": 0.0009850275807722615,
+        "signal_date": "2023-12-18",
+        "status_counts": {
+          "MATCHED_REJECTED": 10,
+          "NOT_MATCHED": 5061,
+          "QUALIFIED_LEGACY_BASELINE": 5
+        }
+      },
+      {
+        "a_match_count": 21,
+        "a_match_frequency": 0.0041354864119732175,
+        "candidate_count": 5078,
+        "matched_rejected_count": 16,
+        "phase": "2023_H2",
+        "qualified_count": 5,
+        "qualified_frequency": 0.0009846396218983853,
+        "signal_date": "2023-12-19",
+        "status_counts": {
+          "MATCHED_REJECTED": 16,
+          "NOT_MATCHED": 5057,
+          "QUALIFIED_LEGACY_BASELINE": 5
+        }
+      },
+      {
+        "a_match_count": 19,
+        "a_match_frequency": 0.0037379500295101316,
+        "candidate_count": 5083,
+        "matched_rejected_count": 14,
+        "phase": "2023_H2",
+        "qualified_count": 5,
+        "qualified_frequency": 0.0009836710603974032,
+        "signal_date": "2023-12-20",
+        "status_counts": {
+          "MATCHED_REJECTED": 14,
+          "NOT_MATCHED": 5064,
+          "QUALIFIED_LEGACY_BASELINE": 5
+        }
+      },
+      {
+        "a_match_count": 30,
+        "a_match_frequency": 0.005900865460267506,
+        "candidate_count": 5084,
+        "matched_rejected_count": 17,
+        "phase": "2023_H2",
+        "qualified_count": 13,
+        "qualified_frequency": 0.0025570416994492528,
+        "signal_date": "2023-12-21",
+        "status_counts": {
+          "MATCHED_REJECTED": 17,
+          "NOT_MATCHED": 5054,
+          "QUALIFIED_LEGACY_BASELINE": 13
+        }
+      },
+      {
+        "a_match_count": 13,
+        "a_match_frequency": 0.002555533713387065,
+        "candidate_count": 5087,
+        "matched_rejected_count": 10,
+        "phase": "2023_H2",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0005897385492431689,
+        "signal_date": "2023-12-22",
+        "status_counts": {
+          "MATCHED_REJECTED": 10,
+          "NOT_MATCHED": 5074,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 20,
+        "a_match_frequency": 0.003929273084479371,
+        "candidate_count": 5090,
+        "matched_rejected_count": 12,
+        "phase": "2023_H2",
+        "qualified_count": 8,
+        "qualified_frequency": 0.0015717092337917485,
+        "signal_date": "2023-12-25",
+        "status_counts": {
+          "MATCHED_REJECTED": 12,
+          "NOT_MATCHED": 5070,
+          "QUALIFIED_LEGACY_BASELINE": 8
+        }
+      },
+      {
+        "a_match_count": 17,
+        "a_match_frequency": 0.0033385703063629223,
+        "candidate_count": 5092,
+        "matched_rejected_count": 10,
+        "phase": "2023_H2",
+        "qualified_count": 7,
+        "qualified_frequency": 0.0013747054202670856,
+        "signal_date": "2023-12-26",
+        "status_counts": {
+          "MATCHED_REJECTED": 10,
+          "NOT_MATCHED": 5075,
+          "QUALIFIED_LEGACY_BASELINE": 7
+        }
+      },
+      {
+        "a_match_count": 11,
+        "a_match_frequency": 0.0021594032194738907,
+        "candidate_count": 5094,
+        "matched_rejected_count": 4,
+        "phase": "2023_H2",
+        "qualified_count": 7,
+        "qualified_frequency": 0.0013741656851197488,
+        "signal_date": "2023-12-27",
+        "status_counts": {
+          "MATCHED_REJECTED": 4,
+          "NOT_MATCHED": 5083,
+          "QUALIFIED_LEGACY_BASELINE": 7
+        }
+      },
+      {
+        "a_match_count": 32,
+        "a_match_frequency": 0.006285602042820664,
+        "candidate_count": 5091,
+        "matched_rejected_count": 15,
+        "phase": "2023_H2",
+        "qualified_count": 17,
+        "qualified_frequency": 0.003339226085248478,
+        "signal_date": "2023-12-28",
+        "status_counts": {
+          "MATCHED_REJECTED": 15,
+          "NOT_MATCHED": 5059,
+          "QUALIFIED_LEGACY_BASELINE": 17
+        }
+      },
+      {
+        "a_match_count": 49,
+        "a_match_frequency": 0.009617271835132482,
+        "candidate_count": 5095,
+        "matched_rejected_count": 27,
+        "phase": "2023_H2",
+        "qualified_count": 22,
+        "qualified_frequency": 0.0043179587831207065,
+        "signal_date": "2023-12-29",
+        "status_counts": {
+          "MATCHED_REJECTED": 27,
+          "NOT_MATCHED": 5046,
+          "QUALIFIED_LEGACY_BASELINE": 22
+        }
+      },
+      {
+        "a_match_count": 70,
+        "a_match_frequency": 0.013730874852883483,
+        "candidate_count": 5098,
+        "matched_rejected_count": 34,
+        "phase": "2024",
+        "qualified_count": 36,
+        "qualified_frequency": 0.007061592781482934,
+        "signal_date": "2024-01-02",
+        "status_counts": {
+          "MATCHED_REJECTED": 34,
+          "NOT_MATCHED": 5028,
+          "QUALIFIED_LEGACY_BASELINE": 36
+        }
+      },
+      {
+        "a_match_count": 36,
+        "a_match_frequency": 0.007061592781482934,
+        "candidate_count": 5098,
+        "matched_rejected_count": 21,
+        "phase": "2024",
+        "qualified_count": 15,
+        "qualified_frequency": 0.0029423303256178894,
+        "signal_date": "2024-01-03",
+        "status_counts": {
+          "MATCHED_REJECTED": 21,
+          "NOT_MATCHED": 5062,
+          "QUALIFIED_LEGACY_BASELINE": 15
+        }
+      },
+      {
+        "a_match_count": 18,
+        "a_match_frequency": 0.003527336860670194,
+        "candidate_count": 5103,
+        "matched_rejected_count": 12,
+        "phase": "2024",
+        "qualified_count": 6,
+        "qualified_frequency": 0.0011757789535567313,
+        "signal_date": "2024-01-04",
+        "status_counts": {
+          "MATCHED_REJECTED": 12,
+          "NOT_MATCHED": 5085,
+          "QUALIFIED_LEGACY_BASELINE": 6
+        }
+      },
+      {
+        "a_match_count": 14,
+        "a_match_frequency": 0.002742409402546523,
+        "candidate_count": 5105,
+        "matched_rejected_count": 8,
+        "phase": "2024",
+        "qualified_count": 6,
+        "qualified_frequency": 0.0011753183153770813,
+        "signal_date": "2024-01-05",
+        "status_counts": {
+          "MATCHED_REJECTED": 8,
+          "NOT_MATCHED": 5091,
+          "QUALIFIED_LEGACY_BASELINE": 6
+        }
+      },
+      {
+        "a_match_count": 14,
+        "a_match_frequency": 0.0027418723070896985,
+        "candidate_count": 5106,
+        "matched_rejected_count": 10,
+        "phase": "2024",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0007833920877399138,
+        "signal_date": "2024-01-08",
+        "status_counts": {
+          "MATCHED_REJECTED": 10,
+          "NOT_MATCHED": 5092,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 26,
+        "a_match_frequency": 0.005089058524173028,
+        "candidate_count": 5109,
+        "matched_rejected_count": 16,
+        "phase": "2024",
+        "qualified_count": 10,
+        "qualified_frequency": 0.0019573302016050106,
+        "signal_date": "2024-01-09",
+        "status_counts": {
+          "MATCHED_REJECTED": 16,
+          "NOT_MATCHED": 5083,
+          "QUALIFIED_LEGACY_BASELINE": 10
+        }
+      },
+      {
+        "a_match_count": 21,
+        "a_match_frequency": 0.004108784973586382,
+        "candidate_count": 5111,
+        "matched_rejected_count": 16,
+        "phase": "2024",
+        "qualified_count": 5,
+        "qualified_frequency": 0.0009782821365681863,
+        "signal_date": "2024-01-10",
+        "status_counts": {
+          "MATCHED_REJECTED": 16,
+          "NOT_MATCHED": 5090,
+          "QUALIFIED_LEGACY_BASELINE": 5
+        }
+      },
+      {
+        "a_match_count": 21,
+        "a_match_frequency": 0.004106374657802112,
+        "candidate_count": 5114,
+        "matched_rejected_count": 15,
+        "phase": "2024",
+        "qualified_count": 6,
+        "qualified_frequency": 0.0011732499022291747,
+        "signal_date": "2024-01-11",
+        "status_counts": {
+          "MATCHED_REJECTED": 15,
+          "NOT_MATCHED": 5093,
+          "QUALIFIED_LEGACY_BASELINE": 6
+        }
+      },
+      {
+        "a_match_count": 18,
+        "a_match_frequency": 0.0035190615835777126,
+        "candidate_count": 5115,
+        "matched_rejected_count": 12,
+        "phase": "2024",
+        "qualified_count": 6,
+        "qualified_frequency": 0.0011730205278592375,
+        "signal_date": "2024-01-12",
+        "status_counts": {
+          "MATCHED_REJECTED": 12,
+          "NOT_MATCHED": 5097,
+          "QUALIFIED_LEGACY_BASELINE": 6
+        }
+      },
+      {
+        "a_match_count": 28,
+        "a_match_frequency": 0.005471956224350205,
+        "candidate_count": 5117,
+        "matched_rejected_count": 20,
+        "phase": "2024",
+        "qualified_count": 8,
+        "qualified_frequency": 0.0015634160641000586,
+        "signal_date": "2024-01-15",
+        "status_counts": {
+          "MATCHED_REJECTED": 20,
+          "NOT_MATCHED": 5089,
+          "QUALIFIED_LEGACY_BASELINE": 8
+        }
+      },
+      {
+        "a_match_count": 26,
+        "a_match_frequency": 0.005078125,
+        "candidate_count": 5120,
+        "matched_rejected_count": 16,
+        "phase": "2024",
+        "qualified_count": 10,
+        "qualified_frequency": 0.001953125,
+        "signal_date": "2024-01-16",
+        "status_counts": {
+          "MATCHED_REJECTED": 16,
+          "NOT_MATCHED": 5094,
+          "QUALIFIED_LEGACY_BASELINE": 10
+        }
+      },
+      {
+        "a_match_count": 20,
+        "a_match_frequency": 0.003904724716907458,
+        "candidate_count": 5122,
+        "matched_rejected_count": 13,
+        "phase": "2024",
+        "qualified_count": 7,
+        "qualified_frequency": 0.0013666536509176104,
+        "signal_date": "2024-01-17",
+        "status_counts": {
+          "MATCHED_REJECTED": 13,
+          "NOT_MATCHED": 5102,
+          "QUALIFIED_LEGACY_BASELINE": 7
+        }
+      },
+      {
+        "a_match_count": 23,
+        "a_match_frequency": 0.004486929379633242,
+        "candidate_count": 5126,
+        "matched_rejected_count": 16,
+        "phase": "2024",
+        "qualified_count": 7,
+        "qualified_frequency": 0.0013655872024970737,
+        "signal_date": "2024-01-18",
+        "status_counts": {
+          "MATCHED_REJECTED": 16,
+          "NOT_MATCHED": 5103,
+          "QUALIFIED_LEGACY_BASELINE": 7
+        }
+      },
+      {
+        "a_match_count": 16,
+        "a_match_frequency": 0.0031207333723425007,
+        "candidate_count": 5127,
+        "matched_rejected_count": 11,
+        "phase": "2024",
+        "qualified_count": 5,
+        "qualified_frequency": 0.0009752291788570314,
+        "signal_date": "2024-01-19",
+        "status_counts": {
+          "MATCHED_REJECTED": 11,
+          "NOT_MATCHED": 5111,
+          "QUALIFIED_LEGACY_BASELINE": 5
+        }
+      },
+      {
+        "a_match_count": 6,
+        "a_match_frequency": 0.0011698186781048938,
+        "candidate_count": 5129,
+        "matched_rejected_count": 3,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0005849093390524469,
+        "signal_date": "2024-01-22",
+        "status_counts": {
+          "MATCHED_REJECTED": 3,
+          "NOT_MATCHED": 5123,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 4,
+        "a_match_frequency": 0.0007798791187365958,
+        "candidate_count": 5129,
+        "matched_rejected_count": 3,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019496977968414895,
+        "signal_date": "2024-01-23",
+        "status_counts": {
+          "MATCHED_REJECTED": 3,
+          "NOT_MATCHED": 5125,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 15,
+        "a_match_frequency": 0.002923406743324888,
+        "candidate_count": 5131,
+        "matched_rejected_count": 11,
+        "phase": "2024",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0007795751315533034,
+        "signal_date": "2024-01-24",
+        "status_counts": {
+          "MATCHED_REJECTED": 11,
+          "NOT_MATCHED": 5116,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 40,
+        "a_match_frequency": 0.00779423226812159,
+        "candidate_count": 5132,
+        "matched_rejected_count": 25,
+        "phase": "2024",
+        "qualified_count": 15,
+        "qualified_frequency": 0.0029228371005455963,
+        "signal_date": "2024-01-25",
+        "status_counts": {
+          "MATCHED_REJECTED": 25,
+          "NOT_MATCHED": 5092,
+          "QUALIFIED_LEGACY_BASELINE": 15
+        }
+      },
+      {
+        "a_match_count": 21,
+        "a_match_frequency": 0.004091174751607247,
+        "candidate_count": 5133,
+        "matched_rejected_count": 11,
+        "phase": "2024",
+        "qualified_count": 10,
+        "qualified_frequency": 0.0019481784531463083,
+        "signal_date": "2024-01-26",
+        "status_counts": {
+          "MATCHED_REJECTED": 11,
+          "NOT_MATCHED": 5112,
+          "QUALIFIED_LEGACY_BASELINE": 10
+        }
+      },
+      {
+        "a_match_count": 9,
+        "a_match_frequency": 0.0017526777020447906,
+        "candidate_count": 5135,
+        "matched_rejected_count": 4,
+        "phase": "2024",
+        "qualified_count": 5,
+        "qualified_frequency": 0.0009737098344693282,
+        "signal_date": "2024-01-29",
+        "status_counts": {
+          "MATCHED_REJECTED": 4,
+          "NOT_MATCHED": 5126,
+          "QUALIFIED_LEGACY_BASELINE": 5
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.00019474196689386563,
+        "candidate_count": 5135,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-01-30",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5134
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.0005839984426708196,
+        "candidate_count": 5137,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0005839984426708196,
+        "signal_date": "2024-01-31",
+        "status_counts": {
+          "NOT_MATCHED": 5134,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.0001945525291828794,
+        "candidate_count": 5140,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.0001945525291828794,
+        "signal_date": "2024-02-01",
+        "status_counts": {
+          "NOT_MATCHED": 5139,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.000583544057576347,
+        "candidate_count": 5141,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019451468585878233,
+        "signal_date": "2024-02-02",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5138,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 6,
+        "a_match_frequency": 0.0011668611435239206,
+        "candidate_count": 5142,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0007779074290159471,
+        "signal_date": "2024-02-05",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5136,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 13,
+        "a_match_frequency": 0.002527216174183515,
+        "candidate_count": 5144,
+        "matched_rejected_count": 6,
+        "phase": "2024",
+        "qualified_count": 7,
+        "qualified_frequency": 0.0013608087091757388,
+        "signal_date": "2024-02-06",
+        "status_counts": {
+          "MATCHED_REJECTED": 6,
+          "NOT_MATCHED": 5131,
+          "QUALIFIED_LEGACY_BASELINE": 7
+        }
+      },
+      {
+        "a_match_count": 49,
+        "a_match_frequency": 0.009521958802953751,
+        "candidate_count": 5146,
+        "matched_rejected_count": 17,
+        "phase": "2024",
+        "qualified_count": 32,
+        "qualified_frequency": 0.006218422075398368,
+        "signal_date": "2024-02-07",
+        "status_counts": {
+          "MATCHED_REJECTED": 17,
+          "NOT_MATCHED": 5097,
+          "QUALIFIED_LEGACY_BASELINE": 32
+        }
+      },
+      {
+        "a_match_count": 4,
+        "a_match_frequency": 0.0007768498737618955,
+        "candidate_count": 5149,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 2,
+        "qualified_frequency": 0.0003884249368809478,
+        "signal_date": "2024-02-08",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5145,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 7,
+        "a_match_frequency": 0.001358695652173913,
+        "candidate_count": 5152,
+        "matched_rejected_count": 4,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0005822981366459627,
+        "signal_date": "2024-02-19",
+        "status_counts": {
+          "MATCHED_REJECTED": 4,
+          "NOT_MATCHED": 5145,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.0005819592628516004,
+        "candidate_count": 5155,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 2,
+        "qualified_frequency": 0.0003879728419010669,
+        "signal_date": "2024-02-20",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5152,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 5,
+        "a_match_frequency": 0.000969743987587277,
+        "candidate_count": 5156,
+        "matched_rejected_count": 4,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.0001939487975174554,
+        "signal_date": "2024-02-21",
+        "status_counts": {
+          "MATCHED_REJECTED": 4,
+          "NOT_MATCHED": 5151,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.0005817335660267597,
+        "candidate_count": 5157,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019391118867558658,
+        "signal_date": "2024-02-22",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5154,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 5,
+        "a_match_frequency": 0.0009691800736576856,
+        "candidate_count": 5159,
+        "matched_rejected_count": 3,
+        "phase": "2024",
+        "qualified_count": 2,
+        "qualified_frequency": 0.0003876720294630742,
+        "signal_date": "2024-02-23",
+        "status_counts": {
+          "MATCHED_REJECTED": 3,
+          "NOT_MATCHED": 5154,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 5,
+        "a_match_frequency": 0.0009693679720822024,
+        "candidate_count": 5158,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0005816207832493214,
+        "signal_date": "2024-02-26",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5153,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.0001937984496124031,
+        "candidate_count": 5160,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.0001937984496124031,
+        "signal_date": "2024-02-27",
+        "status_counts": {
+          "NOT_MATCHED": 5159,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.0005813953488372093,
+        "candidate_count": 5160,
+        "matched_rejected_count": 3,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-02-28",
+        "status_counts": {
+          "MATCHED_REJECTED": 3,
+          "NOT_MATCHED": 5157
+        }
+      },
+      {
+        "a_match_count": 7,
+        "a_match_frequency": 0.0013565891472868217,
+        "candidate_count": 5160,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 6,
+        "qualified_frequency": 0.0011627906976744186,
+        "signal_date": "2024-02-29",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5153,
+          "QUALIFIED_LEGACY_BASELINE": 6
+        }
+      },
+      {
+        "a_match_count": 6,
+        "a_match_frequency": 0.0011625653943034295,
+        "candidate_count": 5161,
+        "matched_rejected_count": 3,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0005812826971517147,
+        "signal_date": "2024-03-01",
+        "status_counts": {
+          "MATCHED_REJECTED": 3,
+          "NOT_MATCHED": 5155,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 8,
+        "a_match_frequency": 0.0015500871924045726,
+        "candidate_count": 5161,
+        "matched_rejected_count": 3,
+        "phase": "2024",
+        "qualified_count": 5,
+        "qualified_frequency": 0.000968804495252858,
+        "signal_date": "2024-03-04",
+        "status_counts": {
+          "MATCHED_REJECTED": 3,
+          "NOT_MATCHED": 5153,
+          "QUALIFIED_LEGACY_BASELINE": 5
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.0001936858415649816,
+        "candidate_count": 5163,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.0001936858415649816,
+        "signal_date": "2024-03-05",
+        "status_counts": {
+          "NOT_MATCHED": 5162,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 5,
+        "a_match_frequency": 0.0009686168151879117,
+        "candidate_count": 5162,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.000581170089112747,
+        "signal_date": "2024-03-06",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5157,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 6,
+        "a_match_frequency": 0.0011621150493898896,
+        "candidate_count": 5163,
+        "matched_rejected_count": 3,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0005810575246949448,
+        "signal_date": "2024-03-07",
+        "status_counts": {
+          "MATCHED_REJECTED": 3,
+          "NOT_MATCHED": 5157,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 4,
+        "a_match_frequency": 0.0007744433688286545,
+        "candidate_count": 5165,
+        "matched_rejected_count": 3,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.0001936108422071636,
+        "signal_date": "2024-03-08",
+        "status_counts": {
+          "MATCHED_REJECTED": 3,
+          "NOT_MATCHED": 5161,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.0005808325266214908,
+        "candidate_count": 5165,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.0001936108422071636,
+        "signal_date": "2024-03-11",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5162,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 8,
+        "a_match_frequency": 0.0015479876160990713,
+        "candidate_count": 5168,
+        "matched_rejected_count": 4,
+        "phase": "2024",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0007739938080495357,
+        "signal_date": "2024-03-12",
+        "status_counts": {
+          "MATCHED_REJECTED": 4,
+          "NOT_MATCHED": 5160,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5170,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-03-13",
+        "status_counts": {
+          "NOT_MATCHED": 5170
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.0005802707930367504,
+        "candidate_count": 5170,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019342359767891682,
+        "signal_date": "2024-03-14",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5167,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 7,
+        "a_match_frequency": 0.0013542271232346683,
+        "candidate_count": 5169,
+        "matched_rejected_count": 5,
+        "phase": "2024",
+        "qualified_count": 2,
+        "qualified_frequency": 0.0003869220352099052,
+        "signal_date": "2024-03-15",
+        "status_counts": {
+          "MATCHED_REJECTED": 5,
+          "NOT_MATCHED": 5162,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 8,
+        "a_match_frequency": 0.0015476881408396208,
+        "candidate_count": 5169,
+        "matched_rejected_count": 4,
+        "phase": "2024",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0007738440704198104,
+        "signal_date": "2024-03-18",
+        "status_counts": {
+          "MATCHED_REJECTED": 4,
+          "NOT_MATCHED": 5161,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.00038662284941040013,
+        "candidate_count": 5173,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019331142470520006,
+        "signal_date": "2024-03-19",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5171,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 4,
+        "a_match_frequency": 0.0007732456988208003,
+        "candidate_count": 5173,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 2,
+        "qualified_frequency": 0.00038662284941040013,
+        "signal_date": "2024-03-20",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5169,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 6,
+        "a_match_frequency": 0.0011598685482312006,
+        "candidate_count": 5173,
+        "matched_rejected_count": 4,
+        "phase": "2024",
+        "qualified_count": 2,
+        "qualified_frequency": 0.00038662284941040013,
+        "signal_date": "2024-03-21",
+        "status_counts": {
+          "MATCHED_REJECTED": 4,
+          "NOT_MATCHED": 5167,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.0005797101449275362,
+        "candidate_count": 5175,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0005797101449275362,
+        "signal_date": "2024-03-22",
+        "status_counts": {
+          "NOT_MATCHED": 5172,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 4,
+        "a_match_frequency": 0.0007727975270479134,
+        "candidate_count": 5176,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.000579598145285935,
+        "signal_date": "2024-03-25",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5172,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.0003863987635239567,
+        "candidate_count": 5176,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-03-26",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5174
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.0005792624058698591,
+        "candidate_count": 5179,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019308746862328635,
+        "signal_date": "2024-03-27",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5176,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.0003861749372465727,
+        "candidate_count": 5179,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 2,
+        "qualified_frequency": 0.0003861749372465727,
+        "signal_date": "2024-03-28",
+        "status_counts": {
+          "NOT_MATCHED": 5177,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 4,
+        "a_match_frequency": 0.000772499034376207,
+        "candidate_count": 5178,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0005793742757821553,
+        "signal_date": "2024-03-29",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5174,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 9,
+        "a_match_frequency": 0.001736446073702489,
+        "candidate_count": 5183,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 8,
+        "qualified_frequency": 0.001543507621068879,
+        "signal_date": "2024-04-01",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5174,
+          "QUALIFIED_LEGACY_BASELINE": 8
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.0005788153579008296,
+        "candidate_count": 5183,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 2,
+        "qualified_frequency": 0.00038587690526721975,
+        "signal_date": "2024-04-02",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5180,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 5,
+        "a_match_frequency": 0.0009646922631680494,
+        "candidate_count": 5183,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 5,
+        "qualified_frequency": 0.0009646922631680494,
+        "signal_date": "2024-04-03",
+        "status_counts": {
+          "NOT_MATCHED": 5178,
+          "QUALIFIED_LEGACY_BASELINE": 5
+        }
+      },
+      {
+        "a_match_count": 4,
+        "a_match_frequency": 0.0007714561234329798,
+        "candidate_count": 5185,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0005785920925747348,
+        "signal_date": "2024-04-08",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5181,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.0005784805244890089,
+        "candidate_count": 5186,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 2,
+        "qualified_frequency": 0.0003856536829926726,
+        "signal_date": "2024-04-09",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5183,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5187,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-04-10",
+        "status_counts": {
+          "NOT_MATCHED": 5187
+        }
+      },
+      {
+        "a_match_count": 5,
+        "a_match_frequency": 0.000963948332369385,
+        "candidate_count": 5187,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 5,
+        "qualified_frequency": 0.000963948332369385,
+        "signal_date": "2024-04-11",
+        "status_counts": {
+          "NOT_MATCHED": 5182,
+          "QUALIFIED_LEGACY_BASELINE": 5
+        }
+      },
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.0003854307188282906,
+        "candidate_count": 5189,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.0001927153594141453,
+        "signal_date": "2024-04-12",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5187,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 14,
+        "a_match_frequency": 0.0026985350809560524,
+        "candidate_count": 5188,
+        "matched_rejected_count": 5,
+        "phase": "2024",
+        "qualified_count": 9,
+        "qualified_frequency": 0.0017347725520431765,
+        "signal_date": "2024-04-15",
+        "status_counts": {
+          "MATCHED_REJECTED": 5,
+          "NOT_MATCHED": 5174,
+          "QUALIFIED_LEGACY_BASELINE": 9
+        }
+      },
+      {
+        "a_match_count": 5,
+        "a_match_frequency": 0.0009635767970707265,
+        "candidate_count": 5189,
+        "matched_rejected_count": 3,
+        "phase": "2024",
+        "qualified_count": 2,
+        "qualified_frequency": 0.0003854307188282906,
+        "signal_date": "2024-04-16",
+        "status_counts": {
+          "MATCHED_REJECTED": 3,
+          "NOT_MATCHED": 5184,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 12,
+        "a_match_frequency": 0.002313030069390902,
+        "candidate_count": 5188,
+        "matched_rejected_count": 4,
+        "phase": "2024",
+        "qualified_count": 8,
+        "qualified_frequency": 0.0015420200462606013,
+        "signal_date": "2024-04-17",
+        "status_counts": {
+          "MATCHED_REJECTED": 4,
+          "NOT_MATCHED": 5176,
+          "QUALIFIED_LEGACY_BASELINE": 8
+        }
+      },
+      {
+        "a_match_count": 8,
+        "a_match_frequency": 0.0015417228753131624,
+        "candidate_count": 5189,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 6,
+        "qualified_frequency": 0.0011562921564848719,
+        "signal_date": "2024-04-18",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5181,
+          "QUALIFIED_LEGACY_BASELINE": 6
+        }
+      },
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.0003853564547206166,
+        "candidate_count": 5190,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-04-19",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5188
+        }
+      },
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.0003854307188282906,
+        "candidate_count": 5189,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.0001927153594141453,
+        "signal_date": "2024-04-22",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5187,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.00019275250578257516,
+        "candidate_count": 5188,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019275250578257516,
+        "signal_date": "2024-04-23",
+        "status_counts": {
+          "NOT_MATCHED": 5187,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5189,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-04-24",
+        "status_counts": {
+          "NOT_MATCHED": 5189
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.0005781460782424359,
+        "candidate_count": 5189,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0005781460782424359,
+        "signal_date": "2024-04-25",
+        "status_counts": {
+          "NOT_MATCHED": 5186,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 8,
+        "a_match_frequency": 0.001543507621068879,
+        "candidate_count": 5183,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 7,
+        "qualified_frequency": 0.0013505691684352692,
+        "signal_date": "2024-04-26",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5175,
+          "QUALIFIED_LEGACY_BASELINE": 7
+        }
+      },
+      {
+        "a_match_count": 16,
+        "a_match_frequency": 0.0030876109610189118,
+        "candidate_count": 5182,
+        "matched_rejected_count": 8,
+        "phase": "2024",
+        "qualified_count": 8,
+        "qualified_frequency": 0.0015438054805094559,
+        "signal_date": "2024-04-29",
+        "status_counts": {
+          "MATCHED_REJECTED": 8,
+          "NOT_MATCHED": 5166,
+          "QUALIFIED_LEGACY_BASELINE": 8
+        }
+      },
+      {
+        "a_match_count": 14,
+        "a_match_frequency": 0.0027068832173240526,
+        "candidate_count": 5172,
+        "matched_rejected_count": 4,
+        "phase": "2024",
+        "qualified_count": 10,
+        "qualified_frequency": 0.0019334880123743233,
+        "signal_date": "2024-04-30",
+        "status_counts": {
+          "MATCHED_REJECTED": 4,
+          "NOT_MATCHED": 5158,
+          "QUALIFIED_LEGACY_BASELINE": 10
+        }
+      },
+      {
+        "a_match_count": 14,
+        "a_match_frequency": 0.0026943802925327174,
+        "candidate_count": 5196,
+        "matched_rejected_count": 4,
+        "phase": "2024",
+        "qualified_count": 10,
+        "qualified_frequency": 0.001924557351809084,
+        "signal_date": "2024-05-06",
+        "status_counts": {
+          "MATCHED_REJECTED": 4,
+          "NOT_MATCHED": 5182,
+          "QUALIFIED_LEGACY_BASELINE": 10
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.00019245573518090838,
+        "candidate_count": 5196,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-05-07",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5195
+        }
+      },
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.00038498556304138594,
+        "candidate_count": 5195,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 2,
+        "qualified_frequency": 0.00038498556304138594,
+        "signal_date": "2024-05-08",
+        "status_counts": {
+          "NOT_MATCHED": 5193,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 5,
+        "a_match_frequency": 0.0009619084263178145,
+        "candidate_count": 5198,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0005771450557906887,
+        "signal_date": "2024-05-09",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5193,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.0005770340450086555,
+        "candidate_count": 5199,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 2,
+        "qualified_frequency": 0.00038468936333910367,
+        "signal_date": "2024-05-10",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5196,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 9,
+        "a_match_frequency": 0.0017314351673720662,
+        "candidate_count": 5198,
+        "matched_rejected_count": 5,
+        "phase": "2024",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0007695267410542517,
+        "signal_date": "2024-05-13",
+        "status_counts": {
+          "MATCHED_REJECTED": 5,
+          "NOT_MATCHED": 5189,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.00038446751249519417,
+        "candidate_count": 5202,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 2,
+        "qualified_frequency": 0.00038446751249519417,
+        "signal_date": "2024-05-14",
+        "status_counts": {
+          "NOT_MATCHED": 5200,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.00019219680953296174,
+        "candidate_count": 5203,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019219680953296174,
+        "signal_date": "2024-05-15",
+        "status_counts": {
+          "NOT_MATCHED": 5202,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 17,
+        "a_match_frequency": 0.0032673457620603498,
+        "candidate_count": 5203,
+        "matched_rejected_count": 6,
+        "phase": "2024",
+        "qualified_count": 11,
+        "qualified_frequency": 0.0021141649048625794,
+        "signal_date": "2024-05-16",
+        "status_counts": {
+          "MATCHED_REJECTED": 6,
+          "NOT_MATCHED": 5186,
+          "QUALIFIED_LEGACY_BASELINE": 11
+        }
+      },
+      {
+        "a_match_count": 36,
+        "a_match_frequency": 0.006913769925100826,
+        "candidate_count": 5207,
+        "matched_rejected_count": 23,
+        "phase": "2024",
+        "qualified_count": 13,
+        "qualified_frequency": 0.0024966391396197426,
+        "signal_date": "2024-05-17",
+        "status_counts": {
+          "MATCHED_REJECTED": 23,
+          "NOT_MATCHED": 5171,
+          "QUALIFIED_LEGACY_BASELINE": 13
+        }
+      },
+      {
+        "a_match_count": 20,
+        "a_match_frequency": 0.003843197540353574,
+        "candidate_count": 5204,
+        "matched_rejected_count": 9,
+        "phase": "2024",
+        "qualified_count": 11,
+        "qualified_frequency": 0.002113758647194466,
+        "signal_date": "2024-05-20",
+        "status_counts": {
+          "MATCHED_REJECTED": 9,
+          "NOT_MATCHED": 5184,
+          "QUALIFIED_LEGACY_BASELINE": 11
+        }
+      },
+      {
+        "a_match_count": 9,
+        "a_match_frequency": 0.0017284424812752065,
+        "candidate_count": 5207,
+        "matched_rejected_count": 6,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0005761474937584022,
+        "signal_date": "2024-05-21",
+        "status_counts": {
+          "MATCHED_REJECTED": 6,
+          "NOT_MATCHED": 5198,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 14,
+        "a_match_frequency": 0.002688172043010753,
+        "candidate_count": 5208,
+        "matched_rejected_count": 9,
+        "phase": "2024",
+        "qualified_count": 5,
+        "qualified_frequency": 0.0009600614439324117,
+        "signal_date": "2024-05-22",
+        "status_counts": {
+          "MATCHED_REJECTED": 9,
+          "NOT_MATCHED": 5194,
+          "QUALIFIED_LEGACY_BASELINE": 5
+        }
+      },
+      {
+        "a_match_count": 6,
+        "a_match_frequency": 0.001152073732718894,
+        "candidate_count": 5208,
+        "matched_rejected_count": 5,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019201228878648233,
+        "signal_date": "2024-05-23",
+        "status_counts": {
+          "MATCHED_REJECTED": 5,
+          "NOT_MATCHED": 5202,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 9,
+        "a_match_frequency": 0.0017277788443079286,
+        "candidate_count": 5209,
+        "matched_rejected_count": 6,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0005759262814359762,
+        "signal_date": "2024-05-24",
+        "status_counts": {
+          "MATCHED_REJECTED": 6,
+          "NOT_MATCHED": 5200,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 8,
+        "a_match_frequency": 0.0015363933166890724,
+        "candidate_count": 5207,
+        "matched_rejected_count": 4,
+        "phase": "2024",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0007681966583445362,
+        "signal_date": "2024-05-27",
+        "status_counts": {
+          "MATCHED_REJECTED": 4,
+          "NOT_MATCHED": 5199,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 12,
+        "a_match_frequency": 0.0023045899750336087,
+        "candidate_count": 5207,
+        "matched_rejected_count": 5,
+        "phase": "2024",
+        "qualified_count": 7,
+        "qualified_frequency": 0.0013443441521029385,
+        "signal_date": "2024-05-28",
+        "status_counts": {
+          "MATCHED_REJECTED": 5,
+          "NOT_MATCHED": 5195,
+          "QUALIFIED_LEGACY_BASELINE": 7
+        }
+      },
+      {
+        "a_match_count": 7,
+        "a_match_frequency": 0.0013443441521029385,
+        "candidate_count": 5207,
+        "matched_rejected_count": 5,
+        "phase": "2024",
+        "qualified_count": 2,
+        "qualified_frequency": 0.0003840983291722681,
+        "signal_date": "2024-05-29",
+        "status_counts": {
+          "MATCHED_REJECTED": 5,
+          "NOT_MATCHED": 5200,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 8,
+        "a_match_frequency": 0.0015360983102918587,
+        "candidate_count": 5208,
+        "matched_rejected_count": 6,
+        "phase": "2024",
+        "qualified_count": 2,
+        "qualified_frequency": 0.00038402457757296467,
+        "signal_date": "2024-05-30",
+        "status_counts": {
+          "MATCHED_REJECTED": 6,
+          "NOT_MATCHED": 5200,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 11,
+        "a_match_frequency": 0.0021117296985985793,
+        "candidate_count": 5209,
+        "matched_rejected_count": 3,
+        "phase": "2024",
+        "qualified_count": 8,
+        "qualified_frequency": 0.0015358034171626032,
+        "signal_date": "2024-05-31",
+        "status_counts": {
+          "MATCHED_REJECTED": 3,
+          "NOT_MATCHED": 5198,
+          "QUALIFIED_LEGACY_BASELINE": 8
+        }
+      },
+      {
+        "a_match_count": 12,
+        "a_match_frequency": 0.002302820955670697,
+        "candidate_count": 5211,
+        "matched_rejected_count": 8,
+        "phase": "2024",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0007676069852235655,
+        "signal_date": "2024-06-03",
+        "status_counts": {
+          "MATCHED_REJECTED": 8,
+          "NOT_MATCHED": 5199,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 7,
+        "a_match_frequency": 0.0013438279900172777,
+        "candidate_count": 5209,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 6,
+        "qualified_frequency": 0.0011518525628719525,
+        "signal_date": "2024-06-04",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5202,
+          "QUALIFIED_LEGACY_BASELINE": 6
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.0005754843660080568,
+        "candidate_count": 5213,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 2,
+        "qualified_frequency": 0.0003836562440053712,
+        "signal_date": "2024-06-05",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5210,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 4,
+        "a_match_frequency": 0.0007671653241273494,
+        "candidate_count": 5214,
+        "matched_rejected_count": 3,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019179133103183735,
+        "signal_date": "2024-06-06",
+        "status_counts": {
+          "MATCHED_REJECTED": 3,
+          "NOT_MATCHED": 5210,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 7,
+        "a_match_frequency": 0.001343570057581574,
+        "candidate_count": 5210,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 6,
+        "qualified_frequency": 0.0011516314779270633,
+        "signal_date": "2024-06-07",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5203,
+          "QUALIFIED_LEGACY_BASELINE": 6
+        }
+      },
+      {
+        "a_match_count": 10,
+        "a_match_frequency": 0.0019190174630589138,
+        "candidate_count": 5211,
+        "matched_rejected_count": 6,
+        "phase": "2024",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0007676069852235655,
+        "signal_date": "2024-06-11",
+        "status_counts": {
+          "MATCHED_REJECTED": 6,
+          "NOT_MATCHED": 5201,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 7,
+        "a_match_frequency": 0.0013425393172228615,
+        "candidate_count": 5214,
+        "matched_rejected_count": 3,
+        "phase": "2024",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0007671653241273494,
+        "signal_date": "2024-06-12",
+        "status_counts": {
+          "MATCHED_REJECTED": 3,
+          "NOT_MATCHED": 5207,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 6,
+        "a_match_frequency": 0.0011500862564692352,
+        "candidate_count": 5217,
+        "matched_rejected_count": 3,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0005750431282346176,
+        "signal_date": "2024-06-13",
+        "status_counts": {
+          "MATCHED_REJECTED": 3,
+          "NOT_MATCHED": 5211,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.0005747126436781609,
+        "candidate_count": 5220,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0005747126436781609,
+        "signal_date": "2024-06-14",
+        "status_counts": {
+          "NOT_MATCHED": 5217,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 15,
+        "a_match_frequency": 0.0028735632183908046,
+        "candidate_count": 5220,
+        "matched_rejected_count": 7,
+        "phase": "2024",
+        "qualified_count": 8,
+        "qualified_frequency": 0.0015325670498084292,
+        "signal_date": "2024-06-17",
+        "status_counts": {
+          "MATCHED_REJECTED": 7,
+          "NOT_MATCHED": 5205,
+          "QUALIFIED_LEGACY_BASELINE": 8
+        }
+      },
+      {
+        "a_match_count": 9,
+        "a_match_frequency": 0.001723807699674392,
+        "candidate_count": 5221,
+        "matched_rejected_count": 3,
+        "phase": "2024",
+        "qualified_count": 6,
+        "qualified_frequency": 0.0011492051331162612,
+        "signal_date": "2024-06-18",
+        "status_counts": {
+          "MATCHED_REJECTED": 3,
+          "NOT_MATCHED": 5212,
+          "QUALIFIED_LEGACY_BASELINE": 6
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.0005743825387708214,
+        "candidate_count": 5223,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019146084625694046,
+        "signal_date": "2024-06-19",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5220,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.0005743825387708214,
+        "candidate_count": 5223,
+        "matched_rejected_count": 3,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-06-20",
+        "status_counts": {
+          "MATCHED_REJECTED": 3,
+          "NOT_MATCHED": 5220
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.0005742725880551302,
+        "candidate_count": 5224,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019142419601837673,
+        "signal_date": "2024-06-21",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5221,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.0001913143294432753,
+        "candidate_count": 5227,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.0001913143294432753,
+        "signal_date": "2024-06-24",
+        "status_counts": {
+          "NOT_MATCHED": 5226,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.0005743825387708214,
+        "candidate_count": 5223,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019146084625694046,
+        "signal_date": "2024-06-25",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5220,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.00019127773527161438,
+        "candidate_count": 5228,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-06-26",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5227
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.0005739429883298259,
+        "candidate_count": 5227,
+        "matched_rejected_count": 3,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-06-27",
+        "status_counts": {
+          "MATCHED_REJECTED": 3,
+          "NOT_MATCHED": 5224
+        }
+      },
+      {
+        "a_match_count": 6,
+        "a_match_frequency": 0.001147227533460803,
+        "candidate_count": 5230,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0007648183556405354,
+        "signal_date": "2024-06-28",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5224,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 4,
+        "a_match_frequency": 0.0007648183556405354,
+        "candidate_count": 5230,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0005736137667304016,
+        "signal_date": "2024-07-01",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5226,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 5,
+        "a_match_frequency": 0.00095565749235474,
+        "candidate_count": 5232,
+        "matched_rejected_count": 4,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019113149847094801,
+        "signal_date": "2024-07-02",
+        "status_counts": {
+          "MATCHED_REJECTED": 4,
+          "NOT_MATCHED": 5227,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5232,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-07-03",
+        "status_counts": {
+          "NOT_MATCHED": 5232
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5234,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-07-04",
+        "status_counts": {
+          "NOT_MATCHED": 5234
+        }
+      },
+      {
+        "a_match_count": 4,
+        "a_match_frequency": 0.0007643798968087139,
+        "candidate_count": 5233,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0007643798968087139,
+        "signal_date": "2024-07-05",
+        "status_counts": {
+          "NOT_MATCHED": 5229,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.00019116803670426305,
+        "candidate_count": 5231,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019116803670426305,
+        "signal_date": "2024-07-08",
+        "status_counts": {
+          "NOT_MATCHED": 5230,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 5,
+        "a_match_frequency": 0.0009554748710108924,
+        "candidate_count": 5233,
+        "matched_rejected_count": 3,
+        "phase": "2024",
+        "qualified_count": 2,
+        "qualified_frequency": 0.00038218994840435696,
+        "signal_date": "2024-07-09",
+        "status_counts": {
+          "MATCHED_REJECTED": 3,
+          "NOT_MATCHED": 5228,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 6,
+        "a_match_frequency": 0.0011463507833397019,
+        "candidate_count": 5234,
+        "matched_rejected_count": 3,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0005731753916698509,
+        "signal_date": "2024-07-10",
+        "status_counts": {
+          "MATCHED_REJECTED": 3,
+          "NOT_MATCHED": 5228,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 8,
+        "a_match_frequency": 0.0015281757402101242,
+        "candidate_count": 5235,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 8,
+        "qualified_frequency": 0.0015281757402101242,
+        "signal_date": "2024-07-11",
+        "status_counts": {
+          "NOT_MATCHED": 5227,
+          "QUALIFIED_LEGACY_BASELINE": 8
+        }
+      },
+      {
+        "a_match_count": 5,
+        "a_match_frequency": 0.0009545628102329134,
+        "candidate_count": 5238,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.000572737686139748,
+        "signal_date": "2024-07-12",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5233,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.0003817522427944264,
+        "candidate_count": 5239,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.0001908761213972132,
+        "signal_date": "2024-07-15",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5237,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 13,
+        "a_match_frequency": 0.0024813895781637717,
+        "candidate_count": 5239,
+        "matched_rejected_count": 4,
+        "phase": "2024",
+        "qualified_count": 9,
+        "qualified_frequency": 0.0017178850925749188,
+        "signal_date": "2024-07-16",
+        "status_counts": {
+          "MATCHED_REJECTED": 4,
+          "NOT_MATCHED": 5226,
+          "QUALIFIED_LEGACY_BASELINE": 9
+        }
+      },
+      {
+        "a_match_count": 23,
+        "a_match_frequency": 0.004390988927071402,
+        "candidate_count": 5238,
+        "matched_rejected_count": 16,
+        "phase": "2024",
+        "qualified_count": 7,
+        "qualified_frequency": 0.0013363879343260786,
+        "signal_date": "2024-07-17",
+        "status_counts": {
+          "MATCHED_REJECTED": 16,
+          "NOT_MATCHED": 5215,
+          "QUALIFIED_LEGACY_BASELINE": 7
+        }
+      },
+      {
+        "a_match_count": 4,
+        "a_match_frequency": 0.0007636502481863307,
+        "candidate_count": 5238,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 2,
+        "qualified_frequency": 0.00038182512409316535,
+        "signal_date": "2024-07-18",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5234,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 5,
+        "a_match_frequency": 0.000954380606986066,
+        "candidate_count": 5239,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0005726283641916397,
+        "signal_date": "2024-07-19",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5234,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 7,
+        "a_match_frequency": 0.0013358778625954199,
+        "candidate_count": 5240,
+        "matched_rejected_count": 4,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0005725190839694657,
+        "signal_date": "2024-07-22",
+        "status_counts": {
+          "MATCHED_REJECTED": 4,
+          "NOT_MATCHED": 5233,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 4,
+        "a_match_frequency": 0.0007633587786259542,
+        "candidate_count": 5240,
+        "matched_rejected_count": 3,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019083969465648855,
+        "signal_date": "2024-07-23",
+        "status_counts": {
+          "MATCHED_REJECTED": 3,
+          "NOT_MATCHED": 5236,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 4,
+        "a_match_frequency": 0.0007633587786259542,
+        "candidate_count": 5240,
+        "matched_rejected_count": 3,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019083969465648855,
+        "signal_date": "2024-07-24",
+        "status_counts": {
+          "MATCHED_REJECTED": 3,
+          "NOT_MATCHED": 5236,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 10,
+        "a_match_frequency": 0.0019080328181644724,
+        "candidate_count": 5241,
+        "matched_rejected_count": 5,
+        "phase": "2024",
+        "qualified_count": 5,
+        "qualified_frequency": 0.0009540164090822362,
+        "signal_date": "2024-07-25",
+        "status_counts": {
+          "MATCHED_REJECTED": 5,
+          "NOT_MATCHED": 5231,
+          "QUALIFIED_LEGACY_BASELINE": 5
+        }
+      },
+      {
+        "a_match_count": 4,
+        "a_match_frequency": 0.0007629219912263971,
+        "candidate_count": 5243,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0007629219912263971,
+        "signal_date": "2024-07-26",
+        "status_counts": {
+          "NOT_MATCHED": 5239,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 11,
+        "a_match_frequency": 0.002098035475872592,
+        "candidate_count": 5243,
+        "matched_rejected_count": 4,
+        "phase": "2024",
+        "qualified_count": 7,
+        "qualified_frequency": 0.0013351134846461949,
+        "signal_date": "2024-07-29",
+        "status_counts": {
+          "MATCHED_REJECTED": 4,
+          "NOT_MATCHED": 5232,
+          "QUALIFIED_LEGACY_BASELINE": 7
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.0005720823798627002,
+        "candidate_count": 5244,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0005720823798627002,
+        "signal_date": "2024-07-30",
+        "status_counts": {
+          "NOT_MATCHED": 5241,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 14,
+        "a_match_frequency": 0.002669717772692601,
+        "candidate_count": 5244,
+        "matched_rejected_count": 8,
+        "phase": "2024",
+        "qualified_count": 6,
+        "qualified_frequency": 0.0011441647597254005,
+        "signal_date": "2024-07-31",
+        "status_counts": {
+          "MATCHED_REJECTED": 8,
+          "NOT_MATCHED": 5230,
+          "QUALIFIED_LEGACY_BASELINE": 6
+        }
+      },
+      {
+        "a_match_count": 10,
+        "a_match_frequency": 0.0019076688286913392,
+        "candidate_count": 5242,
+        "matched_rejected_count": 3,
+        "phase": "2024",
+        "qualified_count": 7,
+        "qualified_frequency": 0.0013353681800839375,
+        "signal_date": "2024-08-01",
+        "status_counts": {
+          "MATCHED_REJECTED": 3,
+          "NOT_MATCHED": 5232,
+          "QUALIFIED_LEGACY_BASELINE": 7
+        }
+      },
+      {
+        "a_match_count": 4,
+        "a_match_frequency": 0.0007627765064836003,
+        "candidate_count": 5244,
+        "matched_rejected_count": 3,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019069412662090009,
+        "signal_date": "2024-08-02",
+        "status_counts": {
+          "MATCHED_REJECTED": 3,
+          "NOT_MATCHED": 5240,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.000571864277544796,
+        "candidate_count": 5246,
+        "matched_rejected_count": 3,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-08-05",
+        "status_counts": {
+          "MATCHED_REJECTED": 3,
+          "NOT_MATCHED": 5243
+        }
+      },
+      {
+        "a_match_count": 5,
+        "a_match_frequency": 0.000952925481227368,
+        "candidate_count": 5247,
+        "matched_rejected_count": 3,
+        "phase": "2024",
+        "qualified_count": 2,
+        "qualified_frequency": 0.0003811701924909472,
+        "signal_date": "2024-08-06",
+        "status_counts": {
+          "MATCHED_REJECTED": 3,
+          "NOT_MATCHED": 5242,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 7,
+        "a_match_frequency": 0.0013340956737183153,
+        "candidate_count": 5247,
+        "matched_rejected_count": 3,
+        "phase": "2024",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0007623403849818944,
+        "signal_date": "2024-08-07",
+        "status_counts": {
+          "MATCHED_REJECTED": 3,
+          "NOT_MATCHED": 5240,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 4,
+        "a_match_frequency": 0.0007620499142693847,
+        "candidate_count": 5249,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 2,
+        "qualified_frequency": 0.00038102495713469235,
+        "signal_date": "2024-08-08",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5245,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 8,
+        "a_match_frequency": 0.001523519329651495,
+        "candidate_count": 5251,
+        "matched_rejected_count": 4,
+        "phase": "2024",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0007617596648257475,
+        "signal_date": "2024-08-09",
+        "status_counts": {
+          "MATCHED_REJECTED": 4,
+          "NOT_MATCHED": 5243,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 5,
+        "a_match_frequency": 0.0009521995810321843,
+        "candidate_count": 5251,
+        "matched_rejected_count": 5,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-08-12",
+        "status_counts": {
+          "MATCHED_REJECTED": 5,
+          "NOT_MATCHED": 5246
+        }
+      },
+      {
+        "a_match_count": 3,
+        "a_match_frequency": 0.0005713197486193106,
+        "candidate_count": 5251,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 2,
+        "qualified_frequency": 0.00038087983241287375,
+        "signal_date": "2024-08-13",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5248,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 6,
+        "a_match_frequency": 0.0011426394972386211,
+        "candidate_count": 5251,
+        "matched_rejected_count": 5,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019043991620643687,
+        "signal_date": "2024-08-14",
+        "status_counts": {
+          "MATCHED_REJECTED": 5,
+          "NOT_MATCHED": 5245,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 5,
+        "a_match_frequency": 0.000952018278750952,
+        "candidate_count": 5252,
+        "matched_rejected_count": 4,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.0001904036557501904,
+        "signal_date": "2024-08-15",
+        "status_counts": {
+          "MATCHED_REJECTED": 4,
+          "NOT_MATCHED": 5247,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 20,
+        "a_match_frequency": 0.003808073115003808,
+        "candidate_count": 5252,
+        "matched_rejected_count": 13,
+        "phase": "2024",
+        "qualified_count": 7,
+        "qualified_frequency": 0.0013328255902513328,
+        "signal_date": "2024-08-16",
+        "status_counts": {
+          "MATCHED_REJECTED": 13,
+          "NOT_MATCHED": 5232,
+          "QUALIFIED_LEGACY_BASELINE": 7
+        }
+      },
+      {
+        "a_match_count": 8,
+        "a_match_frequency": 0.001523519329651495,
+        "candidate_count": 5251,
+        "matched_rejected_count": 5,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0005713197486193106,
+        "signal_date": "2024-08-19",
+        "status_counts": {
+          "MATCHED_REJECTED": 5,
+          "NOT_MATCHED": 5243,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 9,
+        "a_match_frequency": 0.0017136329017517135,
+        "candidate_count": 5252,
+        "matched_rejected_count": 6,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0005712109672505713,
+        "signal_date": "2024-08-20",
+        "status_counts": {
+          "MATCHED_REJECTED": 6,
+          "NOT_MATCHED": 5243,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 9,
+        "a_match_frequency": 0.0017133066818960593,
+        "candidate_count": 5253,
+        "matched_rejected_count": 6,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0005711022272986865,
+        "signal_date": "2024-08-21",
+        "status_counts": {
+          "MATCHED_REJECTED": 6,
+          "NOT_MATCHED": 5244,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 5,
+        "a_match_frequency": 0.000952018278750952,
+        "candidate_count": 5252,
+        "matched_rejected_count": 4,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.0001904036557501904,
+        "signal_date": "2024-08-22",
+        "status_counts": {
+          "MATCHED_REJECTED": 4,
+          "NOT_MATCHED": 5247,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 13,
+        "a_match_frequency": 0.0024752475247524753,
+        "candidate_count": 5252,
+        "matched_rejected_count": 3,
+        "phase": "2024",
+        "qualified_count": 10,
+        "qualified_frequency": 0.001904036557501904,
+        "signal_date": "2024-08-23",
+        "status_counts": {
+          "MATCHED_REJECTED": 3,
+          "NOT_MATCHED": 5239,
+          "QUALIFIED_LEGACY_BASELINE": 10
+        }
+      },
+      {
+        "a_match_count": 7,
+        "a_match_frequency": 0.001332571863696935,
+        "candidate_count": 5253,
+        "matched_rejected_count": 5,
+        "phase": "2024",
+        "qualified_count": 2,
+        "qualified_frequency": 0.0003807348181991243,
+        "signal_date": "2024-08-26",
+        "status_counts": {
+          "MATCHED_REJECTED": 5,
+          "NOT_MATCHED": 5246,
+          "QUALIFIED_LEGACY_BASELINE": 2
+        }
+      },
+      {
+        "a_match_count": 11,
+        "a_match_frequency": 0.0020944402132520943,
+        "candidate_count": 5252,
+        "matched_rejected_count": 6,
+        "phase": "2024",
+        "qualified_count": 5,
+        "qualified_frequency": 0.000952018278750952,
+        "signal_date": "2024-08-27",
+        "status_counts": {
+          "MATCHED_REJECTED": 6,
+          "NOT_MATCHED": 5241,
+          "QUALIFIED_LEGACY_BASELINE": 5
+        }
+      },
+      {
+        "a_match_count": 11,
+        "a_match_frequency": 0.0020948390782708055,
+        "candidate_count": 5251,
+        "matched_rejected_count": 5,
+        "phase": "2024",
+        "qualified_count": 6,
+        "qualified_frequency": 0.0011426394972386211,
+        "signal_date": "2024-08-28",
+        "status_counts": {
+          "MATCHED_REJECTED": 5,
+          "NOT_MATCHED": 5240,
+          "QUALIFIED_LEGACY_BASELINE": 6
+        }
+      },
+      {
+        "a_match_count": 12,
+        "a_match_frequency": 0.002285714285714286,
+        "candidate_count": 5250,
+        "matched_rejected_count": 8,
+        "phase": "2024",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0007619047619047619,
+        "signal_date": "2024-08-29",
+        "status_counts": {
+          "MATCHED_REJECTED": 8,
+          "NOT_MATCHED": 5238,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 35,
+        "a_match_frequency": 0.00666539706722529,
+        "candidate_count": 5251,
+        "matched_rejected_count": 22,
+        "phase": "2024",
+        "qualified_count": 13,
+        "qualified_frequency": 0.002475718910683679,
+        "signal_date": "2024-08-30",
+        "status_counts": {
+          "MATCHED_REJECTED": 22,
+          "NOT_MATCHED": 5216,
+          "QUALIFIED_LEGACY_BASELINE": 13
+        }
+      },
+      {
+        "a_match_count": 17,
+        "a_match_frequency": 0.0032380952380952383,
+        "candidate_count": 5250,
+        "matched_rejected_count": 14,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.0005714285714285715,
+        "signal_date": "2024-09-02",
+        "status_counts": {
+          "MATCHED_REJECTED": 14,
+          "NOT_MATCHED": 5233,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 11,
+        "a_match_frequency": 0.0020952380952380953,
+        "candidate_count": 5250,
+        "matched_rejected_count": 11,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-09-03",
+        "status_counts": {
+          "MATCHED_REJECTED": 11,
+          "NOT_MATCHED": 5239
+        }
+      },
+      {
+        "a_match_count": 12,
+        "a_match_frequency": 0.002284843869002285,
+        "candidate_count": 5252,
+        "matched_rejected_count": 7,
+        "phase": "2024",
+        "qualified_count": 5,
+        "qualified_frequency": 0.000952018278750952,
+        "signal_date": "2024-09-04",
+        "status_counts": {
+          "MATCHED_REJECTED": 7,
+          "NOT_MATCHED": 5240,
+          "QUALIFIED_LEGACY_BASELINE": 5
+        }
+      },
+      {
+        "a_match_count": 15,
+        "a_match_frequency": 0.0028560548362528563,
+        "candidate_count": 5252,
+        "matched_rejected_count": 10,
+        "phase": "2024",
+        "qualified_count": 5,
+        "qualified_frequency": 0.000952018278750952,
+        "signal_date": "2024-09-05",
+        "status_counts": {
+          "MATCHED_REJECTED": 10,
+          "NOT_MATCHED": 5237,
+          "QUALIFIED_LEGACY_BASELINE": 5
+        }
+      },
+      {
+        "a_match_count": 14,
+        "a_match_frequency": 0.00266514372739387,
+        "candidate_count": 5253,
+        "matched_rejected_count": 10,
+        "phase": "2024",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0007614696363982486,
+        "signal_date": "2024-09-06",
+        "status_counts": {
+          "MATCHED_REJECTED": 10,
+          "NOT_MATCHED": 5239,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 15,
+        "a_match_frequency": 0.002857142857142857,
+        "candidate_count": 5250,
+        "matched_rejected_count": 11,
+        "phase": "2024",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0007619047619047619,
+        "signal_date": "2024-09-09",
+        "status_counts": {
+          "MATCHED_REJECTED": 11,
+          "NOT_MATCHED": 5235,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 11,
+        "a_match_frequency": 0.0020952380952380953,
+        "candidate_count": 5250,
+        "matched_rejected_count": 7,
+        "phase": "2024",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0007619047619047619,
+        "signal_date": "2024-09-10",
+        "status_counts": {
+          "MATCHED_REJECTED": 7,
+          "NOT_MATCHED": 5239,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 14,
+        "a_match_frequency": 0.002664129400570885,
+        "candidate_count": 5255,
+        "matched_rejected_count": 9,
+        "phase": "2024",
+        "qualified_count": 5,
+        "qualified_frequency": 0.0009514747859181732,
+        "signal_date": "2024-09-11",
+        "status_counts": {
+          "MATCHED_REJECTED": 9,
+          "NOT_MATCHED": 5241,
+          "QUALIFIED_LEGACY_BASELINE": 5
+        }
+      },
+      {
+        "a_match_count": 13,
+        "a_match_frequency": 0.0024738344433872504,
+        "candidate_count": 5255,
+        "matched_rejected_count": 7,
+        "phase": "2024",
+        "qualified_count": 6,
+        "qualified_frequency": 0.001141769743101808,
+        "signal_date": "2024-09-12",
+        "status_counts": {
+          "MATCHED_REJECTED": 7,
+          "NOT_MATCHED": 5242,
+          "QUALIFIED_LEGACY_BASELINE": 6
+        }
+      },
+      {
+        "a_match_count": 20,
+        "a_match_frequency": 0.003805899143672693,
+        "candidate_count": 5255,
+        "matched_rejected_count": 15,
+        "phase": "2024",
+        "qualified_count": 5,
+        "qualified_frequency": 0.0009514747859181732,
+        "signal_date": "2024-09-13",
+        "status_counts": {
+          "MATCHED_REJECTED": 15,
+          "NOT_MATCHED": 5235,
+          "QUALIFIED_LEGACY_BASELINE": 5
+        }
+      },
+      {
+        "a_match_count": 17,
+        "a_match_frequency": 0.003236862147753237,
+        "candidate_count": 5252,
+        "matched_rejected_count": 10,
+        "phase": "2024",
+        "qualified_count": 7,
+        "qualified_frequency": 0.0013328255902513328,
+        "signal_date": "2024-09-18",
+        "status_counts": {
+          "MATCHED_REJECTED": 10,
+          "NOT_MATCHED": 5235,
+          "QUALIFIED_LEGACY_BASELINE": 7
+        }
+      },
+      {
+        "a_match_count": 26,
+        "a_match_frequency": 0.004946727549467275,
+        "candidate_count": 5256,
+        "matched_rejected_count": 17,
+        "phase": "2024",
+        "qualified_count": 9,
+        "qualified_frequency": 0.0017123287671232876,
+        "signal_date": "2024-09-19",
+        "status_counts": {
+          "MATCHED_REJECTED": 17,
+          "NOT_MATCHED": 5230,
+          "QUALIFIED_LEGACY_BASELINE": 9
+        }
+      },
+      {
+        "a_match_count": 28,
+        "a_match_frequency": 0.00532825880114177,
+        "candidate_count": 5255,
+        "matched_rejected_count": 25,
+        "phase": "2024",
+        "qualified_count": 3,
+        "qualified_frequency": 0.000570884871550904,
+        "signal_date": "2024-09-20",
+        "status_counts": {
+          "MATCHED_REJECTED": 25,
+          "NOT_MATCHED": 5227,
+          "QUALIFIED_LEGACY_BASELINE": 3
+        }
+      },
+      {
+        "a_match_count": 27,
+        "a_match_frequency": 0.005135032331685051,
+        "candidate_count": 5258,
+        "matched_rejected_count": 23,
+        "phase": "2024",
+        "qualified_count": 4,
+        "qualified_frequency": 0.0007607455306200076,
+        "signal_date": "2024-09-23",
+        "status_counts": {
+          "MATCHED_REJECTED": 23,
+          "NOT_MATCHED": 5231,
+          "QUALIFIED_LEGACY_BASELINE": 4
+        }
+      },
+      {
+        "a_match_count": 118,
+        "a_match_frequency": 0.022433460076045627,
+        "candidate_count": 5260,
+        "matched_rejected_count": 76,
+        "phase": "2024",
+        "qualified_count": 42,
+        "qualified_frequency": 0.007984790874524715,
+        "signal_date": "2024-09-24",
+        "status_counts": {
+          "MATCHED_REJECTED": 76,
+          "NOT_MATCHED": 5142,
+          "QUALIFIED_LEGACY_BASELINE": 42
+        }
+      },
+      {
+        "a_match_count": 107,
+        "a_match_frequency": 0.020334473584188523,
+        "candidate_count": 5262,
+        "matched_rejected_count": 81,
+        "phase": "2024",
+        "qualified_count": 26,
+        "qualified_frequency": 0.0049410870391486126,
+        "signal_date": "2024-09-25",
+        "status_counts": {
+          "MATCHED_REJECTED": 81,
+          "NOT_MATCHED": 5155,
+          "QUALIFIED_LEGACY_BASELINE": 26
+        }
+      },
+      {
+        "a_match_count": 372,
+        "a_match_frequency": 0.07069555302166476,
+        "candidate_count": 5262,
+        "matched_rejected_count": 226,
+        "phase": "2024",
+        "qualified_count": 146,
+        "qualified_frequency": 0.02774610414291144,
+        "signal_date": "2024-09-26",
+        "status_counts": {
+          "MATCHED_REJECTED": 226,
+          "NOT_MATCHED": 4890,
+          "QUALIFIED_LEGACY_BASELINE": 146
+        }
+      },
+      {
+        "a_match_count": 859,
+        "a_match_frequency": 0.16324591410110223,
+        "candidate_count": 5262,
+        "matched_rejected_count": 596,
+        "phase": "2024",
+        "qualified_count": 263,
+        "qualified_frequency": 0.0499809958190802,
+        "signal_date": "2024-09-27",
+        "status_counts": {
+          "MATCHED_REJECTED": 596,
+          "NOT_MATCHED": 4403,
+          "QUALIFIED_LEGACY_BASELINE": 263
+        }
+      },
+      {
+        "a_match_count": 2306,
+        "a_match_frequency": 0.43840304182509504,
+        "candidate_count": 5260,
+        "matched_rejected_count": 1760,
+        "phase": "2024",
+        "qualified_count": 546,
+        "qualified_frequency": 0.10380228136882129,
+        "signal_date": "2024-09-30",
+        "status_counts": {
+          "MATCHED_REJECTED": 1760,
+          "NOT_MATCHED": 2954,
+          "QUALIFIED_LEGACY_BASELINE": 546
+        }
+      },
+      {
+        "a_match_count": 670,
+        "a_match_frequency": 0.12747336377473364,
+        "candidate_count": 5256,
+        "matched_rejected_count": 636,
+        "phase": "2024",
+        "qualified_count": 34,
+        "qualified_frequency": 0.006468797564687975,
+        "signal_date": "2024-10-08",
+        "status_counts": {
+          "MATCHED_REJECTED": 636,
+          "NOT_MATCHED": 4586,
+          "QUALIFIED_LEGACY_BASELINE": 34
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.0001902587519025875,
+        "candidate_count": 5256,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-10-09",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5255
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.0001901863826550019,
+        "candidate_count": 5258,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.0001901863826550019,
+        "signal_date": "2024-10-10",
+        "status_counts": {
+          "NOT_MATCHED": 5257,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.00019022256039566293,
+        "candidate_count": 5257,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019022256039566293,
+        "signal_date": "2024-10-11",
+        "status_counts": {
+          "NOT_MATCHED": 5256,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.00038030043734550294,
+        "candidate_count": 5259,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019015021867275147,
+        "signal_date": "2024-10-14",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5257,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5260,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-10-15",
+        "status_counts": {
+          "NOT_MATCHED": 5260
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.00019004180919802356,
+        "candidate_count": 5262,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-10-16",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5261
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.00018996960486322188,
+        "candidate_count": 5264,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00018996960486322188,
+        "signal_date": "2024-10-17",
+        "status_counts": {
+          "NOT_MATCHED": 5263,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.00019000570017100514,
+        "candidate_count": 5263,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-10-18",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5262
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5263,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-10-21",
+        "status_counts": {
+          "NOT_MATCHED": 5263
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5262,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-10-22",
+        "status_counts": {
+          "NOT_MATCHED": 5262
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.00019015021867275147,
+        "candidate_count": 5259,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019015021867275147,
+        "signal_date": "2024-10-23",
+        "status_counts": {
+          "NOT_MATCHED": 5258,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.00019015021867275147,
+        "candidate_count": 5259,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 1,
+        "qualified_frequency": 0.00019015021867275147,
+        "signal_date": "2024-10-24",
+        "status_counts": {
+          "NOT_MATCHED": 5258,
+          "QUALIFIED_LEGACY_BASELINE": 1
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5258,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-10-25",
+        "status_counts": {
+          "NOT_MATCHED": 5258
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.00019029495718363463,
+        "candidate_count": 5255,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-10-28",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5254
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5255,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-10-29",
+        "status_counts": {
+          "NOT_MATCHED": 5255
+        }
+      },
+      {
+        "a_match_count": 1,
+        "a_match_frequency": 0.00019036740909956216,
+        "candidate_count": 5253,
+        "matched_rejected_count": 1,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-10-30",
+        "status_counts": {
+          "MATCHED_REJECTED": 1,
+          "NOT_MATCHED": 5252
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5255,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-10-31",
+        "status_counts": {
+          "NOT_MATCHED": 5255
+        }
+      },
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.00038066235249333843,
+        "candidate_count": 5254,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-01",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5252
+        }
+      },
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.00038058991436726926,
+        "candidate_count": 5255,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-04",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5253
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5258,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-05",
+        "status_counts": {
+          "NOT_MATCHED": 5258
+        }
+      },
+      {
+        "a_match_count": 0,
+        "a_match_frequency": 0.0,
+        "candidate_count": 5260,
+        "matched_rejected_count": 0,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-06",
+        "status_counts": {
+          "NOT_MATCHED": 5260
+        }
+      },
+      {
+        "a_match_count": 2,
+        "a_match_frequency": 0.0003803727653100038,
+        "candidate_count": 5258,
+        "matched_rejected_count": 2,
+        "phase": "2024",
+        "qualified_count": 0,
+        "qualified_frequency": 0.0,
+        "signal_date": "2024-11-07",
+        "status_counts": {
+          "MATCHED_REJECTED": 2,
+          "NOT_MATCHED": 5256
+        }
+      }
+    ],
+    "projection_stream_sha256": "22f9308ac114e80a473879041e4c887938a7cfa23bbf23e6e5becf29089266fd",
+    "rows": 1686569,
+    "sha256": "a7e2e18c82b97428cfc024cc8c94fe107af7979995d4d8aeeaf479b118520774",
+    "status_counts": {
+      "MATCHED_REJECTED": 7026,
+      "NOT_MATCHED": 1676183,
+      "QUALIFIED_LEGACY_BASELINE": 3360
+    }
+  },
+  "dataset_version": "core-signal-hithink-continuous-2023-06-30-to-2026-08-28-v1",
+  "expected_candidate_count_by_date": {
+    "2023-06-30": 4908,
+    "2023-07-03": 4914,
+    "2023-07-04": 4914,
+    "2023-07-05": 4916,
+    "2023-07-06": 4917,
+    "2023-07-07": 4919,
+    "2023-07-10": 4918,
+    "2023-07-11": 4917,
+    "2023-07-12": 4919,
+    "2023-07-13": 4920,
+    "2023-07-14": 4920,
+    "2023-07-17": 4920,
+    "2023-07-18": 4919,
+    "2023-07-19": 4922,
+    "2023-07-20": 4925,
+    "2023-07-21": 4924,
+    "2023-07-24": 4925,
+    "2023-07-25": 4927,
+    "2023-07-26": 4929,
+    "2023-07-27": 4929,
+    "2023-07-28": 4930,
+    "2023-07-31": 4932,
+    "2023-08-01": 4931,
+    "2023-08-02": 4932,
+    "2023-08-03": 4936,
+    "2023-08-04": 4937,
+    "2023-08-07": 4937,
+    "2023-08-08": 4938,
+    "2023-08-09": 4939,
+    "2023-08-10": 4944,
+    "2023-08-11": 4946,
+    "2023-08-14": 4946,
+    "2023-08-15": 4948,
+    "2023-08-16": 4950,
+    "2023-08-17": 4950,
+    "2023-08-18": 4950,
+    "2023-08-21": 4950,
+    "2023-08-22": 4951,
+    "2023-08-23": 4955,
+    "2023-08-24": 4955,
+    "2023-08-25": 4957,
+    "2023-08-28": 4959,
+    "2023-08-29": 4959,
+    "2023-08-30": 4961,
+    "2023-08-31": 4963,
+    "2023-09-01": 4965,
+    "2023-09-04": 4966,
+    "2023-09-05": 4969,
+    "2023-09-06": 4972,
+    "2023-09-07": 4973,
+    "2023-09-08": 4975,
+    "2023-09-11": 4976,
+    "2023-09-12": 4979,
+    "2023-09-13": 4979,
+    "2023-09-14": 4980,
+    "2023-09-15": 4979,
+    "2023-09-18": 4980,
+    "2023-09-19": 4981,
+    "2023-09-20": 4984,
+    "2023-09-21": 4985,
+    "2023-09-22": 4987,
+    "2023-09-25": 4988,
+    "2023-09-26": 4992,
+    "2023-09-27": 4993,
+    "2023-09-28": 4991,
+    "2023-10-09": 5001,
+    "2023-10-10": 5003,
+    "2023-10-11": 5002,
+    "2023-10-12": 5003,
+    "2023-10-13": 5003,
+    "2023-10-16": 5005,
+    "2023-10-17": 5010,
+    "2023-10-18": 5011,
+    "2023-10-19": 5014,
+    "2023-10-20": 5016,
+    "2023-10-23": 5019,
+    "2023-10-24": 5020,
+    "2023-10-25": 5021,
+    "2023-10-26": 5021,
+    "2023-10-27": 5021,
+    "2023-10-30": 5020,
+    "2023-10-31": 5024,
+    "2023-11-01": 5026,
+    "2023-11-02": 5026,
+    "2023-11-03": 5029,
+    "2023-11-06": 5024,
+    "2023-11-07": 5028,
+    "2023-11-08": 5031,
+    "2023-11-09": 5031,
+    "2023-11-10": 5032,
+    "2023-11-13": 5036,
+    "2023-11-14": 5039,
+    "2023-11-15": 5040,
+    "2023-11-16": 5040,
+    "2023-11-17": 5043,
+    "2023-11-20": 5047,
+    "2023-11-21": 5050,
+    "2023-11-22": 5050,
+    "2023-11-23": 5052,
+    "2023-11-24": 5054,
+    "2023-11-27": 5057,
+    "2023-11-28": 5056,
+    "2023-11-29": 5058,
+    "2023-11-30": 5059,
+    "2023-12-01": 5061,
+    "2023-12-04": 5061,
+    "2023-12-05": 5064,
+    "2023-12-06": 5065,
+    "2023-12-07": 5064,
+    "2023-12-08": 5067,
+    "2023-12-11": 5069,
+    "2023-12-12": 5069,
+    "2023-12-13": 5072,
+    "2023-12-14": 5074,
+    "2023-12-15": 5077,
+    "2023-12-18": 5076,
+    "2023-12-19": 5078,
+    "2023-12-20": 5083,
+    "2023-12-21": 5084,
+    "2023-12-22": 5087,
+    "2023-12-25": 5090,
+    "2023-12-26": 5092,
+    "2023-12-27": 5094,
+    "2023-12-28": 5091,
+    "2023-12-29": 5095,
+    "2024-01-02": 5098,
+    "2024-01-03": 5098,
+    "2024-01-04": 5103,
+    "2024-01-05": 5105,
+    "2024-01-08": 5106,
+    "2024-01-09": 5109,
+    "2024-01-10": 5111,
+    "2024-01-11": 5114,
+    "2024-01-12": 5115,
+    "2024-01-15": 5117,
+    "2024-01-16": 5120,
+    "2024-01-17": 5122,
+    "2024-01-18": 5126,
+    "2024-01-19": 5127,
+    "2024-01-22": 5129,
+    "2024-01-23": 5129,
+    "2024-01-24": 5131,
+    "2024-01-25": 5132,
+    "2024-01-26": 5133,
+    "2024-01-29": 5135,
+    "2024-01-30": 5135,
+    "2024-01-31": 5137,
+    "2024-02-01": 5140,
+    "2024-02-02": 5141,
+    "2024-02-05": 5142,
+    "2024-02-06": 5144,
+    "2024-02-07": 5146,
+    "2024-02-08": 5149,
+    "2024-02-19": 5152,
+    "2024-02-20": 5155,
+    "2024-02-21": 5156,
+    "2024-02-22": 5157,
+    "2024-02-23": 5159,
+    "2024-02-26": 5158,
+    "2024-02-27": 5160,
+    "2024-02-28": 5160,
+    "2024-02-29": 5160,
+    "2024-03-01": 5161,
+    "2024-03-04": 5161,
+    "2024-03-05": 5163,
+    "2024-03-06": 5162,
+    "2024-03-07": 5163,
+    "2024-03-08": 5165,
+    "2024-03-11": 5165,
+    "2024-03-12": 5168,
+    "2024-03-13": 5170,
+    "2024-03-14": 5170,
+    "2024-03-15": 5169,
+    "2024-03-18": 5169,
+    "2024-03-19": 5173,
+    "2024-03-20": 5173,
+    "2024-03-21": 5173,
+    "2024-03-22": 5175,
+    "2024-03-25": 5176,
+    "2024-03-26": 5176,
+    "2024-03-27": 5179,
+    "2024-03-28": 5179,
+    "2024-03-29": 5178,
+    "2024-04-01": 5183,
+    "2024-04-02": 5183,
+    "2024-04-03": 5183,
+    "2024-04-08": 5185,
+    "2024-04-09": 5186,
+    "2024-04-10": 5187,
+    "2024-04-11": 5187,
+    "2024-04-12": 5189,
+    "2024-04-15": 5188,
+    "2024-04-16": 5189,
+    "2024-04-17": 5188,
+    "2024-04-18": 5189,
+    "2024-04-19": 5190,
+    "2024-04-22": 5189,
+    "2024-04-23": 5188,
+    "2024-04-24": 5189,
+    "2024-04-25": 5189,
+    "2024-04-26": 5183,
+    "2024-04-29": 5182,
+    "2024-04-30": 5172,
+    "2024-05-06": 5196,
+    "2024-05-07": 5196,
+    "2024-05-08": 5195,
+    "2024-05-09": 5198,
+    "2024-05-10": 5199,
+    "2024-05-13": 5198,
+    "2024-05-14": 5202,
+    "2024-05-15": 5203,
+    "2024-05-16": 5203,
+    "2024-05-17": 5207,
+    "2024-05-20": 5204,
+    "2024-05-21": 5207,
+    "2024-05-22": 5208,
+    "2024-05-23": 5208,
+    "2024-05-24": 5209,
+    "2024-05-27": 5207,
+    "2024-05-28": 5207,
+    "2024-05-29": 5207,
+    "2024-05-30": 5208,
+    "2024-05-31": 5209,
+    "2024-06-03": 5211,
+    "2024-06-04": 5209,
+    "2024-06-05": 5213,
+    "2024-06-06": 5214,
+    "2024-06-07": 5210,
+    "2024-06-11": 5211,
+    "2024-06-12": 5214,
+    "2024-06-13": 5217,
+    "2024-06-14": 5220,
+    "2024-06-17": 5220,
+    "2024-06-18": 5221,
+    "2024-06-19": 5223,
+    "2024-06-20": 5223,
+    "2024-06-21": 5224,
+    "2024-06-24": 5227,
+    "2024-06-25": 5223,
+    "2024-06-26": 5228,
+    "2024-06-27": 5227,
+    "2024-06-28": 5230,
+    "2024-07-01": 5230,
+    "2024-07-02": 5232,
+    "2024-07-03": 5232,
+    "2024-07-04": 5234,
+    "2024-07-05": 5233,
+    "2024-07-08": 5231,
+    "2024-07-09": 5233,
+    "2024-07-10": 5234,
+    "2024-07-11": 5235,
+    "2024-07-12": 5238,
+    "2024-07-15": 5239,
+    "2024-07-16": 5239,
+    "2024-07-17": 5238,
+    "2024-07-18": 5238,
+    "2024-07-19": 5239,
+    "2024-07-22": 5240,
+    "2024-07-23": 5240,
+    "2024-07-24": 5240,
+    "2024-07-25": 5241,
+    "2024-07-26": 5243,
+    "2024-07-29": 5243,
+    "2024-07-30": 5244,
+    "2024-07-31": 5244,
+    "2024-08-01": 5242,
+    "2024-08-02": 5244,
+    "2024-08-05": 5246,
+    "2024-08-06": 5247,
+    "2024-08-07": 5247,
+    "2024-08-08": 5249,
+    "2024-08-09": 5251,
+    "2024-08-12": 5251,
+    "2024-08-13": 5251,
+    "2024-08-14": 5251,
+    "2024-08-15": 5252,
+    "2024-08-16": 5252,
+    "2024-08-19": 5251,
+    "2024-08-20": 5252,
+    "2024-08-21": 5253,
+    "2024-08-22": 5252,
+    "2024-08-23": 5252,
+    "2024-08-26": 5253,
+    "2024-08-27": 5252,
+    "2024-08-28": 5251,
+    "2024-08-29": 5250,
+    "2024-08-30": 5251,
+    "2024-09-02": 5250,
+    "2024-09-03": 5250,
+    "2024-09-04": 5252,
+    "2024-09-05": 5252,
+    "2024-09-06": 5253,
+    "2024-09-09": 5250,
+    "2024-09-10": 5250,
+    "2024-09-11": 5255,
+    "2024-09-12": 5255,
+    "2024-09-13": 5255,
+    "2024-09-18": 5252,
+    "2024-09-19": 5256,
+    "2024-09-20": 5255,
+    "2024-09-23": 5258,
+    "2024-09-24": 5260,
+    "2024-09-25": 5262,
+    "2024-09-26": 5262,
+    "2024-09-27": 5262,
+    "2024-09-30": 5260,
+    "2024-10-08": 5256,
+    "2024-10-09": 5256,
+    "2024-10-10": 5258,
+    "2024-10-11": 5257,
+    "2024-10-14": 5259,
+    "2024-10-15": 5260,
+    "2024-10-16": 5262,
+    "2024-10-17": 5264,
+    "2024-10-18": 5263,
+    "2024-10-21": 5263,
+    "2024-10-22": 5262,
+    "2024-10-23": 5259,
+    "2024-10-24": 5259,
+    "2024-10-25": 5258,
+    "2024-10-28": 5255,
+    "2024-10-29": 5255,
+    "2024-10-30": 5253,
+    "2024-10-31": 5255,
+    "2024-11-01": 5254,
+    "2024-11-04": 5255,
+    "2024-11-05": 5258,
+    "2024-11-06": 5260,
+    "2024-11-07": 5258,
+    "2024-11-08": 5260,
+    "2024-11-11": 5255,
+    "2024-11-12": 5256,
+    "2024-11-13": 5256,
+    "2024-11-14": 5257,
+    "2024-11-15": 5259,
+    "2024-11-18": 5257,
+    "2024-11-19": 5259,
+    "2024-11-20": 5260,
+    "2024-11-21": 5260,
+    "2024-11-22": 5261,
+    "2024-11-25": 5261,
+    "2024-11-26": 5261,
+    "2024-11-27": 5260,
+    "2024-11-28": 5258,
+    "2024-11-29": 5263,
+    "2024-12-02": 5261,
+    "2024-12-03": 5262,
+    "2024-12-04": 5261,
+    "2024-12-05": 5264,
+    "2024-12-06": 5262,
+    "2024-12-09": 5260,
+    "2024-12-10": 5263,
+    "2024-12-11": 5263,
+    "2024-12-12": 5263,
+    "2024-12-13": 5264,
+    "2024-12-16": 5268,
+    "2024-12-17": 5265,
+    "2024-12-18": 5266,
+    "2024-12-19": 5267,
+    "2024-12-20": 5269,
+    "2024-12-23": 5267,
+    "2024-12-24": 5266,
+    "2024-12-25": 5263,
+    "2024-12-26": 5268,
+    "2024-12-27": 5266,
+    "2024-12-30": 5263,
+    "2024-12-31": 5266
+  },
+  "forbidden_scope": {
+    "final_oos_read": false,
+    "return_metrics_computed": false,
+    "strategy_validation_started": false
+  },
+  "interrupted_output": {
+    "bytes": 10231818,
+    "first_signal_date": "2023-06-30",
+    "gzip_error": "EOFError: Compressed file ended before the end-of-stream marker was reached",
+    "gzip_readable": false,
+    "last_signal_date": "2024-11-08",
+    "observed_date_counts": {
+      "2023-06-30": 4908,
+      "2023-07-03": 4914,
+      "2023-07-04": 4914,
+      "2023-07-05": 4916,
+      "2023-07-06": 4917,
+      "2023-07-07": 4919,
+      "2023-07-10": 4918,
+      "2023-07-11": 4917,
+      "2023-07-12": 4919,
+      "2023-07-13": 4920,
+      "2023-07-14": 4920,
+      "2023-07-17": 4920,
+      "2023-07-18": 4919,
+      "2023-07-19": 4922,
+      "2023-07-20": 4925,
+      "2023-07-21": 4924,
+      "2023-07-24": 4925,
+      "2023-07-25": 4927,
+      "2023-07-26": 4929,
+      "2023-07-27": 4929,
+      "2023-07-28": 4930,
+      "2023-07-31": 4932,
+      "2023-08-01": 4931,
+      "2023-08-02": 4932,
+      "2023-08-03": 4936,
+      "2023-08-04": 4937,
+      "2023-08-07": 4937,
+      "2023-08-08": 4938,
+      "2023-08-09": 4939,
+      "2023-08-10": 4944,
+      "2023-08-11": 4946,
+      "2023-08-14": 4946,
+      "2023-08-15": 4948,
+      "2023-08-16": 4950,
+      "2023-08-17": 4950,
+      "2023-08-18": 4950,
+      "2023-08-21": 4950,
+      "2023-08-22": 4951,
+      "2023-08-23": 4955,
+      "2023-08-24": 4955,
+      "2023-08-25": 4957,
+      "2023-08-28": 4959,
+      "2023-08-29": 4959,
+      "2023-08-30": 4961,
+      "2023-08-31": 4963,
+      "2023-09-01": 4965,
+      "2023-09-04": 4966,
+      "2023-09-05": 4969,
+      "2023-09-06": 4972,
+      "2023-09-07": 4973,
+      "2023-09-08": 4975,
+      "2023-09-11": 4976,
+      "2023-09-12": 4979,
+      "2023-09-13": 4979,
+      "2023-09-14": 4980,
+      "2023-09-15": 4979,
+      "2023-09-18": 4980,
+      "2023-09-19": 4981,
+      "2023-09-20": 4984,
+      "2023-09-21": 4985,
+      "2023-09-22": 4987,
+      "2023-09-25": 4988,
+      "2023-09-26": 4992,
+      "2023-09-27": 4993,
+      "2023-09-28": 4991,
+      "2023-10-09": 5001,
+      "2023-10-10": 5003,
+      "2023-10-11": 5002,
+      "2023-10-12": 5003,
+      "2023-10-13": 5003,
+      "2023-10-16": 5005,
+      "2023-10-17": 5010,
+      "2023-10-18": 5011,
+      "2023-10-19": 5014,
+      "2023-10-20": 5016,
+      "2023-10-23": 5019,
+      "2023-10-24": 5020,
+      "2023-10-25": 5021,
+      "2023-10-26": 5021,
+      "2023-10-27": 5021,
+      "2023-10-30": 5020,
+      "2023-10-31": 5024,
+      "2023-11-01": 5026,
+      "2023-11-02": 5026,
+      "2023-11-03": 5029,
+      "2023-11-06": 5024,
+      "2023-11-07": 5028,
+      "2023-11-08": 5031,
+      "2023-11-09": 5031,
+      "2023-11-10": 5032,
+      "2023-11-13": 5036,
+      "2023-11-14": 5039,
+      "2023-11-15": 5040,
+      "2023-11-16": 5040,
+      "2023-11-17": 5043,
+      "2023-11-20": 5047,
+      "2023-11-21": 5050,
+      "2023-11-22": 5050,
+      "2023-11-23": 5052,
+      "2023-11-24": 5054,
+      "2023-11-27": 5057,
+      "2023-11-28": 5056,
+      "2023-11-29": 5058,
+      "2023-11-30": 5059,
+      "2023-12-01": 5061,
+      "2023-12-04": 5061,
+      "2023-12-05": 5064,
+      "2023-12-06": 5065,
+      "2023-12-07": 5064,
+      "2023-12-08": 5067,
+      "2023-12-11": 5069,
+      "2023-12-12": 5069,
+      "2023-12-13": 5072,
+      "2023-12-14": 5074,
+      "2023-12-15": 5077,
+      "2023-12-18": 5076,
+      "2023-12-19": 5078,
+      "2023-12-20": 5083,
+      "2023-12-21": 5084,
+      "2023-12-22": 5087,
+      "2023-12-25": 5090,
+      "2023-12-26": 5092,
+      "2023-12-27": 5094,
+      "2023-12-28": 5091,
+      "2023-12-29": 5095,
+      "2024-01-02": 5098,
+      "2024-01-03": 5098,
+      "2024-01-04": 5103,
+      "2024-01-05": 5105,
+      "2024-01-08": 5106,
+      "2024-01-09": 5109,
+      "2024-01-10": 5111,
+      "2024-01-11": 5114,
+      "2024-01-12": 5115,
+      "2024-01-15": 5117,
+      "2024-01-16": 5120,
+      "2024-01-17": 5122,
+      "2024-01-18": 5126,
+      "2024-01-19": 5127,
+      "2024-01-22": 5129,
+      "2024-01-23": 5129,
+      "2024-01-24": 5131,
+      "2024-01-25": 5132,
+      "2024-01-26": 5133,
+      "2024-01-29": 5135,
+      "2024-01-30": 5135,
+      "2024-01-31": 5137,
+      "2024-02-01": 5140,
+      "2024-02-02": 5141,
+      "2024-02-05": 5142,
+      "2024-02-06": 5144,
+      "2024-02-07": 5146,
+      "2024-02-08": 5149,
+      "2024-02-19": 5152,
+      "2024-02-20": 5155,
+      "2024-02-21": 5156,
+      "2024-02-22": 5157,
+      "2024-02-23": 5159,
+      "2024-02-26": 5158,
+      "2024-02-27": 5160,
+      "2024-02-28": 5160,
+      "2024-02-29": 5160,
+      "2024-03-01": 5161,
+      "2024-03-04": 5161,
+      "2024-03-05": 5163,
+      "2024-03-06": 5162,
+      "2024-03-07": 5163,
+      "2024-03-08": 5165,
+      "2024-03-11": 5165,
+      "2024-03-12": 5168,
+      "2024-03-13": 5170,
+      "2024-03-14": 5170,
+      "2024-03-15": 5169,
+      "2024-03-18": 5169,
+      "2024-03-19": 5173,
+      "2024-03-20": 5173,
+      "2024-03-21": 5173,
+      "2024-03-22": 5175,
+      "2024-03-25": 5176,
+      "2024-03-26": 5176,
+      "2024-03-27": 5179,
+      "2024-03-28": 5179,
+      "2024-03-29": 5178,
+      "2024-04-01": 5183,
+      "2024-04-02": 5183,
+      "2024-04-03": 5183,
+      "2024-04-08": 5185,
+      "2024-04-09": 5186,
+      "2024-04-10": 5187,
+      "2024-04-11": 5187,
+      "2024-04-12": 5189,
+      "2024-04-15": 5188,
+      "2024-04-16": 5189,
+      "2024-04-17": 5188,
+      "2024-04-18": 5189,
+      "2024-04-19": 5190,
+      "2024-04-22": 5189,
+      "2024-04-23": 5188,
+      "2024-04-24": 5189,
+      "2024-04-25": 5189,
+      "2024-04-26": 5183,
+      "2024-04-29": 5182,
+      "2024-04-30": 5172,
+      "2024-05-06": 5196,
+      "2024-05-07": 5196,
+      "2024-05-08": 5195,
+      "2024-05-09": 5198,
+      "2024-05-10": 5199,
+      "2024-05-13": 5198,
+      "2024-05-14": 5202,
+      "2024-05-15": 5203,
+      "2024-05-16": 5203,
+      "2024-05-17": 5207,
+      "2024-05-20": 5204,
+      "2024-05-21": 5207,
+      "2024-05-22": 5208,
+      "2024-05-23": 5208,
+      "2024-05-24": 5209,
+      "2024-05-27": 5207,
+      "2024-05-28": 5207,
+      "2024-05-29": 5207,
+      "2024-05-30": 5208,
+      "2024-05-31": 5209,
+      "2024-06-03": 5211,
+      "2024-06-04": 5209,
+      "2024-06-05": 5213,
+      "2024-06-06": 5214,
+      "2024-06-07": 5210,
+      "2024-06-11": 5211,
+      "2024-06-12": 5214,
+      "2024-06-13": 5217,
+      "2024-06-14": 5220,
+      "2024-06-17": 5220,
+      "2024-06-18": 5221,
+      "2024-06-19": 5223,
+      "2024-06-20": 5223,
+      "2024-06-21": 5224,
+      "2024-06-24": 5227,
+      "2024-06-25": 5223,
+      "2024-06-26": 5228,
+      "2024-06-27": 5227,
+      "2024-06-28": 5230,
+      "2024-07-01": 5230,
+      "2024-07-02": 5232,
+      "2024-07-03": 5232,
+      "2024-07-04": 5234,
+      "2024-07-05": 5233,
+      "2024-07-08": 5231,
+      "2024-07-09": 5233,
+      "2024-07-10": 5234,
+      "2024-07-11": 5235,
+      "2024-07-12": 5238,
+      "2024-07-15": 5239,
+      "2024-07-16": 5239,
+      "2024-07-17": 5238,
+      "2024-07-18": 5238,
+      "2024-07-19": 5239,
+      "2024-07-22": 5240,
+      "2024-07-23": 5240,
+      "2024-07-24": 5240,
+      "2024-07-25": 5241,
+      "2024-07-26": 5243,
+      "2024-07-29": 5243,
+      "2024-07-30": 5244,
+      "2024-07-31": 5244,
+      "2024-08-01": 5242,
+      "2024-08-02": 5244,
+      "2024-08-05": 5246,
+      "2024-08-06": 5247,
+      "2024-08-07": 5247,
+      "2024-08-08": 5249,
+      "2024-08-09": 5251,
+      "2024-08-12": 5251,
+      "2024-08-13": 5251,
+      "2024-08-14": 5251,
+      "2024-08-15": 5252,
+      "2024-08-16": 5252,
+      "2024-08-19": 5251,
+      "2024-08-20": 5252,
+      "2024-08-21": 5253,
+      "2024-08-22": 5252,
+      "2024-08-23": 5252,
+      "2024-08-26": 5253,
+      "2024-08-27": 5252,
+      "2024-08-28": 5251,
+      "2024-08-29": 5250,
+      "2024-08-30": 5251,
+      "2024-09-02": 5250,
+      "2024-09-03": 5250,
+      "2024-09-04": 5252,
+      "2024-09-05": 5252,
+      "2024-09-06": 5253,
+      "2024-09-09": 5250,
+      "2024-09-10": 5250,
+      "2024-09-11": 5255,
+      "2024-09-12": 5255,
+      "2024-09-13": 5255,
+      "2024-09-18": 5252,
+      "2024-09-19": 5256,
+      "2024-09-20": 5255,
+      "2024-09-23": 5258,
+      "2024-09-24": 5260,
+      "2024-09-25": 5262,
+      "2024-09-26": 5262,
+      "2024-09-27": 5262,
+      "2024-09-30": 5260,
+      "2024-10-08": 5256,
+      "2024-10-09": 5256,
+      "2024-10-10": 5258,
+      "2024-10-11": 5257,
+      "2024-10-14": 5259,
+      "2024-10-15": 5260,
+      "2024-10-16": 5262,
+      "2024-10-17": 5264,
+      "2024-10-18": 5263,
+      "2024-10-21": 5263,
+      "2024-10-22": 5262,
+      "2024-10-23": 5259,
+      "2024-10-24": 5259,
+      "2024-10-25": 5258,
+      "2024-10-28": 5255,
+      "2024-10-29": 5255,
+      "2024-10-30": 5253,
+      "2024-10-31": 5255,
+      "2024-11-01": 5254,
+      "2024-11-04": 5255,
+      "2024-11-05": 5258,
+      "2024-11-06": 5260,
+      "2024-11-07": 5258,
+      "2024-11-08": 1192
+    },
+    "observed_status_counts": {
+      "MATCHED_REJECTED": 7027,
+      "NOT_MATCHED": 1677374,
+      "QUALIFIED_LEGACY_BASELINE": 3360
+    },
+    "path": "data/validation/core_signal_validation_continuous_parts/part_a/core_replay_results.jsonl.gz",
+    "rows_read": 1687761,
+    "sha256": "f2c5abdfe9299b5c2c9836f9f4d2037c264effa504ad0c94b902734e462e25cc"
+  },
+  "manifest": {
+    "frozen_14_day_manifest": {
+      "bytes": 19836,
+      "path": "C:/Users/soush/Documents/ChatGPT/A股项目开发/data/validation/core_signal_validation/core_signal_validation_manifest.json",
+      "sha256": "bcfd00f707c17cf426ccfa671509b8ddd87694355a87dd08894aefa2b94aef99"
+    },
+    "part_manifest": null,
+    "part_manifest_status": "ABSENT_UNTIL_PART_IS_COMPLETE"
+  },
+  "partition": {
+    "actual_signal_dates_end": "2024-12-31",
+    "actual_signal_dates_start": "2023-06-30",
+    "requested_end": "2024-12-31",
+    "requested_start": "2023-06-30"
+  },
+  "progress": {
+    "completed_date_count": 329,
+    "completed_end": "2024-11-07",
+    "completed_signal_dates": [
+      "2023-06-30",
+      "2023-07-03",
+      "2023-07-04",
+      "2023-07-05",
+      "2023-07-06",
+      "2023-07-07",
+      "2023-07-10",
+      "2023-07-11",
+      "2023-07-12",
+      "2023-07-13",
+      "2023-07-14",
+      "2023-07-17",
+      "2023-07-18",
+      "2023-07-19",
+      "2023-07-20",
+      "2023-07-21",
+      "2023-07-24",
+      "2023-07-25",
+      "2023-07-26",
+      "2023-07-27",
+      "2023-07-28",
+      "2023-07-31",
+      "2023-08-01",
+      "2023-08-02",
+      "2023-08-03",
+      "2023-08-04",
+      "2023-08-07",
+      "2023-08-08",
+      "2023-08-09",
+      "2023-08-10",
+      "2023-08-11",
+      "2023-08-14",
+      "2023-08-15",
+      "2023-08-16",
+      "2023-08-17",
+      "2023-08-18",
+      "2023-08-21",
+      "2023-08-22",
+      "2023-08-23",
+      "2023-08-24",
+      "2023-08-25",
+      "2023-08-28",
+      "2023-08-29",
+      "2023-08-30",
+      "2023-08-31",
+      "2023-09-01",
+      "2023-09-04",
+      "2023-09-05",
+      "2023-09-06",
+      "2023-09-07",
+      "2023-09-08",
+      "2023-09-11",
+      "2023-09-12",
+      "2023-09-13",
+      "2023-09-14",
+      "2023-09-15",
+      "2023-09-18",
+      "2023-09-19",
+      "2023-09-20",
+      "2023-09-21",
+      "2023-09-22",
+      "2023-09-25",
+      "2023-09-26",
+      "2023-09-27",
+      "2023-09-28",
+      "2023-10-09",
+      "2023-10-10",
+      "2023-10-11",
+      "2023-10-12",
+      "2023-10-13",
+      "2023-10-16",
+      "2023-10-17",
+      "2023-10-18",
+      "2023-10-19",
+      "2023-10-20",
+      "2023-10-23",
+      "2023-10-24",
+      "2023-10-25",
+      "2023-10-26",
+      "2023-10-27",
+      "2023-10-30",
+      "2023-10-31",
+      "2023-11-01",
+      "2023-11-02",
+      "2023-11-03",
+      "2023-11-06",
+      "2023-11-07",
+      "2023-11-08",
+      "2023-11-09",
+      "2023-11-10",
+      "2023-11-13",
+      "2023-11-14",
+      "2023-11-15",
+      "2023-11-16",
+      "2023-11-17",
+      "2023-11-20",
+      "2023-11-21",
+      "2023-11-22",
+      "2023-11-23",
+      "2023-11-24",
+      "2023-11-27",
+      "2023-11-28",
+      "2023-11-29",
+      "2023-11-30",
+      "2023-12-01",
+      "2023-12-04",
+      "2023-12-05",
+      "2023-12-06",
+      "2023-12-07",
+      "2023-12-08",
+      "2023-12-11",
+      "2023-12-12",
+      "2023-12-13",
+      "2023-12-14",
+      "2023-12-15",
+      "2023-12-18",
+      "2023-12-19",
+      "2023-12-20",
+      "2023-12-21",
+      "2023-12-22",
+      "2023-12-25",
+      "2023-12-26",
+      "2023-12-27",
+      "2023-12-28",
+      "2023-12-29",
+      "2024-01-02",
+      "2024-01-03",
+      "2024-01-04",
+      "2024-01-05",
+      "2024-01-08",
+      "2024-01-09",
+      "2024-01-10",
+      "2024-01-11",
+      "2024-01-12",
+      "2024-01-15",
+      "2024-01-16",
+      "2024-01-17",
+      "2024-01-18",
+      "2024-01-19",
+      "2024-01-22",
+      "2024-01-23",
+      "2024-01-24",
+      "2024-01-25",
+      "2024-01-26",
+      "2024-01-29",
+      "2024-01-30",
+      "2024-01-31",
+      "2024-02-01",
+      "2024-02-02",
+      "2024-02-05",
+      "2024-02-06",
+      "2024-02-07",
+      "2024-02-08",
+      "2024-02-19",
+      "2024-02-20",
+      "2024-02-21",
+      "2024-02-22",
+      "2024-02-23",
+      "2024-02-26",
+      "2024-02-27",
+      "2024-02-28",
+      "2024-02-29",
+      "2024-03-01",
+      "2024-03-04",
+      "2024-03-05",
+      "2024-03-06",
+      "2024-03-07",
+      "2024-03-08",
+      "2024-03-11",
+      "2024-03-12",
+      "2024-03-13",
+      "2024-03-14",
+      "2024-03-15",
+      "2024-03-18",
+      "2024-03-19",
+      "2024-03-20",
+      "2024-03-21",
+      "2024-03-22",
+      "2024-03-25",
+      "2024-03-26",
+      "2024-03-27",
+      "2024-03-28",
+      "2024-03-29",
+      "2024-04-01",
+      "2024-04-02",
+      "2024-04-03",
+      "2024-04-08",
+      "2024-04-09",
+      "2024-04-10",
+      "2024-04-11",
+      "2024-04-12",
+      "2024-04-15",
+      "2024-04-16",
+      "2024-04-17",
+      "2024-04-18",
+      "2024-04-19",
+      "2024-04-22",
+      "2024-04-23",
+      "2024-04-24",
+      "2024-04-25",
+      "2024-04-26",
+      "2024-04-29",
+      "2024-04-30",
+      "2024-05-06",
+      "2024-05-07",
+      "2024-05-08",
+      "2024-05-09",
+      "2024-05-10",
+      "2024-05-13",
+      "2024-05-14",
+      "2024-05-15",
+      "2024-05-16",
+      "2024-05-17",
+      "2024-05-20",
+      "2024-05-21",
+      "2024-05-22",
+      "2024-05-23",
+      "2024-05-24",
+      "2024-05-27",
+      "2024-05-28",
+      "2024-05-29",
+      "2024-05-30",
+      "2024-05-31",
+      "2024-06-03",
+      "2024-06-04",
+      "2024-06-05",
+      "2024-06-06",
+      "2024-06-07",
+      "2024-06-11",
+      "2024-06-12",
+      "2024-06-13",
+      "2024-06-14",
+      "2024-06-17",
+      "2024-06-18",
+      "2024-06-19",
+      "2024-06-20",
+      "2024-06-21",
+      "2024-06-24",
+      "2024-06-25",
+      "2024-06-26",
+      "2024-06-27",
+      "2024-06-28",
+      "2024-07-01",
+      "2024-07-02",
+      "2024-07-03",
+      "2024-07-04",
+      "2024-07-05",
+      "2024-07-08",
+      "2024-07-09",
+      "2024-07-10",
+      "2024-07-11",
+      "2024-07-12",
+      "2024-07-15",
+      "2024-07-16",
+      "2024-07-17",
+      "2024-07-18",
+      "2024-07-19",
+      "2024-07-22",
+      "2024-07-23",
+      "2024-07-24",
+      "2024-07-25",
+      "2024-07-26",
+      "2024-07-29",
+      "2024-07-30",
+      "2024-07-31",
+      "2024-08-01",
+      "2024-08-02",
+      "2024-08-05",
+      "2024-08-06",
+      "2024-08-07",
+      "2024-08-08",
+      "2024-08-09",
+      "2024-08-12",
+      "2024-08-13",
+      "2024-08-14",
+      "2024-08-15",
+      "2024-08-16",
+      "2024-08-19",
+      "2024-08-20",
+      "2024-08-21",
+      "2024-08-22",
+      "2024-08-23",
+      "2024-08-26",
+      "2024-08-27",
+      "2024-08-28",
+      "2024-08-29",
+      "2024-08-30",
+      "2024-09-02",
+      "2024-09-03",
+      "2024-09-04",
+      "2024-09-05",
+      "2024-09-06",
+      "2024-09-09",
+      "2024-09-10",
+      "2024-09-11",
+      "2024-09-12",
+      "2024-09-13",
+      "2024-09-18",
+      "2024-09-19",
+      "2024-09-20",
+      "2024-09-23",
+      "2024-09-24",
+      "2024-09-25",
+      "2024-09-26",
+      "2024-09-27",
+      "2024-09-30",
+      "2024-10-08",
+      "2024-10-09",
+      "2024-10-10",
+      "2024-10-11",
+      "2024-10-14",
+      "2024-10-15",
+      "2024-10-16",
+      "2024-10-17",
+      "2024-10-18",
+      "2024-10-21",
+      "2024-10-22",
+      "2024-10-23",
+      "2024-10-24",
+      "2024-10-25",
+      "2024-10-28",
+      "2024-10-29",
+      "2024-10-30",
+      "2024-10-31",
+      "2024-11-01",
+      "2024-11-04",
+      "2024-11-05",
+      "2024-11-06",
+      "2024-11-07"
+    ],
+    "completed_start": "2023-06-30",
+    "expected_candidate_evaluations_completed": 1686569,
+    "last_completed_trade_date": "2024-11-07",
+    "observed_rows_in_interrupted_stream": 1687761,
+    "partial_current_date": "2024-11-08",
+    "pending_ranges": [
+      {
+        "count": 1,
+        "end": "2024-11-08",
+        "start": "2024-11-08"
+      },
+      {
+        "count": 5,
+        "end": "2024-11-15",
+        "start": "2024-11-11"
+      },
+      {
+        "count": 5,
+        "end": "2024-11-22",
+        "start": "2024-11-18"
+      },
+      {
+        "count": 5,
+        "end": "2024-11-29",
+        "start": "2024-11-25"
+      },
+      {
+        "count": 5,
+        "end": "2024-12-06",
+        "start": "2024-12-02"
+      },
+      {
+        "count": 5,
+        "end": "2024-12-13",
+        "start": "2024-12-09"
+      },
+      {
+        "count": 5,
+        "end": "2024-12-20",
+        "start": "2024-12-16"
+      },
+      {
+        "count": 5,
+        "end": "2024-12-27",
+        "start": "2024-12-23"
+      },
+      {
+        "count": 2,
+        "end": "2024-12-31",
+        "start": "2024-12-30"
+      }
+    ],
+    "pending_signal_dates": [
+      "2024-11-08",
+      "2024-11-11",
+      "2024-11-12",
+      "2024-11-13",
+      "2024-11-14",
+      "2024-11-15",
+      "2024-11-18",
+      "2024-11-19",
+      "2024-11-20",
+      "2024-11-21",
+      "2024-11-22",
+      "2024-11-25",
+      "2024-11-26",
+      "2024-11-27",
+      "2024-11-28",
+      "2024-11-29",
+      "2024-12-02",
+      "2024-12-03",
+      "2024-12-04",
+      "2024-12-05",
+      "2024-12-06",
+      "2024-12-09",
+      "2024-12-10",
+      "2024-12-11",
+      "2024-12-12",
+      "2024-12-13",
+      "2024-12-16",
+      "2024-12-17",
+      "2024-12-18",
+      "2024-12-19",
+      "2024-12-20",
+      "2024-12-23",
+      "2024-12-24",
+      "2024-12-25",
+      "2024-12-26",
+      "2024-12-27",
+      "2024-12-30",
+      "2024-12-31"
+    ]
+  },
+  "resume": {
+    "command": "python scripts/core_signal_replay.py --raw-dir data/validation/core_signal_validation/raw --output-dir data/validation/core_signal_validation_continuous_parts/part_a_resume --schedule continuous --engine formula --start-date 2024-11-08 --end-date 2024-12-31",
+    "merge_completed_output_first": "data/validation/core_signal_validation_continuous_parts/part_a/core_replay_results.completed.jsonl.gz",
+    "merge_instruction": "After resume, merge the completed output followed by the resume output; then run the full continuous manifest builder only after every expected signal date is present.",
+    "output_dir": "data/validation/core_signal_validation_continuous_parts/part_a_resume",
+    "required_start_date": "2024-11-08",
+    "requires_matching_raw_input_hash": "b2a2f3166ec786c35a98dc2f4a08e54146f85c7b39738dc034c489459853b172"
+  },
+  "schedule": "continuous_xshg_sessions_within_frozen_validation_interval",
+  "schema_version": "CORE_SIGNAL_VALIDATION_RESUME_CHECKPOINT_V1",
+  "sector_semantics": {
+    "historical_membership_included": false,
+    "sector_report_status": "UNVERIFIED",
+    "sector_score_status": "UNVERIFIED",
+    "taxonomy_substitution": false
+  },
+  "source": {
+    "content_sha256": "b2a2f3166ec786c35a98dc2f4a08e54146f85c7b39738dc034c489459853b172",
+    "files": [
+      {
+        "bytes": 180203424,
+        "path": "data/validation/core_signal_validation/raw/daily_k.parquet",
+        "sha256": "61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426"
+      },
+      {
+        "bytes": 295284,
+        "path": "data/validation/core_signal_validation/raw/adjustment_factors.parquet",
+        "sha256": "a1b7d63c5826ccd3610dc9bdd949d82eeb0ba84ffad451bfb8bb30ca74962716"
+      },
+      {
+        "bytes": 40966,
+        "path": "data/validation/core_signal_validation/raw/index_000001_SH_2023.json",
+        "sha256": "c118fb39d31065914740da150455fba2375d3bcaa83566730d265df0753bb51c"
+      },
+      {
+        "bytes": 40983,
+        "path": "data/validation/core_signal_validation/raw/index_000001_SH_2024.json",
+        "sha256": "53fc9e9f0989e67f8a826614c5c8f260171cf081801bf752df6301e69f4ae4bf"
+      },
+      {
+        "bytes": 41175,
+        "path": "data/validation/core_signal_validation/raw/index_000001_SH_2025.json",
+        "sha256": "27acba0bd5bfc0f54d349d7dbc41a86bf6836dfee3976a970cbb210b287f76a1"
+      },
+      {
+        "bytes": 27109,
+        "path": "data/validation/core_signal_validation/raw/index_000001_SH_2026.json",
+        "sha256": "183f472a1699811edb2550f3ce99b2b05d06c23473b5e2acff0ad2431eaf1514"
+      }
+    ],
+    "raw_dir": "data/validation/core_signal_validation/raw"
+  },
+  "validation_layer": "CORE_SIGNAL_VALIDATION"
+}

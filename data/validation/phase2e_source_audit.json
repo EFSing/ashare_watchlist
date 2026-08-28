@@ -4,7 +4,7 @@
   "timezone": "Asia/Shanghai",
   "protocol_version": "PHASE2D_VALIDATION_PROTOCOL_V1",
   "baseline_commit": "4ea7b5cf050c1cc50b0043ea3608acf6c14953e3",
-  "status": "BLOCKED_NO_PIT_DATASET",
+  "status": "REQUIRES_HISTORICAL_SECTOR_MEMBERSHIP_SOURCE",
   "dataset": {
     "frozen": false,
     "dataset_version": null,
@@ -13,76 +13,158 @@
     "data_partition": null
   },
   "required_contract": {
-    "known_at_relation": "known_at<=T",
-    "universe": "POINT_IN_TIME T-day snapshot",
+    "known_at_relation": "known_at<=T where the source exposes a vintage; otherwise archive the raw acquisition and record the limitation",
+    "universe": "POINT_IN_TIME T-day tradable/security set derived from historical raw K rows and the exchange calendar",
     "sector": [
       "POINT_IN_TIME membership",
-      "POINT_IN_TIME rank",
-      "POINT_IN_TIME sector_chg"
+      "POINT_IN_TIME rank derived from the same T-day sector set",
+      "POINT_IN_TIME sector_chg derived from T-day sector/index K"
     ],
-    "ohlcv": "historical OHLCV with adjustment semantics",
-    "adjustment": "independent POINT_IN_TIME adjustment evidence for adjusted bars",
-    "hashes": ["source_version", "content_sha256", "manifest_sha256"]
+    "ohlcv": "historical unadjusted OHLCV with source, request, response and hash provenance",
+    "adjustment": "deterministic T-anchor affine transformation from unadjusted OHLCV plus corporate actions with ex_date<=T; never relabel current provider forward",
+    "hashes": [
+      "source_version",
+      "content_sha256",
+      "manifest_sha256"
+    ]
+  },
+  "source_roles": {
+    "historical_primary": "HiThink REST / official Financial-API market dumps",
+    "ohlcv_cross_check_or_fallback": ["Tencent", "Sina"],
+    "auxiliary_cross_check": ["yfinance"]
+  },
+  "legacy_sector_provenance": {
+    "version": "V0",
+    "getter": "get_sectors",
+    "provider": "AKShare",
+    "taxonomy": "新浪行业",
+    "spot_method": "stock_sector_spot",
+    "detail_method": "stock_sector_detail",
+    "exact_legacy_taxonomy": true,
+    "forbidden_substitutions": ["申万行业", "同花顺行业"],
+    "historical_sina_membership_probe": {
+      "attempted": true,
+      "current_page_url": "https://finance.sina.com.cn/stock/sl/",
+      "historical_or_effective_date_membership_found": false,
+      "historical_index_component_page_is_taxonomy_match": false,
+      "result": "CURRENT_SINA_SECTOR_PAGE_ONLY"
+    }
   },
   "runtime_inventory": {
-    "configured_clients": [],
-    "configured_credentials": false,
-    "current_data_fetched": false,
-    "strategy_validation_run": false
+    "configured_clients": [
+      "HiThink REST API"
+    ],
+    "configured_credentials": true,
+    "configured_credentials_detail": {
+      "hithink_finance_api_key": "present_and_authenticated",
+      "classic_ifind_path_required": false
+    },
+    "current_data_fetched": true,
+    "strategy_validation_run": false,
+    "final_oos_read": false,
+    "parameter_tuning_run": false,
+    "probe_artifact": "data/validation/phase2e_hithink_probe.json"
+  },
+  "official_financial_api_ecosystem_review": {
+    "reviewed": true,
+    "reviewed_objects": [
+      "REST ths-stock-list constituents endpoint",
+      "REST historical stock/index K endpoints",
+      "REST corporate-actions adjustment-factors endpoint",
+      "marketdb raw_kline_daily",
+      "marketdb raw_adjustment_events",
+      "marketdb calc_adjust_factor_daily",
+      "marketdb dim_symbol",
+      "daily-k market dump",
+      "adjustment-factors market dump"
+    ],
+    "historical_membership_or_effective_date_object_found": false,
+    "local_marketdb_or_market_dump_found_before_probe": false,
+    "conclusion": "The official ecosystem provides current constituents, historical K and corporate-action inputs, but no historical sector-membership/effective-date table or dump. Historical sector membership is the only unresolved acquisition field."
   },
   "sources": [
     {
-      "source": "Tencent qfqday/ifzq",
+      "source": "HiThink REST metadata/tickers list",
+      "source_version": "live API probe 2026-08-28",
+      "families": ["universe"],
+      "status": "CURRENT_ONLY_NOT_USED_FOR_HISTORICAL_UNIVERSE",
+      "temporal_semantics": "CURRENT_SNAPSHOT",
+      "known_at_proof": false,
+      "content_sha256": null,
+      "reason": "The endpoint accepted as_of_date=2024-01-10 but returned the same current page and current timestamp as the default request. It is retained for code/name metadata only."
+    },
+    {
+      "source": "HiThink REST THS index catalog/constituents",
+      "source_version": "live API probe 2026-08-28",
+      "families": ["sector"],
+      "status": "CURRENT_ONLY_UNRESOLVED_HISTORICAL_MEMBERSHIP",
+      "temporal_semantics": "CURRENT_SNAPSHOT",
+      "known_at_proof": false,
+      "content_sha256": null,
+      "reason": "886042.TI returned 203 current members for both the default request and as_of_date=2024-01-10. Official endpoint semantics say current constituents only and expose no effective-date sequence."
+    },
+    {
+      "source": "HiThink REST historical A-share OHLCV",
+      "source_version": "live API probe 2026-08-28",
+      "families": ["ohlcv", "universe"],
+      "status": "READY_FOR_HISTORICAL_ACQUISITION_WITH_ARCHIVE",
+      "temporal_semantics": "HISTORICAL_UNADJUSTED_SERIES",
+      "known_at_proof": false,
+      "content_sha256": null,
+      "reason": "600519.SH returned unadjusted historical daily bars on multiple dates. Raw bars and their acquisition metadata will be archived and hashed; current provider forward is not used as T-anchor adjustment."
+    },
+    {
+      "source": "HiThink REST historical THS index/sector OHLCV",
+      "source_version": "live API probe 2026-08-28",
+      "families": ["sector"],
+      "status": "READY_FOR_DETERMINISTIC_SECTOR_DERIVATION",
+      "temporal_semantics": "HISTORICAL_INDEX_SERIES",
+      "known_at_proof": false,
+      "content_sha256": null,
+      "reason": "886042.TI returned historical daily K on all probe dates. sector_chg is deterministic from T and the prior trading day; sector_rank is deterministic once the same T-day membership set is available."
+    },
+    {
+      "source": "HiThink REST corporate-actions/adjustment-factors",
+      "source_version": "live API probe 2026-08-28",
+      "families": ["adjustment"],
+      "status": "READY_FOR_T_FILTERED_DETERMINISTIC_DERIVATION",
+      "temporal_semantics": "RETROSPECTIVE_EVENT_STREAM_FILTERED_BY_EX_DATE",
+      "known_at_proof": false,
+      "content_sha256": null,
+      "reason": "to=T filters observed events to ex_date<=T. The individual REST stream has cash/bonus fields; the official adjustment dump supplies allotment_ratio and allotment_price. A sequential affine transform was verified against real 600519.SH and 000049.SZ samples with zero error."
+    },
+    {
+      "source": "HiThink REST market dumps",
+      "source_version": "live API probe and downloaded adjustment dump 2026-08-28",
+      "families": ["ohlcv", "universe", "adjustment"],
+      "status": "READY_FOR_DETERMINISTIC_CONSTRUCTION_INPUT",
+      "temporal_semantics": "HISTORICAL_RAW_SERIES_AND_CURRENT_EXPORT",
+      "known_at_proof": false,
+      "content_sha256": null,
+      "reason": "The adjustment dump was downloaded and parsed: 57,010 rows, 5,419 securities, and nonzero allotment fields. The daily-K dump is the historical raw-bar source; acquisition will archive source payloads and hashes."
+    },
+    {
+      "source": "Tencent / Sina",
       "source_version": "Phase 2B provider contract",
       "families": ["ohlcv", "adjustment"],
-      "status": "REJECTED_NO_PIT_PROOF",
-      "temporal_semantics": "PROVIDER_QFQ_SNAPSHOT",
+      "status": "SECONDARY_ONLY",
+      "temporal_semantics": "PROVIDER_HISTORICAL_OR_ADJUSTED_SERIES",
       "known_at_proof": false,
       "content_sha256": null,
-      "reason": "Current provider qfq snapshot has no T-day adjustment vintage or independent PIT adjustment evidence."
+      "reason": "Use only for OHLCV cross-check or fallback; they do not replace Financial-API historical primary evidence."
     },
     {
-      "source": "AkShare live universe/sector",
-      "source_version": "Phase 2B live contract",
-      "families": ["universe", "sector"],
-      "status": "REJECTED_CURRENT_DATA",
-      "temporal_semantics": "LIVE_OBSERVED",
+      "source": "yfinance",
+      "source_version": "Phase 2B provider contract",
+      "families": ["ohlcv", "adjustment"],
+      "status": "AUXILIARY_ONLY",
+      "temporal_semantics": "PROVIDER_HISTORICAL_OR_ADJUSTED_SERIES",
       "known_at_proof": false,
       "content_sha256": null,
-      "reason": "Current members/rank/change cannot be backfilled to historical T."
+      "reason": "Use only as an auxiliary cross-check; it does not replace Financial-API historical primary evidence."
     },
     {
-      "source": "AkShare public board/index endpoints",
-      "source_version": "documentation reviewed 2026-08-28",
-      "families": ["universe", "sector", "ohlcv", "adjustment"],
-      "status": "REJECTED_NO_PIT_PROOF",
-      "temporal_semantics": null,
-      "known_at_proof": false,
-      "content_sha256": null,
-      "reason": "Documentation exposes current or retrospective results but no immutable vintage and known_at<=T proof for the required contract."
-    },
-    {
-      "source": "Tushare Pro stock_basic/index_member_all/index_weight/pro_bar/adj_factor",
-      "source_version": "documentation reviewed 2026-08-28",
-      "families": ["universe", "sector", "ohlcv", "adjustment"],
-      "status": "REJECTED_NO_PIT_PROOF",
-      "temporal_semantics": null,
-      "known_at_proof": false,
-      "content_sha256": null,
-      "reason": "Effective dates and historical queries are not an immutable T-day vintage; no same-day sector membership/rank/sector_chg and adjustment vintage is proven."
-    },
-    {
-      "source": "BaoStock historical K data",
-      "source_version": "documentation reviewed 2026-08-28",
-      "families": ["universe", "ohlcv", "adjustment"],
-      "status": "REJECTED_NO_PIT_PROOF",
-      "temporal_semantics": null,
-      "known_at_proof": false,
-      "content_sha256": null,
-      "reason": "Historical/no-adjusted bars do not include a verifiable T-day archive vintage, and the source does not provide the required PIT sector rank/change contract."
-    },
-    {
-      "source": "Wind/CSMAR/JoinQuant commercial PIT products",
+      "source": "Wind / CSMAR / JoinQuant commercial PIT products",
       "source_version": "not configured",
       "families": ["universe", "sector", "ohlcv", "adjustment"],
       "status": "NOT_AVAILABLE_FOR_AUDIT",
@@ -94,24 +176,106 @@
   ],
   "blockers": [
     {
-      "id": "PIT_SECTOR_EVIDENCE_UNAVAILABLE",
-      "status": "MISSING_POINT_IN_TIME_EVIDENCE",
-      "scope": ["sector.membership", "sector.rank", "sector.sector_chg"],
-      "details": "No audited source provides all three T-day sector payloads with known_at<=T and content hashes."
-    },
-    {
-      "id": "PIT_ADJUSTMENT_EVIDENCE_UNAVAILABLE",
-      "status": "MISSING_POINT_IN_TIME_EVIDENCE",
-      "scope": ["adjustment_evidence", "historical_qfq"],
-      "details": "No audited source provides a T-day adjustment vintage; provider qfq cannot be relabeled as historical PIT qfq."
-    },
-    {
-      "id": "PIT_UNIVERSE_AND_OHLCV_VINTAGE_UNAVAILABLE",
-      "status": "MISSING_POINT_IN_TIME_EVIDENCE",
-      "scope": ["universe", "ohlcv"],
-      "details": "Available historical/effective-date endpoints do not prove complete T-day snapshots or known_at<=T."
+      "id": "HISTORICAL_SECTOR_MEMBERSHIP_UNAVAILABLE",
+      "status": "REQUIRES_ADDITIONAL_SOURCE_OR_PERMISSION",
+      "scope": [
+        "sector.membership"
+      ],
+      "details": "Exact legacy sector provenance is V0 AKShare stock_sector_spot/stock_sector_detail over the Sina industry taxonomy. The live Sina sector page and its current detail route expose no historical/effective-date membership; the historical component page found is for an index, not the Sina industry taxonomy. Financial-API current constituents and other taxonomies cannot substitute. sector_chg and sector_rank are not independent blockers: sector_chg comes from historical Sina-sector K and sector_rank can be calculated after a T-day Sina membership set is acquired."
     }
   ],
+  "historical_validation_layers": {
+    "CORE_SIGNAL_VALIDATION": {
+      "status": "FROZEN_ENGINEERING_REPLAY_COMPLETE_NO_RETURN_METRICS",
+      "required_outputs": [
+        "a_match",
+        "hard_rejects",
+        "support",
+        "stop",
+        "target",
+        "rr",
+        "trigger",
+        "qualified_signal_identity"
+      ],
+      "sector_score_status": "UNVERIFIED",
+      "sector_report_status": "UNVERIFIED",
+      "requires_historical_sina_membership": false,
+      "claims_full_legacy_output_parity": false
+    },
+    "FULL_LEGACY_OUTPUT_VALIDATION": {
+      "status": "BLOCKED_HISTORICAL_SINA_MEMBERSHIP",
+      "required_outputs": [
+        "a_match",
+        "hard_rejects",
+        "support",
+        "stop",
+        "target",
+        "rr",
+        "trigger",
+        "qualified_signal_identity",
+        "score_85",
+        "legacy_sector_report"
+      ],
+      "sector_score_status": "VERIFIED",
+      "sector_report_status": "VERIFIED",
+      "requires_historical_sina_membership": true,
+      "sector_taxonomy": "新浪行业",
+      "claims_full_legacy_output_parity": true
+    },
+    "decision_point": "CORE_SIGNAL_VALIDATION_COMPLETE_PENDING_EXPLICIT_DECISION_TO_UNLOCK_RETURN_VALIDATION_WHILE_FULL_PARITY_REMAINS_BLOCKED"
+  },
+  "core_signal_validation_artifact": {
+    "status": "FROZEN_ENGINEERING_REPLAY_COMPLETE_NO_RETURN_METRICS",
+    "manifest_path": "data/validation/core_signal_validation/core_signal_validation_manifest.json",
+    "manifest_sha256": "29c73d764de37b35e2ad3ce6fa61da6e18dddad53cf0037e76939c98e76ecdf0",
+    "results_path": "data/validation/core_signal_validation/core_replay_results.jsonl.gz",
+    "results_sha256": "3c43a66b6e49cc654a9f141fabf841f9531c45e318826fe112a13915e0a963ea",
+    "projection_stream_sha256": "a599791eeed2d2338d5baacfbb4609c946dd37094b3eee0fa81c0c24dd594093",
+    "score_85_status": "UNVERIFIED",
+    "return_metrics_computed": false,
+    "full_legacy_output_validation": "BLOCKED_HISTORICAL_SINA_MEMBERSHIP"
+  },
+  "continuous_core_signal_validation_checkpoint": {
+    "status": "PAUSED_CHECKPOINTED_INCOMPLETE",
+    "dataset_version": "core-signal-hithink-continuous-2023-06-30-to-2026-08-28-v1",
+    "signal_date_schedule": "continuous_xshg_sessions_within_frozen_validation_interval",
+    "signal_date_count": 769,
+    "root_checkpoint_path": "data/validation/core_signal_validation_continuous_parts/core_signal_validation_resume_checkpoint.json",
+    "root_checkpoint_file_sha256": "eef78cf1378fda8e2f3c4577b7ca187bcc45ed13557ac37a538fd093ac6f1c68",
+    "root_checkpoint_content_sha256": "f4fc64960545dff47031bc3be787b24d798d7082193cb41fb3e108969d7a3b89",
+    "parts": {
+      "A": {
+        "partition": "2023-06-30/2024-12-31",
+        "checkpoint_path": "data/validation/core_signal_validation_continuous_parts/part_a/core_signal_validation_resume_checkpoint.json",
+        "checkpoint_file_sha256": "7bfaf8c2e277615836f2402bf38cd3628642589124ef21e77f7aca09f0351fe7",
+        "checkpoint_content_sha256": "e91afb7ebc07c900de305b960f4954e66cc5a19267fced32c91d063cc0d97a83",
+        "last_completed_trade_date": "2024-11-07",
+        "partial_current_date": "2024-11-08",
+        "completed_date_count": 329,
+        "pending_date_count": 38,
+        "completed_candidate_evaluations": 1686569,
+        "completed_output_sha256": "a7e2e18c82b97428cfc024cc8c94fe107af7979995d4d8aeeaf479b118520774",
+        "interrupted_output_sha256": "f2c5abdfe9299b5c2c9836f9f4d2037c264effa504ad0c94b902734e462e25cc"
+      },
+      "B": {
+        "partition": "2025-01-01/2026-08-28",
+        "checkpoint_path": "data/validation/core_signal_validation_continuous_parts/part_b/core_signal_validation_resume_checkpoint.json",
+        "checkpoint_file_sha256": "dfcaed64b003bf90da5c3b4e96c42d7f3f625cb85ae6a3d24bc4944e30b12bf1",
+        "checkpoint_content_sha256": "39210c11bec475bac4b79e012ac42718088a4ee53c4e31266f020ffd1f6c5d81",
+        "last_completed_trade_date": "2026-03-23",
+        "partial_current_date": "2026-03-24",
+        "completed_date_count": 293,
+        "pending_date_count": 109,
+        "completed_candidate_evaluations": 1562906,
+        "completed_output_sha256": "ca6141a679c8879198d47b94651e4680572e7358858800b2b88870dec62f69e8",
+        "interrupted_output_sha256": "4fec18656ec59ca339b725576975efee69edbe9fa5678fb341934b61eda6f5a8"
+      }
+    },
+    "sector_score_status": "UNVERIFIED",
+    "full_legacy_output_validation": "BLOCKED_HISTORICAL_SINA_MEMBERSHIP",
+    "return_metrics_computed": false,
+    "resume_requires_raw_daily_k_sha256": "61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426"
+  },
   "forbidden_actions": [
     "current_universe_backfill",
     "current_sector_backfill",
