@@ -1,6 +1,6 @@
 """Auditable A-platform breakout legacy baseline evaluator.
 
-Research-only consumer of the Phase 2B frozen GenerationInputManifest.  The
+Research-only consumer of the Phase 2B frozen GenerationInputManifest. The
 legacy V0 A-platform formulas are intentionally preserved; Phase 2C.1 only
 hardens semantic provenance and gate-by-gate auditability.
 """
@@ -81,9 +81,6 @@ def _jsonable(value: Any) -> Any:
     return value
 
 
-# Canonical semantic strategy specification.  Every fixed rule below can alter
-# an evaluation result or its audit status; runtime timestamps and source text
-# are intentionally absent.
 LEGACY_SPEC: dict[str, Any] = {
     "identity": {
         "strategy_version": STRATEGY_VERSION,
@@ -94,11 +91,7 @@ LEGACY_SPEC: dict[str, Any] = {
         "required_manifest_status": READY_FOR_STRATEGY_EVALUATION,
         "minimum_stock_bars": MINIMUM_BARS,
         "minimum_index_bars_for_chg5": 6,
-        "numeric_validation": {
-            "prices": ">0",
-            "volume": ">=0",
-            "finite_required": True,
-        },
+        "numeric_validation": {"prices": ">0", "volume": ">=0", "finite_required": True},
         "sector_evidence": {
             "required_fields": ["sector_name", "sector_rank", "sector_chg"],
             "sector_name": "non-empty string",
@@ -158,17 +151,12 @@ LEGACY_SPEC: dict[str, Any] = {
         {"audit": "OVERHANG_RR_COMBINATION_ACCEPTED", "pass": "not(overhang>0.5 and rr<2.5)", "reject": "overhang>0.5 and rr<2.5", "reject_reason": REJECTED_OVERHANG_RR},
     ],
     "support_stop_risk": {
-        "support_candidates_in_order": [
-            "ma20",
-            "bp_price",
-            "low_of_max_volume_bar_in_last_10_bars",
-            "min(low[-20:])",
-        ],
+        "support_candidates_in_order": ["ma20", "bp_price", "low_of_max_volume_bar_in_last_10_bars", "min(low[-20:])"],
         "support_filter": {"op": "<", "rhs": "close"},
         "support_selection": "max(valid_supports)",
         "stop": {"formula": "round(support*0.98,2)", "rounding": "python_round_ndigits_2"},
         "risk": "(close-stop)/close",
-        "risk_pass": {"op": "0<risk<=0.09"},
+        "risk_pass": "0<risk<=0.09",
     },
     "volume_price_distribution": {
         "window_bars": 120,
@@ -211,8 +199,8 @@ LEGACY_SPEC: dict[str, Any] = {
         "relative_strength": {"max": 10, "rs": "chg5-index_chg5", "rules": ["rs>3:10", "rs>0:6", "else:2"]},
         "risk_reward": {"max": 10, "rules": ["rr>=3:10", "rr>=2.5:8", "else:5"]},
         "total": "sum(all eight items)",
-        "score_cutoff": null,
-        "top_n": null,
+        "score_cutoff": None,
+        "top_n": None,
     },
     "risk_flags": [
         {"flag": "HIGH_TURNOVER", "condition": "quote.turnover>10"},
@@ -475,9 +463,11 @@ def _sector_evidence(manifest: GenerationInputManifest, symbol: str) -> tuple[st
             continue
         name, rank, change = record.get("sector_name"), record.get("sector_rank"), record.get("sector_chg")
         if (
-            isinstance(name, str) and name.strip()
-            and isinstance(rank, (int, float)) and not isinstance(rank, bool) and math.isfinite(float(rank)) and float(rank) > 0
-            and isinstance(change, (int, float)) and not isinstance(change, bool) and math.isfinite(float(change))
+            isinstance(name, str) and bool(name.strip())
+            and isinstance(rank, (int, float)) and not isinstance(rank, bool)
+            and math.isfinite(float(rank)) and float(rank) > 0
+            and isinstance(change, (int, float)) and not isinstance(change, bool)
+            and math.isfinite(float(change))
         ):
             return name.strip(), float(rank), float(change)
     return None
