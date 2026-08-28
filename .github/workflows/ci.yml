@@ -18,3 +18,8 @@ jobs:
         run: python -m pytest -q
       - name: Compile/check
         run: python -m compileall -q scripts tests
+      - name: PR diff/check
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch --no-tags --depth=1 origin "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
+          git diff --check "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
