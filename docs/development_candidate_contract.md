@@ -12,9 +12,13 @@ Final OOS 入口。
   historical replay，不读取 Final OOS，不获取或回填当前数据。
 - 评估器保持既有 `A_PLATFORM_BREAKOUT_LEGACY_V1` 和其现有阈值；本合同不
   调参、不排序优化、不改变策略 spec。
-- 每次运行的 `input_fingerprint`、strategy version/spec SHA 和完整 input
-  manifest 写入 versioned run manifest；输出文件 SHA 作为 output identity 写入
-  同一 immutable run manifest。
+- Phase 2B 的 `GenerationInputManifest.input_fingerprint` 原样保留，既有 frozen
+  语义不在本合同中修改。development candidate 另外计算完整的
+  `generation_fingerprint`，并把 input fingerprint、contract/schema version、
+  strategy identity、实际参与输出的规范化 display-name mapping、canonical
+  `market_env` 和其他输出相关辅助输入纳入 hash payload。
+- `input_fingerprint`、`generation_fingerprint`、辅助输入 hash/identity、strategy
+  identity、完整 input manifest 和 output SHA 都写入 immutable run manifest。
 
 ## Deterministic generation
 
@@ -25,8 +29,10 @@ Final OOS 入口。
 2. 使用明确的 display-name mapping 和显式 market environment 组装 canonical
    `watchlist_YYYYMMDD.json` payload；不从当前环境或其他文件静默补字段。
 3. 通过 `watchlist_schema.validate_watchlist()` 校验 payload，再用排序 key、
-   无空格 JSON 和 UTF-8 newline 生成文件 bytes；相同 manifest、版本和辅助输入
-   必须得到相同 output SHA。
+   无空格 JSON 和 UTF-8 newline 生成文件 bytes；相同完整 generation identity
+   必须得到相同 output SHA。names 或 `market_env` 的变化必须改变
+   `generation_fingerprint`，即使 canonical output bytes 偶然相同也不能冒充同一
+   generation。
 
 成功输出的 canonical payload 只包含既有 schema 字段：`date`、`mode`、
 `market_env`、`sectors`、`candidates` 和 `strategy_version`。输入 manifest、
@@ -34,32 +40,42 @@ Final OOS 入口。
 
 ## Fail-closed and publish rule
 
-以下情况不产生或覆盖 canonical watchlist，并写入显式失败 run manifest：
+以下情况不产生或覆盖 canonical watchlist，并写入显式机器可读状态的 run manifest：
 
 - manifest 不为 READY；
 - evaluator failure；
 - 缺 display name、非法 numeric/code 或 schema failure；
-- 没有任何 `QUALIFIED_LEGACY_BASELINE` candidate；
+- publish 时的 filesystem/output write failure；
 - 已存在的 canonical output 与此次 output bytes 不同。
 
-`generate()` 只允许首次发布或完全相同 bytes 的幂等重跑；它永远不静默覆盖
-既有 canonical output。不同输入/版本若要成为新版本，必须拥有新的
-`input_fingerprint` / strategy identity，并经过另一次明确的发布决策。
+evaluator 正常完成但没有任何 `QUALIFIED_LEGACY_BASELINE` candidate 是合法成功：
+会生成 schema-valid 的 `candidates=[]` canonical watchlist，run manifest 记录
+`status=SUCCESS`、`selection_status=NO_CANDIDATES` 和 `candidate_count=0`，monitor
+必须报告 `HEALTHY`，既有 downstream ingest 可以读取并得到零条记录。
+
+`generate()` 只允许首次发布或具有同一完整 generation identity 的幂等重跑；它
+永远不静默覆盖既有 canonical output。同一 T 已经存在不同 generation identity
+时，即使 output bytes 偶然相同也 fail closed。写失败不会留下合法外观的半成品
+canonical，也不会破坏 previous known-good output；可写时会记录
+`OUTPUT_WRITE_FAILURE` provenance。
 
 ## Versioning, monitoring and rollback
 
-每个成功版本保存于（磁盘目录使用 input fingerprint 的前 16 位以避免
-Windows 路径过长，run manifest 内仍保存并校验完整 fingerprint）：
+每个 generation 版本保存于由完整 generation fingerprint 无损编码得到的目录
+（URL-safe Base64 表示完整 SHA-256，不是截断）；这样不同 generation 不能共享
+一个 artifact identity。当前工作区的完整路径仍保持在 Windows 传统路径限制内；
+只有附加 failure/conflict key 使用短路径组件：
 
-`data/development_candidate/versions/<strategy_version>/<T>/<input_fingerprint>/watchlist_YYYYMMDD.json`
+`data/development_candidate/versions/<generation_fingerprint>/watchlist_YYYYMMDD.json`
 
 运行 provenance 保存于对应的 `runs/.../run_manifest.json`。canonical output 仍
 位于既有 `data/watchlist_YYYYMMDD.json` 路径，供既有 ingest/review 读取。
 
 `monitor(T)` 必须同时验证 canonical schema、文件 SHA 和 immutable run
 provenance；缺失、非法或无 provenance 的输出分别报告机器可读异常。已知良好
-version 可通过 `rollback(T, input_fingerprint)` 恢复到 canonical path，恢复后
-再次执行同一监控校验。
+version 可通过 `rollback(T, generation_fingerprint)` 恢复到 canonical path；
+rollback 必须同时验证完整 generation provenance 和 output SHA，恢复后再次执行
+同一监控校验。
 
 ## Development-candidate gate evidence
 
@@ -67,7 +83,11 @@ version 可通过 `rollback(T, input_fingerprint)` 恢复到 canonical path，�
 
 - 成功路径：input freeze → evaluation → canonical output → schema ingest；
 - 相同输入幂等且 output SHA 不变；
-- 缺数据/无 qualified、缺名字、输出冲突都 fail closed 且不污染已有 output；
+- evaluator failure、缺名字、输出冲突和模拟 write failure 都 fail closed 且不
+  污染已有 output；
+- zero candidate 成功生成 empty canonical、可重复幂等、monitor healthy 且可被
+  downstream ingest 读取；
+- names-only、market_env-only 和其他辅助输入变化改变 generation identity；
 - monitor 能发现 output 篡改/无 provenance；
 - immutable version 能 rollback 并恢复 healthy 状态；
 - pytest、compileall、JSON/hash/provenance validation 和 `git diff --check` 全部通过。

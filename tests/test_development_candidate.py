@@ -1,5 +1,7 @@
 import json
+import hashlib
 
+import development_candidate
 from a_platform_breakout import STRATEGY_VERSION
 from data_paths import DataPaths
 from development_candidate import (
@@ -7,9 +9,11 @@ from development_candidate import (
     MONITOR_HEALTHY,
     MONITOR_INVALID_OUTPUT,
     RUN_ALREADY_CURRENT,
+    RUN_EVALUATION_FAILURE,
     RUN_MISSING_DISPLAY_NAME,
-    RUN_NO_QUALIFIED_CANDIDATES,
+    RUN_NO_CANDIDATES,
     RUN_OUTPUT_CONFLICT,
+    RUN_OUTPUT_WRITE_FAILURE,
     RUN_PUBLISHED,
     MONITOR_UNTRACKED_OUTPUT,
 )
@@ -20,6 +24,12 @@ from watchlist_schema import load_watchlist
 
 def _market_env():
     return {"level": "B", "score": 5, "detail": {"fixture": "development-candidate-v1"}}
+
+
+def _canonical_json(value):
+    return (json.dumps(value, ensure_ascii=False, allow_nan=False, sort_keys=True, separators=(",", ":")) + "\n").encode(
+        "utf-8"
+    )
 
 
 def test_success_publishes_canonical_output_with_immutable_provenance(tmp_path):
@@ -37,14 +47,20 @@ def test_success_publishes_canonical_output_with_immutable_provenance(tmp_path):
     assert ingest(new_tracker(), paths=DataPaths(tmp_path)) == 1
     record = json.loads(result.run_manifest_path.read_text(encoding="utf-8"))
     assert record["input_fingerprint"] == manifest.input_fingerprint
+    assert record["generation_fingerprint"] == result.generation_fingerprint
     assert record["output"]["file_sha256"] == result.output_sha256
+    assert record["auxiliary_inputs"]["display_names"]["values"] == {"600000": "测试银行"}
+    assert hashlib.sha256(_canonical_json(record["generation_fingerprint_payload"])).hexdigest() == result.generation_fingerprint
+    for auxiliary_name, auxiliary in record["auxiliary_inputs"].items():
+        assert hashlib.sha256(_canonical_json(auxiliary["values"])).hexdigest() == auxiliary["sha256"], auxiliary_name
 
     monitored = store.monitor("2026-08-27")
     assert monitored.status == MONITOR_HEALTHY
     assert monitored.output_sha256 == result.output_sha256
+    assert monitored.generation_fingerprint == result.generation_fingerprint
 
 
-def test_same_input_is_idempotent_and_output_bytes_do_not_change(tmp_path):
+def test_same_total_inputs_have_same_generation_fingerprint_and_output_bytes(tmp_path):
     store = DevelopmentCandidateStore(tmp_path)
     manifest = _manifest(_base_bars())
     first = store.generate(manifest, names={"600000": "测试银行"}, market_env=_market_env())
@@ -53,22 +69,57 @@ def test_same_input_is_idempotent_and_output_bytes_do_not_change(tmp_path):
     second = store.generate(manifest, names={"600000": "测试银行"}, market_env=_market_env())
 
     assert second.status == RUN_ALREADY_CURRENT
+    assert second.generation_fingerprint == first.generation_fingerprint
     assert second.output_sha256 == first.output_sha256
     assert second.output_path.read_bytes() == first_bytes
     assert len(list((tmp_path / "development_candidate" / "versions").rglob("watchlist_*.json"))) == 1
 
 
-def test_no_qualified_candidate_fails_closed_without_canonical_output(tmp_path):
+def test_zero_candidate_is_successful_empty_watchlist_and_idempotent(tmp_path):
     store = DevelopmentCandidateStore(tmp_path)
     manifest = _manifest(_base_bars(), sector_evidence={})
+    names = {"600000": "测试银行"}
 
+    first = store.generate(manifest, names=names, market_env=_market_env())
+    first_bytes = first.output_path.read_bytes()
+    payload = load_watchlist(first.output_path)
+    record = json.loads(first.run_manifest_path.read_text(encoding="utf-8"))
+
+    assert first.status == RUN_PUBLISHED
+    assert first.candidate_count == 0
+    assert payload["candidates"] == []
+    assert payload["sectors"] == []
+    assert ingest(new_tracker(), paths=DataPaths(tmp_path)) == 0
+    assert record["status"] == "SUCCESS"
+    assert record["selection_status"] == RUN_NO_CANDIDATES
+    assert record["candidate_count"] == 0
+    assert store.monitor("2026-08-27").status == MONITOR_HEALTHY
+
+    second = store.generate(manifest, names=names, market_env=_market_env())
+
+    assert second.status == RUN_ALREADY_CURRENT
+    assert second.generation_fingerprint == first.generation_fingerprint
+    assert second.output_sha256 == first.output_sha256
+    assert second.output_path.read_bytes() == first_bytes
+    assert len(list((tmp_path / "development_candidate" / "versions").rglob("watchlist_*.json"))) == 1
+
+
+def test_evaluator_failure_is_distinct_from_zero_candidate_success(tmp_path, monkeypatch):
+    store = DevelopmentCandidateStore(tmp_path)
+    manifest = _manifest(_base_bars())
+
+    def fail_evaluator(_manifest):
+        raise RuntimeError("simulated evaluator failure")
+
+    monkeypatch.setattr(development_candidate, "evaluate_universe", fail_evaluator)
     result = store.generate(manifest, names={"600000": "测试银行"}, market_env=_market_env())
 
-    assert result.status == RUN_NO_QUALIFIED_CANDIDATES
+    assert result.status == RUN_EVALUATION_FAILURE
+    assert result.generation_fingerprint
     assert result.output_path is None
-    assert not (tmp_path / "watchlist_20260827.json").exists()
+    assert not store.canonical_path("2026-08-27").exists()
     record = json.loads(result.run_manifest_path.read_text(encoding="utf-8"))
-    assert record["status"] == RUN_NO_QUALIFIED_CANDIDATES
+    assert record["status"] == RUN_EVALUATION_FAILURE
     assert "output" not in record
 
 
@@ -81,6 +132,39 @@ def test_missing_name_fails_closed_and_does_not_create_output(tmp_path):
     assert not (tmp_path / "watchlist_20260827.json").exists()
 
 
+def test_names_and_market_env_are_part_of_generation_fingerprint(tmp_path):
+    manifest = _manifest(_base_bars())
+    named_a = DevelopmentCandidateStore(tmp_path / "named-a").generate(
+        manifest, names={"600000": "测试银行"}, market_env=_market_env()
+    )
+    named_b = DevelopmentCandidateStore(tmp_path / "named-b").generate(
+        manifest, names={"600000": "另一家银行"}, market_env=_market_env()
+    )
+    env_b = DevelopmentCandidateStore(tmp_path / "env-b").generate(
+        manifest, names={"600000": "测试银行"}, market_env={**_market_env(), "score": 6}
+    )
+
+    assert named_a.generation_fingerprint != named_b.generation_fingerprint
+    assert named_a.output_sha256 != named_b.output_sha256
+    assert named_a.generation_fingerprint != env_b.generation_fingerprint
+    assert named_a.output_sha256 != env_b.output_sha256
+
+
+def test_changed_generation_identity_is_conflict_and_not_old_run_identity(tmp_path):
+    store = DevelopmentCandidateStore(tmp_path)
+    manifest = _manifest(_base_bars())
+    first = store.generate(manifest, names={"600000": "测试银行"}, market_env=_market_env())
+
+    result = store.generate(manifest, names={"600000": "另一家银行"}, market_env=_market_env())
+
+    assert result.status == RUN_OUTPUT_CONFLICT
+    assert result.generation_fingerprint != first.generation_fingerprint
+    assert result.run_manifest_path != first.run_manifest_path
+    record = json.loads(result.run_manifest_path.read_text(encoding="utf-8"))
+    assert record["input_fingerprint"] == first.input_fingerprint
+    assert record["generation_fingerprint"] == result.generation_fingerprint
+
+
 def test_existing_different_canonical_output_is_not_overwritten(tmp_path):
     store = DevelopmentCandidateStore(tmp_path)
     manifest = _manifest(_base_bars())
@@ -91,7 +175,37 @@ def test_existing_different_canonical_output_is_not_overwritten(tmp_path):
     result = store.generate(manifest, names={"600000": "测试银行"}, market_env=changed_env)
 
     assert result.status == RUN_OUTPUT_CONFLICT
+    assert result.generation_fingerprint != first.generation_fingerprint
     assert first.output_path.read_bytes() == original
+
+
+def test_publish_write_failure_is_fail_closed_and_preserves_known_good(tmp_path, monkeypatch):
+    known_good_store = DevelopmentCandidateStore(tmp_path / "known-good")
+    manifest = _manifest(_base_bars())
+    known_good = known_good_store.generate(manifest, names={"600000": "测试银行"}, market_env=_market_env())
+    known_good_bytes = known_good.output_path.read_bytes()
+
+    failing_store = DevelopmentCandidateStore(tmp_path / "failing")
+    failed_path = failing_store.canonical_path("2026-08-27")
+    original_atomic_write = development_candidate._atomic_write
+
+    def fail_canonical_write(path, content):
+        if path == failed_path:
+            raise OSError("simulated canonical filesystem failure")
+        original_atomic_write(path, content)
+
+    monkeypatch.setattr(development_candidate, "_atomic_write", fail_canonical_write)
+    result = failing_store.generate(manifest, names={"600000": "测试银行"}, market_env=_market_env())
+
+    assert result.status == RUN_OUTPUT_WRITE_FAILURE
+    assert result.output_path is None
+    assert not failed_path.exists()
+    assert not list(failed_path.parent.glob(f".{failed_path.name}.*.tmp"))
+    assert known_good.output_path.read_bytes() == known_good_bytes
+    record = json.loads(result.run_manifest_path.read_text(encoding="utf-8"))
+    assert record["status"] == RUN_OUTPUT_WRITE_FAILURE
+    assert record["generation_fingerprint"] == result.generation_fingerprint
+    assert "simulated canonical filesystem failure" in record["failure_message"]
 
 
 def test_monitor_detects_tampering_and_rollback_restores_known_good_version(tmp_path):
@@ -102,10 +216,11 @@ def test_monitor_detects_tampering_and_rollback_restores_known_good_version(tmp_
 
     assert store.monitor("2026-08-27").status == MONITOR_INVALID_OUTPUT
 
-    restored = store.rollback("2026-08-27", manifest.input_fingerprint)
+    restored = store.rollback("2026-08-27", first.generation_fingerprint)
 
     assert restored.status == MONITOR_HEALTHY
     assert restored.output_sha256 == first.output_sha256
+    assert restored.generation_fingerprint == first.generation_fingerprint
 
 
 def test_monitor_rejects_a_valid_but_untracked_canonical_output(tmp_path):
@@ -117,3 +232,16 @@ def test_monitor_rejects_a_valid_but_untracked_canonical_output(tmp_path):
     untracked.canonical_path("2026-08-27").write_bytes(first.output_path.read_bytes())
 
     assert untracked.monitor("2026-08-27").status == MONITOR_UNTRACKED_OUTPUT
+
+
+def test_monitor_rejects_tampered_generation_provenance(tmp_path):
+    store = DevelopmentCandidateStore(tmp_path)
+    manifest = _manifest(_base_bars())
+    first = store.generate(manifest, names={"600000": "测试银行"}, market_env=_market_env())
+    record = json.loads(first.run_manifest_path.read_text(encoding="utf-8"))
+    record["auxiliary_inputs"]["market_env"]["values"]["score"] = 999
+    first.run_manifest_path.write_text(json.dumps(record, ensure_ascii=False), encoding="utf-8")
+
+    monitored = store.monitor("2026-08-27")
+
+    assert monitored.status == MONITOR_UNTRACKED_OUTPUT
