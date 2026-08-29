@@ -4,22 +4,24 @@
 
 ## 1. Current Objective
 
-- 唯一主任务：新增长期 `AGENTS.md` 与 `docs/PRODUCT_CHARTER.md`，并把当前真实 Delivery Ladder、usable gate、blocker/deferred 分类和 Phase 2F exit decision 接入治理。
-- 原因：项目已有跨阶段 research replay、returns、checkpoint 和 manual review utility，但不能继续把 research 完整度当成产品终点；必须明确如何进入可实际每日运行的 observation / paper-use。
-- Scope：产品章程、代理契约、handoff/status/decision 治理和真实 Git / PR / CI 证据；不改变生产策略、数据、冻结 artifact 或 Phase 2F 研究结果。
+- 唯一主任务：设计并实现 usable path 的 `development candidate`。
+- 原因：当前 P1 product blocker 是 `deterministic daily generation → canonical watchlist → explicit fail-closed → monitoring / rollback / versioning` 尚未形成已证明的端到端路径。
+- Scope：先核验 usable-path prerequisites，再定义 development candidate contract，并在 development fixtures 或受控数据上实现端到端路径；不改变生产策略、数据、冻结 artifact 或 Phase 2F 研究结果。
+- 本次修复边界：仅消除本文件遗留的治理状态冲突；不启动实际 usable-path 开发。
 - 禁止事项：不启动 Phase 2F；不读取 Final OOS；不 promotion；不调参；不把当前数据回填历史；不替换新浪历史行业 membership；不重跑已完成 CORE replay；不以“差不多”的新文件替代 frozen bytes。
-- 完成条件：治理文件职责分离、测试/compile/JSON/hash/diff checks 通过，PR 最终 head 有 exact-head CI，若为 `CLEAN` / `MERGEABLE` 则 squash merge，并在合并后刷新本文件。
+- 完成条件：development candidate 在受控输入上可重复演示，canonical watchlist 与显式失败处理、监控/回滚/版本边界均有回归证据，并停在 `development-candidate` gate；不据此 promotion 或进入 Final OOS。
 - 停止条件：出现 `PROJECT_GOVERNANCE_STATE_CONFLICT`、任一 required hash 不匹配、外部 raw artifact 无法证明为同一 bytes、或任务要求越过 research / OOS / promotion 边界。
 - CI provenance 规则：本文件只保存 `last verified CI provenance`，不要求也不允许把当前 commit 自己产生的 CI run 回写到同一 commit；每个新会话必须实时查询当前 Git HEAD、PR state 和 exact-head CI。
 
 ## 2. Current Repository State
 
 - repo：`EFSing/ashare_watchlist`；origin：`https://github.com/EFSing/ashare_watchlist.git`。
-- formal master SHA：`7a27484293cbcb791c6b8407949e9e71257e016b`；这是本次产品治理 PR #9 的真实 squash merge commit，Phase 2E research baseline 仍为 `74ccf86…`。
-- working branch：`master`，本地已同步到上述远程 merge commit；本次治理 branch 已完成合并。
-- HEAD at last verified snapshot：`7a27484293cbcb791c6b8407949e9e71257e016b`（PR #9 squash merge）。
-- PR / state：`PR: NONE`；PR #1–#9 均已 merged，没有 active open PR。PR #9 head 为 `859935fb80a0de585149da16ead8870db11a63a7`，merge 为 master@7a27484…。
-- last verified CI provenance：PR #9 exact-head correctness runs `33260677946`、`33260690327` success；master merge correctness run `33260777592`，headSha=`7a27484293cbcb791c6b8407949e9e71257e016b`，success。
+- formal governance merge identity：`7a27484293cbcb791c6b8407949e9e71257e016b`；这是产品章程与代理开发契约 PR #9 的真实 squash merge commit，Phase 2E research baseline 仍为 `74ccf86…`。
+- current live master HEAD：`dbc22b51069703bb916281d039b872815c136357`；这是 PR #9 合并后的治理 handoff refresh commit，当前 `master` 与 `origin/master` 一致。
+- working branch at last verified snapshot：`master`；本次治理修复分支从上述 current live master HEAD 派生。
+- HEAD at last verified snapshot：`dbc22b51069703bb916281d039b872815c136357`（current live master）。
+- PR / state：intake 时 `PR: NONE`；PR #1–#9 均已 merged，没有 active open PR。PR #9 head 为 `859935fb80a0de585149da16ead8870db11a63a7`，formal governance merge 为 master@7a27484…。
+- last verified CI provenance：master correctness run `33261156054`，headSha=`dbc22b51069703bb916281d039b872815c136357`，success。
 - live state gate：新会话必须实时执行 Git / GitHub 核验；本节和 `Last Verified` 的 CI 字段是最近一次证据快照，不是对当前 HEAD 的隐含声明。
 - expected working tree state：tracked working tree clean；`.pytest_cache/`、`__pycache__/` 和本机 `daily_k.parquet` 可被 `.gitignore` 忽略，但 `daily_k.parquet` 的 recovery identity 现在由 registry 记录的 Google Drive private archive member evidence 独立确认。Windows text checkout 的 CRLF SHA 若存在，以 registry 的 Git-blob `file_sha256` 为恢复身份。
 - formal phase / research status：Phase 2E 已完成；CORE continuous replay 和 DEVELOPMENT returns V2 已冻结；FULL legacy 85-score validation 仍 blocked。治理 PR 已合并；本机另有未推送 Phase 2F 分支，见下方，不是 formal master 状态。
@@ -40,11 +42,11 @@
 
 ### Required Next
 
-1. 新会话接手时先实时核对 master HEAD、PR state、exact-head CI 和 registry hashes，再读取四份治理文件作为快照和规则。
-2. 保持 `daily_k.parquet` recovery evidence 与 registry 的 `61189a…` exact match 一致；仅在新的明确授权下执行后续 replay/resume。
-3. 完成本任务产品治理 PR；只有 exact-head CI 成功且 PR `CLEAN` / `MERGEABLE` 才 squash merge，随后刷新 handoff。
-4. 对本机 `codex/phase2f-a-breakout-failure-diagnostic@3eeb5df9f7cf4ef5c30b3380b323f26f2491f873` 保持独立 handoff / provenance 边界；本任务不启动 Phase 2F，当前 local diagnostic decision 为 `NEEDS_MORE_EVIDENCE`。
-5. 先推进 usable path 的 development candidate 设计；历史新浪行业 membership / effective-date source 只影响 FULL legacy validation，不作为整个产品的默认 blocker。
+1. **verify usable-path prerequisites**：核对 strategy/protocol/dependency/data/output identities、输入 manifest、T close/T+1 contract、development fixture、recovery 与 fail-closed prerequisites；不改 frozen artifact。
+2. **设计 development candidate contract**：明确 deterministic daily generation、canonical `watchlist_YYYYMMDD.json` 输出、显式不可用/失败状态、monitoring、rollback 和 versioning 的输入、输出、版本及停止条件。
+3. **实现端到端 development path**：仅在 development fixtures 或受控数据上接通 generation、策略评估、canonical watchlist 输出和失败处理，不做 promotion、不写 Final OOS。
+4. **tests / CI**：完成 pytest、compileall、JSON/hash/provenance validation、diff 检查及固定 development validation；exact-head CI 成功后再判断 development-candidate gate。
+5. **停在 development-candidate gate**：不启动 Phase 2F、不调参、不读 Final OOS；Phase 2F `NEEDS_MORE_EVIDENCE`、历史新浪 membership 和其他 deferred 项保持原边界。
 
 ### Deferred
 
@@ -131,10 +133,11 @@
 
 ## 10. Next Action
 
-1. 新会话实时核验 master HEAD、`PR: NONE`、merge 后 CI 和 required artifact hashes。
-2. 保持 `daily_k.parquet` 的 `GOOGLE_DRIVE_PRIVATE` recovery evidence 与 `61189a…` exact match；未经新的明确授权不执行 replay/resume。
-3. 不启动 Phase 2F、不读 Final OOS；下一产品动作是 usable path 的 development candidate，而不是无边界追加 research。
-4. 如未来任务提出新 research，先按 `AGENTS.md` 和 `PRODUCT_CHARTER.md` 证明 materiality、decision 和 stop condition。
+1. verify usable-path prerequisites，包括 registry hashes、输入/输出 identity、T close/T+1、development fixture、recovery 和 fail-closed 条件。
+2. 设计 development candidate contract，覆盖 deterministic daily generation、canonical watchlist、显式失败、monitoring、rollback 和 versioning。
+3. 实现端到端 development path，并在受控 development 输入上形成可重复的 canonical 输出。
+4. 完成 tests / CI 与 development validation，核对所有 P0/P1；不把未验证项写成通过。
+5. 停在 `development-candidate` gate；不启动 Phase 2F、不调参、不读 Final OOS。
 
 ## 11. Handoff Checklist
 
@@ -153,9 +156,9 @@
 
 ## 12. Last Verified
 
-- last_updated_at：`2026-08-29T23:40:00+08:00`（Asia/Shanghai；PR #9 merge 后刷新）
-- verified_master_sha：`7a27484293cbcb791c6b8407949e9e71257e016b`
-- verified_branch_head：`7a27484293cbcb791c6b8407949e9e71257e016b`（post-merge master snapshot）
-- latest_test_result：`pytest 135 passed`; `compileall` pass; registry JSON/hash/recovery checks pass; secret scan and path/URL guard pass; PR #9 exact-head CI `33260677946`、`33260690327` success; merge master CI `33260777592` success
-- latest_ci_run_provenance：run `33260777592` / headSha `7a27484293cbcb791c6b8407949e9e71257e016b` / success（last verified master provenance；不制造 CI 自引用更新循环）
-- updated_by_task：`product charter and agent development contract post-merge handoff refresh`
+- last_updated_at：`2026-08-29T23:55:10+08:00`（Asia/Shanghai；intake 核验 current live master 后的治理修复）
+- verified_master_sha：`dbc22b51069703bb916281d039b872815c136357`（current live master at last verification；formal governance merge identity 仍为 `7a27484293cbcb791c6b8407949e9e71257e016b`）
+- verified_branch_head：`dbc22b51069703bb916281d039b872815c136357`（本次治理修复分支起始的 verified master snapshot；最终 PR head 以实时状态核验）
+- latest_test_result：`pytest 135 passed`; `compileall` pass; registry JSON/hash/recovery checks pass; secret scan and path/URL guard pass; master correctness run `33261156054` success
+- latest_ci_run_provenance：run `33261156054` / headSha `dbc22b51069703bb916281d039b872815c136357` / success（last verified master provenance；不制造 CI 自引用更新循环）
+- updated_by_task：`repair stale usable-path governance handoff`
