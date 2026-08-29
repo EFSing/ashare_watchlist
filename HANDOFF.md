@@ -17,11 +17,11 @@
 
 - repo：`EFSing/ashare_watchlist`；origin：`https://github.com/EFSing/ashare_watchlist.git`。
 - formal governance merge identity：`7a27484293cbcb791c6b8407949e9e71257e016b`；这是产品章程与代理开发契约 PR #9 的真实 squash merge commit，Phase 2E research baseline 仍为 `74ccf86…`。
-- current live master HEAD：`dbc22b51069703bb916281d039b872815c136357`；这是 PR #9 合并后的治理 handoff refresh commit，当前 `master` 与 `origin/master` 一致。
-- working branch at last verified snapshot：`master`；本次治理修复分支从上述 current live master HEAD 派生。
-- HEAD at last verified snapshot：`dbc22b51069703bb916281d039b872815c136357`（current live master）。
-- PR / state：intake 时 `PR: NONE`；PR #1–#9 均已 merged，没有 active open PR。PR #9 head 为 `859935fb80a0de585149da16ead8870db11a63a7`，formal governance merge 为 master@7a27484…。
-- last verified CI provenance：master correctness run `33261156054`，headSha=`dbc22b51069703bb916281d039b872815c136357`，success。
+- current live master HEAD：`11db387cc51a645c4491b39cbfa3e03e1228b6c4`；这是本次 handoff consistency repair PR #10 的 squash merge commit，当前 `master` 与 `origin/master` 一致。
+- working branch at last verified snapshot：`master`；本次治理修复已合并，当前无待合并治理分支。
+- HEAD at last verified snapshot：`11db387cc51a645c4491b39cbfa3e03e1228b6c4`（current live master）。
+- PR / state：`PR: NONE`；PR #1–#10 均已 merged，没有 active open PR。PR #9 head 为 `859935fb80a0de585149da16ead8870db11a63a7`、formal governance merge 为 master@7a27484…；PR #10 head 为 `c1529b2e03cfc3444b81029c02a1747844db7d1e`、merge 为 master@11db387…。
+- last verified CI provenance：merge master correctness run `33261928349`，headSha=`11db387cc51a645c4491b39cbfa3e03e1228b6c4`，success。
 - live state gate：新会话必须实时执行 Git / GitHub 核验；本节和 `Last Verified` 的 CI 字段是最近一次证据快照，不是对当前 HEAD 的隐含声明。
 - expected working tree state：tracked working tree clean；`.pytest_cache/`、`__pycache__/` 和本机 `daily_k.parquet` 可被 `.gitignore` 忽略，但 `daily_k.parquet` 的 recovery identity 现在由 registry 记录的 Google Drive private archive member evidence 独立确认。Windows text checkout 的 CRLF SHA 若存在，以 registry 的 Git-blob `file_sha256` 为恢复身份。
 - formal phase / research status：Phase 2E 已完成；CORE continuous replay 和 DEVELOPMENT returns V2 已冻结；FULL legacy 85-score validation 仍 blocked。治理 PR 已合并；本机另有未推送 Phase 2F 分支，见下方，不是 formal master 状态。
@@ -37,6 +37,7 @@
 - 形式化的 artifact inventory 已写入 [`data/governance/frozen_artifacts.json`](data/governance/frozen_artifacts.json)；`daily_k.parquet` 已由 Google Drive private-download archive 的唯一 parquet member 完成 persistent backup 与 recovery verification。
 - recovery governance PR #8 已 squash merge 到 `7fe15d8…`；PR exact-head CI runs `33259704118`、`33259700451` 和 merge 后 master CI run `33259819493` 均 success，headSha 精确匹配各自目标。
 - 产品章程与代理开发契约 PR #9 已 squash merge 到 `7a27484…`；PR exact-head CI runs `33260677946`、`33260690327` 和 merge 后 master CI run `33260777592` 均 success，headSha 精确匹配各自目标。
+- stale usable-path handoff repair PR #10 已 squash merge 到 `11db387…`；PR exact-head CI runs `33261804181`、`33261822861` 和 merge 后 master CI run `33261928349` 均 success，headSha 精确匹配各自目标。
 
 ## 4. Pending Work
 
@@ -156,9 +157,9 @@
 
 ## 12. Last Verified
 
-- last_updated_at：`2026-08-29T23:55:10+08:00`（Asia/Shanghai；intake 核验 current live master 后的治理修复）
-- verified_master_sha：`dbc22b51069703bb916281d039b872815c136357`（current live master at last verification；formal governance merge identity 仍为 `7a27484293cbcb791c6b8407949e9e71257e016b`）
-- verified_branch_head：`dbc22b51069703bb916281d039b872815c136357`（本次治理修复分支起始的 verified master snapshot；最终 PR head 以实时状态核验）
-- latest_test_result：`pytest 135 passed`; `compileall` pass; registry JSON/hash/recovery checks pass; secret scan and path/URL guard pass; master correctness run `33261156054` success
-- latest_ci_run_provenance：run `33261156054` / headSha `dbc22b51069703bb916281d039b872815c136357` / success（last verified master provenance；不制造 CI 自引用更新循环）
-- updated_by_task：`repair stale usable-path governance handoff`
+- last_updated_at：`2026-08-30T00:06:13+08:00`（Asia/Shanghai；PR #10 merge 后刷新）
+- verified_master_sha：`11db387cc51a645c4491b39cbfa3e03e1228b6c4`（current live master at last verification；formal governance merge identity 仍为 `7a27484293cbcb791c6b8407949e9e71257e016b`）
+- verified_branch_head：`11db387cc51a645c4491b39cbfa3e03e1228b6c4`（post-merge master snapshot；refresh commit 自身不写入其 CI provenance）
+- latest_test_result：`pytest 135 passed`; `compileall` pass; registry JSON/hash/recovery checks pass; secret scan and path/URL guard pass; PR #10 exact-head CI `33261804181`、`33261822861` success; merge master CI `33261928349` success
+- latest_ci_run_provenance：run `33261928349` / headSha `11db387cc51a645c4491b39cbfa3e03e1228b6c4` / success（last verified master provenance；不制造 CI 自引用更新循环）
+- updated_by_task：`post-merge usable path governance handoff consistency refresh`
