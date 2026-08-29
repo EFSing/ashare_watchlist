@@ -15,11 +15,11 @@
 ## 2. Current Repository State
 
 - repo：`EFSing/ashare_watchlist`；origin：`https://github.com/EFSing/ashare_watchlist.git`。
-- formal master SHA：`014b6f46cd68cb483550ddb0915ef5440c45fa75`；这是 recovery governance merge 后的真实 master snapshot，Phase 2E research baseline 仍为 `74ccf86…`。
-- working branch：`codex/product-charter-agent-contract`，从上述远程 master 基线派生；本任务 PR 尚未创建。
-- HEAD at last verified snapshot：`014b6f46cd68cb483550ddb0915ef5440c45fa75`（当前任务 branch 的起始 master snapshot）。
-- PR / state：本任务开始前 `PR: NONE`；PR #1–#8 均已 merged。待本任务 push 后回填本 PR head、CI 和 merge 信息。
-- last verified CI provenance：master correctness run `33260020256`，headSha=`014b6f46cd68cb483550ddb0915ef5440c45fa75`，success。
+- formal master SHA：`7a27484293cbcb791c6b8407949e9e71257e016b`；这是本次产品治理 PR #9 的真实 squash merge commit，Phase 2E research baseline 仍为 `74ccf86…`。
+- working branch：`master`，本地已同步到上述远程 merge commit；本次治理 branch 已完成合并。
+- HEAD at last verified snapshot：`7a27484293cbcb791c6b8407949e9e71257e016b`（PR #9 squash merge）。
+- PR / state：`PR: NONE`；PR #1–#9 均已 merged，没有 active open PR。PR #9 head 为 `859935fb80a0de585149da16ead8870db11a63a7`，merge 为 master@7a27484…。
+- last verified CI provenance：PR #9 exact-head correctness runs `33260677946`、`33260690327` success；master merge correctness run `33260777592`，headSha=`7a27484293cbcb791c6b8407949e9e71257e016b`，success。
 - live state gate：新会话必须实时执行 Git / GitHub 核验；本节和 `Last Verified` 的 CI 字段是最近一次证据快照，不是对当前 HEAD 的隐含声明。
 - expected working tree state：tracked working tree clean；`.pytest_cache/`、`__pycache__/` 和本机 `daily_k.parquet` 可被 `.gitignore` 忽略，但 `daily_k.parquet` 的 recovery identity 现在由 registry 记录的 Google Drive private archive member evidence 独立确认。Windows text checkout 的 CRLF SHA 若存在，以 registry 的 Git-blob `file_sha256` 为恢复身份。
 - formal phase / research status：Phase 2E 已完成；CORE continuous replay 和 DEVELOPMENT returns V2 已冻结；FULL legacy 85-score validation 仍 blocked。治理 PR 已合并；本机另有未推送 Phase 2F 分支，见下方，不是 formal master 状态。
@@ -34,6 +34,7 @@
 - V2 outcome 明确为 `DEVELOPMENT` / `RECONSTRUCTED_RETROSPECTIVE`；V1 raw outcome 保留为 diagnostic，不覆盖；Final OOS 未读取。
 - 形式化的 artifact inventory 已写入 [`data/governance/frozen_artifacts.json`](data/governance/frozen_artifacts.json)；`daily_k.parquet` 已由 Google Drive private-download archive 的唯一 parquet member 完成 persistent backup 与 recovery verification。
 - recovery governance PR #8 已 squash merge 到 `7fe15d8…`；PR exact-head CI runs `33259704118`、`33259700451` 和 merge 后 master CI run `33259819493` 均 success，headSha 精确匹配各自目标。
+- 产品章程与代理开发契约 PR #9 已 squash merge 到 `7a27484…`；PR exact-head CI runs `33260677946`、`33260690327` 和 merge 后 master CI run `33260777592` 均 success，headSha 精确匹配各自目标。
 
 ## 4. Pending Work
 
@@ -130,10 +131,10 @@
 
 ## 10. Next Action
 
-1. 在本任务 branch 完成治理文档验证、commit、push 和 PR；实时核对最终 head、exact-head CI、`CLEAN` / `MERGEABLE`。
-2. 若合并 gate 全部满足，squash merge 并在 master 上刷新本文件；否则保留 blocker 证据并停止，不绕过 gate。
-3. 保持 `daily_k.parquet` 的 `GOOGLE_DRIVE_PRIVATE` recovery evidence 与 `61189a…` exact match；未经新的明确授权不执行 replay/resume。
-4. 不启动 Phase 2F、不读 Final OOS；下一产品动作是 usable path 的 development candidate，而不是无边界追加 research。
+1. 新会话实时核验 master HEAD、`PR: NONE`、merge 后 CI 和 required artifact hashes。
+2. 保持 `daily_k.parquet` 的 `GOOGLE_DRIVE_PRIVATE` recovery evidence 与 `61189a…` exact match；未经新的明确授权不执行 replay/resume。
+3. 不启动 Phase 2F、不读 Final OOS；下一产品动作是 usable path 的 development candidate，而不是无边界追加 research。
+4. 如未来任务提出新 research，先按 `AGENTS.md` 和 `PRODUCT_CHARTER.md` 证明 materiality、decision 和 stop condition。
 
 ## 11. Handoff Checklist
 
@@ -152,9 +153,9 @@
 
 ## 12. Last Verified
 
-- last_updated_at：`2026-08-29T23:30:00+08:00`（Asia/Shanghai；本任务开始前实时核验）
-- verified_master_sha：`014b6f46cd68cb483550ddb0915ef5440c45fa75`
-- verified_branch_head：`014b6f46cd68cb483550ddb0915ef5440c45fa75`（governance branch 起始 snapshot；新 branch head 待 commit 后核验）
-- latest_test_result：`pytest 135 passed`; `compileall` pass; registry JSON/hash/recovery checks pass; secret scan and path/URL guard pass; master correctness run `33260020256` success
-- latest_ci_run_provenance：run `33260020256` / headSha `014b6f46cd68cb483550ddb0915ef5440c45fa75` / success（last verified master provenance；不制造 CI 自引用更新循环）
-- updated_by_task：`product charter and agent development contract intake`
+- last_updated_at：`2026-08-29T23:40:00+08:00`（Asia/Shanghai；PR #9 merge 后刷新）
+- verified_master_sha：`7a27484293cbcb791c6b8407949e9e71257e016b`
+- verified_branch_head：`7a27484293cbcb791c6b8407949e9e71257e016b`（post-merge master snapshot）
+- latest_test_result：`pytest 135 passed`; `compileall` pass; registry JSON/hash/recovery checks pass; secret scan and path/URL guard pass; PR #9 exact-head CI `33260677946`、`33260690327` success; merge master CI `33260777592` success
+- latest_ci_run_provenance：run `33260777592` / headSha `7a27484293cbcb791c6b8407949e9e71257e016b` / success（last verified master provenance；不制造 CI 自引用更新循环）
+- updated_by_task：`product charter and agent development contract post-merge handoff refresh`

@@ -80,7 +80,7 @@
 - alternatives：继续以 research 完整度作为唯一 release 条件；把所有未解决研究都列成系统 blocker；从 local-only Phase 2F 分支直接晋级 product candidate。
 - consequences：P1 只用于阻止当前 usable milestone；历史新浪 membership 缺失明确限制在 FULL legacy / 85-score validation，不能阻止 CORE research 或 prospective product progression；新的研究必须以 `ADOPT`、`REJECT`、`DEFER` 或 `NEEDS_MORE_EVIDENCE` 结束。
 - revisit condition：具体 usable gate、当前 frozen candidate 或真实产品范围发生变化时，更新章程并记录新 decision；不得用新指标本身触发新 Phase。
-- PR / commit：本次治理 PR / merge 信息在 exact-head CI 和合并完成后回填。
+- PR / commit：PR #9；head `859935fb80a0de585149da16ead8870db11a63a7`；squash merge `7a27484293cbcb791c6b8407949e9e71257e016b`；PR exact-head correctness runs `33260677946`、`33260690327` success，merge master correctness run `33260777592` success。
 
 ## 2026-08-29 — Phase 2F local diagnostic exit decision
 
