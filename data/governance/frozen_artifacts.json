@@ -2,8 +2,8 @@
   "schema_version": "FROZEN_ARTIFACT_REGISTRY_V1",
   "repository": "EFSing/ashare_watchlist",
   "formal_baseline": "16ad543bb39a7d01ed4c484406f1053ca5da0ec2",
-  "generated_at": "2026-08-29T19:28:47+08:00",
-  "generated_by": "project handoff governance initialization",
+  "generated_at": "2026-08-29T23:06:39+08:00",
+  "generated_by": "Google Drive private recovery verification",
   "identity_rules": {
     "absolute_filesystem_path_in_content_identity": false,
     "canonical_identity_components": ["logical_identity", "artifact_version", "content_bytes_or_canonical_records"],
@@ -60,13 +60,23 @@
       "artifact_version": "HITHINK_DAILY_K_RAW_V1",
       "content_sha256": "61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426",
       "file_sha256": "61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426",
-      "producer_or_source": "HiThink Financial-API daily-K dump; local external copy",
+      "producer_or_source": "HiThink Financial-API daily-K dump; Google Drive private recovery archive",
       "frozen_by_commit": "74ccf86dfdea3b9d4b0124fb54346aa429735508",
-      "status": ["LOCAL_PRESENT", "HASH_VERIFIED"],
-      "recoverability_status": "NOT_FULLY_RECOVERABLE",
-      "storage_location_type": "external_local_copy_required",
+      "status": ["LOCAL_PRESENT", "HASH_VERIFIED", "PERSISTENT_BACKUP_PRESENT", "RECOVERY_VERIFIED", "FULLY_RECOVERABLE"],
+      "recoverability_status": "FULLY_RECOVERABLE",
+      "storage_location_type": "GOOGLE_DRIVE_PRIVATE",
       "required_for_replay": true,
-      "notes": "Ignored by .gitignore and absent from master/origin; no persistent backup or recovery is claimed."
+      "recovery_evidence": {
+        "download_archive_name": "daily_k.parquet-20260829T145838Z-1-001.zip",
+        "download_archive_size_bytes": 176204688,
+        "download_archive_sha256": "34cc2020fb7fa9f648bd2fa5e8b041a766a99550eb38171e3d0ebe7470bbb175",
+        "member_name": "daily_k.parquet/daily_k.parquet",
+        "member_size_bytes": 180203424,
+        "member_sha256": "61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426",
+        "matching_member_count": 1,
+        "verification_basis": "single archive member byte stream strictly matched frozen SHA-256; ZIP bytes are not the frozen artifact"
+      },
+      "notes": "The local logical file and the independently read Google Drive private-download archive member match the frozen bytes. The archive name is provenance only; no URL, token, credential, or absolute filesystem path is recorded."
     },
     {
       "artifact_id": "phase2e.raw.adjustment_factors",

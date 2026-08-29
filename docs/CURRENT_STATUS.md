@@ -36,7 +36,7 @@
 
 ## Current blockers
 
-1. **Artifact recovery**：`data/validation/core_signal_validation/raw/daily_k.parquet` 本机 SHA-256 为 `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426`，但不在 Git master / origin；在 exact persistent backup 完成前，完整 replay / resume 的跨设备 recoverability 为 `NOT_FULLY_RECOVERABLE`。
+1. **Artifact recovery（已解决）**：`data/validation/core_signal_validation/raw/daily_k.parquet` 本机 SHA-256 为 `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426`；Google Drive private-download archive 的唯一 parquet member 同 size、同 SHA 严格匹配，registry 已为 `FULLY_RECOVERABLE`。
 2. **Historical sector evidence**：需要能按 T 提供新浪行业 membership 的 source，或带 effective-date 的调入/调出序列；仅 current constituents 不足。
 
 ## Current next research direction

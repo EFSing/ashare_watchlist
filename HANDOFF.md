@@ -4,10 +4,10 @@
 
 ## 1. Current Objective
 
-- 唯一主任务：在已合并治理基础上维持多设备 / 多会话交接一致性，并准备下一项 research decision。
+- 唯一主任务：完成并记录 `daily_k.parquet` 的多设备 / 多会话 recovery handoff，并维持治理一致性。
 - 原因：项目已有跨阶段 research replay、returns、checkpoint 和大型 raw artifact；仅靠会话记忆或单机路径不能安全恢复。
 - Scope：治理文档、冻结 artifact registry、交接冲突 gate、当前真实状态和恢复边界；不改变生产策略或既有 frozen artifact。
-- 禁止事项：不 merge；不读取 Final OOS；不 promotion；不调参；不把当前数据回填历史；不替换新浪历史行业 membership；不重跑已完成 CORE replay；不以“差不多”的新文件替代 frozen bytes。
+- 禁止事项：不启动 Phase 2F；不读取 Final OOS；不 promotion；不调参；不把当前数据回填历史；不替换新浪历史行业 membership；不重跑已完成 CORE replay；不以“差不多”的新文件替代 frozen bytes。
 - 完成条件：治理文件通过测试和 CI，治理 PR 的最终 head 有 exact-head CI，registry 中每个 artifact 都有可核验的身份和 recoverability 状态，且本文件与真实 Git / PR / CI 一致。
 - 停止条件：出现 `PROJECT_GOVERNANCE_STATE_CONFLICT`、任一 required hash 不匹配、外部 raw artifact 无法证明为同一 bytes、或任务要求越过 research / OOS / promotion 边界。
 - CI provenance 规则：本文件只保存 `last verified CI provenance`，不要求也不允许把当前 commit 自己产生的 CI run 回写到同一 commit；每个新会话必须实时查询当前 Git HEAD、PR state 和 exact-head CI。
@@ -32,7 +32,7 @@
 - Phase 2D validation protocol：PR #5，merged；PIT、known-at、sector provenance 和 fail-closed contract 已冻结。
 - Phase 2E：PR #6，merged 到 master@74ccf86…；CORE continuous replay 769 个 XSHG sessions、4,041,140 个 candidate evaluations；V2 returns 8,463 个 qualified outcomes。
 - V2 outcome 明确为 `DEVELOPMENT` / `RECONSTRUCTED_RETROSPECTIVE`；V1 raw outcome 保留为 diagnostic，不覆盖；Final OOS 未读取。
-- 形式化的 artifact inventory 已写入 [`data/governance/frozen_artifacts.json`](data/governance/frozen_artifacts.json)；`daily_k.parquet` 的外部副本尚未被证明有 persistent backup。
+- 形式化的 artifact inventory 已写入 [`data/governance/frozen_artifacts.json`](data/governance/frozen_artifacts.json)；`daily_k.parquet` 已由 Google Drive private-download archive 的唯一 parquet member 完成 persistent backup 与 recovery verification。
 - 治理 PR #7 已 squash merge 到 `16ad543…`；merge 后 master CI run `33250117945` success，headSha 精确匹配。
 
 ## 4. Pending Work
@@ -40,8 +40,8 @@
 ### Required Next
 
 1. 新会话接手时先实时核对 master HEAD、PR state、exact-head CI 和 registry hashes，再读取四份治理文件作为快照和规则。
-2. 将 `daily_k.parquet` 的同一 bytes 放入受控 persistent backup，并以 `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426` 验证；未完成前不得声明完整 replay 跨设备可恢复。
-3. 对本机 `codex/phase2f-a-breakout-failure-diagnostic@3eeb5df9f7cf4ef5c30b3380b323f26f2491f873` 的 Phase 2F A-platform failure diagnostic 做独立 handoff / provenance review；它没有远端分支、PR 或 CI，不得当作 master 已完成。
+2. 保持 `daily_k.parquet` recovery evidence 与 registry 的 `61189a…` exact match 一致；仅在新的明确授权下执行后续 replay/resume。
+3. 对本机 `codex/phase2f-a-breakout-failure-diagnostic@3eeb5df9f7cf4ef5c30b3380b323f26f2491f873` 的 Phase 2F A-platform failure diagnostic 做独立 handoff / provenance review；本任务不启动 Phase 2F。
 4. 在历史新浪行业 membership / effective-date source 与 provenance 边界明确后，再决定 `A_PLATFORM_BREAKOUT failure diagnostic / Research V2 preparation` 和 FULL legacy validation 的范围。
 
 ### Deferred
@@ -67,10 +67,10 @@
   - Why：换设备时路径会变，同一 bytes 和稳定 logical identity 必须保持相同 hash。
   - Rejected Alternatives：把本机路径写入 canonical hash；只记录文件名或重新下载结果。
   - Revisit Condition：只有 protocol 明确改变 canonical identity 时，才新增版本并保留旧 registry 记录。
-- Decision：`daily_k.parquet` 标为 `NOT_FULLY_RECOVERABLE`。
-  - Why：本机 bytes 与 manifest hash 一致，但 `.gitignore` 和 Git object 检查均证明它不在 master / origin backup 中。
-  - Rejected Alternatives：把“本机存在”写成 fully recoverable；虚构云盘或外部 backup。
-  - Revisit Condition：同一 SHA 的 persistent backup 存在并完成独立恢复验证。
+- Decision：`daily_k.parquet` 更新为 `FULLY_RECOVERABLE`，storage type 为 `GOOGLE_DRIVE_PRIVATE`。
+  - Why：从 Downloads 中实际下载的 Google Drive private archive 读取到唯一 parquet member；member size 为 `180203424` bytes，member SHA-256 与 frozen SHA `61189a…` 严格一致，matching member count 为 1。
+  - Rejected Alternatives：把 ZIP 自身 hash 当作 parquet identity；按文件名猜测；继续使用本机原始文件作为唯一 recovery evidence；记录 URL、token 或绝对路径。
+  - Revisit Condition：registry frozen bytes、Google Drive recovery member 或 recovery evidence 发生变化时，重新执行唯一性与 byte-level SHA verification。
 - Decision：`A_PLATFORM_BREAKOUT_LEGACY_V1` 保持 research-only。
   - Why：当前完整 legacy output 仍缺历史新浪行业 membership，development outcome 也不是 Final OOS。
   - Rejected Alternatives：按 85 分、V2 returns 或 Phase 2F diagnostic 直接 promotion。
@@ -108,7 +108,7 @@
 
 ## 8. Known Issues / Blockers
 
-- correctness：`daily_k.parquet` 的本机 bytes 已 hash-verified，但缺 Git/持久备份，完整 replay 不能声明跨设备恢复。
+- resolved：`daily_k.parquet` 的本机 bytes 与 Google Drive private-download archive 的唯一 parquet member 均 hash-verified；registry 状态为 `FULLY_RECOVERABLE`。
 - research/design：历史新浪行业 membership / effective-date evidence 缺失，FULL 85-score parity blocked；retrospective raw dump 没有 per-bar historical vintage timestamp。
 - provider/external：需要可按 T 提供新浪行业 membership 的 source 或带 effective-date 的权限/导出；不能用其他 taxonomy 替代。
 - environment：新设备必须有 Python 3.11/3.12、锁定依赖和可读的 external raw artifact；环境差异不是数据恢复证明。
@@ -122,14 +122,14 @@
 - 旧 sector 缺失时的 `rank=50/chg=0` 式静默 fallback 已被识别为不合格；缺 evidence 必须显式 `INSUFFICIENT_DATA`，不能把其他 taxonomy 伪装成新浪行业。
 - 旧的 source hash 曾把 filesystem path 混入 identity；portable hash 必须使用稳定 `logical_identity`、bytes 和 file SHA，路径只能作 provenance。
 - V1 raw unadjusted historical outcome 不能直接承担 corporate-action-aware outcome；V1 保留为 diagnostic，V2 采用冻结事件和统一 adjusted path。
-- checkpoint 虽可在 Git 中恢复，但若 required `daily_k.parquet` 仅在单机，resume 仍不能跨设备完成；checkpoint 与 raw input hash 必须成对验证。
+- checkpoint 虽可在 Git 中恢复，resume 仍必须同时验证 checkpoint identity 与 `daily_k.parquet` raw input hash；本次已完成 raw persistent backup / recovery gate。
 - development 数据和已暴露的 retrospective artifact 不得重新包装为 Final OOS；当前所有文档和 registry 必须保留 `DEVELOPMENT` / `RECONSTRUCTED_RETROSPECTIVE` 标签。
 
 ## 10. Next Action
 
 1. 新会话实时核验 master HEAD、`PR: NONE`、merge 后 CI 和 required artifact hashes。
-2. 取得并验证 `daily_k.parquet` 的 persistent backup；没有 `61189a…` exact match 就停止 replay/resume。
-3. 对 local-only Phase 2F A-platform failure diagnostic 做 separate review；若继续则以 `A_PLATFORM_BREAKOUT failure diagnostic / Research V2 preparation` 为 research next action，仍不 promotion、不读 Final OOS。
+2. 保持 `daily_k.parquet` 的 `GOOGLE_DRIVE_PRIVATE` recovery evidence 与 `61189a…` exact match；未经新的明确授权不执行 replay/resume。
+3. 不启动 Phase 2F；未来如获明确授权，先对 local-only A-platform failure diagnostic 做 separate review，仍不 promotion、不读 Final OOS。
 4. 在历史新浪行业 membership / effective-date source 和 provenance decision 完成前，停止在 research decision node。
 
 ## 11. Handoff Checklist
