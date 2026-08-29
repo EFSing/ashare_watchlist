@@ -32,7 +32,7 @@
 - `FULLY_RECOVERABLE`：以上四项全部满足。
 - `NOT_FULLY_RECOVERABLE`：任一项无法客观确认；不得用“应该有备份”替代证据。
 
-`daily_k.parquet` 当前只有 `LOCAL_PRESENT`、`HASH_VERIFIED`；它被 `.gitignore` 排除且不在 master / origin，因此是 `NOT_FULLY_RECOVERABLE`。其他已列入 master 的 registry artifacts 当前具有 Git remote backup 和 recovery evidence，状态为 `FULLY_RECOVERABLE`。
+`daily_k.parquet` 当前具有 `LOCAL_PRESENT`、`HASH_VERIFIED`、`PERSISTENT_BACKUP_PRESENT`、`RECOVERY_VERIFIED` 和 `FULLY_RECOVERABLE`；其 recovery evidence 是 Google Drive private-download archive 中唯一且 SHA 严格匹配的 parquet member。ZIP 自身不是 frozen artifact；文件名、绝对路径、URL 和 credentials 不是 identity。
 
 ## Freeze and update rules
 
@@ -49,10 +49,10 @@
 1. clone/fetch 指定 repo 和 commit；先读取 `HANDOFF.md`、`CURRENT_STATUS.md`、`DECISION_LOG.md`、本 policy 和 registry。
 2. 验证当前 branch/master/PR/exact-head CI；检查 tracked working tree clean。
 3. 对 registry 中每个 required artifact 检查 logical path、实际 file SHA、semantic/content SHA 和 status。
-4. 对 external artifact（当前为 `daily_k.parquet`）从受控 backup 取 exact bytes，核对 `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426`；不能核对就停止 replay/resume。
+4. 对 external artifact（当前为 `daily_k.parquet`）从受控 Google Drive private backup 读取 exact parquet member bytes，核对 `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426`；不能核对就停止 replay/resume。
 5. 只在所有 required inputs、checkpoint identity 和 producer/runtime dependency 一致时执行 resume；不得重新下载“近似文件”。
 6. 将 recovery evidence、时间和 commit/backup reference 回填 registry / HANDOFF，再声明 `HANDOFF_CURRENT_AND_CONSISTENT`。
 
 ## Current recovery decision
 
-正式 master 上的 Phase 2E manifests、outputs、checkpoints、probe 和 V1/V2 returns artifacts 已在 registry 中逐项登记。当前唯一明确未满足完整恢复链的是大型 `daily_k.parquet`；其本机 hash 已核验，但 persistent backup / recovery 未核验。local-only Phase 2F diagnostics 也不在 remote，registry 将其作为 `LOCAL_UNPUBLISHED`、`NOT_FULLY_RECOVERABLE` 单独记录。
+正式 master 上的 Phase 2E manifests、outputs、checkpoints、probe 和 V1/V2 returns artifacts 已在 registry 中逐项登记。`daily_k.parquet` 已通过 Google Drive private-download archive 的唯一 parquet member 完成 persistent backup / recovery verification，registry 状态为 `FULLY_RECOVERABLE`。local-only Phase 2F diagnostics 仍不在 remote，registry 将其作为 `LOCAL_UNPUBLISHED`、`NOT_FULLY_RECOVERABLE` 单独记录。
