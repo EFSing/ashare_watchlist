@@ -10,6 +10,7 @@
 - 禁止事项：不 merge；不读取 Final OOS；不 promotion；不调参；不把当前数据回填历史；不替换新浪历史行业 membership；不重跑已完成 CORE replay；不以“差不多”的新文件替代 frozen bytes。
 - 完成条件：治理文件通过测试和 CI，治理 PR 的最终 head 有 exact-head CI，registry 中每个 artifact 都有可核验的身份和 recoverability 状态，且本文件与真实 Git / PR / CI 一致。
 - 停止条件：出现 `PROJECT_GOVERNANCE_STATE_CONFLICT`、任一 required hash 不匹配、外部 raw artifact 无法证明为同一 bytes、或任务要求越过 research / OOS / promotion 边界。
+- CI provenance 规则：本文件只保存 `last verified CI provenance`，不要求也不允许把当前 commit 自己产生的 CI run 回写到同一 commit；每个新会话必须实时查询当前 Git HEAD、PR state 和 exact-head CI。
 
 ## 2. Current Repository State
 
@@ -18,7 +19,8 @@
 - working branch：`chore/project-handoff-governance`，从上述 master 派生。
 - HEAD at last verified snapshot：`f5e8851c09c4974706e43a940fc99d94b5095a23`；治理 commit 已创建，当前尚未 push。
 - PR / state：`NOT_CREATED`；没有 active open PR。PR #1–#6 均已 merged；PR #6 head 为 `edb57a3489733e0f7657ae9e2b8a1b473c52cfc2`，merge 为 master@74ccf86…。
-- exact-head CI：master correctness run `33246744991`，headSha=`74ccf86dfdea3b9d4b0124fb54346aa429735508`，success；治理 branch 尚未 push，暂无独立 exact-head CI。
+- last verified CI provenance：master correctness run `33246744991`，headSha=`74ccf86dfdea3b9d4b0124fb54346aa429735508`，success；治理 branch 尚未 push，暂无独立 exact-head CI。
+- live state gate：新会话必须实时执行 Git / GitHub 核验；本节和 `Last Verified` 的 CI 字段是最近一次证据快照，不是对当前 HEAD 的隐含声明。
 - expected working tree state：tracked working tree clean；`.pytest_cache/`、`__pycache__/` 和本机 `daily_k.parquet` 可被 `.gitignore` 忽略，但不得被当作 frozen backup。Windows text checkout 的 CRLF SHA 若存在，以 registry 的 Git-blob `file_sha256` 为恢复身份。
 - formal phase / research status：Phase 2E 已完成；CORE continuous replay 和 DEVELOPMENT returns V2 已冻结；FULL legacy 85-score validation 仍 blocked。当前本机另有未推送 Phase 2F 分支，见下方，不是 formal master 状态。
 
@@ -154,5 +156,5 @@
 - verified_master_sha：`74ccf86dfdea3b9d4b0124fb54346aa429735508`
 - verified_branch_head：`f5e8851c09c4974706e43a940fc99d94b5095a23`（治理 commit；本次 metadata update 之后的 commit 需在 push 前再次核对）
 - latest_test_result：`pytest 135 passed`; `compileall` pass; registry JSON/hash checks pass; master exact-head correctness run `33246744991` success
-- latest_ci_run：run `33246744991` / headSha `74ccf86dfdea3b9d4b0124fb54346aa429735508` / success
+- latest_ci_run_provenance：run `33246744991` / headSha `74ccf86dfdea3b9d4b0124fb54346aa429735508` / success（last verified provenance；不表示当前治理 HEAD 已有该 CI）
 - updated_by_task：`project handoff governance initialization`

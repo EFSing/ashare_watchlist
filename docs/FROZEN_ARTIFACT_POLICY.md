@@ -6,6 +6,13 @@
 
 它不授权重新抓取数据、不改变 strategy/protocol、不读取 Final OOS，也不把 development artifact 提升为 production 或 OOS。
 
+## CI provenance and handoff snapshots
+
+- `HANDOFF.md` 的 CI 字段是 `last verified CI provenance`，只记录最近一次已经核对过的 run、head SHA、结论和时间。
+- 新会话必须实时查询当前 Git `HEAD`、远端 branch、PR state、PR head SHA 和 exact-head CI；不得把 HANDOFF 快照当作当前状态的替代。
+- 当前 commit 自己产生的 CI 不回写到同一 commit。若 CI 结果改变，只在下一次有实质性治理/状态更新时作为新的 last-verified evidence 回填；不为更新 run ID 建立无限 HANDOFF commit 循环。
+- 已合并 PR 不得继续标作 active PR；实时核验无 active PR 时，HANDOFF 必须写 `PR: NONE`。
+
 ## Identity rules
 
 1. `logical_identity`、artifact version、source/provider、semantic content 和 raw bytes 共同确定 artifact 身份。
