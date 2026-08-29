@@ -60,7 +60,7 @@ python3.11 scripts/index_pairs.py
 
 观察名单必须使用 `watchlist_YYYYMMDD.json` 文件名，payload 必须包含 `date`、`mode`、`market_env`、`sectors`、`candidates`；旧的 `items` / `trig` 结构会直接报错，不会静默转换。生产扫描只读取 `data/` 根目录下的 canonical 文件；`data/legacy_invalid/` 中的历史/非法文件保留供审计但不会参与 ingest。
 
-`review_after.py --date` 仅表示名单/list date。报告会同时显示名单日期与行情日期；当前行情日期始终是运行当日，尚未实现 historical replay。
+`review_after.py --date` 仅表示名单/list date。报告会同时显示名单日期与行情日期；生产 review 路径当前行情日期始终是运行当日，不支持 historical replay。Phase 2E 的独立 `CORE_SIGNAL_VALIDATION` research harness 不改变这一生产边界。
 
 ## 说明
 

@@ -63,7 +63,12 @@
 | 复权 | 腾讯请求显式 `qfq`，并优先读取 `qfqday` | 所有 MA、涨幅、位置、支撑、压力、量价计算基于该结果 | 前复权历史 K 线 | 没有保存原始未复权 K 线或调整因子 as-of 快照；历史值可能被后续公司行为重算 | `LEGACY_RULE` + `AS_OF_RISK` |
 | 指数 | 同一腾讯 qfq 日 K，symbol `sh000001`，60 根 | 用于市场环境与 5 日相对强度 | 指数 MA/成交量/5 日涨幅 | 指数失败不会阻止股票池扫描；环境得分可能降级但没有失败标记 | `LEGACY_RULE` |
 
-脚本注释称“腾讯行情快照 + 腾讯日 K 线(qfq) + 新浪板块”，但板块函数实际通过 AkShare 调用 `stock_sector_spot()` 和 `stock_sector_detail()`；没有在输出中保存底层接口响应或版本。
+脚本注释称“腾讯行情快照 + 腾讯日 K 线(qfq) + 新浪板块”，板块函数的 V0 provenance
+冻结为：`get_sectors()` → AKShare `stock_sector_spot()` 与
+`stock_sector_detail()`，底层 taxonomy 为新浪行业。这里的“新浪行业”是 exact
+legacy taxonomy；申万行业和同花顺行业都不得作为等价替代。机器可读定义同步写入
+`scripts/a_platform_breakout.py::LEGACY_SECTOR_PROVENANCE`。V0 历史输出没有保存
+底层响应 payload 或版本，这一缺口不通过更换 taxonomy 来修复。
 
 ### 2.3 市场环境 `market_env`
 
@@ -84,8 +89,8 @@
 
 | 项目 | 输入 | 公式/阈值 | 输出 | 拒绝/缺失条件 | 标签 |
 |---|---|---|---|---|---|
-| 板块现货表 | `ak.stock_sector_spot()` | 取 `label`、板块名、涨跌幅、总成交额、领涨股、领涨涨幅 | 板块强度表 | 调用或列选择失败返回 `(None,{})` | `LEGACY_RULE` |
-| 股票归属 | 每个 `label` 调 `ak.stock_sector_detail(sector=label)` | 找列名含 `code`/`代码` 的列，代码补足 6 位映射到板块名 | `code → sector` | 单板块失败跳过；全局失败返回空映射 | `LEGACY_RULE` |
+| 板块现货表 | `ak.stock_sector_spot()`（V0 默认新浪行业） | 取 `label`、板块名、涨跌幅、总成交额、领涨股、领涨涨幅 | 板块强度表 | 调用或列选择失败返回 `(None,{})`；不得换用申万/同花顺行业 | `LEGACY_RULE` + `V0_SINA_TAXONOMY` |
+| 股票归属 | 每个新浪行业 `label` 调 `ak.stock_sector_detail(sector=label)` | 找列名含 `code`/`代码` 的列，代码补足 6 位映射到板块名 | `code → sector` | 单板块失败跳过；全局失败返回空映射；不得换用其他 taxonomy | `LEGACY_RULE` + `V0_SINA_TAXONOMY` |
 | 排名 | 板块表 | `sort_values("板块涨幅", ascending=False)`；rank 为排序序号 + 1 | `sec_rank_map`、`sec_chg_map` | 没有按成交额合并排序；没有 as-of 日期/成员版本 | `LEGACY_RULE` |
 | 展示 | 排名后的前 5 个板块 | `head(5)` | 报告 TOP5 | 板块为空仍可继续扫描 | `LEGACY_RULE` |
 | 个股板块分数 | 个股映射 | rank ≤10 → 10；≤20 → 6；否则 2；无映射 rank=50、涨幅=0 | 85 分中的板块项与联动项 | 板块接口失败不会 hard reject 个股 | `LEGACY_RULE` |
@@ -238,7 +243,7 @@
 | 证券池非 as-of | 当前 AkShare 股票列表 + 前缀过滤；没有历史上市/停牌/成分快照 | `AS_OF_RISK` |
 | 输出 provenance | JSON/Markdown 没有脚本提交、接口响应、运行时间、请求日期、参数、数据哈希 | `NOT_REPRODUCIBLE_WITH_CURRENT_DATA` 的直接原因 |
 
-脚本中未发现一个可以在当前仓库内读取历史行情、历史板块或历史复权因子的 replay 入口；正式 README 也明确当前工具尚未实现 historical replay。因此不能用现有静态 JSON 反推完整的旧计算过程。
+在 Phase 2A 审计时，脚本中未发现一个可以在当前生产路径内读取历史行情、历史板块或历史复权因子的 replay 入口；正式生产 README 仍明确该路径不支持 historical replay。因此不能用现有静态 JSON 反推完整的旧计算过程。Phase 2E 后续另行建立的 `CORE_SIGNAL_VALIDATION` 研究 harness 只冻结官方历史行情/复权输入并重放 core signal，不改变该生产边界，也不宣称完整 legacy sector/85-score parity。
 
 ## 6. 为什么 2026-08-20 仍有 D，而固定脚本已删除 D
 

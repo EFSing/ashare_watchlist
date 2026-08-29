@@ -14,3 +14,6 @@ Thumbs.db
 
 # 临时脚本
 _download.sh
+
+# Large local-only validation input (resume requires an external copy)
+data/validation/core_signal_validation/raw/daily_k.parquet

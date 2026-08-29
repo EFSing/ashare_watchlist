@@ -2,6 +2,11 @@
 
 本文件定义 `A_PLATFORM_BREAKOUT_LEGACY_V1`。该实现仅用于 research baseline / legacy parity，不是 production strategy，不代表参数已经验证有效，也不可直接用于交易。
 
+V0 sector provenance 固定为 `get_sectors()` → AKShare
+`stock_sector_spot()` / `stock_sector_detail()`，底层 taxonomy 为新浪行业。申万行业
+或同花顺行业不构成 exact legacy sector，不能替代该 provenance。代码级定义见
+`scripts/a_platform_breakout.py::LEGACY_SECTOR_PROVENANCE`。
+
 ## 输入与执行边界
 
 唯一策略入口为 `scripts/a_platform_breakout.py` 的 `evaluate_candidate()` / `evaluate_universe()`，仅接受 Phase 2B 状态为 `READY_FOR_STRATEGY_EVALUATION` 的冻结 `GenerationInputManifest`。策略不联网、不读取 raw 当前行情、不做 historical replay、不读取 `perf_tracker`、不写 canonical watchlist，也不做 TOP N、score cutoff、portfolio selection 或 position sizing。
@@ -164,6 +169,15 @@ STRATEGY_SPEC_SHA256 = 7ce0bf660e3ae685405e01fb9d1ef8e27e7dec44a201ab290da5d8fa8
 ## Differential parity witness
 
 Phase 2C.1 新增独立 reference calculation 测试。reference 不调用 evaluator 内部 helper，直接按冻结 V0 公式对 synthetic inputs 计算 A match、support、stop、120 日 volume distribution、pressure/2.5R target、RR 以及完整 score breakdown，并覆盖 qualified、pressure target 和 RR reject。该测试只验证 legacy parity，不读取 forward return、胜率、MFE、MAE、P&L 或 `perf_tracker`，也不用于调参。
+
+Sector differential witness 进一步固定了依赖边界：改变有效的
+`sector_name` / `sector_rank` / `sector_chg` 只改变报告中的 sector 字段以及合格样本的
+85 分 breakdown；A match、hard reject、support、stop、target、RR、trigger 和
+qualified signal identity 必须保持不变。由于 sector provenance 缺失，未来历史验证
+分为两层：`CORE_SIGNAL_VALIDATION` 可将 sector score/report 标为 `UNVERIFIED`，不
+宣称 full legacy output parity；`FULL_LEGACY_OUTPUT_VALIDATION` 必须取得历史新浪行业
+membership，并用于完整 85 分 parity。两层 contract 见
+`scripts/historical_validation_layers.py`。
 
 ## 明确不代表什么
 

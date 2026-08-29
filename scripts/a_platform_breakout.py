@@ -39,6 +39,20 @@ MISSING_SECTOR_EVIDENCE = "MISSING_SECTOR_EVIDENCE"
 
 MINIMUM_BARS = 120
 
+# V0's sector source is part of the legacy output contract.  This is kept
+# separate from LEGACY_SPEC so documenting the source taxonomy does not alter
+# the frozen strategy-rule hash.
+LEGACY_SECTOR_PROVENANCE = {
+    "version": "V0",
+    "getter": "get_sectors",
+    "provider": "AKShare",
+    "taxonomy": "新浪行业",
+    "spot_method": "stock_sector_spot",
+    "detail_method": "stock_sector_detail",
+    "exact_legacy_taxonomy": True,
+    "forbidden_substitutions": ["申万行业", "同花顺行业"],
+}
+
 
 class StrategyInputError(ValueError):
     """The evaluator was given something other than a ready Phase 2B input."""
@@ -374,6 +388,8 @@ def _provenance(manifest: GenerationInputManifest) -> dict[str, Any]:
         "timezone": manifest.run_context.timezone,
         "calendar": manifest.run_context.calendar,
         "adjustment_modes": sorted({x.adjustment_mode for x in (*manifest.stock_klines, manifest.index)}),
+        "input_sector_source": manifest.sector.source,
+        "legacy_sector_provenance": copy.deepcopy(LEGACY_SECTOR_PROVENANCE),
     }
 
 
@@ -710,6 +726,6 @@ __all__ = [
     "REJECTED_CLOSE_TOO_LOW", "REJECTED_NO_SUPPORT", "REJECTED_OVERHANG_RR", "REJECTED_RR",
     "REJECTED_STOP_DISTANCE", "SETUP_ID", "ScoreBreakdown", "STRATEGY_SPEC_SHA256",
     "STRATEGY_SPEC_HASH", "STRATEGY_VERSION", "StrategyInputError", "evaluate_a_platform",
-    "evaluate_batch", "evaluate_candidate", "evaluate_generation_inputs", "evaluate_manifest",
+    "LEGACY_SECTOR_PROVENANCE", "evaluate_batch", "evaluate_candidate", "evaluate_generation_inputs", "evaluate_manifest",
     "evaluate_universe", "semantic_spec_sha256", "strategy_spec_sha256",
 ]
