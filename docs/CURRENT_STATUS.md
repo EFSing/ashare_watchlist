@@ -1,24 +1,24 @@
 # CURRENT STATUS
 
 更新时间：2026-08-30（Asia/Shanghai）
-Formal Delivery Ladder：`research`（当前 master；PR #12 merge 后条件性晋级为 `development candidate`）
-Product-governance milestone：PR #9 / `7a27484293cbcb791c6b8407949e9e71257e016b`；PR #12 为待 merge 的 development-candidate gate
+Formal Delivery Ladder：`development candidate`
+Product-governance milestone：PR #12 squash merge `7dfb59b9f379c7d74f95c3e522fde55bcdf49ba1`；post-merge master correctness run `33268086906` success（last-verified provenance snapshot）
 Phase 2E research baseline：PR #6 / `74ccf86dfdea3b9d4b0124fb54346aa429735508`
 职责：记录项目正式处于什么状态，以及哪些研究结论已经成立。长期产品目标和 usable gate 见 [`PRODUCT_CHARTER.md`](PRODUCT_CHARTER.md)，接手动作见 [`HANDOFF.md`](../HANDOFF.md)，决策理由见 [`DECISION_LOG.md`](DECISION_LOG.md)。
 
 ## Formal project status
 
-项目当前 master 正式处于 Phase 2E 完成后的 `research` 层。PR #12 建立了受控的
-development-candidate product path；若 PR #12 merge，正式 Delivery Ladder 才晋级
-为 `development candidate`。该晋级只表示 deterministic generation → canonical
-watchlist → fail-closed → provenance/versioning → monitoring/rollback 的受控产品
-路径已经建立，不是 strategy promotion。active PR 的最终 head、CI 和 merge state
-仍属于每次 intake 的 live state，不在本文件维护。
+PR #12 已 squash merge，项目正式处于 `development candidate` 层。该晋级只表示
+deterministic generation → canonical watchlist → fail-closed → provenance/versioning
+→ monitoring/rollback 的受控产品路径已经建立，不是 strategy promotion。active PR
+的最终 head、CI 和 merge state 仍属于每次 intake 的 live state；本文件中的 merge
+commit 和 CI 仅是历史/last-verified provenance snapshot，不是永久 current-state
+invariant。
 
 - Phase 2A：legacy strategy audit 完成；缺失历史 provenance 的部分保持 `UNKNOWN_ORIGIN` / `NOT_REPRODUCIBLE_WITH_CURRENT_DATA`。
 - Phase 2B：generation input/timing contract 已冻结：仅 T 日收盘、`Asia/Shanghai`、XSHG T+1、`exchange-calendars==4.13.2`。
 - Phase 2C：`A_PLATFORM_BREAKOUT_LEGACY_V1` 仍是 research-only wiring witness；PR #12
-  的 product-ladder 晋级不改变 strategy semantics，不是生产规则。
+  的 product-ladder 晋级不改变 strategy semantics，不是 production strategy。
 - Phase 2D：PIT validation protocol 已冻结；任何输入必须证明 `known_at <= T`，当前值不能回填历史。
 - Phase 2E：HiThink CORE replay、continuous replay 和 adjusted DEVELOPMENT returns V2 已提交并合并到 master（PR #6）。
 
@@ -27,9 +27,10 @@ watchlist → fail-closed → provenance/versioning → monitoring/rollback 的�
 - 已有：canonical watchlist schema、盘前/盘后复核、表现追踪、持仓/配对工具；Phase 2B 的 T close / XSHG T+1 contract；Phase 2D PIT contract；Phase 2E CORE / DEVELOPMENT artifacts、registry、hash 和 recovery governance。
 - PR #12 的 development-candidate path 已在受控输入上证明端到端 deterministic
   generation → canonical watchlist output → explicit failure → monitoring/rollback/
-  versioning；在 PR #12 merge 前，这一产品里程碑尚未写入 master 的正式 Ladder。
-- 即使 PR #12 merge，仍未达到 frozen candidate、prospective/paper observation 或
-  production strategy promotion；下一层必须另行核验 frozen-candidate prerequisites。
+  versioning；该产品里程碑现已写入 master 的正式 Ladder。
+- 当前已达到 `development candidate`，仍未达到 frozen candidate、prospective/paper
+  observation 或 production strategy promotion；下一层须通过
+  [`frozen_candidate_prerequisites_audit.md`](frozen_candidate_prerequisites_audit.md)。
 - 进入 observation / paper-use 必须满足 [`docs/PRODUCT_CHARTER.md`](PRODUCT_CHARTER.md) 的十项 Definition of Usable；deferred research 不要求全部先完成。
 
 ## What is established
@@ -47,6 +48,10 @@ watchlist → fail-closed → provenance/versioning → monitoring/rollback 的�
 - retrospective official dump 没有 per-bar historical vintage timestamp；该 known-at 限制仍需在后续 validation decision 中单独接受或解决。
 - `A_PLATFORM_BREAKOUT_LEGACY_V1` 没有 production promotion；没有参数有效性证明，
   未做参数选择、调参或 Final OOS read。
+- 当前没有正式 nominated、经资格决策批准、值得进入 prospective/frozen gate 的
+  strategy candidate；A baseline 仍只是 research-only wiring witness。
+- development path 只有 READY manifest 与受控 fixture 证据，尚无 candidate-bound
+  prospective input identity/provenance package；这不因 pipeline 能运行而自动通过。
 - 本机 Phase 2F diagnostic commit `3eeb5df9f7cf4ef5c30b3380b323f26f2491f873` 尚未 push、无 PR、无 CI；它是 local candidate work，不改变 formal master status。
 - Phase 2F local diagnostic 的研究边界保持不变：它没有修改 legacy strategy、冻结阈值或 Final OOS；其退出 decision 为 `NEEDS_MORE_EVIDENCE`，不能直接形成 production threshold 或 promotion。
 
@@ -56,9 +61,9 @@ watchlist → fail-closed → provenance/versioning → monitoring/rollback 的�
 
 ## Current blockers and deferred items
 
-1. **Conditional product transition**：PR #12 merge 后进入 `development candidate`；在此之前当前 master 仍是 `research`。这不是 frozen candidate 或 production strategy gate。
-2. **P1 next-ladder work — frozen candidate prerequisites**：需要核验冻结候选的输入、策略、依赖、数据、执行和运营边界，明确仍需解决的 P0/P1，并定义 frozen candidate contract/gate。
-3. **Scope-local correctness blocker — FULL legacy only**：历史新浪行业 membership / effective-date evidence 缺失，阻止 `FULL_LEGACY_OUTPUT_VALIDATION`、完整 85-score parity 和 legacy sector report；它不阻止 development-candidate product path，不能写成整个系统 blocker。
+1. **P1 frozen-candidate decision blocker**：当前没有正式批准的 strategy candidate，且现有 DEVELOPMENT/retrospective evidence 不足以支持任何候选进入 prospective/frozen gate；详见审计 decision `FROZEN_CANDIDATE_BLOCKED_NO_APPROVED_STRATEGY_CANDIDATE`。
+2. **P1 candidate-bound input blocker**：尚无一个候选绑定的 prospective input identity/provenance package，需证明 T close、`LIVE_OBSERVED`/known-at、universe/sector/names/market_env、provider/version、calendar、availability/recovery 和 output identity。
+3. **Scope-local correctness blocker — FULL legacy only**：历史新浪行业 membership / effective-date evidence 缺失，阻止 `FULL_LEGACY_OUTPUT_VALIDATION`、完整 85-score parity 和 legacy sector report；它不阻止 development-candidate product path，也不自动阻止 frozen-candidate decision，不能写成整个系统 blocker。
 4. **Scope-local provenance limitation**：retrospective official dump 没有 per-bar historical vintage timestamp，限制历史 known-at 结论的强度；live prospective inputs 仍必须按 T 的 observed-at contract 处理。
 
 已解决：`daily_k.parquet` recovery evidence 与 registry exact SHA 匹配，状态为 `FULLY_RECOVERABLE`。
@@ -73,7 +78,8 @@ Phase 2E V2 的 DEVELOPMENT returns 是描述性、`RECONSTRUCTED_RETROSPECTIVE`
 
 ## Current next action
 
-若 PR #12 merge，下一步按 `development candidate` → 核验 frozen-candidate
-prerequisites → 明确必须解决的 P0/P1 → 定义 frozen candidate contract/gate
-推进。不要自动启动 Phase 2F，不调参，不读 Final OOS，不把 product-ladder 晋级
-写成 strategy promotion。
+当前已在 `development candidate`。frozen-candidate prerequisites audit 的 decision
+为 `FROZEN_CANDIDATE_BLOCKED`，未定义 `FROZEN_CANDIDATE_CONTRACT_V1`；下一步只
+在明确的 candidate nomination/eligibility 和 candidate-bound prospective evidence
+到位后回到同一 decision point。不要自动启动 Phase 2F，不调参，不读 Final OOS，
+不把 product-ladder 晋级写成 strategy promotion。

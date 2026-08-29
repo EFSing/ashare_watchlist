@@ -70,7 +70,7 @@
 
 ### 1. research
 
-研究问题、数据边界、provenance 和停止条件已定义，结果能支持一个明确 decision。退出条件是记录四种 decision 之一，并明确哪些结论不可外推。当前正式仓库处于这一层：Phase 2E research/development artifacts 已完成，但策略尚未成为冻结的每日候选；local-only Phase 2F diagnostic 也不改变 formal master。
+研究问题、数据边界、provenance 和停止条件已定义，结果能支持一个明确 decision。退出条件是记录四种 decision 之一，并明确哪些结论不可外推。章程建立时正式仓库处于这一层：Phase 2E research/development artifacts 已完成，但策略尚未成为冻结的每日候选；local-only Phase 2F diagnostic 也不改变 formal master。当前 formal Delivery Ladder 由 [`CURRENT_STATUS.md`](CURRENT_STATUS.md) 维护为 `development candidate`，不改变本层的历史定义或 A baseline 的 research-only 边界。
 
 ### 2. development candidate
 
