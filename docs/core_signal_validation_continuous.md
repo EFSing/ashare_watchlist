@@ -33,11 +33,19 @@ A/B 新增 147 日后共完成 769 个连续 XSHG session、4,041,140 个 candid
 [`core_signal_validation_manifest.json`](../data/validation/core_signal_validation_continuous_parts/core_signal_validation_manifest.json)。
 core projection SHA 为 `882b8925e787d67d7035de07f91cd3c941b7394661bd32d5d534cc62e3996c1b`。
 
-随后已按显式授权完成独立 DEVELOPMENT historical returns validation：
+随后已按显式授权完成独立 DEVELOPMENT historical returns validation。原始 V1：
 [`development_historical_returns_manifest.json`](../data/validation/core_signal_validation_continuous_parts/development_returns/development_historical_returns_manifest.json)。
-它使用 T+1 XSHG open、raw unadjusted OHLC，输出 1D/3D/5D/10D return、positive rate、
-MFE/MAE、expectancy、年/月分层和 frequency/concentration；结果标记
-`RECONSTRUCTED_RETROSPECTIVE`，不写回 core projection。
+它使用 raw unadjusted OHLC，现仅保留为历史 diagnostic，不覆盖、不重写，也不再作为
+correctness-primary 结果。
+
+primary DEVELOPMENT outcome measurement 是
+[`DEVELOPMENT_HISTORICAL_RETURNS_VALIDATION_V2`](development_historical_returns_v2.md)。
+V2 直接复用上述冻结 CORE artifacts，不重跑 769 日 replay；信号仍严格只看到 T，未来
+corporate actions 仅用于事后 outcome measurement。entry 是 T+1 open；对每个 horizon，
+entry open、路径 high/low、target close 按项目既有 affine convention 统一到 target-date
+basis。`ex_date == entry_date` 不重复调整，MFE/MAE 与 return 使用相同 adjusted path。
+V2 输出 1D/3D/5D/10D positive rate、expectancy、MFE/MAE、年/月分层、
+frequency/concentration，并提供逐 horizon V1→V2 差异与最大差异 witnesses。
 
 历史新浪行业 membership 仍缺失，因此 `FULL_LEGACY_OUTPUT_VALIDATION` 和 85-score
 parity 继续 blocked。retrospective dump 没有 per-bar historical vintage timestamp；该

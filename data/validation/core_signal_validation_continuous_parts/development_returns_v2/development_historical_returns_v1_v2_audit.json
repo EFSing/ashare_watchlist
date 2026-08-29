@@ -1,0 +1,1132 @@
+{
+  "audit_sha256": "2df1e6b968d8a01a62866f634844e8a55fc4d7dd231b4443593fb3ff06f50be8",
+  "by_horizon": {
+    "10D": {
+      "adjusted_minus_raw_delta": {
+        "expectancy_pct": 0.08641848102077088,
+        "mean_mae_pct": 0.0606643750867466,
+        "mean_mfe_pct": 0.022394846988234463,
+        "mean_return_pct": 0.08641848102077015,
+        "median_mae_pct": 0.05105169015297051,
+        "median_mfe_pct": 0.02969249669999563,
+        "positive_rate": 0.0032238805970149498
+      },
+      "adjusted_v2": {
+        "expectancy_pct": -0.4630815815022875,
+        "max_return_pct": 147.48062015503876,
+        "mean_mae_pct": -7.253883855906631,
+        "mean_mfe_pct": 9.634558610158006,
+        "mean_non_positive_return_pct": -6.907634092458179,
+        "mean_positive_return_pct": 8.69153564143072,
+        "mean_return_pct": -0.4630815815022879,
+        "median_mae_pct": -5.7875894988067,
+        "median_mfe_pct": 5.74961360123647,
+        "min_return_pct": -48.82352941176471,
+        "non_positive_count": 4915,
+        "positive_count": 3460,
+        "positive_rate": 0.41313432835820896,
+        "sample_count": 8375
+      },
+      "available_sample_count": 8375,
+      "corporate_action_crossing_sample_count": 271,
+      "corporate_action_crossing_sample_share": 0.03235820895522388,
+      "largest_difference_witnesses": [
+        {
+          "adjusted": {
+            "mae_pct": -7.1320182094082085,
+            "mfe_pct": 72.98179059180573,
+            "return_pct": 64.64339908952957
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 0.33,
+              "ex_date": "2026-07-01",
+              "per_share_bonus": 0.4
+            }
+          ],
+          "delta": {
+            "mae_pct": -0.08818156647076858,
+            "mfe_pct": 46.45500153223285,
+            "return_pct": 48.49502891343365
+          },
+          "entry_date": "2026-06-22",
+          "horizon": "10D",
+          "raw": {
+            "mae_pct": -7.04383664293744,
+            "mfe_pct": 26.526789059572884,
+            "return_pct": 16.148370176095916
+          },
+          "signal_date": "2026-06-18",
+          "symbol": "300873.sz",
+          "target_date": "2026-07-03"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -3.5955056179775347,
+            "mfe_pct": 5.355805243445677,
+            "return_pct": 0.7940074906366945
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 0.0,
+              "ex_date": "2025-08-15",
+              "per_share_bonus": 0.45
+            }
+          ],
+          "delta": {
+            "mae_pct": 29.88764044943819,
+            "mfe_pct": 5.280898876404483,
+            "return_pct": 31.280898876404486
+          },
+          "entry_date": "2025-08-12",
+          "horizon": "10D",
+          "raw": {
+            "mae_pct": -33.483146067415724,
+            "mfe_pct": 0.07490636704119424,
+            "return_pct": -30.48689138576779
+          },
+          "signal_date": "2025-08-11",
+          "symbol": "300708.sz",
+          "target_date": "2025-08-25"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -2.2248794185218634,
+            "mfe_pct": 12.251615590278252,
+            "return_pct": 4.694280608886081
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 0.21864,
+              "ex_date": "2024-06-14",
+              "per_share_bonus": 0.4
+            }
+          ],
+          "delta": {
+            "mae_pct": 28.30018024734926,
+            "mfe_pct": 7.526078597438145,
+            "return_pct": 30.302872494327605
+          },
+          "entry_date": "2024-06-13",
+          "horizon": "10D",
+          "raw": {
+            "mae_pct": -30.525059665871122,
+            "mfe_pct": 4.725536992840107,
+            "return_pct": -25.608591885441523
+          },
+          "signal_date": "2024-06-12",
+          "symbol": "605111.sh",
+          "target_date": "2024-06-26"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -6.473372781065089,
+            "mfe_pct": 2.6721893491124193,
+            "return_pct": -3.143195266272192
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 1.2,
+              "ex_date": "2024-06-11",
+              "per_share_bonus": 0.4
+            }
+          ],
+          "delta": {
+            "mae_pct": 27.65731566700959,
+            "mfe_pct": 1.6220143199408898,
+            "return_pct": 28.642102283319407
+          },
+          "entry_date": "2024-06-03",
+          "horizon": "10D",
+          "raw": {
+            "mae_pct": -34.13068844807468,
+            "mfe_pct": 1.0501750291715295,
+            "return_pct": -31.785297549591597
+          },
+          "signal_date": "2024-05-31",
+          "symbol": "603296.sh",
+          "target_date": "2024-06-17"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -14.571978672985797,
+            "mfe_pct": 0.0,
+            "return_pct": -13.584123222748822
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 0.23,
+              "ex_date": "2024-05-21",
+              "per_share_bonus": 0.45
+            }
+          ],
+          "delta": {
+            "mae_pct": 26.910810382618802,
+            "mfe_pct": 0.0,
+            "return_pct": 27.221996224147325
+          },
+          "entry_date": "2024-05-20",
+          "horizon": "10D",
+          "raw": {
+            "mae_pct": -41.4827890556046,
+            "mfe_pct": 0.0,
+            "return_pct": -40.80611944689615
+          },
+          "signal_date": "2024-05-17",
+          "symbol": "603125.sh",
+          "target_date": "2024-05-31"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -13.879100995190697,
+            "mfe_pct": 2.35107852007046,
+            "return_pct": -12.504166468263412
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 0.5384,
+              "ex_date": "2026-05-18",
+              "per_share_bonus": 0.4
+            }
+          ],
+          "delta": {
+            "mae_pct": 25.576083539079953,
+            "mfe_pct": 0.0370773484243081,
+            "return_pct": 25.98440998164871
+          },
+          "entry_date": "2026-04-30",
+          "horizon": "10D",
+          "raw": {
+            "mae_pct": -39.45518453427065,
+            "mfe_pct": 2.3140011716461517,
+            "return_pct": -38.488576449912124
+          },
+          "signal_date": "2026-04-29",
+          "symbol": "002956.sz",
+          "target_date": "2026-05-18"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -14.639874482929127,
+            "mfe_pct": 1.944378474673214,
+            "return_pct": -11.9792991421373
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 0.3131637,
+              "ex_date": "2023-07-06",
+              "per_share_bonus": 0.4002092
+            }
+          ],
+          "delta": {
+            "mae_pct": 24.99637512509847,
+            "mfe_pct": 0.8782135326851348,
+            "return_pct": 25.775482921205437
+          },
+          "entry_date": "2023-07-05",
+          "horizon": "10D",
+          "raw": {
+            "mae_pct": -39.6362496080276,
+            "mfe_pct": 1.0661649419880792,
+            "return_pct": -37.75478206334274
+          },
+          "signal_date": "2023-07-04",
+          "symbol": "002824.sz",
+          "target_date": "2023-07-18"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -15.394402035623411,
+            "mfe_pct": 9.058524173027994,
+            "return_pct": -15.32315521628499
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 1.0,
+              "ex_date": "2026-07-03",
+              "per_share_bonus": 0.4
+            }
+          ],
+          "delta": {
+            "mae_pct": 25.672595482987003,
+            "mfe_pct": 0.22477727476495346,
+            "return_pct": 25.69421451076216
+          },
+          "entry_date": "2026-06-25",
+          "horizon": "10D",
+          "raw": {
+            "mae_pct": -41.066997518610414,
+            "mfe_pct": 8.83374689826304,
+            "return_pct": -41.01736972704715
+          },
+          "signal_date": "2026-06-24",
+          "symbol": "603281.sh",
+          "target_date": "2026-07-08"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -0.7444168734491274,
+            "mfe_pct": 7.526881720430123,
+            "return_pct": 6.5053763440860335
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 0.3,
+              "ex_date": "2025-08-12",
+              "per_share_bonus": 0.3
+            }
+          ],
+          "delta": {
+            "mae_pct": 20.03240186884434,
+            "mfe_pct": 0.8684353579146986,
+            "return_pct": 25.08326372591916
+          },
+          "entry_date": "2025-08-05",
+          "horizon": "10D",
+          "raw": {
+            "mae_pct": -20.776818742293468,
+            "mfe_pct": 6.658446362515424,
+            "return_pct": -18.577887381833126
+          },
+          "signal_date": "2025-08-04",
+          "symbol": "301099.sz",
+          "target_date": "2025-08-18"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -6.080000000000007,
+            "mfe_pct": 7.328000000000001,
+            "return_pct": 1.9893333333333318
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 0.03,
+              "ex_date": "2026-06-10",
+              "per_share_bonus": 0.3
+            }
+          ],
+          "delta": {
+            "mae_pct": 21.183045793397227,
+            "mfe_pct": 3.5473823216187528,
+            "return_pct": 23.661324813631524
+          },
+          "entry_date": "2026-06-03",
+          "horizon": "10D",
+          "raw": {
+            "mae_pct": -27.263045793397232,
+            "mfe_pct": 3.7806176783812484,
+            "return_pct": -21.671991480298193
+          },
+          "signal_date": "2026-06-02",
+          "symbol": "300826.sz",
+          "target_date": "2026-06-16"
+        }
+      ],
+      "raw_v1": {
+        "expectancy_pct": -0.5495000625230584,
+        "max_return_pct": 147.48062015503876,
+        "mean_mae_pct": -7.314548230993378,
+        "mean_mfe_pct": 9.612163763169772,
+        "mean_non_positive_return_pct": -6.979530284332315,
+        "mean_positive_return_pct": 8.706896487486073,
+        "mean_return_pct": -0.549500062523058,
+        "median_mae_pct": -5.83864118895967,
+        "median_mfe_pct": 5.719921104536474,
+        "min_return_pct": -48.82352941176471,
+        "non_positive_count": 4942,
+        "positive_count": 3433,
+        "positive_rate": 0.409910447761194,
+        "sample_count": 8375
+      }
+    },
+    "1D": {
+      "adjusted_minus_raw_delta": {
+        "expectancy_pct": 0.0,
+        "mean_mae_pct": 0.0,
+        "mean_mfe_pct": 0.0,
+        "mean_return_pct": 0.0,
+        "median_mae_pct": 0.0,
+        "median_mfe_pct": 0.0,
+        "positive_rate": 0.0
+      },
+      "adjusted_v2": {
+        "expectancy_pct": -0.1270011659325918,
+        "max_return_pct": 27.172918572735604,
+        "mean_mae_pct": -2.8842107127881524,
+        "mean_mfe_pct": 2.7623815431292953,
+        "mean_non_positive_return_pct": -2.576103813545611,
+        "mean_positive_return_pct": 3.191997595076458,
+        "mean_return_pct": -0.12700116593259173,
+        "median_mae_pct": -2.0786516853932624,
+        "median_mfe_pct": 1.7154811715481166,
+        "min_return_pct": -16.815742397137733,
+        "non_positive_count": 4857,
+        "positive_count": 3584,
+        "positive_rate": 0.4245942423883426,
+        "sample_count": 8441
+      },
+      "available_sample_count": 8441,
+      "corporate_action_crossing_sample_count": 0,
+      "corporate_action_crossing_sample_share": 0.0,
+      "largest_difference_witnesses": [],
+      "raw_v1": {
+        "expectancy_pct": -0.1270011659325918,
+        "max_return_pct": 27.172918572735604,
+        "mean_mae_pct": -2.8842107127881524,
+        "mean_mfe_pct": 2.7623815431292953,
+        "mean_non_positive_return_pct": -2.576103813545611,
+        "mean_positive_return_pct": 3.191997595076458,
+        "mean_return_pct": -0.12700116593259173,
+        "median_mae_pct": -2.0786516853932624,
+        "median_mfe_pct": 1.7154811715481166,
+        "min_return_pct": -16.815742397137733,
+        "non_positive_count": 4857,
+        "positive_count": 3584,
+        "positive_rate": 0.4245942423883426,
+        "sample_count": 8441
+      }
+    },
+    "3D": {
+      "adjusted_minus_raw_delta": {
+        "expectancy_pct": 0.022162931627002003,
+        "mean_mae_pct": 0.019392449731959083,
+        "mean_mfe_pct": 0.003819406190356034,
+        "mean_return_pct": 0.022162931627001226,
+        "median_mae_pct": 0.008490895031298962,
+        "median_mfe_pct": 0.0026935450229359503,
+        "positive_rate": 0.0007123352724682785
+      },
+      "adjusted_v2": {
+        "expectancy_pct": -0.22807783259626335,
+        "max_return_pct": 83.20855614973262,
+        "mean_mae_pct": -4.64486768300161,
+        "mean_mfe_pct": 5.71480003653042,
+        "mean_non_positive_return_pct": -4.820699510972067,
+        "mean_positive_return_pct": 5.957693466726287,
+        "mean_return_pct": -0.22807783259626296,
+        "median_mae_pct": -3.407350689127109,
+        "median_mfe_pct": 3.262642740619892,
+        "min_return_pct": -28.197226502311246,
+        "non_positive_count": 4834,
+        "positive_count": 3589,
+        "positive_rate": 0.42609521548141993,
+        "sample_count": 8423
+      },
+      "available_sample_count": 8423,
+      "corporate_action_crossing_sample_count": 48,
+      "corporate_action_crossing_sample_share": 0.0056986821797459335,
+      "largest_difference_witnesses": [
+        {
+          "adjusted": {
+            "mae_pct": -2.2248794185218634,
+            "mfe_pct": 12.251615590278252,
+            "return_pct": 8.825623732047116
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 0.21864,
+              "ex_date": "2024-06-14",
+              "per_share_bonus": 0.4
+            }
+          ],
+          "delta": {
+            "mae_pct": 28.30018024734926,
+            "mfe_pct": 7.526078597438145,
+            "return_pct": 31.498654758300106
+          },
+          "entry_date": "2024-06-13",
+          "horizon": "3D",
+          "raw": {
+            "mae_pct": -30.525059665871122,
+            "mfe_pct": 4.725536992840107,
+            "return_pct": -22.67303102625299
+          },
+          "signal_date": "2024-06-12",
+          "symbol": "605111.sh",
+          "target_date": "2024-06-17"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -5.106146178425119,
+            "mfe_pct": 1.0767386471835838,
+            "return_pct": -1.0709402448908611
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 0.3131637,
+              "ex_date": "2023-07-06",
+              "per_share_bonus": 0.4002092
+            }
+          ],
+          "delta": {
+            "mae_pct": 27.788178061148415,
+            "mfe_pct": 0.010573705195504601,
+            "return_pct": 28.96982488524398
+          },
+          "entry_date": "2023-07-05",
+          "horizon": "3D",
+          "raw": {
+            "mae_pct": -32.894324239573535,
+            "mfe_pct": 1.0661649419880792,
+            "return_pct": -30.04076513013484
+          },
+          "signal_date": "2023-07-04",
+          "symbol": "002824.sz",
+          "target_date": "2023-07-07"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -10.792357819905229,
+            "mfe_pct": 0.0,
+            "return_pct": -9.847452606635088
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 0.23,
+              "ex_date": "2024-05-21",
+              "per_share_bonus": 0.45
+            }
+          ],
+          "delta": {
+            "mae_pct": 28.101434471945318,
+            "mfe_pct": 0.0,
+            "return_pct": 28.399090494276955
+          },
+          "entry_date": "2024-05-20",
+          "horizon": "3D",
+          "raw": {
+            "mae_pct": -38.893792291850545,
+            "mfe_pct": 0.0,
+            "return_pct": -38.24654310091204
+          },
+          "signal_date": "2024-05-17",
+          "symbol": "603125.sh",
+          "target_date": "2024-05-22"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -8.779943158749493,
+            "mfe_pct": 0.6316822303424008,
+            "return_pct": -4.554066856137496
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 2.5,
+              "ex_date": "2024-10-09",
+              "per_share_bonus": 0.3
+            }
+          ],
+          "delta": {
+            "mae_pct": 21.37505918977094,
+            "mfe_pct": 0.6316822303424008,
+            "return_pct": 22.641799747901956
+          },
+          "entry_date": "2024-10-08",
+          "horizon": "3D",
+          "raw": {
+            "mae_pct": -30.155002348520433,
+            "mfe_pct": 0.0,
+            "return_pct": -27.195866604039452
+          },
+          "signal_date": "2024-09-30",
+          "symbol": "605499.sh",
+          "target_date": "2024-10-10"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -4.245283018867929,
+            "mfe_pct": 0.18867924528300772,
+            "return_pct": -2.8301886792452935
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 0.7,
+              "ex_date": "2024-05-21",
+              "per_share_bonus": 0.0
+            }
+          ],
+          "delta": {
+            "mae_pct": 5.9317081315745535,
+            "mfe_pct": 0.011688094840534013,
+            "return_pct": 6.019368842878603
+          },
+          "entry_date": "2024-05-20",
+          "horizon": "3D",
+          "raw": {
+            "mae_pct": -10.176991150442483,
+            "mfe_pct": 0.1769911504424737,
+            "return_pct": -8.849557522123897
+          },
+          "signal_date": "2024-05-17",
+          "symbol": "600153.sh",
+          "target_date": "2024-05-22"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -2.463054187192115,
+            "mfe_pct": 2.364532019704435,
+            "return_pct": -0.9852216748768461
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 0.51,
+              "ex_date": "2023-12-20",
+              "per_share_bonus": 0.0
+            }
+          ],
+          "delta": {
+            "mae_pct": 4.666401722751601,
+            "mfe_pct": 2.0831061285224495,
+            "return_pct": 4.73710477915692
+          },
+          "entry_date": "2023-12-19",
+          "horizon": "3D",
+          "raw": {
+            "mae_pct": -7.129455909943716,
+            "mfe_pct": 0.2814258911819856,
+            "return_pct": -5.722326454033766
+          },
+          "signal_date": "2023-12-18",
+          "symbol": "601919.sh",
+          "target_date": "2023-12-21"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -2.1739130434782705,
+            "mfe_pct": 3.177257525083599,
+            "return_pct": 1.8394648829431315
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 0.27,
+              "ex_date": "2025-06-13",
+              "per_share_bonus": 0.0
+            }
+          ],
+          "delta": {
+            "mae_pct": 1.986086956521726,
+            "mfe_pct": 1.4172575250835928,
+            "return_pct": 4.399464882943138
+          },
+          "entry_date": "2025-06-11",
+          "horizon": "3D",
+          "raw": {
+            "mae_pct": -4.159999999999997,
+            "mfe_pct": 1.760000000000006,
+            "return_pct": -2.5600000000000067
+          },
+          "signal_date": "2025-06-10",
+          "symbol": "600901.sh",
+          "target_date": "2025-06-13"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -2.4637681159420333,
+            "mfe_pct": 1.7391304347825987,
+            "return_pct": 0.5797101449275477
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 0.25,
+              "ex_date": "2025-06-17",
+              "per_share_bonus": 0.0
+            }
+          ],
+          "delta": {
+            "mae_pct": 3.13063747846356,
+            "mfe_pct": 0.060808756460928315,
+            "return_pct": 3.5167730819904874
+          },
+          "entry_date": "2025-06-13",
+          "horizon": "3D",
+          "raw": {
+            "mae_pct": -5.594405594405593,
+            "mfe_pct": 1.6783216783216703,
+            "return_pct": -2.9370629370629397
+          },
+          "signal_date": "2025-06-12",
+          "symbol": "600057.sh",
+          "target_date": "2025-06-17"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -6.368051807879116,
+            "mfe_pct": 0.0,
+            "return_pct": -4.42525634106854
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 0.7,
+              "ex_date": "2023-07-11",
+              "per_share_bonus": 0.0
+            }
+          ],
+          "delta": {
+            "mae_pct": 3.408339247763104,
+            "mfe_pct": 0.0,
+            "return_pct": 3.4790598315783683
+          },
+          "entry_date": "2023-07-10",
+          "horizon": "3D",
+          "raw": {
+            "mae_pct": -9.77639105564222,
+            "mfe_pct": 0.0,
+            "return_pct": -7.904316172646908
+          },
+          "signal_date": "2023-07-07",
+          "symbol": "301187.sz",
+          "target_date": "2023-07-12"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -8.158508158508159,
+            "mfe_pct": 1.0489510489510412,
+            "return_pct": -4.195804195804187
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 0.3,
+              "ex_date": "2025-05-19",
+              "per_share_bonus": 0.0
+            }
+          ],
+          "delta": {
+            "mae_pct": 3.102753102753109,
+            "mfe_pct": 0.035437535437532475,
+            "return_pct": 3.2366282366282473
+          },
+          "entry_date": "2025-05-16",
+          "horizon": "3D",
+          "raw": {
+            "mae_pct": -11.261261261261268,
+            "mfe_pct": 1.0135135135135087,
+            "return_pct": -7.432432432432434
+          },
+          "signal_date": "2025-05-15",
+          "symbol": "002772.sz",
+          "target_date": "2025-05-20"
+        }
+      ],
+      "raw_v1": {
+        "expectancy_pct": -0.25024076422326536,
+        "max_return_pct": 83.20855614973262,
+        "mean_mae_pct": -4.664260132733569,
+        "mean_mfe_pct": 5.710980630340064,
+        "mean_non_positive_return_pct": -4.847822125791801,
+        "mean_positive_return_pct": 5.960279411604732,
+        "mean_return_pct": -0.2502407642232642,
+        "median_mae_pct": -3.4158415841584078,
+        "median_mfe_pct": 3.259949195596956,
+        "min_return_pct": -38.24654310091204,
+        "non_positive_count": 4840,
+        "positive_count": 3583,
+        "positive_rate": 0.42538288020895165,
+        "sample_count": 8423
+      }
+    },
+    "5D": {
+      "adjusted_minus_raw_delta": {
+        "expectancy_pct": 0.034578372780592836,
+        "mean_mae_pct": 0.02762085475746101,
+        "mean_mfe_pct": 0.0065375255893815876,
+        "mean_return_pct": 0.0345783727805925,
+        "median_mae_pct": 0.019365445737140163,
+        "median_mfe_pct": 0.005510320976209293,
+        "positive_rate": 0.0011884953648680918
+      },
+      "adjusted_v2": {
+        "expectancy_pct": -0.5084669325129445,
+        "max_return_pct": 125.3918495297806,
+        "mean_mae_pct": -5.717826271333896,
+        "mean_mfe_pct": 7.2669657666950656,
+        "mean_non_positive_return_pct": -5.723170971650149,
+        "mean_positive_return_pct": 7.09872259506535,
+        "mean_return_pct": -0.5084669325129447,
+        "median_mae_pct": -4.260584595342781,
+        "median_mfe_pct": 4.166666666666674,
+        "min_return_pct": -36.97996918335902,
+        "non_positive_count": 4992,
+        "positive_count": 3422,
+        "positive_rate": 0.40670311385785596,
+        "sample_count": 8414
+      },
+      "available_sample_count": 8414,
+      "corporate_action_crossing_sample_count": 105,
+      "corporate_action_crossing_sample_share": 0.012479201331114808,
+      "largest_difference_witnesses": [
+        {
+          "adjusted": {
+            "mae_pct": -3.5955056179775347,
+            "mfe_pct": 1.228464419475639,
+            "return_pct": 0.9026217228464306
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 0.0,
+              "ex_date": "2025-08-15",
+              "per_share_bonus": 0.45
+            }
+          ],
+          "delta": {
+            "mae_pct": 29.88764044943819,
+            "mfe_pct": 1.1535580524344446,
+            "return_pct": 31.314606741573026
+          },
+          "entry_date": "2025-08-12",
+          "horizon": "5D",
+          "raw": {
+            "mae_pct": -33.483146067415724,
+            "mfe_pct": 0.07490636704119424,
+            "return_pct": -30.411985018726597
+          },
+          "signal_date": "2025-08-11",
+          "symbol": "300708.sz",
+          "target_date": "2025-08-18"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -2.2248794185218634,
+            "mfe_pct": 12.251615590278252,
+            "return_pct": 8.053096156171492
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 0.21864,
+              "ex_date": "2024-06-14",
+              "per_share_bonus": 0.4
+            }
+          ],
+          "delta": {
+            "mae_pct": 28.30018024734926,
+            "mfe_pct": 7.526078597438145,
+            "return_pct": 31.275053196744274
+          },
+          "entry_date": "2024-06-13",
+          "horizon": "5D",
+          "raw": {
+            "mae_pct": -30.525059665871122,
+            "mfe_pct": 4.725536992840107,
+            "return_pct": -23.221957040572782
+          },
+          "signal_date": "2024-06-12",
+          "symbol": "605111.sh",
+          "target_date": "2024-06-19"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -12.811018957345988,
+            "mfe_pct": 0.0,
+            "return_pct": -8.301244075829395
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 0.23,
+              "ex_date": "2024-05-21",
+              "per_share_bonus": 0.45
+            }
+          ],
+          "delta": {
+            "mae_pct": 27.465532969691374,
+            "mfe_pct": 0.0,
+            "return_pct": 28.88616398536508
+          },
+          "entry_date": "2024-05-20",
+          "horizon": "5D",
+          "raw": {
+            "mae_pct": -40.27655192703736,
+            "mfe_pct": 0.0,
+            "return_pct": -37.187408061194475
+          },
+          "signal_date": "2024-05-17",
+          "symbol": "603125.sh",
+          "target_date": "2024-05-24"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -5.106146178425119,
+            "mfe_pct": 1.944378474673214,
+            "return_pct": -2.4899137599798227
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 0.3131637,
+              "ex_date": "2023-07-06",
+              "per_share_bonus": 0.4002092
+            }
+          ],
+          "delta": {
+            "mae_pct": 27.788178061148415,
+            "mfe_pct": 0.8782135326851348,
+            "return_pct": 28.554300727320282
+          },
+          "entry_date": "2023-07-05",
+          "horizon": "5D",
+          "raw": {
+            "mae_pct": -32.894324239573535,
+            "mfe_pct": 1.0661649419880792,
+            "return_pct": -31.044214487300103
+          },
+          "signal_date": "2023-07-04",
+          "symbol": "002824.sz",
+          "target_date": "2023-07-11"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -8.779943158749493,
+            "mfe_pct": 0.6316822303424008,
+            "return_pct": 0.3721748545134629
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 2.5,
+              "ex_date": "2024-10-09",
+              "per_share_bonus": 0.3
+            }
+          ],
+          "delta": {
+            "mae_pct": 21.37505918977094,
+            "mfe_pct": 0.6316822303424008,
+            "return_pct": 23.810408767148505
+          },
+          "entry_date": "2024-10-08",
+          "horizon": "5D",
+          "raw": {
+            "mae_pct": -30.155002348520433,
+            "mfe_pct": 0.0,
+            "return_pct": -23.43823391263504
+          },
+          "signal_date": "2024-09-30",
+          "symbol": "605499.sh",
+          "target_date": "2024-10-14"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -6.415094339622652,
+            "mfe_pct": 0.18867924528300772,
+            "return_pct": -6.415094339622652
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 0.7,
+              "ex_date": "2024-05-21",
+              "per_share_bonus": 0.0
+            }
+          ],
+          "delta": {
+            "mae_pct": 5.797295040908324,
+            "mfe_pct": 0.011688094840534013,
+            "return_pct": 5.797295040908324
+          },
+          "entry_date": "2024-05-20",
+          "horizon": "5D",
+          "raw": {
+            "mae_pct": -12.212389380530976,
+            "mfe_pct": 0.1769911504424737,
+            "return_pct": -12.212389380530976
+          },
+          "signal_date": "2024-05-17",
+          "symbol": "600153.sh",
+          "target_date": "2024-05-24"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -6.838709677419363,
+            "mfe_pct": 2.2903225806451655,
+            "return_pct": -4.870967741935484
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 2.0,
+              "ex_date": "2025-06-11",
+              "per_share_bonus": 0.0
+            }
+          ],
+          "delta": {
+            "mae_pct": 5.646138807429125,
+            "mfe_pct": 0.13880742913001676,
+            "return_pct": 5.76539589442816
+          },
+          "entry_date": "2025-06-05",
+          "horizon": "5D",
+          "raw": {
+            "mae_pct": -12.484848484848488,
+            "mfe_pct": 2.1515151515151487,
+            "return_pct": -10.636363636363644
+          },
+          "signal_date": "2025-06-04",
+          "symbol": "000915.sz",
+          "target_date": "2025-06-11"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -0.455927051671734,
+            "mfe_pct": 3.3434650455927084,
+            "return_pct": 0.6079027355623046
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 0.32,
+              "ex_date": "2023-07-21",
+              "per_share_bonus": 0.0
+            }
+          ],
+          "delta": {
+            "mae_pct": 4.181754107748558,
+            "mfe_pct": 0.15505924849126274,
+            "return_pct": 4.66587375005506
+          },
+          "entry_date": "2023-07-17",
+          "horizon": "5D",
+          "raw": {
+            "mae_pct": -4.637681159420293,
+            "mfe_pct": 3.1884057971014457,
+            "return_pct": -4.057971014492756
+          },
+          "signal_date": "2023-07-14",
+          "symbol": "000157.sz",
+          "target_date": "2023-07-21"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -4.63054187192119,
+            "mfe_pct": 2.364532019704435,
+            "return_pct": -3.5467980295566637
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 0.51,
+              "ex_date": "2023-12-20",
+              "per_share_bonus": 0.0
+            }
+          ],
+          "delta": {
+            "mae_pct": 4.562703906690446,
+            "mfe_pct": 2.0831061285224495,
+            "return_pct": 4.6145528147210175
+          },
+          "entry_date": "2023-12-19",
+          "horizon": "5D",
+          "raw": {
+            "mae_pct": -9.193245778611637,
+            "mfe_pct": 0.2814258911819856,
+            "return_pct": -8.161350844277681
+          },
+          "signal_date": "2023-12-18",
+          "symbol": "601919.sh",
+          "target_date": "2023-12-25"
+        },
+        {
+          "adjusted": {
+            "mae_pct": -3.110888108379317,
+            "mfe_pct": 11.490215755142996,
+            "return_pct": 6.673356748620174
+          },
+          "corporate_actions": [
+            {
+              "allotment_price": 0.0,
+              "allotment_ratio": 0.0,
+              "dividend_per_share": 0.9,
+              "ex_date": "2025-06-19",
+              "per_share_bonus": 0.0
+            }
+          ],
+          "delta": {
+            "mae_pct": 3.3221411763062374,
+            "mfe_pct": 1.0725489284507237,
+            "return_pct": 4.609026455773302
+          },
+          "entry_date": "2025-06-16",
+          "horizon": "5D",
+          "raw": {
+            "mae_pct": -6.433029284685555,
+            "mfe_pct": 10.417666826692273,
+            "return_pct": 2.064330292846872
+          },
+          "signal_date": "2025-06-13",
+          "symbol": "603706.sh",
+          "target_date": "2025-06-20"
+        }
+      ],
+      "raw_v1": {
+        "expectancy_pct": -0.5430453052935373,
+        "max_return_pct": 125.3918495297806,
+        "mean_mae_pct": -5.745447126091357,
+        "mean_mfe_pct": 7.260428241105684,
+        "mean_non_positive_return_pct": -5.759093426518466,
+        "mean_positive_return_pct": 7.103693470312294,
+        "mean_return_pct": -0.5430453052935372,
+        "median_mae_pct": -4.279950041079921,
+        "median_mfe_pct": 4.161156345690465,
+        "min_return_pct": -37.187408061194475,
+        "non_positive_count": 5002,
+        "positive_count": 3412,
+        "positive_rate": 0.40551461849298787,
+        "sample_count": 8414
+      }
+    }
+  },
+  "comparison": "V1_RAW_UNADJUSTED_DIAGNOSTIC_VS_V2_CORPORATE_ACTION_ADJUSTED_PRIMARY",
+  "event_identity_count": 8463,
+  "schema_version": "DEVELOPMENT_HISTORICAL_RETURNS_V1_V2_DIFFERENCE_AUDIT_V1",
+  "v1_event_results_sha256": "4e7fb55430755251cb620a2f48f73c2e9d11b75ca79c7138b7152fb8796b12aa",
+  "v1_manifest_sha256": "8529e674d5f538734c157cd8768467edc6c9479d937f85a4da02fcd1568a51b3",
+  "v2_event_results_sha256": "eac51184bd2b51e80d7c2824de1e4b51ff904a1509ae320e85d9b816f6ecd8d1"
+}
