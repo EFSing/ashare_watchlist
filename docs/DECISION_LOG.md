@@ -60,4 +60,4 @@
 - alternatives：继续依赖会话记忆；从 Phase 2F local HEAD 建治理 PR；把未验证的外部 backup 写成已存在。
 - consequences：新会话有固定冲突 gate；`daily_k.parquet` 保持 `NOT_FULLY_RECOVERABLE`，直到 exact persistent backup 和 recovery verification 完成。
 - revisit condition：治理 PR 合并后，或发生 phase/PR/CI/artifact/provenance/production-status 变化时更新治理文件。
-- PR / commit：本治理任务；commit / PR 在 push 后回填。
+- PR / commit：PR #7；head `c72ad0498a1ac89966ea39e1e600647f14926ada`，squash merge `16ad543bb39a7d01ed4c484406f1053ca5da0ec2`；merge CI run `33250117945` success。

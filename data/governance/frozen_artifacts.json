@@ -1,8 +1,8 @@
 {
   "schema_version": "FROZEN_ARTIFACT_REGISTRY_V1",
   "repository": "EFSing/ashare_watchlist",
-  "formal_baseline": "74ccf86dfdea3b9d4b0124fb54346aa429735508",
-  "generated_at": "2026-08-29T19:00:37+08:00",
+  "formal_baseline": "16ad543bb39a7d01ed4c484406f1053ca5da0ec2",
+  "generated_at": "2026-08-29T19:28:47+08:00",
   "generated_by": "project handoff governance initialization",
   "identity_rules": {
     "absolute_filesystem_path_in_content_identity": false,

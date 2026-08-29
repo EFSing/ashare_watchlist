@@ -1,12 +1,12 @@
 # CURRENT STATUS
 
 更新时间：2026-08-29（Asia/Shanghai）
-正式基线：`master@74ccf86dfdea3b9d4b0124fb54346aa429735508`
+正式基线：`master@16ad543bb39a7d01ed4c484406f1053ca5da0ec2`
 职责：记录项目正式处于什么状态，以及哪些研究结论已经成立。接手动作见 [`HANDOFF.md`](../HANDOFF.md)，决策理由见 [`DECISION_LOG.md`](DECISION_LOG.md)。
 
 ## Formal project status
 
-项目当前正式处于 Phase 2E 完成后的 research / development 状态，不是 production strategy promotion 状态。
+项目当前正式处于 Phase 2E 完成后的 research / development 状态，不是 production strategy promotion 状态。治理 PR #7 已 squash merge；当前无 active PR（`PR: NONE`）。
 
 - Phase 2A：legacy strategy audit 完成；缺失历史 provenance 的部分保持 `UNKNOWN_ORIGIN` / `NOT_REPRODUCIBLE_WITH_CURRENT_DATA`。
 - Phase 2B：generation input/timing contract 已冻结：仅 T 日收盘、`Asia/Shanghai`、XSHG T+1、`exchange-calendars==4.13.2`。

@@ -4,7 +4,7 @@
 
 ## 1. Current Objective
 
-- 唯一主任务：建立并验证项目级多设备 / 多会话开发交接治理机制。
+- 唯一主任务：在已合并治理基础上维持多设备 / 多会话交接一致性，并准备下一项 research decision。
 - 原因：项目已有跨阶段 research replay、returns、checkpoint 和大型 raw artifact；仅靠会话记忆或单机路径不能安全恢复。
 - Scope：治理文档、冻结 artifact registry、交接冲突 gate、当前真实状态和恢复边界；不改变生产策略或既有 frozen artifact。
 - 禁止事项：不 merge；不读取 Final OOS；不 promotion；不调参；不把当前数据回填历史；不替换新浪历史行业 membership；不重跑已完成 CORE replay；不以“差不多”的新文件替代 frozen bytes。
@@ -15,14 +15,14 @@
 ## 2. Current Repository State
 
 - repo：`EFSing/ashare_watchlist`；origin：`https://github.com/EFSing/ashare_watchlist.git`。
-- formal master SHA：`74ccf86dfdea3b9d4b0124fb54346aa429735508`；这是已合并 PR #6 的 merge commit。
-- working branch：`chore/project-handoff-governance`，从上述 master 派生。
-- HEAD at last verified snapshot：`f5e8851c09c4974706e43a940fc99d94b5095a23`；治理 commit 已创建，当前尚未 push。
-- PR / state：`NOT_CREATED`；没有 active open PR。PR #1–#6 均已 merged；PR #6 head 为 `edb57a3489733e0f7657ae9e2b8a1b473c52cfc2`，merge 为 master@74ccf86…。
-- last verified CI provenance：master correctness run `33246744991`，headSha=`74ccf86dfdea3b9d4b0124fb54346aa429735508`，success；治理 branch 尚未 push，暂无独立 exact-head CI。
+- formal master SHA：`16ad543bb39a7d01ed4c484406f1053ca5da0ec2`；这是 PR #7 的真实 squash merge commit，formal research baseline 未改变。
+- working branch：`master`（本地已 fast-forward 到上述 merge commit）。
+- HEAD at last verified snapshot：`16ad543bb39a7d01ed4c484406f1053ca5da0ec2`；本次 post-merge follow-up 是 metadata-only 更新，不能用本字段替代新会话的实时 HEAD 核验。
+- PR / state：`PR: NONE`；PR #1–#7 均已 merged，没有 active open PR。PR #7 head 为 `c72ad0498a1ac89966ea39e1e600647f14926ada`，merge 为 master@16ad543…。
+- last verified CI provenance：master correctness run `33250117945`，headSha=`16ad543bb39a7d01ed4c484406f1053ca5da0ec2`，success；这是 merge commit 的 last-verified CI，不是 post-merge follow-up commit 的 CI。
 - live state gate：新会话必须实时执行 Git / GitHub 核验；本节和 `Last Verified` 的 CI 字段是最近一次证据快照，不是对当前 HEAD 的隐含声明。
 - expected working tree state：tracked working tree clean；`.pytest_cache/`、`__pycache__/` 和本机 `daily_k.parquet` 可被 `.gitignore` 忽略，但不得被当作 frozen backup。Windows text checkout 的 CRLF SHA 若存在，以 registry 的 Git-blob `file_sha256` 为恢复身份。
-- formal phase / research status：Phase 2E 已完成；CORE continuous replay 和 DEVELOPMENT returns V2 已冻结；FULL legacy 85-score validation 仍 blocked。当前本机另有未推送 Phase 2F 分支，见下方，不是 formal master 状态。
+- formal phase / research status：Phase 2E 已完成；CORE continuous replay 和 DEVELOPMENT returns V2 已冻结；FULL legacy 85-score validation 仍 blocked。治理 PR 已合并；本机另有未推送 Phase 2F 分支，见下方，不是 formal master 状态。
 
 ## 3. Completed Work
 
@@ -33,16 +33,16 @@
 - Phase 2E：PR #6，merged 到 master@74ccf86…；CORE continuous replay 769 个 XSHG sessions、4,041,140 个 candidate evaluations；V2 returns 8,463 个 qualified outcomes。
 - V2 outcome 明确为 `DEVELOPMENT` / `RECONSTRUCTED_RETROSPECTIVE`；V1 raw outcome 保留为 diagnostic，不覆盖；Final OOS 未读取。
 - 形式化的 artifact inventory 已写入 [`data/governance/frozen_artifacts.json`](data/governance/frozen_artifacts.json)；`daily_k.parquet` 的外部副本尚未被证明有 persistent backup。
+- 治理 PR #7 已 squash merge 到 `16ad543…`；merge 后 master CI run `33250117945` success，headSha 精确匹配。
 
 ## 4. Pending Work
 
 ### Required Next
 
-1. 将已提交的治理 branch push 到 origin，创建治理 PR，并等待治理 PR 最终 head 的 exact-head CI；当前 push 被托管安全策略拒绝，需用户明确授权后重试。
-2. 新会话接手时先核对本文件、[`docs/CURRENT_STATUS.md`](docs/CURRENT_STATUS.md)、[`docs/DECISION_LOG.md`](docs/DECISION_LOG.md)、[`docs/FROZEN_ARTIFACT_POLICY.md`](docs/FROZEN_ARTIFACT_POLICY.md)、Git/PR/CI 和 registry hashes。
-3. 将 `daily_k.parquet` 的同一 bytes 放入受控 persistent backup，并以 `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426` 验证；未完成前不得声明完整 replay 跨设备可恢复。
-4. 对本机 `codex/phase2f-a-breakout-failure-diagnostic@3eeb5df9f7cf4ef5c30b3380b323f26f2491f873` 的 Phase 2F A-platform failure diagnostic 做独立 handoff / provenance review；它没有远端分支、PR 或 CI，不得当作 master 已完成。
-5. 在历史新浪行业 membership / effective-date source 与 provenance 边界明确后，再决定 Research V2 / FULL legacy validation 的范围。
+1. 新会话接手时先实时核对 master HEAD、PR state、exact-head CI 和 registry hashes，再读取四份治理文件作为快照和规则。
+2. 将 `daily_k.parquet` 的同一 bytes 放入受控 persistent backup，并以 `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426` 验证；未完成前不得声明完整 replay 跨设备可恢复。
+3. 对本机 `codex/phase2f-a-breakout-failure-diagnostic@3eeb5df9f7cf4ef5c30b3380b323f26f2491f873` 的 Phase 2F A-platform failure diagnostic 做独立 handoff / provenance review；它没有远端分支、PR 或 CI，不得当作 master 已完成。
+4. 在历史新浪行业 membership / effective-date source 与 provenance 边界明确后，再决定 `A_PLATFORM_BREAKOUT failure diagnostic / Research V2 preparation` 和 FULL legacy validation 的范围。
 
 ### Deferred
 
@@ -78,7 +78,7 @@
 
 ## 6. Important Files Changed
 
-本治理 commit 预期新增：
+本治理 commit 已新增：
 
 - `HANDOFF.md` — governance；会话接手快照。
 - `docs/CURRENT_STATUS.md` — governance；formal project status。
@@ -113,7 +113,6 @@
 - provider/external：需要可按 T 提供新浪行业 membership 的 source 或带 effective-date 的权限/导出；不能用其他 taxonomy 替代。
 - environment：新设备必须有 Python 3.11/3.12、锁定依赖和可读的 external raw artifact；环境差异不是数据恢复证明。
 - artifact availability：Phase 2F 诊断文件只在本机 local branch，未进入 origin。
-- environment：本轮 `git push -u origin chore/project-handoff-governance` 被托管安全策略拒绝；在获得明确授权前不得用其他方式绕过。
 - ambiguity：治理 PR 的 branch head / CI 必须在创建后回填并再次验证；任何文档与真实状态不一致都先标记 `PROJECT_GOVERNANCE_STATE_CONFLICT`。
 - non-blocking debt：忽略目录中的测试缓存不属于版本化 artifact，但声明 handoff 前应保持 tracked working tree clean。
 
@@ -128,12 +127,10 @@
 
 ## 10. Next Action
 
-1. push 已提交的 `chore: establish project handoff governance` branch 并创建独立治理 PR；把最终 PR head、exact-head CI、tests 和当前 HEAD 回填到本文件。
-2. 若 remote push 仍不可用，停止在 `PR_NOT_CREATED`，不得声明 `PR_FULLY_READY`。
-3. 新设备接手时先执行：`git fetch origin`，核对 master/branch/PR/CI；读取四份治理文件；逐项验证 `frozen_artifacts.json`。
-4. 取得并验证 `daily_k.parquet` 的 persistent backup；没有 `61189a…` exact match 就停止 replay/resume。
-5. 对 local-only Phase 2F A-platform failure diagnostic 做 separate review；若继续则以 `A_PLATFORM_BREAKOUT failure diagnostic / Research V2 preparation` 为 research next action，仍不 promotion、不读 Final OOS。
-6. 在 defined decision node 停止：`PR_FULLY_READY`，不 merge。
+1. 新会话实时核验 master HEAD、`PR: NONE`、merge 后 CI 和 required artifact hashes。
+2. 取得并验证 `daily_k.parquet` 的 persistent backup；没有 `61189a…` exact match 就停止 replay/resume。
+3. 对 local-only Phase 2F A-platform failure diagnostic 做 separate review；若继续则以 `A_PLATFORM_BREAKOUT failure diagnostic / Research V2 preparation` 为 research next action，仍不 promotion、不读 Final OOS。
+4. 在历史新浪行业 membership / effective-date source 和 provenance decision 完成前，停止在 research decision node。
 
 ## 11. Handoff Checklist
 
@@ -152,9 +149,9 @@
 
 ## 12. Last Verified
 
-- last_updated_at：`2026-08-29T19:16:00+08:00`（Asia/Shanghai）
-- verified_master_sha：`74ccf86dfdea3b9d4b0124fb54346aa429735508`
-- verified_branch_head：`f5e8851c09c4974706e43a940fc99d94b5095a23`（治理 commit；本次 metadata update 之后的 commit 需在 push 前再次核对）
-- latest_test_result：`pytest 135 passed`; `compileall` pass; registry JSON/hash checks pass; master exact-head correctness run `33246744991` success
-- latest_ci_run_provenance：run `33246744991` / headSha `74ccf86dfdea3b9d4b0124fb54346aa429735508` / success（last verified provenance；不表示当前治理 HEAD 已有该 CI）
-- updated_by_task：`project handoff governance initialization`
+- last_updated_at：`2026-08-29T19:28:47+08:00`（Asia/Shanghai）
+- verified_master_sha：`16ad543bb39a7d01ed4c484406f1053ca5da0ec2`
+- verified_branch_head：`16ad543bb39a7d01ed4c484406f1053ca5da0ec2`（last verified merge snapshot；metadata-only follow-up 后新会话仍须实时核验 HEAD）
+- latest_test_result：`pytest 135 passed`; `compileall` pass; registry JSON/hash checks pass; PR exact-head CI `33250045852` success; merge master CI `33250117945` success
+- latest_ci_run_provenance：run `33250117945` / headSha `16ad543bb39a7d01ed4c484406f1053ca5da0ec2` / success（last verified provenance；不制造 CI 自引用更新循环）
+- updated_by_task：`project handoff governance post-merge follow-up`
