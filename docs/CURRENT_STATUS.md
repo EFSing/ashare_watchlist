@@ -1,13 +1,14 @@
 # CURRENT STATUS
 
-更新时间：2026-08-29（Asia/Shanghai）
-正式基线：`master@7a27484293cbcb791c6b8407949e9e71257e016b`（PR #9 squash merge）
-正式 Delivery Ladder：`research`
+更新时间：2026-08-30（Asia/Shanghai）
+Formal Delivery Ladder：`research`
+Product-governance milestone：PR #9 / `7a27484293cbcb791c6b8407949e9e71257e016b`
+Phase 2E research baseline：PR #6 / `74ccf86dfdea3b9d4b0124fb54346aa429735508`
 职责：记录项目正式处于什么状态，以及哪些研究结论已经成立。长期产品目标和 usable gate 见 [`PRODUCT_CHARTER.md`](PRODUCT_CHARTER.md)，接手动作见 [`HANDOFF.md`](../HANDOFF.md)，决策理由见 [`DECISION_LOG.md`](DECISION_LOG.md)。
 
 ## Formal project status
 
-项目当前正式处于 Phase 2E 完成后的 `research` 层，带有 development harness 和可运行的 manual review utility，但尚未达到 development candidate / frozen candidate，更不是 production strategy promotion 状态。PR #1–#9 已 squash merge；当前无 active PR（`PR: NONE`）。
+项目当前正式处于 Phase 2E 完成后的 `research` 层，带有 development harness 和可运行的 manual review utility，但尚未达到 development candidate / frozen candidate，更不是 production strategy promotion 状态。PR #1–#10 的历史变更均已 squash merge；active PR 属于每次 intake 的 live state，不在本文件维护。
 
 - Phase 2A：legacy strategy audit 完成；缺失历史 provenance 的部分保持 `UNKNOWN_ORIGIN` / `NOT_REPRODUCIBLE_WITH_CURRENT_DATA`。
 - Phase 2B：generation input/timing contract 已冻结：仅 T 日收盘、`Asia/Shanghai`、XSHG T+1、`exchange-calendars==4.13.2`。

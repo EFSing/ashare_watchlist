@@ -91,3 +91,12 @@
 - consequences：Phase 2F 的研究结果保持 local-only / research-only，不改变 formal master、strategy、data、Phase 2E artifacts 或 product delivery；FULL legacy blocker 仍只作用于对应验证层。
 - revisit condition：取得足以改变下一 product decision 的 evidence，或明确批准一个新的 preregistered research protocol 后，另记新 decision。
 - PR / commit：Phase 2F 没有在本次治理 PR 中发布；本条只记录其退出 decision。
+
+## 2026-08-30 — Live Git State vs Persisted Governance Snapshot
+
+- context：tracked governance 文档曾把静态的 current HEAD / CI 记录写成实时 invariant；治理文档自身的后续 commit 会使该 invariant 永久自引用并制造假冲突。
+- decision：live Git/GitHub state 永远在 intake 时实时查询；tracked docs 只保存 `last_verified_master_snapshot`、last-verified CI provenance、历史 milestone identities、正式 Delivery Ladder、Current Objective、blockers/deferred、decisions 和 frozen identities。
+- rationale：SHA 前进本身不是治理语义变化；只有 material semantic divergence、required frozen identity/hash mismatch 或非法历史后继才构成 `PROJECT_GOVERNANCE_STATE_CONFLICT`。
+- alternatives：每次治理文档变更后把新 HEAD/CI 再写回同一文档；把 snapshot 与 live HEAD 强制相等；把 GitHub API 依赖放入普通 unit tests。
+- consequences：snapshot 可以落后 live HEAD，governance-only commit 不会形成无限更新循环；冻结 strategy/protocol/artifact identity 仍保持 exact-match gate，语义产品状态不一致仍 fail closed。
+- revisit condition：live intake、正式 Delivery Ladder、Current Objective、frozen identity 或历史 branch/base/merge provenance 的语义发生变化时，更新对应治理职责文件并记录新的 decision。
