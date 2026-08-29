@@ -100,3 +100,40 @@
 - alternatives：每次治理文档变更后把新 HEAD/CI 再写回同一文档；把 snapshot 与 live HEAD 强制相等；把 GitHub API 依赖放入普通 unit tests。
 - consequences：snapshot 可以落后 live HEAD，governance-only commit 不会形成无限更新循环；冻结 strategy/protocol/artifact identity 仍保持 exact-match gate，语义产品状态不一致仍 fail closed。
 - revisit condition：live intake、正式 Delivery Ladder、Current Objective、frozen identity 或历史 branch/base/merge provenance 的语义发生变化时，更新对应治理职责文件并记录新的 decision。
+
+## 2026-08-30 — Development Candidate Gate V1
+
+- context：PR #12 在既有 Phase 2B close-only input contract 和既有 legacy evaluator
+  wiring 上建立了受控 development-candidate path；代码审计和 development gate
+  evidence 已完成，但当前 master 在该 PR merge 前仍保持 `research`。
+- decision：`ADOPT` development candidate product path V1。若 PR #12 merge，正式
+  Delivery Ladder 从 `research` 晋级为 `development candidate`；对象是产品路径，
+  不是 `A_PLATFORM_BREAKOUT_LEGACY_V1` strategy 本身。
+- rationale：该路径已经证明 deterministic generation → schema-valid canonical
+  watchlist → explicit fail-closed handling → immutable provenance/versioning →
+  monitoring/rollback 的受控闭环，具备继续核验 frozen-candidate prerequisites 的
+  产品基础。
+- gate evidence：正常 evaluator 运行即使 `candidate_count=0` 也成功生成
+  `candidates=[]` canonical watchlist，重复运行保持 output SHA 幂等，downstream
+  ingest 可读取且 monitor 为 `HEALTHY`；evaluator failure 与 zero-candidate 明确
+  区分；`generation_fingerprint` 覆盖 Phase 2B `input_fingerprint`、contract/schema
+  version、strategy identity、实际参与输出的规范化 names、canonical `market_env`
+  和其他输出相关辅助输入；同一 T 的不同 generation identity fail closed；write
+  failure、rollback、完整 provenance monitor 均有回归证据；focused/full tests、
+  compileall、JSON/hash/provenance、diff 和 secret checks 通过，并以 exact-head CI
+  复核。
+- known limitations：输入仍限于 READY frozen generation manifest 和受控
+  development fixtures；历史新浪 industry membership / effective-date evidence
+  缺失仍只限制 FULL legacy validation；retrospective data 的 vintage provenance
+  限制仍存在。该 gate 不证明参数有效性、收益 edge、跨数据源迁移性或运营上线安全。
+- non-equivalence：本 decision 不构成 frozen candidate，不构成 production strategy，
+  不构成参数选择或调参，不构成 Final OOS 结论，也不授权自动交易、promotion 或
+  自动启动 Phase 2F。
+- consequences：PR #12 merge 后进入 `development candidate`；后续必须先核验
+  frozen-candidate prerequisites，明确必须解决的 P0/P1，并定义 frozen candidate
+  contract/gate。不得把 product-ladder 晋级改写为 legacy strategy promotion。
+- revisit condition：frozen-candidate prerequisites、产品范围、required
+  provenance 或正式 promotion decision 发生变化时，另记 decision；任何新的
+  research question 必须有独立 exit decision，不能由本 gate 自动触发新 Phase。
+- PR / commit：PR #12；最终 merge 状态和 exact-head CI 属于 live Git/GitHub
+  provenance，不在本条写入会自引用的 current HEAD。
