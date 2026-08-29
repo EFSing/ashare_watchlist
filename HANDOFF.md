@@ -4,22 +4,22 @@
 
 ## 1. Current Objective
 
-- 唯一主任务：完成并记录 `daily_k.parquet` 的多设备 / 多会话 recovery handoff，并维持治理一致性。
-- 原因：项目已有跨阶段 research replay、returns、checkpoint 和大型 raw artifact；仅靠会话记忆或单机路径不能安全恢复。
-- Scope：治理文档、冻结 artifact registry、交接冲突 gate、当前真实状态和恢复边界；不改变生产策略或既有 frozen artifact。
+- 唯一主任务：新增长期 `AGENTS.md` 与 `docs/PRODUCT_CHARTER.md`，并把当前真实 Delivery Ladder、usable gate、blocker/deferred 分类和 Phase 2F exit decision 接入治理。
+- 原因：项目已有跨阶段 research replay、returns、checkpoint 和 manual review utility，但不能继续把 research 完整度当成产品终点；必须明确如何进入可实际每日运行的 observation / paper-use。
+- Scope：产品章程、代理契约、handoff/status/decision 治理和真实 Git / PR / CI 证据；不改变生产策略、数据、冻结 artifact 或 Phase 2F 研究结果。
 - 禁止事项：不启动 Phase 2F；不读取 Final OOS；不 promotion；不调参；不把当前数据回填历史；不替换新浪历史行业 membership；不重跑已完成 CORE replay；不以“差不多”的新文件替代 frozen bytes。
-- 完成条件：治理文件通过测试和 CI，治理 PR 的最终 head 有 exact-head CI，registry 中每个 artifact 都有可核验的身份和 recoverability 状态，且本文件与真实 Git / PR / CI 一致。
+- 完成条件：治理文件职责分离、测试/compile/JSON/hash/diff checks 通过，PR 最终 head 有 exact-head CI，若为 `CLEAN` / `MERGEABLE` 则 squash merge，并在合并后刷新本文件。
 - 停止条件：出现 `PROJECT_GOVERNANCE_STATE_CONFLICT`、任一 required hash 不匹配、外部 raw artifact 无法证明为同一 bytes、或任务要求越过 research / OOS / promotion 边界。
 - CI provenance 规则：本文件只保存 `last verified CI provenance`，不要求也不允许把当前 commit 自己产生的 CI run 回写到同一 commit；每个新会话必须实时查询当前 Git HEAD、PR state 和 exact-head CI。
 
 ## 2. Current Repository State
 
 - repo：`EFSing/ashare_watchlist`；origin：`https://github.com/EFSing/ashare_watchlist.git`。
-- formal master SHA：`16ad543bb39a7d01ed4c484406f1053ca5da0ec2`；这是 PR #7 的真实 squash merge commit，formal research baseline 未改变。
-- working branch：`master`（本地已 fast-forward 到 recovery governance squash merge commit）。
-- HEAD at last verified snapshot：`7fe15d8fd2eaf07892a0051321fa6d1dc4352ef9`；这是 PR #8 的 squash merge commit，formal research baseline 仍为 `16ad543…`。
-- PR / state：`PR: NONE`；PR #1–#8 均已 merged，没有 active open PR。PR #8 head 为 `2a1fa22ad474ee91c5946d5d0c1d49db34d691a4`，merge 为 master@7fe15d8…。
-- last verified CI provenance：PR #8 exact-head correctness runs `33259704118`、`33259700451` success；master merge correctness run `33259819493`，headSha=`7fe15d8fd2eaf07892a0051321fa6d1dc4352ef9`，success。
+- formal master SHA：`014b6f46cd68cb483550ddb0915ef5440c45fa75`；这是 recovery governance merge 后的真实 master snapshot，Phase 2E research baseline 仍为 `74ccf86…`。
+- working branch：`codex/product-charter-agent-contract`，从上述远程 master 基线派生；本任务 PR 尚未创建。
+- HEAD at last verified snapshot：`014b6f46cd68cb483550ddb0915ef5440c45fa75`（当前任务 branch 的起始 master snapshot）。
+- PR / state：本任务开始前 `PR: NONE`；PR #1–#8 均已 merged。待本任务 push 后回填本 PR head、CI 和 merge 信息。
+- last verified CI provenance：master correctness run `33260020256`，headSha=`014b6f46cd68cb483550ddb0915ef5440c45fa75`，success。
 - live state gate：新会话必须实时执行 Git / GitHub 核验；本节和 `Last Verified` 的 CI 字段是最近一次证据快照，不是对当前 HEAD 的隐含声明。
 - expected working tree state：tracked working tree clean；`.pytest_cache/`、`__pycache__/` 和本机 `daily_k.parquet` 可被 `.gitignore` 忽略，但 `daily_k.parquet` 的 recovery identity 现在由 registry 记录的 Google Drive private archive member evidence 独立确认。Windows text checkout 的 CRLF SHA 若存在，以 registry 的 Git-blob `file_sha256` 为恢复身份。
 - formal phase / research status：Phase 2E 已完成；CORE continuous replay 和 DEVELOPMENT returns V2 已冻结；FULL legacy 85-score validation 仍 blocked。治理 PR 已合并；本机另有未推送 Phase 2F 分支，见下方，不是 formal master 状态。
@@ -41,8 +41,9 @@
 
 1. 新会话接手时先实时核对 master HEAD、PR state、exact-head CI 和 registry hashes，再读取四份治理文件作为快照和规则。
 2. 保持 `daily_k.parquet` recovery evidence 与 registry 的 `61189a…` exact match 一致；仅在新的明确授权下执行后续 replay/resume。
-3. 对本机 `codex/phase2f-a-breakout-failure-diagnostic@3eeb5df9f7cf4ef5c30b3380b323f26f2491f873` 的 Phase 2F A-platform failure diagnostic 做独立 handoff / provenance review；本任务不启动 Phase 2F。
-4. 在历史新浪行业 membership / effective-date source 与 provenance 边界明确后，再决定 `A_PLATFORM_BREAKOUT failure diagnostic / Research V2 preparation` 和 FULL legacy validation 的范围。
+3. 完成本任务产品治理 PR；只有 exact-head CI 成功且 PR `CLEAN` / `MERGEABLE` 才 squash merge，随后刷新 handoff。
+4. 对本机 `codex/phase2f-a-breakout-failure-diagnostic@3eeb5df9f7cf4ef5c30b3380b323f26f2491f873` 保持独立 handoff / provenance 边界；本任务不启动 Phase 2F，当前 local diagnostic decision 为 `NEEDS_MORE_EVIDENCE`。
+5. 先推进 usable path 的 development candidate 设计；历史新浪行业 membership / effective-date source 只影响 FULL legacy validation，不作为整个产品的默认 blocker。
 
 ### Deferred
 
@@ -71,7 +72,7 @@
   - Why：从 Downloads 中实际下载的 Google Drive private archive 读取到唯一 parquet member；member size 为 `180203424` bytes，member SHA-256 与 frozen SHA `61189a…` 严格一致，matching member count 为 1。
   - Rejected Alternatives：把 ZIP 自身 hash 当作 parquet identity；按文件名猜测；继续使用本机原始文件作为唯一 recovery evidence；记录 URL、token 或绝对路径。
   - Revisit Condition：registry frozen bytes、Google Drive recovery member 或 recovery evidence 发生变化时，重新执行唯一性与 byte-level SHA verification。
-- Decision：`A_PLATFORM_BREAKOUT_LEGACY_V1` 保持 research-only。
+- Decision：`A_PLATFORM_BREAKOUT_LEGACY_V1` 保持 research-only；当前正式 Delivery Ladder 为 `research`，不因 Phase 2E 或 Phase 2F local artifact 直接 promotion。
   - Why：当前完整 legacy output 仍缺历史新浪行业 membership，development outcome 也不是 Final OOS。
   - Rejected Alternatives：按 85 分、V2 returns 或 Phase 2F diagnostic 直接 promotion。
   - Revisit Condition：满足明确批准的验证层、provenance、OOS 和 decision gate。
@@ -112,7 +113,9 @@
 - research/design：历史新浪行业 membership / effective-date evidence 缺失，FULL 85-score parity blocked；retrospective raw dump 没有 per-bar historical vintage timestamp。
 - provider/external：需要可按 T 提供新浪行业 membership 的 source 或带 effective-date 的权限/导出；不能用其他 taxonomy 替代。
 - environment：新设备必须有 Python 3.11/3.12、锁定依赖和可读的 external raw artifact；环境差异不是数据恢复证明。
-- artifact availability：Phase 2F 诊断文件只在本机 local branch，未进入 origin。
+- artifact availability：Phase 2F 诊断文件只在本机 local branch，未进入 origin；不纳入本次治理 PR。
+- product readiness：端到端 deterministic daily generation、canonical watchlist output、显式 data failure、monitoring/rollback/versioning 尚未组成已证明的 usable path，这是 P1 product blocker。
+- scope-local blocker：历史新浪行业 membership 缺失阻止 FULL legacy / 85-score validation，但不阻止 CORE research 或 prospective product progression。
 - ambiguity：治理 PR #8 的 branch head、merge commit 和 exact-head/master CI 已回填并核验；后续任何文档与真实状态不一致都先标记 `PROJECT_GOVERNANCE_STATE_CONFLICT`。
 - non-blocking debt：忽略目录中的测试缓存不属于版本化 artifact，但声明 handoff 前应保持 tracked working tree clean。
 
@@ -127,10 +130,10 @@
 
 ## 10. Next Action
 
-1. 新会话实时核验 master HEAD、`PR: NONE`、merge 后 CI 和 required artifact hashes。
-2. 保持 `daily_k.parquet` 的 `GOOGLE_DRIVE_PRIVATE` recovery evidence 与 `61189a…` exact match；未经新的明确授权不执行 replay/resume。
-3. 不启动 Phase 2F；未来如获明确授权，先对 local-only A-platform failure diagnostic 做 separate review，仍不 promotion、不读 Final OOS。
-4. 在历史新浪行业 membership / effective-date source 和 provenance decision 完成前，停止在 research decision node。
+1. 在本任务 branch 完成治理文档验证、commit、push 和 PR；实时核对最终 head、exact-head CI、`CLEAN` / `MERGEABLE`。
+2. 若合并 gate 全部满足，squash merge 并在 master 上刷新本文件；否则保留 blocker 证据并停止，不绕过 gate。
+3. 保持 `daily_k.parquet` 的 `GOOGLE_DRIVE_PRIVATE` recovery evidence 与 `61189a…` exact match；未经新的明确授权不执行 replay/resume。
+4. 不启动 Phase 2F、不读 Final OOS；下一产品动作是 usable path 的 development candidate，而不是无边界追加 research。
 
 ## 11. Handoff Checklist
 
@@ -149,9 +152,9 @@
 
 ## 12. Last Verified
 
-- last_updated_at：`2026-08-29T23:19:39+08:00`（Asia/Shanghai）
-- verified_master_sha：`7fe15d8fd2eaf07892a0051321fa6d1dc4352ef9`
-- verified_branch_head：`7fe15d8fd2eaf07892a0051321fa6d1dc4352ef9`（post-merge master snapshot）
-- latest_test_result：`pytest 135 passed`; `compileall` pass; registry JSON/hash/recovery checks pass; secret scan and path/URL guard pass; PR exact-head CI `33259704118`、`33259700451` success; merge master CI `33259819493` success
-- latest_ci_run_provenance：run `33259819493` / headSha `7fe15d8fd2eaf07892a0051321fa6d1dc4352ef9` / success（last verified master provenance；不制造 CI 自引用更新循环）
-- updated_by_task：`daily_k Google Drive recovery post-merge governance refresh`
+- last_updated_at：`2026-08-29T23:30:00+08:00`（Asia/Shanghai；本任务开始前实时核验）
+- verified_master_sha：`014b6f46cd68cb483550ddb0915ef5440c45fa75`
+- verified_branch_head：`014b6f46cd68cb483550ddb0915ef5440c45fa75`（governance branch 起始 snapshot；新 branch head 待 commit 后核验）
+- latest_test_result：`pytest 135 passed`; `compileall` pass; registry JSON/hash/recovery checks pass; secret scan and path/URL guard pass; master correctness run `33260020256` success
+- latest_ci_run_provenance：run `33260020256` / headSha `014b6f46cd68cb483550ddb0915ef5440c45fa75` / success（last verified master provenance；不制造 CI 自引用更新循环）
+- updated_by_task：`product charter and agent development contract intake`
