@@ -12,7 +12,24 @@
 4. `docs/DECISION_LOG.md`
 5. 当前任务相关的 governance / protocol 文件，例如 `docs/FROZEN_ARTIFACT_POLICY.md`、`docs/generation_input_contract.md`、`docs/phase2d_validation_protocol.md` 或对应 research protocol。
 
-然后实时核对适用的 Git branch、HEAD、remote、PR、CI 和 artifact/hash 状态。文档快照不能替代真实仓库状态；若不一致，先标记 `PROJECT_GOVERNANCE_STATE_CONFLICT`，停止依赖冲突字段继续推进。
+然后实时核对适用的 Git / GitHub 状态：current branch、current HEAD、`origin/master`、active PR、exact-head CI 和 working tree。Git-tracked governance 文档不得要求其中记录的 current HEAD 或 current CI run 永久等于未来实时 Git 状态；文档中的 `last_verified_snapshot`、historical milestone SHA 和 last-verified CI 都是 persisted provenance，不是 live-state invariant。
+
+## Live state vs persisted governance state
+
+两类状态必须明确区分：
+
+- **LIVE STATE**：每次 intake 都从 Git/GitHub 实时读取 current branch、current HEAD、`origin/master`、active PR、exact-head CI 和 working tree；以这些查询结果为准，不以文档中的静态 SHA 为准。
+- **PERSISTED GOVERNANCE STATE**：文档可以保存 formal milestone merge identity、strategy/protocol/frozen-artifact SHA、`last_verified_master_snapshot`、last-verified CI provenance、Delivery Ladder、Current Objective、blockers/deferred、decisions 和 frozen artifact identities。
+
+`last_verified_master_snapshot` 只表示最近一次静态 provenance；formal milestone SHA 只表示历史身份；二者都不要求等于 current live HEAD。live HEAD 与 snapshot 不同时，先审计 snapshot 到 live HEAD 之间的 commits；只有发现 material governance/product/research state change 且文档没有反映，才继续判定冲突。
+
+只有以下情况属于 `PROJECT_GOVERNANCE_STATE_CONFLICT`：
+
+1. live Git/GitHub 状态与文档的语义状态矛盾，例如 active PR、Delivery Ladder、artifact recoverability、Current Objective 或已正式合并的 material change 没有被反映；
+2. required frozen strategy/protocol/artifact identity 或 hash 不匹配；
+3. live HEAD 不是预期历史链的合法后继，存在 branch/base/merge provenance 异常。
+
+以下情况单独出现时不得判为 conflict：live HEAD 比 `last_verified_master_snapshot` 更新、live CI run 比文档记录更新、governance-only commit 导致 HEAD 前进，或 formal milestone SHA 与 live HEAD 不相等。
 
 ## Task classification
 
@@ -66,6 +83,6 @@
 - `CURRENT_STATUS.md`：正式达到 Delivery Ladder 哪一级，以及当前 blockers/deferred；
 - `DECISION_LOG.md`：为什么进入、退出或拒绝某项研究/产品决策；
 - `docs/PRODUCT_CHARTER.md`：长期使命、范围、usable definition 和交付原则；
-- `AGENTS.md`：代理必须遵守的行为契约。
+- `AGENTS.md`：代理必须遵守的行为契约，包括 live state 与 persisted governance state 的冲突语义。
 
 声明完成前，检查变更文件边界、测试、`compileall`、JSON/hash validation、`git diff --check`、最终 commit、PR head 和 exact-head CI。若任务允许合并，只有 exact-head CI 成功且 PR 为 `CLEAN` / `MERGEABLE` 才能 squash merge；合并后刷新 handoff。

@@ -11,18 +11,17 @@
 - 禁止事项：不启动 Phase 2F；不读取 Final OOS；不 promotion；不调参；不把当前数据回填历史；不替换新浪历史行业 membership；不重跑已完成 CORE replay；不以“差不多”的新文件替代 frozen bytes。
 - 完成条件：development candidate 在受控输入上可重复演示，canonical watchlist 与显式失败处理、监控/回滚/版本边界均有回归证据，并停在 `development-candidate` gate；不据此 promotion 或进入 Final OOS。
 - 停止条件：出现 `PROJECT_GOVERNANCE_STATE_CONFLICT`、任一 required hash 不匹配、外部 raw artifact 无法证明为同一 bytes、或任务要求越过 research / OOS / promotion 边界。
-- CI provenance 规则：本文件只保存 `last verified CI provenance`，不要求也不允许把当前 commit 自己产生的 CI run 回写到同一 commit；每个新会话必须实时查询当前 Git HEAD、PR state 和 exact-head CI。
+- CI provenance 规则：本文件只保存 `last verified CI provenance`，不要求也不允许把当前 commit 自己产生的 CI run 回写到同一 commit；每个新会话必须实时查询当前 branch、HEAD、`origin/master`、PR state、exact-head CI 和 working tree。
 
 ## 2. Current Repository State
 
 - repo：`EFSing/ashare_watchlist`；origin：`https://github.com/EFSing/ashare_watchlist.git`。
-- formal governance merge identity：`7a27484293cbcb791c6b8407949e9e71257e016b`；这是产品章程与代理开发契约 PR #9 的真实 squash merge commit，Phase 2E research baseline 仍为 `74ccf86…`。
-- current live master HEAD：`11db387cc51a645c4491b39cbfa3e03e1228b6c4`；这是本次 handoff consistency repair PR #10 的 squash merge commit，当前 `master` 与 `origin/master` 一致。
-- working branch at last verified snapshot：`master`；本次治理修复已合并，当前无待合并治理分支。
-- HEAD at last verified snapshot：`11db387cc51a645c4491b39cbfa3e03e1228b6c4`（current live master）。
-- PR / state：`PR: NONE`；PR #1–#10 均已 merged，没有 active open PR。PR #9 head 为 `859935fb80a0de585149da16ead8870db11a63a7`、formal governance merge 为 master@7a27484…；PR #10 head 为 `c1529b2e03cfc3444b81029c02a1747844db7d1e`、merge 为 master@11db387…。
-- last verified CI provenance：merge master correctness run `33261928349`，headSha=`11db387cc51a645c4491b39cbfa3e03e1228b6c4`，success。
-- live state gate：新会话必须实时执行 Git / GitHub 核验；本节和 `Last Verified` 的 CI 字段是最近一次证据快照，不是对当前 HEAD 的隐含声明。
+- HISTORICAL_MILESTONE_IDENTITY：PR #9 产品章程与代理开发契约 squash merge `7a27484293cbcb791c6b8407949e9e71257e016b`；Phase 2E research baseline 仍为 `74ccf86…`。
+- HISTORICAL_MILESTONE_IDENTITY：PR #10 handoff consistency repair squash merge `11db387cc51a645c4491b39cbfa3e03e1228b6c4`。
+- last_verified_master_snapshot：`582db47553257d9333e5041353581f9be9e1d20e`；这是最近一次静态 provenance snapshot，不要求等于新会话 intake 时的 live HEAD。
+- last_verified_branch：`master`；仅表示上述 snapshot 的来源，不是 current branch invariant。
+- last_verified_ci_provenance：correctness run `33262142503`，headSha=`582db47553257d9333e5041353581f9be9e1d20e`，success；仅是最近一次 CI 证据，不是未来 live CI invariant。
+- live state gate：新会话必须实时执行 Git / GitHub 核验；current branch、HEAD、`origin/master`、active PR、exact-head CI 和 working tree 以实时结果为准。
 - expected working tree state：tracked working tree clean；`.pytest_cache/`、`__pycache__/` 和本机 `daily_k.parquet` 可被 `.gitignore` 忽略，但 `daily_k.parquet` 的 recovery identity 现在由 registry 记录的 Google Drive private archive member evidence 独立确认。Windows text checkout 的 CRLF SHA 若存在，以 registry 的 Git-blob `file_sha256` 为恢复身份。
 - formal phase / research status：Phase 2E 已完成；CORE continuous replay 和 DEVELOPMENT returns V2 已冻结；FULL legacy 85-score validation 仍 blocked。治理 PR 已合并；本机另有未推送 Phase 2F 分支，见下方，不是 formal master 状态。
 
@@ -120,7 +119,7 @@
 - artifact availability：Phase 2F 诊断文件只在本机 local branch，未进入 origin；不纳入本次治理 PR。
 - product readiness：端到端 deterministic daily generation、canonical watchlist output、显式 data failure、monitoring/rollback/versioning 尚未组成已证明的 usable path，这是 P1 product blocker。
 - scope-local blocker：历史新浪行业 membership 缺失阻止 FULL legacy / 85-score validation，但不阻止 CORE research 或 prospective product progression。
-- ambiguity：治理 PR #8 的 branch head、merge commit 和 exact-head/master CI 已回填并核验；后续任何文档与真实状态不一致都先标记 `PROJECT_GOVERNANCE_STATE_CONFLICT`。
+- governance semantics：snapshot SHA、historical milestone SHA 和 last-verified CI 只保存 provenance；只有 material semantic divergence、required frozen identity mismatch 或非法历史后继才是 `PROJECT_GOVERNANCE_STATE_CONFLICT`。
 - non-blocking debt：忽略目录中的测试缓存不属于版本化 artifact，但声明 handoff 前应保持 tracked working tree clean。
 
 ## 9. Lessons / Pitfalls — DO NOT REPEAT
@@ -148,8 +147,8 @@
 
 确认项：
 
-- [x] Git branch / HEAD / master 与远端一致或差异已写明。
-- [x] PR state、最终 `headSha` 和 exact-head CI 已核对。
+- [ ] 新会话已实时核对 current branch / HEAD / `origin/master` / working tree；该项不由本文件的静态 snapshot 自动满足。
+- [ ] 新会话已实时核对 active PR、最终 `headSha` 和 exact-head CI；该项不由本文件的静态 CI provenance 自动满足。
 - [x] required artifact 的 content SHA、Git-blob/file SHA、backup 和 recovery status 已核对；若适用也核对 working-tree SHA。
 - [x] research / development / OOS / production 边界未被改变。
 - [x] 本文件、CURRENT_STATUS、DECISION_LOG、FROZEN_ARTIFACT_POLICY 没有互相冲突。
@@ -157,9 +156,8 @@
 
 ## 12. Last Verified
 
-- last_updated_at：`2026-08-30T00:06:13+08:00`（Asia/Shanghai；PR #10 merge 后刷新）
-- verified_master_sha：`11db387cc51a645c4491b39cbfa3e03e1228b6c4`（current live master at last verification；formal governance merge identity 仍为 `7a27484293cbcb791c6b8407949e9e71257e016b`）
-- verified_branch_head：`11db387cc51a645c4491b39cbfa3e03e1228b6c4`（post-merge master snapshot；refresh commit 自身不写入其 CI provenance）
-- latest_test_result：`pytest 135 passed`; `compileall` pass; registry JSON/hash/recovery checks pass; secret scan and path/URL guard pass; PR #10 exact-head CI `33261804181`、`33261822861` success; merge master CI `33261928349` success
-- latest_ci_run_provenance：run `33261928349` / headSha `11db387cc51a645c4491b39cbfa3e03e1228b6c4` / success（last verified master provenance；不制造 CI 自引用更新循环）
-- updated_by_task：`post-merge usable path governance handoff consistency refresh`
+- last_updated_at：`2026-08-30T00:08:05+08:00`（Asia/Shanghai；snapshot `582db475...`）
+- last_verified_master_snapshot：`582db47553257d9333e5041353581f9be9e1d20e`
+- latest_test_result：`pytest 135 passed`; `compileall` pass; registry JSON/hash/recovery checks pass; secret scan and path/URL guard pass; correctness run `33262142503` success
+- latest_ci_run_provenance：run `33262142503` / headSha `582db47553257d9333e5041353581f9be9e1d20e` / success；不制造 CI 自引用更新循环
+- updated_by_task：`governance self-reference semantics repair preparation snapshot`
