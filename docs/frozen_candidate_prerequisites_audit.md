@@ -140,3 +140,28 @@ FULL legacy validation 的 scope-local blocker，不升级为全局或 B eligibi
 
 当前不创建 `FROZEN_CANDIDATE_CONTRACT_V1`，不把 development eligibility 写成
 strategy promotion，不读取 Final OOS，也不自动测试 C。
+
+## 8. Governance conflict and provenance correctness closure
+
+本轮修复了 active PR metadata 与正式 evidence 不一致的问题：B 的 decision 保持
+`CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`，Formal Delivery Ladder 保持
+`development candidate`，尚未创建 `FROZEN_CANDIDATE_CONTRACT_V1`，唯一当前 P1
+仍为 `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`；不 promotion。
+
+`scripts/strategy_development_eligibility.py` 现在只把稳定的 repo-relative logical
+path 写入 eligibility provenance，并禁止 `Path.resolve()` 的 machine-specific 结果
+进入 identity。relocated filesystem roots 以及 relative/absolute invocation 的回归均
+证明 canonical manifest/content identity 相同；绝对路径不参与 semantic/content/hash。
+
+正式 B decision evidence 已登记到 registry：event artifact 的 file SHA 为
+`8940a4a346ac6911ba669f84a9ceba7ef878b0ed0ce51edf673439b52aa056b9`、semantic/content
+SHA 为 `a16e48dfbe8a93f64d8bf1bad6e00d3eaf32c10fd60eed09dc5574247b8119bc`；manifest
+semantic SHA 为 `f79ec9baa494f2f0256843c2540988bd25c94269ed9a1fd4ada228759bd8e0a2`，
+payload content SHA 为 `e754787836b28316430278372ab2d84817091d4608da394f9207f695a4c27aee`，
+file SHA 为 `5e0a557c1930de7b4f182f09f43b45c0c11b19b2d7c992bf9e7fa7e6cc6de048`。
+两者均是 `required_for_decision=true`、`required_for_replay=false`，并保留
+`DEVELOPMENT` / `RECONSTRUCTED_RETROSPECTIVE` 及当前 recoverability 标签。
+
+本次 deterministic reproducibility verification 的 event count、event identities、
+全部 metrics、fixed thresholds、gate audit 和 eligibility decision 与修复前完全一致；
+没有 C、Phase 2F、调参、Final OOS 或 production promotion。

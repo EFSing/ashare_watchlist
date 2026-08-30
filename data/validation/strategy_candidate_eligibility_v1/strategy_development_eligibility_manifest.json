@@ -2,6 +2,7 @@
   "artifacts": {
     "event_results": {
       "bytes": 2506292,
+      "content_sha256": "a16e48dfbe8a93f64d8bf1bad6e00d3eaf32c10fd60eed09dc5574247b8119bc",
       "path": "data/validation/strategy_candidate_eligibility_v1/b_breakout_retest_eligibility_events.jsonl.gz",
       "rows": 17714,
       "sha256": "8940a4a346ac6911ba669f84a9ceba7ef878b0ed0ce51edf673439b52aa056b9"
@@ -313,7 +314,7 @@
       "signal_uses": "T close only"
     }
   },
-  "manifest_sha256": "5e123206d7961475d656d1e0b14695a514a4edec88d01e61890a2d58f7b4e77b",
+  "manifest_sha256": "f79ec9baa494f2f0256843c2540988bd25c94269ed9a1fd4ada228759bd8e0a2",
   "metrics": {
     "10D": {
       "by_month": {

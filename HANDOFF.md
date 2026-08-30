@@ -258,3 +258,28 @@ year robustness、fixed gate audit 和 artifact SHA 见
 C、不启动 Phase 2F、不调参、不读 Final OOS。
 
 本节是治理 snapshot；live branch / PR / exact-head CI 仍须按 checklist 实时核对。
+
+## 14. Governance conflict and provenance correctness closure — 2026-08-31
+
+Sol audit 指出的 `PROJECT_GOVERNANCE_STATE_CONFLICT` 已限定并修复：active PR
+metadata 现在必须描述 B `CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`；Formal
+Delivery Ladder 仍为 `development candidate`；尚未创建
+`FROZEN_CANDIDATE_CONTRACT_V1`；唯一当前 P1 为
+`P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`；不 promotion。
+
+`strategy_development_eligibility.py` 的 serialized provenance 现在只保存稳定
+repo-relative logical paths；不同 repo/temp roots 以及 relative/absolute invocation
+不会改变 canonical identity，绝对 path 和 `Path.resolve()` machine-specific result
+不参与 semantic/content/manifest hash。
+
+本轮正式 decision artifacts 已登记并做 byte/hash verification：
+
+- event：17,714 rows；file SHA `8940a4a346ac6911ba669f84a9ceba7ef878b0ed0ce51edf673439b52aa056b9`；semantic/content SHA `a16e48dfbe8a93f64d8bf1bad6e00d3eaf32c10fd60eed09dc5574247b8119bc`。
+- manifest：367,674 bytes；file SHA `5e0a557c1930de7b4f182f09f43b45c0c11b19b2d7c992bf9e7fa7e6cc6de048`；manifest semantic SHA `f79ec9baa494f2f0256843c2540988bd25c94269ed9a1fd4ada228759bd8e0a2`；payload content SHA `e754787836b28316430278372ab2d84817091d4608da394f9207f695a4c27aee`。
+
+同一冻结 inputs/fixed B protocol 的 deterministic reproducibility verification 证明
+event count、event identities、全部 metrics、fixed thresholds、gate audit、decision
+与修复前完全一致；manifest 仅做 provenance rematerialization，不是第二次
+candidate-selection experiment。Phase 2B T-close/T+1、anti-lookahead、Final OOS sealed
+invariants 未改变。当前停在 Sol review；不测试 C、不启动 Phase 2F、不调参、不读
+Final OOS、不 merge。

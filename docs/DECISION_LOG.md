@@ -217,7 +217,9 @@
   eligibility 的 `ADOPT`，不是 production strategy promotion、parameter validation
   或 Final OOS 结论。event artifact SHA 为
   `8940a4a346ac6911ba669f84a9ceba7ef878b0ed0ce51edf673439b52aa056b9`；eligibility
-  manifest file SHA 为 `a0c5a195ea991a471fd56eb80534d03091d6bd308f6c6f263476737380a28c9a`。
+  original manifest file SHA 为 `a0c5a195ea991a471fd56eb80534d03091d6bd308f6c6f263476737380a28c9a`；
+  该文件后续仅因 provenance correctness 修复而 deterministic rematerialized，当前
+  file SHA 由 2026-08-31 closure entry 记录。
 - prospective contract：定义
   `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V1`，绑定 B strategy/spec
   SHA、T close/T+1、universe、sector semantics、names、market_env、provider/version、
@@ -227,3 +229,35 @@
   `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`，等待首个真实 candidate-bound
   `LIVE_OBSERVED` T-close package 并验证 `known_at <= T`。不测试 C、不启动 Phase 2F、
   不调参、不读 Final OOS、不创建 `FROZEN_CANDIDATE_CONTRACT_V1`。
+
+## 2026-08-31 — PR #14 governance conflict and provenance correctness closure
+
+- context：Sol 独立审计发现 active PR body 仍保留旧的 parquet-reader stop /
+  `NO_REPRODUCIBLE_STRATEGY_CANDIDATE` 叙述，与 HEAD 上已完成的 B eligibility
+  及 HANDOFF/CURRENT_STATUS/本日志冲突；同时 eligibility manifest provenance
+  serialization 允许 CLI absolute path 影响 manifest identity。
+- decision：只修 active PR metadata、eligibility provenance canonicalization 和
+  formal decision-artifact registry；B fixed rule/spec/thresholds、observed metrics、
+  event set 与 decision 全部保持不变。
+- provenance：不同 filesystem root 及 relative/absolute invocation 的 regression
+  证明 canonical identity 相同；path 只保存稳定 repo-relative logical provenance，
+  `Path.resolve()` 的 machine-specific result 不进入 semantic/content/manifest hash。
+- deterministic verification：同一冻结 raw/CORE inputs 与既有固定 protocol 完成一次
+  reproducibility verification；event count `17,714`、event file SHA
+  `8940a4a346ac6911ba669f84a9ceba7ef878b0ed0ce51edf673439b52aa056b9`、event semantic
+  SHA `a16e48dfbe8a93f64d8bf1bad6e00d3eaf32c10fd60eed09dc5574247b8119bc`、metrics
+  identity、all gates 和 `CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES` 与修复前完全
+  一致。manifest 只做 deterministic provenance rematerialization；new manifest
+  semantic SHA 为 `f79ec9baa494f2f0256843c2540988bd25c94269ed9a1fd4ada228759bd8e0a2`，
+  payload content SHA 为 `e754787836b28316430278372ab2d84817091d4608da394f9207f695a4c27aee`，
+  file SHA 为 `5e0a557c1930de7b4f182f09f43b45c0c11b19b2d7c992bf9e7fa7e6cc6de048`。
+- registry：两个 B artifacts 均登记为 `required_for_decision=true`、
+  `required_for_replay=false`，并验证 registry 的实际 file/content SHA 与提交文件
+  完全匹配；不记录 absolute path、URL、token 或 secret。
+- governance outcome：Formal Delivery Ladder 仍为 `development candidate`，不创建
+  `FROZEN_CANDIDATE_CONTRACT_V1`；唯一当前 P1 仍为
+  `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`；不 promotion、不测试 C、不启动
+  Phase 2F、不调参、不读 Final OOS。
+- revisit condition：只有首个真实 candidate-bound `LIVE_OBSERVED` T-close input
+  instance 到来，或正式 strategy/protocol/data/provenance identity 改变时，才重新
+  进入对应 decision gate。

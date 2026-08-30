@@ -120,3 +120,27 @@ MFE/MAE、concentration、year robustness、gate audit 和 event/manifest SHA �
 `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`；在首个真实
 `LIVE_OBSERVED` T-close package 到来前，不创建 `FROZEN_CANDIDATE_CONTRACT_V1`，
 不测试 C、不启动 Phase 2F、不调参、不读 Final OOS。
+
+## Governance correctness closure — 2026-08-31
+
+已修复 active PR metadata 与正式 B evidence 的 `PROJECT_GOVERNANCE_STATE_CONFLICT`：
+B decision 为 `CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`；Formal Delivery Ladder
+仍为 `development candidate`；尚未创建 `FROZEN_CANDIDATE_CONTRACT_V1`；唯一当前
+P1 仍为 `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`；不 promotion。
+
+eligibility provenance 已改为稳定 repo-relative logical paths。不同 filesystem root、
+relative/absolute invocation 的 canonical identity 回归均通过；绝对 path 与
+`Path.resolve()` machine-specific result 不进入 semantic/content/manifest hash。
+
+正式 B decision artifacts 已在 `data/governance/frozen_artifacts.json` 登记：event
+file SHA `8940a4a346ac6911ba669f84a9ceba7ef878b0ed0ce51edf673439b52aa056b9`、event
+semantic SHA `a16e48dfbe8a93f64d8bf1bad6e00d3eaf32c10fd60eed09dc5574247b8119bc`；manifest
+manifest semantic SHA `f79ec9baa494f2f0256843c2540988bd25c94269ed9a1fd4ada228759bd8e0a2`、
+payload content SHA `e754787836b28316430278372ab2d84817091d4608da394f9207f695a4c27aee`、
+manifest file SHA `5e0a557c1930de7b4f182f09f43b45c0c11b19b2d7c992bf9e7fa7e6cc6de048`。
+两项均为 `required_for_decision=true`、`required_for_replay=false`。
+
+同一冻结输入与固定 B protocol 的 deterministic reproducibility verification 证明
+event count、event identities、全部 metrics、fixed thresholds、gate audit 和
+eligibility decision 与修复前完全一致；这不是第二次 candidate-selection experiment。
+Phase 2B T-close/T+1、anti-lookahead、Final OOS sealed invariants 未改变。

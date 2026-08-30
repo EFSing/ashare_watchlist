@@ -114,11 +114,19 @@ Final OOS read, or production-rule change occurred.
 - event artifact: `data/validation/strategy_candidate_eligibility_v1/b_breakout_retest_eligibility_events.jsonl.gz`
   - rows: `17,714`; bytes: `2,506,292`
   - file SHA-256: `8940a4a346ac6911ba669f84a9ceba7ef878b0ed0ce51edf673439b52aa056b9`
+  - semantic/content SHA-256: `a16e48dfbe8a93f64d8bf1bad6e00d3eaf32c10fd60eed09dc5574247b8119bc`
 - eligibility manifest: `data/validation/strategy_candidate_eligibility_v1/strategy_development_eligibility_manifest.json`
-  - bytes: `378,134`
-  - file SHA-256: `a0c5a195ea991a471fd56eb80534d03091d6bd308f6c6f263476737380a28c9a`
-  - semantic manifest SHA-256: `5e123206d7961475d656d1e0b14695a514a4edec88d01e61890a2d58f7b4e77b`
+  - bytes: `367,674`
+  - file SHA-256: `5e0a557c1930de7b4f182f09f43b45c0c11b19b2d7c992bf9e7fa7e6cc6de048`
+  - semantic manifest SHA-256: `f79ec9baa494f2f0256843c2540988bd25c94269ed9a1fd4ada228759bd8e0a2`
   - content SHA-256: `e754787836b28316430278372ab2d84817091d4608da394f9207f695a4c27aee`
+
+The manifest provenance was deterministically rematerialized after correcting path
+canonicalization. All recorded paths are stable repo-relative logical paths; no
+absolute/local path participates in the manifest semantic/content identity. A single
+reproducibility verification with the same frozen inputs and fixed protocol produced
+the same event bytes, event identities, event count, metrics, fixed gates and decision;
+it was not a second candidate-selection experiment.
 
 ## Candidate-bound prospective path and final stop
 

@@ -637,6 +637,39 @@
       "storage_location_type": "local_git_branch_only",
       "required_for_replay": false,
       "notes": "Local-only diagnostic output."
+    },
+    {
+      "artifact_id": "strategy_candidate_eligibility_v1.b_breakout_retest.events",
+      "role": "strategy_candidate_eligibility_event_results",
+      "logical_path": "data/validation/strategy_candidate_eligibility_v1/b_breakout_retest_eligibility_events.jsonl.gz",
+      "artifact_version": "STRATEGY_DEVELOPMENT_ELIGIBILITY_V1_EVENT_RESULTS",
+      "content_sha256": "a16e48dfbe8a93f64d8bf1bad6e00d3eaf32c10fd60eed09dc5574247b8119bc",
+      "file_sha256": "8940a4a346ac6911ba669f84a9ceba7ef878b0ed0ce51edf673439b52aa056b9",
+      "producer_or_source": "scripts/strategy_development_eligibility.py; fixed B eligibility replay",
+      "frozen_by_commit": "fffb8851bd25feaa8ca06f32a5d9aa231a4e8aed",
+      "status": ["LOCAL_PRESENT", "HASH_VERIFIED", "PERSISTENT_BACKUP_PRESENT", "RECOVERY_VERIFIED", "FULLY_RECOVERABLE"],
+      "recoverability_status": "FULLY_RECOVERABLE",
+      "storage_location_type": "git_remote_pr_branch",
+      "required_for_replay": false,
+      "required_for_decision": true,
+      "notes": "Formal B decision evidence; DEVELOPMENT / RECONSTRUCTED_RETROSPECTIVE only. Canonical event records are gzip-independent semantic content; no Final OOS or promotion evidence."
+    },
+    {
+      "artifact_id": "strategy_candidate_eligibility_v1.manifest",
+      "role": "strategy_candidate_eligibility_manifest",
+      "logical_path": "data/validation/strategy_candidate_eligibility_v1/strategy_development_eligibility_manifest.json",
+      "artifact_version": "STRATEGY_DEVELOPMENT_ELIGIBILITY_V1_MANIFEST",
+      "content_sha256": "f79ec9baa494f2f0256843c2540988bd25c94269ed9a1fd4ada228759bd8e0a2",
+      "payload_content_sha256": "e754787836b28316430278372ab2d84817091d4608da394f9207f695a4c27aee",
+      "file_sha256": "5e0a557c1930de7b4f182f09f43b45c0c11b19b2d7c992bf9e7fa7e6cc6de048",
+      "producer_or_source": "scripts/strategy_development_eligibility.py; deterministic provenance rematerialization of fixed B evidence",
+      "frozen_by_commit": "fffb8851bd25feaa8ca06f32a5d9aa231a4e8aed",
+      "status": ["LOCAL_PRESENT", "HASH_VERIFIED", "PERSISTENT_BACKUP_PRESENT", "RECOVERY_VERIFIED", "FULLY_RECOVERABLE"],
+      "recoverability_status": "FULLY_RECOVERABLE",
+      "storage_location_type": "git_remote_pr_branch",
+      "required_for_replay": false,
+      "required_for_decision": true,
+      "notes": "Formal B eligibility decision manifest; paths are logical repo-relative provenance only. Metrics, event set, fixed thresholds and decision are unchanged by rematerialization."
     }
   ]
 }

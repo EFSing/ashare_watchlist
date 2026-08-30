@@ -15,6 +15,7 @@ import importlib.metadata
 import json
 import platform
 from pathlib import Path
+from pathlib import PurePath
 import sys
 from typing import Any
 
@@ -59,6 +60,7 @@ EXPECTED_PARQUET_ENGINE = "pyarrow"
 EXPECTED_PARQUET_ENGINE_VERSION = "17.0.0"
 EXPECTED_PANDAS_VERSION = "2.2.3"
 EXPECTED_DAILY_K_SHA256 = "61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426"
+PROVENANCE_PATH_KEYS = frozenset({"path", "logical_path", "manifest_path", "event_results_path"})
 
 
 def _runtime_environment() -> dict[str, str]:
@@ -93,7 +95,11 @@ def _runtime_environment() -> dict[str, str]:
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
 
 
 def _write_events(path: Path, records: list[dict[str, Any]]) -> dict[str, Any]:
@@ -102,7 +108,82 @@ def _write_events(path: Path, records: list[dict[str, Any]]) -> dict[str, Any]:
         with gzip.GzipFile(fileobj=raw, mode="wb", filename="", mtime=0) as compressed:
             for record in records:
                 compressed.write((replay.canonical_json(record) + "\n").encode("utf-8"))
-    return {"path": path.as_posix(), "bytes": path.stat().st_size, "rows": len(records), "sha256": returns_v1._file_sha256(path)}
+    return {
+        "path": path.as_posix(),
+        "bytes": path.stat().st_size,
+        "rows": len(records),
+        "sha256": returns_v1._file_sha256(path),
+        "content_sha256": replay.sha256_json(records),
+    }
+
+
+def _repo_root_from_registry(registry_path: Path) -> Path:
+    """Return the lexical repository root; never use its machine-specific spelling in identity."""
+
+    return registry_path.parents[2]
+
+
+def _normalise_relative_parts(path: Path) -> str:
+    parts: list[str] = []
+    for part in PurePath(path).parts:
+        if part in ("", "."):
+            continue
+        if part == "..":
+            raise RuntimeError(f"provenance path escapes repository root: {path}")
+        parts.append(part)
+    if not parts:
+        raise RuntimeError(f"empty provenance path: {path}")
+    return "/".join(parts)
+
+
+def _logical_repo_path(path: str | Path, repo_root: Path) -> str:
+    """Map an input path to a stable repo-relative spelling for provenance only.
+
+    Filesystem paths are used only for I/O and containment checking.  The returned
+    logical path contains no drive, workspace, temporary-directory, or machine name.
+    """
+
+    candidate = Path(path)
+    filesystem_root = repo_root if repo_root.is_absolute() else Path.cwd() / repo_root
+    if candidate.is_absolute():
+        try:
+            relative = candidate.relative_to(filesystem_root)
+        except ValueError as exc:
+            raise RuntimeError(f"provenance path is outside repository root: {candidate}") from exc
+    else:
+        try:
+            relative = (Path.cwd() / candidate).relative_to(filesystem_root)
+        except ValueError as exc:
+            raise RuntimeError(f"provenance path is outside repository root: {candidate}") from exc
+    return _normalise_relative_parts(relative)
+
+
+def _canonicalise_provenance_paths(value: Any, repo_root: Path, *, key: str | None = None) -> Any:
+    """Canonicalise only path-bearing provenance fields before manifest hashing."""
+
+    if isinstance(value, dict):
+        return {
+            item_key: _canonicalise_provenance_paths(item_value, repo_root, key=item_key)
+            for item_key, item_value in value.items()
+        }
+    if isinstance(value, list):
+        return [_canonicalise_provenance_paths(item, repo_root, key=key) for item in value]
+    if isinstance(value, str) and key in PROVENANCE_PATH_KEYS:
+        return _logical_repo_path(value, repo_root)
+    return value
+
+
+def _content_identity_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "candidate": payload["candidate"],
+        "raw_source_content_sha256": payload["input_provenance"]["frozen_identity"]["raw_source_content_sha256"],
+        "core_projection_stream_sha256": payload["input_provenance"]["frozen_identity"]["core_projection_stream_sha256"],
+        "event_results_sha256": payload["artifacts"]["event_results"]["sha256"],
+        "metrics": payload["metrics"],
+        "signal_concentration": payload["signal_concentration"],
+        "execution_environment": payload["execution_environment"],
+        "decision": payload["decision"],
+    }
 
 
 def _projection(result: Any) -> dict[str, Any]:
@@ -129,7 +210,7 @@ def _projection(result: Any) -> dict[str, Any]:
 
 
 def _default_registry_path(raw_dir: Path) -> Path:
-    return raw_dir.resolve().parents[3] / "data" / "governance" / "frozen_artifacts.json"
+    return raw_dir.parents[3] / "data" / "governance" / "frozen_artifacts.json"
 
 
 def _verify_required_registry_hashes(
@@ -143,7 +224,7 @@ def _verify_required_registry_hashes(
     required = [item for item in registry.get("artifacts", []) if item.get("required_for_replay") is True]
     if not required:
         raise RuntimeError("frozen artifact registry has no required replay artifacts")
-    repo_root = registry_path.resolve().parents[2]
+    repo_root = _repo_root_from_registry(registry_path)
     expected_daily = next(
         (item for item in required if item.get("logical_path") == "data/validation/core_signal_validation/raw/daily_k.parquet"),
         None,
@@ -351,6 +432,8 @@ def run(
         core_output=core_output,
         core_manifest_path=core_manifest_path,
     )
+    repo_root = _repo_root_from_registry(registry_path)
+    source = _canonicalise_provenance_paths(source, repo_root)
     frozen_identity = _verify_frozen_projection_identity(
         registry=registry,
         root=root,
@@ -479,7 +562,10 @@ def run(
     year_robustness = _year_robustness(metrics)
     decision, decision_audit = _fixed_decision(metrics, frequency, parity)
     output_dir.mkdir(parents=True, exist_ok=True)
-    event_artifact = _write_events(output_dir / "b_breakout_retest_eligibility_events.jsonl.gz", event_records)
+    event_artifact = _canonicalise_provenance_paths(
+        _write_events(output_dir / "b_breakout_retest_eligibility_events.jsonl.gz", event_records),
+        repo_root,
+    )
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "validation_layer": VALIDATION_LAYER,
@@ -517,7 +603,7 @@ def run(
         },
         "input_provenance": {
             "frozen_registry": {
-                "path": registry_path.as_posix(),
+                "path": _logical_repo_path(registry_path, repo_root),
                 "schema_version": registry["schema_version"],
                 "required_artifact_count": len(registry_verification),
                 "verified_artifacts": registry_verification,
@@ -527,21 +613,21 @@ def run(
             "raw_data_range": stock_meta | {"benchmark_rows": index_meta["row_count"]},
             "adjustment_events": event_meta,
             "core_checkpoint": {
-                "path": checkpoint_path.as_posix(),
+                "path": _logical_repo_path(checkpoint_path, repo_root),
                 "bytes": checkpoint_path.stat().st_size,
                 "sha256": returns_v1._file_sha256(checkpoint_path),
                 "checkpoint_sha256": root["checkpoint_sha256"],
                 "source_content_sha256": root["source_content_sha256"],
             },
             "core_output": {
-                "path": core_output.as_posix(),
+                "path": _logical_repo_path(core_output, repo_root),
                 "bytes": core_output.stat().st_size,
                 "sha256": returns_v1._file_sha256(core_output),
                 "projection_stream_sha256": core_summary["projection_stream_sha256"],
                 "rows": core_summary["total_candidate_evaluations"],
             },
             "core_manifest": {
-                "path": core_manifest_path.as_posix(),
+                "path": _logical_repo_path(core_manifest_path, repo_root),
                 "bytes": core_manifest_path.stat().st_size,
                 "sha256": returns_v1._file_sha256(core_manifest_path),
             },
@@ -573,21 +659,13 @@ def run(
             "full_legacy_output_validation": "BLOCKED_HISTORICAL_SINA_MEMBERSHIP",
         },
     }
-    payload["content_sha256"] = replay.sha256_json({
-        "candidate": payload["candidate"],
-        "raw_source_content_sha256": source["content_sha256"],
-        "core_projection_stream_sha256": core_summary["projection_stream_sha256"],
-        "event_results_sha256": event_artifact["sha256"],
-        "metrics": metrics,
-        "signal_concentration": frequency,
-        "execution_environment": environment,
-        "decision": decision,
-    })
+    payload = _canonicalise_provenance_paths(payload, repo_root)
+    payload["content_sha256"] = replay.sha256_json(_content_identity_payload(payload))
     payload["manifest_sha256"] = replay.sha256_json(payload)
     manifest_path = output_dir / "strategy_development_eligibility_manifest.json"
     _write_json(manifest_path, payload)
     payload["manifest_file"] = {
-        "path": manifest_path.as_posix(),
+        "path": _logical_repo_path(manifest_path, repo_root),
         "bytes": manifest_path.stat().st_size,
         "sha256": returns_v1._file_sha256(manifest_path),
     }
