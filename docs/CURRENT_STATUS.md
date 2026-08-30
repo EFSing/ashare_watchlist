@@ -83,3 +83,34 @@ Phase 2E V2 的 DEVELOPMENT returns 是描述性、`RECONSTRUCTED_RETROSPECTIVE`
 在明确的 candidate nomination/eligibility 和 candidate-bound prospective evidence
 到位后回到同一 decision point。不要自动启动 Phase 2F，不调参，不读 Final OOS，
 不把 product-ladder 晋级写成 strategy promotion。
+
+## Strategy Candidate Nomination V1 — 2026-08-30
+
+PR #13 已按 expected head `0f5629765ef0eebbae0c6981f2d7ccafab7f7e35` squash merge；
+merge commit 为 `005fa552b046ee35d35f51e0c7da430a9dc17fbe`，master correctness CI
+run `33295618615` 已成功。这是 last-verified provenance，不替代后续 live state 核对。
+
+本轮先正式处置 A：
+`REJECT_A_PLATFORM_BREAKOUT_LEGACY_V1_AS_FROZEN_CANDIDATE`。依据是冻结 Phase 2E V2
+的 DEVELOPMENT / RECONSTRUCTED_RETROSPECTIVE primary evidence；A 保留为 research
+baseline / regression witness，不外推为平台突破思想、未来 A 版本或 Research V2 无效。
+
+有限 inventory 仅包含已有明确来源的 A、B breakout-retest、C main-trend-retest，
+以及被 provenance 排除的 D / generic old history types。预先固定的 engineering
+lexicographic rule 唯一提名：
+`NOMINATE_B_BREAKOUT_RETEST_LEGACY_V1_FOR_DEVELOPMENT_ELIGIBILITY`。B 已完成 exact
+reconstruction、canonical semantic spec、SHA-256、逐 gate 记录和 parity tests；C
+没有被自动测试。
+
+一次固定的 `STRATEGY_DEVELOPMENT_ELIGIBILITY_V1` 尝试因当前 bundled Python 缺少
+`pyarrow` / `fastparquet` 且没有本地可用 parquet reader，在读取 frozen DEVELOPMENT
+数据前 fail closed。因而没有 event、收益、MFE/MAE、concentration 或 year robustness
+结果，也没有把 B 错误地判为 performance rejected。最终 decision 是
+`NO_REPRODUCIBLE_STRATEGY_CANDIDATE`，P1 blocker 为
+`P1-ENV-FROZEN-DATA-PARQUET-READER`；完整报告见
+[`strategy_candidate_eligibility_report.md`](strategy_candidate_eligibility_report.md)。
+
+Formal Delivery Ladder 仍为 `development candidate`；没有创建 frozen candidate
+contract 或 candidate-bound prospective package。最短下一步是恢复批准的离线
+parquet reader 后，用相同 B 规则和相同 frozen inputs 重跑一次固定 eligibility，
+之后按单一 decision 停止或进入 candidate-bound prospective package。

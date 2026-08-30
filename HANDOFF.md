@@ -227,3 +227,37 @@
 - latest_ci_run_provenance：run `33268086906` / headSha `7dfb59b9f379c7d74f95c3e522fde55bcdf49ba1` /
   success；不制造 CI 自引用更新循环。
 - updated_by_task：`frozen-candidate prerequisites audit and delivery-ladder semantic refresh`
+
+## 13. Strategy Candidate Nomination V1 — 2026-08-30
+
+PR #13 已以 expected head `0f5629765ef0eebbae0c6981f2d7ccafab7f7e35` squash merge；
+merge commit `005fa552b046ee35d35f51e0c7da430a9dc17fbe`，master correctness CI
+`33295618615` success。PR #13 的审计结论与代码未被改写；其 description 仅删除了
+禁止合并措辞。正式 Ladder 继续为 `development candidate`。
+
+本轮 nomination 已完成固定边界：A legacy 的 decision 为
+`REJECT_A_PLATFORM_BREAKOUT_LEGACY_V1_AS_FROZEN_CANDIDATE`，仍保留 research
+baseline / regression witness；有限 inventory 中 B、C 具备可追溯 legacy 来源，D
+及 generic history types 因 provenance 不完整排除。看到任何 B/C returns 之前，按
+六项 engineering lexicographic rule 只提名 B：
+`NOMINATE_B_BREAKOUT_RETEST_LEGACY_V1_FOR_DEVELOPMENT_ELIGIBILITY`；B lower
+complexity，B→C 仅是 deterministic research tie-break，不是预测优势排序。
+
+B 的 exact reconstruction 已完成，candidate spec SHA 为
+`5bbeb345ebd8883149138d2f29f8606f919949ae285aa2839fa337921dfc7112`，V0 source
+file SHA 为 `6cac746123e315199cbeeb1a612868ef77b50af6c7c64b0d80eb387ae1d19f9`。
+`STRATEGY_DEVELOPMENT_ELIGIBILITY_V1` 已预先写明并尝试一次；由于 bundled runtime
+缺少 `pyarrow` / `fastparquet` 且无本地可用 parquet reader，运行在读取 frozen
+DEVELOPMENT 数据前 fail closed。没有 event/return/MFE/MAE/concentration/year
+metric artifact，也没有伪造结果或测试 C。final decision：
+`NO_REPRODUCIBLE_STRATEGY_CANDIDATE`，真实 P1 为
+`P1-ENV-FROZEN-DATA-PARQUET-READER`。
+
+当前没有 `FROZEN_CANDIDATE_CONTRACT_V1`，没有 candidate-bound prospective input
+package，不能宣称 B eligible 或 rejected。下一位接手者只需在批准的离线环境中
+恢复 parquet reader，并用相同 B spec、相同 frozen inputs、相同固定 protocol 重跑
+一次；不得调参、修改输入、启动 Phase 2F/Final OOS，且不得在 B 的 decision 前自动
+测试 C。完整 nomination/eligibility report：
+[`docs/strategy_candidate_eligibility_report.md`](docs/strategy_candidate_eligibility_report.md)。
+
+本节是治理 snapshot；live branch / PR / exact-head CI 仍须按 checklist 实时核对。

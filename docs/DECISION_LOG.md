@@ -171,3 +171,40 @@
   prospective evidence 后，回到 `FROZEN_CANDIDATE_PREREQUISITES` decision point；
   缺少这些证据时仍保持 BLOCKED。完整审计见
   [`frozen_candidate_prerequisites_audit.md`](frozen_candidate_prerequisites_audit.md)。
+
+## 2026-08-30 — Strategy Candidate Nomination V1
+
+- context：PR #13 已以 expected head `0f5629765ef0eebbae0c6981f2d7ccafab7f7e35`
+  squash merge；其 master merge CI 已成功。当前任务只允许确定下一只值得进入
+  development eligibility 验证的 candidate，不允许调参、Phase 2F 或 Final OOS。
+- A decision：`REJECT_A_PLATFORM_BREAKOUT_LEGACY_V1_AS_FROZEN_CANDIDATE`。冻结的
+  Phase 2E V2 primary evidence 为 1D 42.4594% / -0.1270%，3D 42.6095% / -0.2281%，
+  5D 40.6703% / -0.5085%，10D 41.3134% / -0.4631%；scope 是 DEVELOPMENT /
+  RECONSTRUCTED_RETROSPECTIVE，不是 Final OOS。A 仍是 research baseline / regression
+  witness；该 decision 不外推到平台突破思想、未来 A 版本或 Research V2。
+- inventory：只审计已有固定 V0 provenance 的 A、B breakout-retest、C
+  main-trend-retest；D / generic old history types 因 exact mapping/provenance 不完整
+  排除。未引入其他项目规则。
+- nomination：在读取 B/C development returns 之前，按 exact provenance、未知来源、
+  frozen/recoverable data、无 backfill、Phase 2B contract、implementation/inference
+  complexity 的 lexicographic rule，唯一提名
+  `NOMINATE_B_BREAKOUT_RETEST_LEGACY_V1_FOR_DEVELOPMENT_ELIGIBILITY`。B lower
+  complexity；若仍相同，B→C 是固定 research tie-break，不是预测排名。C 不做 returns
+  evaluation。
+- reconstruction：B exact V0 reconstruction PASS；V0 source commit
+  `c8406c393c0b135eafb0aec763576ae869fddcff`，source SHA
+  `6cac746123e315199cbeeb1a612868ef77b50af6c7c64b0d80eb387ae1d19f9`，canonical
+  semantic spec SHA `5bbeb345ebd8883149138d2f29f8606f919949ae285aa2839fa337921dfc7112`；
+  focused parity/hash/edge/decision tests `7 passed`。
+- eligibility stop：预先固定的 `STRATEGY_DEVELOPMENT_ELIGIBILITY_V1` 已尝试一次，
+  但 bundled runtime 缺少 `pyarrow` / `fastparquet`，且离线 cache 没有可用 parquet
+  reader；在读取 frozen DEVELOPMENT parquet 前 fail closed。因此 event N、四个
+  horizon 的 positive/mean/median、MFE/MAE、signal concentration、year robustness
+  全部 `NOT_COMPUTED`，没有生成伪造 event artifact。
+- decision：`NO_REPRODUCIBLE_STRATEGY_CANDIDATE`，真实 blocker 为
+  `P1-ENV-FROZEN-DATA-PARQUET-READER`。这不是 B 的收益 rejection，也不是 C 的
+  rejection；不自动启动第二个 candidate。Formal Delivery Ladder 保持
+  `development candidate`，不创建 `FROZEN_CANDIDATE_CONTRACT_V1`。
+- consequence：提供批准的离线 parquet reader 后，只能按原 B spec、原 frozen inputs
+  和同一 fixed protocol 重跑一次，再形成一个允许的最终 candidate decision。若 eligible
+  才进入 candidate-bound prospective input package；若 rejected 则停止。

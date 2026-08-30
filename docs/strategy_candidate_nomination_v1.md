@@ -139,8 +139,21 @@ optimization, post-result rule change, Phase 2F, or Final OOS is allowed.
 
 ## 7. Result and stopping record
 
-The run-specific event artifact, manifest SHA, gate-by-gate audit, metrics and final
-decision are appended to this file after the one fixed evaluation. Until that run is
-executed, no return result is used in nomination.
+The one fixed eligibility attempt was made with the frozen DEVELOPMENT input package
+and stopped fail-closed before reading any parquet rows. The bundled runtime has no
+`pyarrow` or `fastparquet`, and no local parquet-capable reader was available. The
+offline-only check for a cached reader also found none. Therefore no event artifact
+was emitted and no return statistic is asserted.
 
-Final decision placeholder: `PENDING_FIXED_ELIGIBILITY_RUN`
+- nominated candidate: `B_BREAKOUT_RETEST_LEGACY_V1`;
+- exact reconstruction/parity: PASS (`7` focused tests);
+- fixed protocol: `STRATEGY_DEVELOPMENT_ELIGIBILITY_V1`;
+- evaluation status: `NOT_EXECUTED_FAIL_CLOSED`;
+- event N and all requested return/concentration/year metrics: `NOT_COMPUTED`;
+- final decision: `NO_REPRODUCIBLE_STRATEGY_CANDIDATE`;
+- blocker: `P1-ENV-FROZEN-DATA-PARQUET-READER`.
+
+This is an execution-environment reproducibility blocker, not a performance rejection
+of B and not evidence against C. C is not evaluated automatically. The complete
+stopping record is in
+[`strategy_candidate_eligibility_report.md`](strategy_candidate_eligibility_report.md).
