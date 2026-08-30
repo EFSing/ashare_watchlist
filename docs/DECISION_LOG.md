@@ -105,9 +105,9 @@
 
 - context：PR #12 在既有 Phase 2B close-only input contract 和既有 legacy evaluator
   wiring 上建立了受控 development-candidate path；代码审计和 development gate
-  evidence 已完成，但当前 master 在该 PR merge 前仍保持 `research`。
-- decision：`ADOPT` development candidate product path V1。若 PR #12 merge，正式
-  Delivery Ladder 从 `research` 晋级为 `development candidate`；对象是产品路径，
+  evidence 已完成，随后 PR #12 已 squash merge。
+- decision：`ADOPT` development candidate product path V1。PR #12 已 squash merge，正式
+  Delivery Ladder 已从 `research` 晋级为 `development candidate`；对象是产品路径，
   不是 `A_PLATFORM_BREAKOUT_LEGACY_V1` strategy 本身。
 - rationale：该路径已经证明 deterministic generation → schema-valid canonical
   watchlist → explicit fail-closed handling → immutable provenance/versioning →
@@ -129,11 +129,45 @@
 - non-equivalence：本 decision 不构成 frozen candidate，不构成 production strategy，
   不构成参数选择或调参，不构成 Final OOS 结论，也不授权自动交易、promotion 或
   自动启动 Phase 2F。
-- consequences：PR #12 merge 后进入 `development candidate`；后续必须先核验
-  frozen-candidate prerequisites，明确必须解决的 P0/P1，并定义 frozen candidate
-  contract/gate。不得把 product-ladder 晋级改写为 legacy strategy promotion。
+- consequences：正式 Delivery Ladder 已为 `development candidate`；后续必须先核验
+  frozen-candidate prerequisites，明确必须解决的 P0/P1，并在 prerequisites PASS
+  时定义 frozen candidate contract/gate。不得把 product-ladder 晋级改写为 legacy
+  strategy promotion。
 - revisit condition：frozen-candidate prerequisites、产品范围、required
   provenance 或正式 promotion decision 发生变化时，另记 decision；任何新的
   research question 必须有独立 exit decision，不能由本 gate 自动触发新 Phase。
 - PR / commit：PR #12；最终 merge 状态和 exact-head CI 属于 live Git/GitHub
   provenance，不在本条写入会自引用的 current HEAD。
+
+## 2026-08-30 — Frozen-candidate prerequisites audit V1
+
+- context：PR #12 已将产品管线正式带入 `development candidate`；下一 decision
+  不是默认把既有 legacy baseline freeze，而是审计当前是否存在真实、获批准且有
+  足够 development evidence 的 strategy candidate。
+- research question：当前项目是否已经具备一个可以进入 frozen candidate gate 的
+  真实 strategy candidate？停止条件是完成 product infrastructure、strategy
+  eligibility、data/provenance 和最小 operational prerequisite 核验后形成唯一
+  decision；不以新增指标或优化方向扩大研究。
+- decision：`FROZEN_CANDIDATE_BLOCKED`，具体原因为
+  `FROZEN_CANDIDATE_BLOCKED_NO_APPROVED_STRATEGY_CANDIDATE`。
+- rationale：当前没有正式 nominated/approved strategy candidate；
+  `A_PLATFORM_BREAKOUT_LEGACY_V1` 仍是 research-only wiring witness。虽有可复核
+  spec identity、T close/T+1、deterministic generation、canonical output、
+  fail-closed、monitoring/rollback 和 artifact recovery 的 development/path
+  evidence，但现有 CORE 与 `DEVELOPMENT` / `RECONSTRUCTED_RETROSPECTIVE` evidence
+  不足以支持“值得进入 prospective/frozen candidate”的资格判断；sector score
+  仍 `UNVERIFIED`，FULL legacy 仍受历史新浪 membership 限制，Phase 2F 仍是
+  `NEEDS_MORE_EVIDENCE`。
+- P0/P1：本轮没有新的全局 P0 correctness/safety defect。frozen gate 的 P1 是
+  (1) strategy nomination/eligibility decision 缺失，(2) 固定 development evidence
+  的候选资格 decision 缺失，(3) candidate-bound prospective input/provenance
+  package 缺失。历史新浪 membership 只作为 FULL legacy retrospective scope 的
+  blocker，不升级为全局 blocker。
+- consequences：不把 A baseline 晋级为 frozen candidate，不创建或伪造
+  `FROZEN_CANDIDATE_CONTRACT_V1`，不启动 Phase 2F、不调参、不读 Final OOS、不
+  promotion。scheduler、broker、自动交易和复杂告警不属于当前 frozen gate 的最小
+  前置条件。
+- next decision：取得上述最小 nomination/eligibility 与 candidate-bound
+  prospective evidence 后，回到 `FROZEN_CANDIDATE_PREREQUISITES` decision point；
+  缺少这些证据时仍保持 BLOCKED。完整审计见
+  [`frozen_candidate_prerequisites_audit.md`](frozen_candidate_prerequisites_audit.md)。

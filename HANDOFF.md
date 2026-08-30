@@ -4,9 +4,8 @@
 
 ## 1. Current Objective
 
-- 当前工作对象：完成 PR #12 的 `development candidate` product-path 治理接入。
-- 当前 master 仍是 `research`；若 PR #12 merge，正式 Delivery Ladder 晋级为
-  `development candidate`。
+- 当前工作对象：PR #12 已 merge；当前执行 frozen-candidate prerequisites audit。
+- PR #12 已 merge；正式 Delivery Ladder 为 `development candidate`。
 - 该晋级只承认 deterministic daily generation → canonical watchlist → explicit
   fail-closed → provenance / versioning → monitoring / rollback 的受控产品路径，
   不承认 strategy promotion。
@@ -16,27 +15,34 @@
   strategy、phase 或 promotion 工作。
 - 禁止事项：不启动 Phase 2F；不读取 Final OOS；不 promotion；不调参；不把当前数据回填历史；不替换新浪历史行业 membership；不重跑已完成 CORE replay；不以“差不多”的新文件替代 frozen bytes。
 - 完成条件：PR #12 的 development-candidate path 在受控输入上可重复演示，canonical
-  watchlist 与显式失败处理、监控/回滚/版本边界均有回归证据；merge 后停在
-  `development-candidate` gate，不据此 promotion 或进入 Final OOS。
+  watchlist 与显式失败处理、监控/回滚/版本边界均有回归证据；当前停在
+  `development-candidate` gate，并完成 frozen-candidate prerequisites decision；
+  不据此 promotion 或进入 Final OOS。
 - 停止条件：出现 `PROJECT_GOVERNANCE_STATE_CONFLICT`、任一 required hash 不匹配、外部 raw artifact 无法证明为同一 bytes、或任务要求越过 research / OOS / promotion 边界。
 - CI provenance 规则：本文件只保存 `last verified CI provenance`，不要求也不允许把当前 commit 自己产生的 CI run 回写到同一 commit；每个新会话必须实时查询当前 branch、HEAD、`origin/master`、PR state、exact-head CI 和 working tree。
 
 ## 2. Current Repository State
 
 - repo：`EFSing/ashare_watchlist`；origin：`https://github.com/EFSing/ashare_watchlist.git`。
-- active product PR：PR #12 为 development-candidate gate；其最终 head、CI 和 merge
-  state 必须实时查询，不在本文件写入会自引用的 current HEAD。
+- active product PR：PR #12 已 merged；本次 prerequisite PR 的 active state、head 和
+  CI 必须在每次 intake 实时查询，不在本文件写入会自引用的 current HEAD。
 - HISTORICAL_MILESTONE_IDENTITY：PR #9 产品章程与代理开发契约 squash merge `7a27484293cbcb791c6b8407949e9e71257e016b`；Phase 2E research baseline 仍为 `74ccf86…`。
 - HISTORICAL_MILESTONE_IDENTITY：PR #10 handoff consistency repair squash merge `11db387cc51a645c4491b39cbfa3e03e1228b6c4`。
-- last_verified_master_snapshot：`582db47553257d9333e5041353581f9be9e1d20e`；这是最近一次静态 provenance snapshot，不要求等于新会话 intake 时的 live HEAD。
+- HISTORICAL_MILESTONE_IDENTITY：PR #12 development-candidate gate squash merge
+  `7dfb59b9f379c7d74f95c3e522fde55bcdf49ba1`；merge 后 master correctness run
+  `33268086906` success，headSha 精确匹配该 merge commit。
+- last_verified_master_snapshot：`7dfb59b9f379c7d74f95c3e522fde55bcdf49ba1`；这是
+  PR #12 已合并后的静态 provenance snapshot，不要求等于新会话 intake 时的 live HEAD。
 - last_verified_branch：`master`；仅表示上述 snapshot 的来源，不是 current branch invariant。
-- last_verified_ci_provenance：correctness run `33262142503`，headSha=`582db47553257d9333e5041353581f9be9e1d20e`，success；仅是最近一次 CI 证据，不是未来 live CI invariant。
+- last_verified_ci_provenance：master correctness run `33268086906`，
+  headSha=`7dfb59b9f379c7d74f95c3e522fde55bcdf49ba1`，success；仅是最近一次 CI
+  证据，不是未来 live CI invariant。
 - live state gate：新会话必须实时执行 Git / GitHub 核验；current branch、HEAD、`origin/master`、active PR、exact-head CI 和 working tree 以实时结果为准。
 - expected working tree state：tracked working tree clean；`.pytest_cache/`、`__pycache__/` 和本机 `daily_k.parquet` 可被 `.gitignore` 忽略，但 `daily_k.parquet` 的 recovery identity 现在由 registry 记录的 Google Drive private archive member evidence 独立确认。Windows text checkout 的 CRLF SHA 若存在，以 registry 的 Git-blob `file_sha256` 为恢复身份。
 - formal phase / research status：Phase 2E 已完成；CORE continuous replay 和 DEVELOPMENT
-  returns V2 已冻结；FULL legacy 85-score validation 仍 blocked。治理 PR 已合并；PR #12
-  merge 前 master 仍是 `research`；本机另有未推送 Phase 2F 分支，见下方，不是 formal
-  master 状态。
+  returns V2 已冻结；FULL legacy 85-score validation 仍 blocked。PR #12 已合并，formal
+  Delivery Ladder 为 `development candidate`；本机另有未推送 Phase 2F 分支，见下方，
+  不是 formal master 状态。
 
 ## 3. Completed Work
 
@@ -53,21 +59,23 @@
 - PR #12 已建立 development-candidate contract 和受控实现：zero-candidate success、
   complete `generation_fingerprint`、fail-closed conflict/write failure、immutable
   versioning、monitoring/rollback 以及 downstream ingest 回归均已纳入 gate evidence；
-  该条在 merge 前不改变 master 的 formal Ladder。
+  PR #12 已 merge，formal Delivery Ladder 现为 `development candidate`。
+- frozen-candidate prerequisites audit 已完成：decision 为
+  `FROZEN_CANDIDATE_BLOCKED`，原因为
+  `FROZEN_CANDIDATE_BLOCKED_NO_APPROVED_STRATEGY_CANDIDATE`；未创建
+  `FROZEN_CANDIDATE_CONTRACT_V1`。
 
 ## 4. Pending Work
 
-### Merge-following Next Action
+### Frozen-candidate prerequisites decision
 
-1. **development candidate**：仅在 PR #12 merge 后把 formal Delivery Ladder 视为
-   `development candidate`；不要把该 product-ladder 状态写成 strategy promotion。
-2. **核验 frozen-candidate prerequisites**：重新核对 input/protocol/strategy/dependency/
-   data/output identity、T close/T+1、recovery、fail-closed 和运营边界。
-3. **明确 P0/P1**：列出进入 frozen candidate 前必须解决的 correctness, provenance,
-   data, execution 和 safety P0/P1；不能用 research completeness 或新指标代替决策。
-4. **定义 frozen candidate contract/gate**：单独定义冻结候选的输入、输出、版本、
-   monitor/rollback、停止条件和 promotion 边界。
-5. **停在下一明确 gate**：不自动启动 Phase 2F，不调参，不读 Final OOS，不 promotion。
+1. `FROZEN_CANDIDATE_BLOCKED`：当前没有正式批准的 strategy candidate；
+   `A_PLATFORM_BREAKOUT_LEGACY_V1` 仍是 research-only wiring witness。
+2. P1 是 strategy nomination/eligibility evidence 和 candidate-bound prospective
+   input/provenance package 缺失；P0 没有发现新的全局 correctness/safety defect。
+3. 不定义 `FROZEN_CANDIDATE_CONTRACT_V1`，不把 pipeline 证据写成 strategy freeze。
+4. 下一次只在最小证据链到位后回到同一 decision point；不自动启动 Phase 2F，
+   不调参，不读 Final OOS，不 promotion。
 
 ### Deferred
 
@@ -96,20 +104,29 @@
   - Why：从 Downloads 中实际下载的 Google Drive private archive 读取到唯一 parquet member；member size 为 `180203424` bytes，member SHA-256 与 frozen SHA `61189a…` 严格一致，matching member count 为 1。
   - Rejected Alternatives：把 ZIP 自身 hash 当作 parquet identity；按文件名猜测；继续使用本机原始文件作为唯一 recovery evidence；记录 URL、token 或绝对路径。
   - Revisit Condition：registry frozen bytes、Google Drive recovery member 或 recovery evidence 发生变化时，重新执行唯一性与 byte-level SHA verification。
-- Decision：`A_PLATFORM_BREAKOUT_LEGACY_V1` 保持 research-only；当前正式 Delivery Ladder 为 `research`，不因 Phase 2E 或 Phase 2F local artifact 直接 promotion。
+- Decision：`A_PLATFORM_BREAKOUT_LEGACY_V1` 保持 research-only；它不是 frozen
+  strategy candidate、production strategy 或 parameter validation。`development
+  candidate` 是产品管线的 formal ladder，不是该 strategy 的 promotion。
   - Why：当前完整 legacy output 仍缺历史新浪行业 membership，development outcome 也不是 Final OOS。
   - Rejected Alternatives：按 85 分、V2 returns 或 Phase 2F diagnostic 直接 promotion。
   - Revisit Condition：满足明确批准的验证层、provenance、OOS 和 decision gate。
-- Decision：`Development Candidate Gate V1` 只 ADOPT development candidate product
-  path；PR #12 merge 后 formal Delivery Ladder 才从 `research` 变为
-  `development candidate`。
+- Decision：`Development Candidate Gate V1` ADOPT 的是 development candidate product
+  path；PR #12 已 merge，formal Delivery Ladder 为 `development candidate`。
   - Why：deterministic generation、canonical output、fail-closed、完整
     provenance/versioning、monitoring/rollback 和 zero-candidate success semantics
     已有受控回归证据。
   - Rejected Alternatives：把该 gate 写成 legacy strategy promotion、参数有效性
     证明、frozen candidate 或 Final OOS 结论。
-  - Revisit Condition：完成 frozen-candidate prerequisites、P0/P1 decision 和新的
-    frozen candidate contract/gate。
+- Revisit Condition：完成 frozen-candidate prerequisites 的明确 decision；若通过，
+  再定义新的 frozen candidate contract/gate。
+- Decision：`FROZEN_CANDIDATE_BLOCKED`，原因为
+  `FROZEN_CANDIDATE_BLOCKED_NO_APPROVED_STRATEGY_CANDIDATE`。
+  - Why：没有正式 nominated/approved strategy candidate；现有 A baseline 只有
+    research-only wiring、DEVELOPMENT retrospective evidence，且 sector/full
+    legacy evidence 未完成，不能把 harness 可运行写成 freeze eligibility。
+  - Consequences：不创建 `FROZEN_CANDIDATE_CONTRACT_V1`；P1 仅限候选 nomination/
+    eligibility 与 candidate-bound prospective input/provenance evidence。
+  - Revisit Condition：最小证据链到位后，在同一 prerequisites decision point 重新判断。
 
 ## 6. Important Files Changed
 
@@ -118,6 +135,7 @@
 - `HANDOFF.md` — governance；会话接手快照。
 - `docs/CURRENT_STATUS.md` — governance；formal project status。
 - `docs/DECISION_LOG.md` — governance；长期决策及理由。
+- `docs/frozen_candidate_prerequisites_audit.md` — governance；冻结候选前置条件审计与 decision。
 - `docs/FROZEN_ARTIFACT_POLICY.md` — governance；冻结物 identity、backup 和 recovery policy。
 - `data/governance/frozen_artifacts.json` — governance / artifact；机器可读 inventory。
 
@@ -150,11 +168,12 @@
 - provider/external：需要可按 T 提供新浪行业 membership 的 source 或带 effective-date 的权限/导出；不能用其他 taxonomy 替代。
 - environment：新设备必须有 Python 3.11/3.12、锁定依赖和可读的 external raw artifact；环境差异不是数据恢复证明。
 - artifact availability：Phase 2F 诊断文件只在本机 local branch，未进入 origin；不纳入本次治理 PR。
-- product readiness：PR #12 已证明端到端 development-candidate path；在其 merge
-  前 master 仍是 `research`，merge 后进入 `development candidate`，但尚未达到
-  frozen candidate 或 production strategy。
-- next-ladder blocker：必须核验 frozen-candidate prerequisites，明确必须解决的
-  P0/P1，并定义 frozen candidate contract/gate。
+- product readiness：PR #12 已证明端到端 development-candidate path；当前正式 Ladder
+  为 `development candidate`，但尚未达到 frozen candidate 或 production strategy。
+- next-ladder blocker：prerequisites decision 为 `FROZEN_CANDIDATE_BLOCKED`，因为
+  没有 approved strategy candidate；candidate-bound prospective evidence 也尚未到位。
+- contract boundary：由于 prerequisites BLOCKED，未定义 frozen candidate contract；
+  不得以现有 development contract 代替它。
 - scope-local blocker：历史新浪行业 membership 缺失只阻止 FULL legacy / 85-score
   validation；它不阻止 development-candidate product path，不能升级为全局 blocker。
 - governance semantics：snapshot SHA、historical milestone SHA 和 last-verified CI 只保存 provenance；只有 material semantic divergence、required frozen identity mismatch 或非法历史后继才是 `PROJECT_GOVERNANCE_STATE_CONFLICT`。
@@ -171,14 +190,13 @@
 
 ## 10. Next Action
 
-1. `development candidate`：PR #12 merge 后确认 formal Delivery Ladder 的条件性
-   晋级；不把 product-ladder 晋级写成 legacy strategy promotion。
-2. 核验 frozen-candidate prerequisites，包括 registry hashes、input/output identity、
-   T close/T+1、依赖、recovery、fail-closed 和运营边界。
-3. 明确进入 frozen candidate 前必须解决的 P0/P1，并把 scope-local 的历史新浪
-   membership 限制留在 FULL legacy validation 范围内。
-4. 定义 frozen candidate contract/gate，包括输入、输出、版本、monitor/rollback、
-   停止条件和 promotion 边界。
+1. formal Delivery Ladder 已为 `development candidate`；不把 product-ladder 晋级写成
+   legacy strategy promotion。
+2. prerequisites audit 已形成 `FROZEN_CANDIDATE_BLOCKED`；等待最小 nomination/
+   eligibility 与 candidate-bound prospective evidence，不自动扩大研究。
+3. 只有 prerequisites PASS 才定义 frozen candidate contract；当前不伪造 contract
+   已满足。
+4. 历史新浪 membership 限制继续留在 FULL legacy validation scope；不升级为全局 blocker。
 5. 不自动启动 Phase 2F、不调参、不读 Final OOS、不 promotion。
 
 ## 11. Handoff Checklist
@@ -193,15 +211,19 @@
 - [ ] 新会话已实时核对 active PR、最终 `headSha` 和 exact-head CI；该项不由本文件的静态 CI provenance 自动满足。
 - [x] required artifact 的 content SHA、Git-blob/file SHA、backup 和 recovery status 已核对；若适用也核对 working-tree SHA。
 - [x] research / development / OOS / production 边界未被改变。
-- [x] PR #12 development-candidate gate evidence 已记录；merge 后 next action 已
-  明确为 frozen-candidate prerequisites、P0/P1 和 frozen candidate contract/gate。
+- [x] PR #12 development-candidate gate 已 merge；formal Ladder 已刷新为
+  `development candidate`。
+- [x] frozen-candidate prerequisites decision、P0/P1、下一 decision 和“不创建
+  contract”的边界已记录。
 - [x] 本文件、CURRENT_STATUS、DECISION_LOG、FROZEN_ARTIFACT_POLICY 没有互相冲突。
 - [x] tracked working tree clean；没有未登记的 raw、checkpoint 或 output。
 
 ## 12. Last Verified
 
-- last_updated_at：`2026-08-30T00:08:05+08:00`（Asia/Shanghai；snapshot `582db475...`）
-- last_verified_master_snapshot：`582db47553257d9333e5041353581f9be9e1d20e`
-- latest_test_result：`pytest 135 passed`; `compileall` pass; registry JSON/hash/recovery checks pass; secret scan and path/URL guard pass; correctness run `33262142503` success
-- latest_ci_run_provenance：run `33262142503` / headSha `582db47553257d9333e5041353581f9be9e1d20e` / success；不制造 CI 自引用更新循环
-- updated_by_task：`governance self-reference semantics repair preparation snapshot`
+- last_updated_at：`2026-08-30`（Asia/Shanghai；post-merge snapshot）
+- last_verified_master_snapshot：`7dfb59b9f379c7d74f95c3e522fde55bcdf49ba1`
+- latest_test_result：本分支治理变更后的本地验证与 exact-head CI 见 PR live state；
+  merge 后 master correctness run `33268086906` success。
+- latest_ci_run_provenance：run `33268086906` / headSha `7dfb59b9f379c7d74f95c3e522fde55bcdf49ba1` /
+  success；不制造 CI 自引用更新循环。
+- updated_by_task：`frozen-candidate prerequisites audit and delivery-ladder semantic refresh`
