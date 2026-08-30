@@ -48,8 +48,9 @@ invariant。
 - retrospective official dump 没有 per-bar historical vintage timestamp；该 known-at 限制仍需在后续 validation decision 中单独接受或解决。
 - `A_PLATFORM_BREAKOUT_LEGACY_V1` 没有 production promotion；没有参数有效性证明，
   未做参数选择、调参或 Final OOS read。
-- 当前没有正式 nominated、经资格决策批准、值得进入 prospective/frozen gate 的
-  strategy candidate；A baseline 仍只是 research-only wiring witness。
+- 当前没有正式批准、经资格决策通过、值得进入 prospective/frozen gate 的
+  strategy candidate；本轮唯一 nomination 是 B，但 eligibility 被环境 P1 阻断，
+  因此 B 尚未成为 approved candidate。A baseline 仍只是 research-only wiring witness。
 - development path 只有 READY manifest 与受控 fixture 证据，尚无 candidate-bound
   prospective input identity/provenance package；这不因 pipeline 能运行而自动通过。
 - 本机 Phase 2F diagnostic commit `3eeb5df9f7cf4ef5c30b3380b323f26f2491f873` 尚未 push、无 PR、无 CI；它是 local candidate work，不改变 formal master status。
@@ -79,10 +80,10 @@ Phase 2E V2 的 DEVELOPMENT returns 是描述性、`RECONSTRUCTED_RETROSPECTIVE`
 ## Current next action
 
 当前已在 `development candidate`。frozen-candidate prerequisites audit 的 decision
-为 `FROZEN_CANDIDATE_BLOCKED`，未定义 `FROZEN_CANDIDATE_CONTRACT_V1`；下一步只
-在明确的 candidate nomination/eligibility 和 candidate-bound prospective evidence
-到位后回到同一 decision point。不要自动启动 Phase 2F，不调参，不读 Final OOS，
-不把 product-ladder 晋级写成 strategy promotion。
+为 `FROZEN_CANDIDATE_BLOCKED`，未定义 `FROZEN_CANDIDATE_CONTRACT_V1`；本轮唯一
+nomination 已固定为 B，但 eligibility 因 parquet reader 环境 P1 阻断。恢复批准的
+离线 reader 并完成同一 fixed eligibility 后，才回到同一 decision point。不要自动
+启动 Phase 2F，不调参，不读 Final OOS，不把 product-ladder 晋级写成 strategy promotion。
 
 ## Strategy Candidate Nomination V1 — 2026-08-30
 
