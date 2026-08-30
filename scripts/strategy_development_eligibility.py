@@ -11,8 +11,11 @@ from __future__ import annotations
 import argparse
 from collections import Counter
 import gzip
+import importlib.metadata
 import json
+import platform
 from pathlib import Path
+import sys
 from typing import Any
 
 import numpy as np
@@ -51,6 +54,41 @@ ELIGIBILITY_THRESHOLDS = {
     "minimum_events_per_robust_year": 10,
     "minimum_positive_mean_year_count": 2,
 }
+ELIGIBILITY_RULE_FROZEN_BEFORE_B_RETURNS_READ = True
+EXPECTED_PARQUET_ENGINE = "pyarrow"
+EXPECTED_PARQUET_ENGINE_VERSION = "17.0.0"
+EXPECTED_PANDAS_VERSION = "2.2.3"
+EXPECTED_DAILY_K_SHA256 = "61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426"
+
+
+def _runtime_environment() -> dict[str, str]:
+    try:
+        parquet_version = importlib.metadata.version(EXPECTED_PARQUET_ENGINE)
+    except importlib.metadata.PackageNotFoundError as exc:
+        raise RuntimeError(
+            "B_ELIGIBILITY_NOT_EXECUTED_MISSING_PARQUET_READER: "
+            f"{EXPECTED_PARQUET_ENGINE} is not installed"
+        ) from exc
+    pandas_version = importlib.metadata.version("pandas")
+    python_version = platform.python_version()
+    if sys.version_info[:2] not in {(3, 11), (3, 12)}:
+        raise RuntimeError(f"unsupported Python runtime for replay: {python_version}")
+    if pandas_version != EXPECTED_PANDAS_VERSION:
+        raise RuntimeError(
+            f"unsupported pandas runtime for replay: {pandas_version}; "
+            f"expected {EXPECTED_PANDAS_VERSION}"
+        )
+    if parquet_version != EXPECTED_PARQUET_ENGINE_VERSION:
+        raise RuntimeError(
+            f"unsupported parquet engine runtime: {parquet_version}; "
+            f"expected {EXPECTED_PARQUET_ENGINE_VERSION}"
+        )
+    return {
+        "python": python_version,
+        "pandas": pandas_version,
+        "parquet_engine": EXPECTED_PARQUET_ENGINE,
+        "parquet_engine_version": parquet_version,
+    }
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -87,6 +125,104 @@ def _projection(result: Any) -> dict[str, Any]:
         "risk": result.risk,
         "rr": result.rr,
         "level_plan": level_plan,
+    }
+
+
+def _default_registry_path(raw_dir: Path) -> Path:
+    return raw_dir.resolve().parents[3] / "data" / "governance" / "frozen_artifacts.json"
+
+
+def _verify_required_registry_hashes(
+    *,
+    raw_dir: Path,
+    registry_path: Path,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    if registry.get("schema_version") != "FROZEN_ARTIFACT_REGISTRY_V1":
+        raise RuntimeError("frozen artifact registry schema mismatch")
+    required = [item for item in registry.get("artifacts", []) if item.get("required_for_replay") is True]
+    if not required:
+        raise RuntimeError("frozen artifact registry has no required replay artifacts")
+    repo_root = registry_path.resolve().parents[2]
+    expected_daily = next(
+        (item for item in required if item.get("logical_path") == "data/validation/core_signal_validation/raw/daily_k.parquet"),
+        None,
+    )
+    if expected_daily is None:
+        raise RuntimeError("registry is missing required daily_k artifact")
+    daily_path = repo_root / expected_daily["logical_path"]
+    if not daily_path.exists():
+        raise RuntimeError(f"required frozen input is missing: {daily_path}")
+    daily_sha = returns_v1._file_sha256(daily_path)
+    if daily_sha != EXPECTED_DAILY_K_SHA256:
+        raise RuntimeError(
+            "FROZEN_DAILY_K_SHA256_MISMATCH: "
+            f"expected {EXPECTED_DAILY_K_SHA256}, got {daily_sha}"
+        )
+
+    verified: list[dict[str, Any]] = []
+    for item in required:
+        logical_path = str(item["logical_path"])
+        path = repo_root / logical_path
+        if not path.exists():
+            raise RuntimeError(f"required frozen artifact is missing: {path}")
+        actual_sha = daily_sha if path == daily_path else returns_v1._file_sha256(path)
+        expected_working_tree_sha = item.get("working_tree_sha256")
+        expected_file_sha = item.get("file_sha256")
+        expected_local_sha = expected_working_tree_sha or expected_file_sha
+        if actual_sha != expected_local_sha:
+            raise RuntimeError(
+                f"FROZEN_ARTIFACT_SHA_MISMATCH: {item['artifact_id']} "
+                f"expected {expected_local_sha}, got {actual_sha}"
+            )
+        verified.append({
+            "artifact_id": item["artifact_id"],
+            "logical_path": logical_path,
+            "actual_file_sha256": actual_sha,
+            "registered_file_sha256": expected_file_sha,
+            "registered_content_sha256": item.get("content_sha256"),
+            "registered_working_tree_sha256": expected_working_tree_sha,
+            "verification_basis": "working_tree_sha256" if expected_working_tree_sha else "file_sha256",
+        })
+    return registry, verified
+
+
+def _verify_frozen_projection_identity(
+    *,
+    registry: dict[str, Any],
+    root: dict[str, Any],
+    source: dict[str, Any],
+    core_summary: dict[str, Any],
+    core_output: Path,
+    core_manifest_path: Path,
+) -> dict[str, Any]:
+    by_id = {item["artifact_id"]: item for item in registry["artifacts"]}
+    expected_source = by_id["phase2e.raw.daily_k"]["content_sha256"]
+    if source["content_sha256"] != root["source_content_sha256"]:
+        raise RuntimeError("frozen source content hash does not match root checkpoint")
+    if source["files"][0]["sha256"] != expected_source:
+        raise RuntimeError("daily_k source hash does not match registry content hash")
+    expected_projection = by_id["phase2e.core_continuous.results"]["content_sha256"]
+    if core_summary["projection_stream_sha256"] != expected_projection:
+        raise RuntimeError("core projection stream identity does not match registry")
+    expected_core_file = by_id["phase2e.core_continuous.results"]["file_sha256"]
+    if returns_v1._file_sha256(core_output) != expected_core_file:
+        raise RuntimeError("core projection file hash does not match registry")
+    manifest = json.loads(core_manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("manifest_sha256") != by_id["phase2e.core_continuous.manifest"]["content_sha256"]:
+        raise RuntimeError("core manifest semantic identity does not match registry")
+    if manifest.get("provenance", {}).get("raw_inputs", {}).get("content_sha256") != source["content_sha256"]:
+        raise RuntimeError("core manifest raw source identity does not match registry")
+    if root.get("completed_output", {}).get("sha256") != expected_core_file:
+        raise RuntimeError("checkpoint completed-output identity does not match registry")
+    return {
+        "daily_k_sha256": source["files"][0]["sha256"],
+        "raw_source_content_sha256": source["content_sha256"],
+        "core_projection_stream_sha256": core_summary["projection_stream_sha256"],
+        "core_projection_file_sha256": expected_core_file,
+        "core_manifest_sha256": manifest["manifest_sha256"],
+        "checkpoint_sha256": root["checkpoint_sha256"],
+        "all_passed": True,
     }
 
 
@@ -199,12 +335,27 @@ def run(
     core_manifest_path: Path,
     output_dir: Path,
     parity_symbols_per_date: int = 2,
+    registry_path: Path | None = None,
 ) -> dict[str, Any]:
     if parity_symbols_per_date < 1:
         raise ValueError("parity_symbols_per_date must be positive")
+    environment = _runtime_environment()
+    registry_path = registry_path or _default_registry_path(raw_dir)
+    registry, registry_verification = _verify_required_registry_hashes(
+        raw_dir=raw_dir,
+        registry_path=registry_path,
+    )
     root, _part_a, _part_b, source, core_summary = returns_v1._verify_frozen_inputs(
         raw_dir=raw_dir,
         checkpoint_path=checkpoint_path,
+        core_output=core_output,
+        core_manifest_path=core_manifest_path,
+    )
+    frozen_identity = _verify_frozen_projection_identity(
+        registry=registry,
+        root=root,
+        source=source,
+        core_summary=core_summary,
         core_output=core_output,
         core_manifest_path=core_manifest_path,
     )
@@ -358,12 +509,20 @@ def run(
         "fixed_protocol": {
             "name": SCHEMA_VERSION,
             "thresholds": ELIGIBILITY_THRESHOLDS,
+            "eligibility_rule_frozen_before_b_returns_read": ELIGIBILITY_RULE_FROZEN_BEFORE_B_RETURNS_READ,
             "parameter_tuning": False,
             "threshold_search": False,
             "top_n_optimization": False,
             "rule_changed_after_results": False,
         },
         "input_provenance": {
+            "frozen_registry": {
+                "path": registry_path.as_posix(),
+                "schema_version": registry["schema_version"],
+                "required_artifact_count": len(registry_verification),
+                "verified_artifacts": registry_verification,
+            },
+            "frozen_identity": frozen_identity,
             "raw_inputs": source,
             "raw_data_range": stock_meta | {"benchmark_rows": index_meta["row_count"]},
             "adjustment_events": event_meta,
@@ -397,6 +556,7 @@ def run(
             "known_at_vintage_proof": False,
             "known_at_limitation": "retrospective dump has observation dates and acquisition hash, but no per-bar historical vintage timestamp",
         },
+        "execution_environment": environment,
         "metrics": metrics,
         "signal_concentration": frequency,
         "year_robustness": year_robustness,
@@ -420,6 +580,7 @@ def run(
         "event_results_sha256": event_artifact["sha256"],
         "metrics": metrics,
         "signal_concentration": frequency,
+        "execution_environment": environment,
         "decision": decision,
     })
     payload["manifest_sha256"] = replay.sha256_json(payload)
@@ -441,6 +602,7 @@ def main() -> None:
     parser.add_argument("--core-manifest", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--parity-symbols-per-date", type=int, default=2)
+    parser.add_argument("--registry", type=Path)
     args = parser.parse_args()
     print(json.dumps(run(
         raw_dir=args.raw_dir,
@@ -449,6 +611,7 @@ def main() -> None:
         core_manifest_path=args.core_manifest,
         output_dir=args.output_dir,
         parity_symbols_per_date=args.parity_symbols_per_date,
+        registry_path=args.registry,
     ), ensure_ascii=False, sort_keys=True))
 
 

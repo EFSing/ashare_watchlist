@@ -4,7 +4,7 @@
 
 ## 1. Current Objective
 
-- 当前工作对象：PR #12 已 merge；当前执行 frozen-candidate prerequisites audit。
+- 当前工作对象：继续现有 PR #14；执行 B eligibility 完成后的 frozen-candidate prerequisites handoff。
 - PR #12 已 merge；正式 Delivery Ladder 为 `development candidate`。
 - 该晋级只承认 deterministic daily generation → canonical watchlist → explicit
   fail-closed → provenance / versioning → monitoring / rollback 的受控产品路径，
@@ -24,8 +24,8 @@
 ## 2. Current Repository State
 
 - repo：`EFSing/ashare_watchlist`；origin：`https://github.com/EFSing/ashare_watchlist.git`。
-- active product PR：PR #12 已 merged；本次 prerequisite PR 的 active state、head 和
-  CI 必须在每次 intake 实时查询，不在本文件写入会自引用的 current HEAD。
+- active product PR：PR #12 已 merged；当前 active PR 为 #14。本次 PR 的 live state、head
+  和 CI 必须在每次 intake 实时查询，不在本文件写入会自引用的 current HEAD。
 - HISTORICAL_MILESTONE_IDENTITY：PR #9 产品章程与代理开发契约 squash merge `7a27484293cbcb791c6b8407949e9e71257e016b`；Phase 2E research baseline 仍为 `74ccf86…`。
 - HISTORICAL_MILESTONE_IDENTITY：PR #10 handoff consistency repair squash merge `11db387cc51a645c4491b39cbfa3e03e1228b6c4`。
 - HISTORICAL_MILESTONE_IDENTITY：PR #12 development-candidate gate squash merge
@@ -60,22 +60,24 @@
   complete `generation_fingerprint`、fail-closed conflict/write failure、immutable
   versioning、monitoring/rollback 以及 downstream ingest 回归均已纳入 gate evidence；
   PR #12 已 merge，formal Delivery Ladder 现为 `development candidate`。
-- frozen-candidate prerequisites audit 已完成：decision 为
-  `FROZEN_CANDIDATE_BLOCKED`，原因为
-  `FROZEN_CANDIDATE_BLOCKED_NO_APPROVED_STRATEGY_CANDIDATE`；未创建
+- B `BREAKOUT_RETEST_LEGACY_V1` 已完成一次且仅一次的冻结 eligibility replay，
+  decision 为 `CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`；candidate-bound
+  prospective input/provenance contract 已定义，但未创建 live instance 或
   `FROZEN_CANDIDATE_CONTRACT_V1`。
 
 ## 4. Pending Work
 
 ### Frozen-candidate prerequisites decision
 
-1. `FROZEN_CANDIDATE_BLOCKED`：当前没有正式批准的 strategy candidate；
-   `A_PLATFORM_BREAKOUT_LEGACY_V1` 仍是 research-only wiring witness。
-2. P1 是 strategy nomination/eligibility evidence 和 candidate-bound prospective
-   input/provenance package 缺失；P0 没有发现新的全局 correctness/safety defect。
-3. 不定义 `FROZEN_CANDIDATE_CONTRACT_V1`，不把 pipeline 证据写成 strategy freeze。
-4. 下一次只在最小证据链到位后回到同一 decision point；不自动启动 Phase 2F，
-   不调参，不读 Final OOS，不 promotion。
+1. `FROZEN_CANDIDATE_BLOCKED`：B 已通过冻结 eligibility，但尚无首个真实
+   candidate-bound `LIVE_OBSERVED` T-close input instance。
+2. 唯一 P1 为 `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`；需要证明
+   `known_at <= T`、universe/sector/names/market_env、provider/version、calendar、
+   availability/recovery 和 output identity。
+3. 已定义 `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V1`，但不把
+   contract 写成 live evidence，也不创建 `FROZEN_CANDIDATE_CONTRACT_V1`。
+4. 下一步只等待并审计首个真实 package；不自动启动 Phase 2F、不调参、不读 Final
+   OOS、不 promotion、不测试 C。
 
 ### Deferred
 
@@ -170,10 +172,10 @@
 - artifact availability：Phase 2F 诊断文件只在本机 local branch，未进入 origin；不纳入本次治理 PR。
 - product readiness：PR #12 已证明端到端 development-candidate path；当前正式 Ladder
   为 `development candidate`，但尚未达到 frozen candidate 或 production strategy。
-- next-ladder blocker：prerequisites decision 为 `FROZEN_CANDIDATE_BLOCKED`，因为
-  没有 approved strategy candidate；candidate-bound prospective evidence 也尚未到位。
-- contract boundary：由于 prerequisites BLOCKED，未定义 frozen candidate contract；
-  不得以现有 development contract 代替它。
+- next-ladder blocker：prerequisites decision 为 `FROZEN_CANDIDATE_BLOCKED`；B 已获
+  eligibility，但唯一剩余 P1 是首个 candidate-bound prospective T-close input。
+- contract boundary：candidate-bound prospective input/provenance contract 已定义；
+  未定义且不得以现有 development contract 代替 `FROZEN_CANDIDATE_CONTRACT_V1`。
 - scope-local blocker：历史新浪行业 membership 缺失只阻止 FULL legacy / 85-score
   validation；它不阻止 development-candidate product path，不能升级为全局 blocker。
 - governance semantics：snapshot SHA、historical milestone SHA 和 last-verified CI 只保存 provenance；只有 material semantic divergence、required frozen identity mismatch 或非法历史后继才是 `PROJECT_GOVERNANCE_STATE_CONFLICT`。
@@ -192,10 +194,10 @@
 
 1. formal Delivery Ladder 已为 `development candidate`；不把 product-ladder 晋级写成
    legacy strategy promotion。
-2. prerequisites audit 已形成 `FROZEN_CANDIDATE_BLOCKED`；等待最小 nomination/
-   eligibility 与 candidate-bound prospective evidence，不自动扩大研究。
-3. 只有 prerequisites PASS 才定义 frozen candidate contract；当前不伪造 contract
-   已满足。
+2. B eligibility 已形成 `CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`；等待唯一
+   `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`，不自动扩大研究。
+3. candidate-bound prospective input/provenance contract 已定义，但只有首个真实
+   package 通过后才重新判断 frozen candidate gate；当前不伪造 live instance。
 4. 历史新浪 membership 限制继续留在 FULL legacy validation scope；不升级为全局 blocker。
 5. 不自动启动 Phase 2F、不调参、不读 Final OOS、不 promotion。
 
@@ -213,8 +215,8 @@
 - [x] research / development / OOS / production 边界未被改变。
 - [x] PR #12 development-candidate gate 已 merge；formal Ladder 已刷新为
   `development candidate`。
-- [x] frozen-candidate prerequisites decision、P0/P1、下一 decision 和“不创建
-  contract”的边界已记录。
+- [x] B eligibility decision、唯一剩余 P1、candidate-bound contract、下一 decision
+  和“不创建 frozen candidate contract / 不伪造 live instance”的边界已记录。
 - [x] 本文件、CURRENT_STATUS、DECISION_LOG、FROZEN_ARTIFACT_POLICY 没有互相冲突。
 - [x] tracked working tree clean；没有未登记的 raw、checkpoint 或 output。
 
@@ -228,36 +230,31 @@
   success；不制造 CI 自引用更新循环。
 - updated_by_task：`frozen-candidate prerequisites audit and delivery-ladder semantic refresh`
 
-## 13. Strategy Candidate Nomination V1 — 2026-08-30
+## 13. Strategy Candidate Nomination V1 — final eligibility update
 
-PR #13 已以 expected head `0f5629765ef0eebbae0c6981f2d7ccafab7f7e35` squash merge；
-merge commit `005fa552b046ee35d35f51e0c7da430a9dc17fbe`，master correctness CI
-`33295618615` success。PR #13 的审计结论与代码未被改写；其 description 仅删除了
-禁止合并措辞。正式 Ladder 继续为 `development candidate`。
+本轮唯一 nomination 仍为
+`NOMINATE_B_BREAKOUT_RETEST_LEGACY_V1_FOR_DEVELOPMENT_ELIGIBILITY`；A 仍为
+`REJECT_A_PLATFORM_BREAKOUT_LEGACY_V1_AS_FROZEN_CANDIDATE`，C 未被评估。
 
-本轮 nomination 已完成固定边界：A legacy 的 decision 为
-`REJECT_A_PLATFORM_BREAKOUT_LEGACY_V1_AS_FROZEN_CANDIDATE`，仍保留 research
-baseline / regression witness；有限 inventory 中 B、C 具备可追溯 legacy 来源，D
-及 generic history types 因 provenance 不完整排除。看到任何 B/C returns 之前，按
-六项 engineering lexicographic rule 只提名 B：
-`NOMINATE_B_BREAKOUT_RETEST_LEGACY_V1_FOR_DEVELOPMENT_ELIGIBILITY`；B lower
-complexity，B→C 仅是 deterministic research tie-break，不是预测优势排序。
+B exact reconstruction 已完成，spec SHA 为
+`5bbeb345ebd8883149138d2f29f8606f919949ae285aa2839fa337921dfc7112`。固定
+`STRATEGY_DEVELOPMENT_ELIGIBILITY_V1` 只运行一次，且
+`ELIGIBILITY_RULE_FROZEN_BEFORE_B_RETURNS_READ = true`。环境为 Python 3.12.13、
+pandas 2.2.3、pyarrow 17.0.0；registry required artifacts 13/13 通过校验，
+daily_k SHA 为 `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426`。
 
-B 的 exact reconstruction 已完成，candidate spec SHA 为
-`5bbeb345ebd8883149138d2f29f8606f919949ae285aa2839fa337921dfc7112`，V0 source
-file SHA 为 `6cac746123e315199cbeeb1a612868ef77b50af6c7c64b0d80eb387ae1d19f9`。
-`STRATEGY_DEVELOPMENT_ELIGIBILITY_V1` 已预先写明并尝试一次；由于 bundled runtime
-缺少 `pyarrow` / `fastparquet` 且无本地可用 parquet reader，运行在读取 frozen
-DEVELOPMENT 数据前 fail closed。没有 event/return/MFE/MAE/concentration/year
-metric artifact，也没有伪造结果或测试 C。final decision：
-`NO_REPRODUCIBLE_STRATEGY_CANDIDATE`，真实 P1 为
-`P1-ENV-FROZEN-DATA-PARQUET-READER`。
-
-当前没有 `FROZEN_CANDIDATE_CONTRACT_V1`，没有 candidate-bound prospective input
-package，不能宣称 B eligible 或 rejected。下一位接手者只需在批准的离线环境中
-恢复 parquet reader，并用相同 B spec、相同 frozen inputs、相同固定 protocol 重跑
-一次；不得调参、修改输入、启动 Phase 2F/Final OOS，且不得在 B 的 decision 前自动
-测试 C。完整 nomination/eligibility report：
+Event N `17,714`；1D/3D/5D/10D available N 为 `17,689` / `17,635` / `17,602` /
+`17,558`；10D positive rate / mean / median 为 `51.6403%` / `+1.4603%` /
+`+0.3226%`；4 个 robust years 中 2 个 mean 为正。最终 B decision 为
+`CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`。完整指标、MFE/MAE、concentration、
+year robustness、fixed gate audit 和 artifact SHA 见
 [`docs/strategy_candidate_eligibility_report.md`](docs/strategy_candidate_eligibility_report.md)。
+
+已定义 [`docs/candidate_bound_prospective_input_contract_v1.md`](docs/candidate_bound_prospective_input_contract_v1.md)，
+但没有伪造 prospective live instance。重新判断后的
+`FROZEN_CANDIDATE_PREREQUISITES` 为 `FROZEN_CANDIDATE_BLOCKED`，唯一 P1 为
+`P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`；等待首个真实
+`LIVE_OBSERVED` T-close package 前，不创建 `FROZEN_CANDIDATE_CONTRACT_V1`，不测试
+C、不启动 Phase 2F、不调参、不读 Final OOS。
 
 本节是治理 snapshot；live branch / PR / exact-head CI 仍须按 checklist 实时核对。

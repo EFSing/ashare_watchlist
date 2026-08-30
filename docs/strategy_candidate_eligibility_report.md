@@ -4,122 +4,140 @@ Date: 2026-08-30 (Asia/Shanghai)
 Formal Delivery Ladder: `development candidate`  
 Protocol: `STRATEGY_DEVELOPMENT_ELIGIBILITY_V1`
 
-## Final decision
+## Final B decision
 
-`NO_REPRODUCIBLE_STRATEGY_CANDIDATE`
+`CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`
 
-The engineering nomination was uniquely fixed before any B/C development return was
-read:
+The only nomination remains:
 
 `NOMINATE_B_BREAKOUT_RETEST_LEGACY_V1_FOR_DEVELOPMENT_ELIGIBILITY`
 
-B was nominated because its exact V0 provenance is complete, it has no
-correctness-critical `UNKNOWN_ORIGIN`, it uses the frozen/recoverable Phase 2B input
-contract, requires no current-data backfill, remains compatible with T-close/T+1
-execution, and has lower implementation/inference complexity than C. The fixed legacy
-tie-break is B → C; it is a deterministic research order, not a predictive ranking.
+B exact reconstruction was complete before any B returns were read. The fixed
+eligibility rule was frozen before the returns read and was not changed afterward:
 
-The fixed eligibility evaluation could not read the frozen DEVELOPMENT parquet input in
-this environment. It stopped before producing events or metrics. Consequently this
-report does not call B eligible or rejected on performance, and it does not start a
-second candidate evaluation.
+`ELIGIBILITY_RULE_FROZEN_BEFORE_B_RETURNS_READ = true`
 
-## A legacy disposition
+The prior environment stop is recorded with the corrected vocabulary:
 
-The current exact A legacy V1 is formally rejected as a frozen candidate:
+- status: `CANDIDATE_ELIGIBILITY_BLOCKED_ENVIRONMENT`
+- reason: `B_ELIGIBILITY_NOT_EXECUTED_MISSING_PARQUET_READER`
 
-`REJECT_A_PLATFORM_BREAKOUT_LEGACY_V1_AS_FROZEN_CANDIDATE`
+That stop was an execution-environment failure. It was not a B performance
+rejection, not evidence of no reproducible rule, and not a C rejection. After the
+declared environment was installed, the same single fixed B evaluation completed.
 
-This uses only the already frozen Phase 2E V2 primary evidence:
+## Environment and frozen input verification
 
-| Horizon | Positive rate | Mean return |
-| --- | ---: | ---: |
-| 1D | 42.4594% | -0.1270% |
-| 3D | 42.6095% | -0.2281% |
-| 5D | 40.6703% | -0.5085% |
-| 10D | 41.3134% | -0.4631% |
+| Item | Verified value |
+| --- | --- |
+| Python | `3.12.13` |
+| pandas | `2.2.3` |
+| parquet engine | `pyarrow==17.0.0` |
+| install | `python -m pip install -e ".[test,research]"` |
+| registry | `FROZEN_ARTIFACT_REGISTRY_V1`, 13/13 required artifacts verified |
+| daily_k exact SHA-256 | `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426` |
+| raw source content SHA-256 | `68d10afc4a0e3341c124f8a5e896292faf8ca271ab15cfbb7ac55fe485db8ccb` |
+| CORE projection stream SHA-256 | `882b8925e787d67d7035de07f91cd3c941b7394661bd32d5d534cc62e3996c1b` |
+| CORE projection file SHA-256 | `0d23cf54843920f5fdcc05847e4b78c5d605b05c8793f878b6021c85b3ab0c2f` |
+| continuous CORE manifest semantic SHA-256 | `8209c6b252954530a216e85ef063f0594efb050ee9b9abe3e26f8534f97c0e9b` |
+| root checkpoint file SHA-256 | `22f7ac7515ef2177f49fbcb316b33945c31132fe8a3b3dc360b1161ccf2256a3` |
+| checkpoint identity | complete 769-session replay; `return_metrics_computed=false` |
 
-Evidence scope is `DEVELOPMENT` / `RECONSTRUCTED_RETROSPECTIVE`, not Final OOS.
-The decision means only that the current frozen A spec is not worth entering
-prospective/frozen-candidate work. A remains a research baseline and regression
-witness. It does not invalidate platform-breakout research generally, future A
-versions, or Research V2.
+Any mismatch was a stop condition. No frozen parquet bytes were modified.
 
-## Finite candidate inventory
-
-| Candidate | Exact V0 provenance | Unknown-origin risk | Frozen-input compatibility | Current-data backfill | Spec/parity path | Disposition |
-| --- | --- | --- | --- | --- | --- | --- |
-| A platform breakout legacy V1 | complete | none for the reconstructed rule | yes | no | complete | rejected by frozen Phase 2E V2 evidence |
-| B breakout-retest legacy V1 | complete | none identified | yes | no | complete | nominated; fixed eligibility blocked by environment |
-| C main-trend-retest legacy V1 | complete | none identified | yes | no | complete | inventory only; not evaluated |
-| D / generic old history types | incomplete or removed | `UNKNOWN_ORIGIN` / no exact mapping | not established | not established | no | excluded |
-
-No wave, Fibonacci, QQQ, SETUP_03, or other-project rule was added. No B/C returns
-were compared before nomination. No C evaluation follows the B stop.
-
-## Exact reconstruction and provenance
+## Candidate reconstruction identity
 
 Candidate: `B_BREAKOUT_RETEST_LEGACY_V1`  
-Implementation: [`scripts/b_breakout_retest.py`](../scripts/b_breakout_retest.py)  
 V0 source commit: `c8406c393c0b135eafb0aec763576ae869fddcff`  
 V0 source file SHA-256: `6cac746123e315199cbeeb1a612868ef77b50af6c7c64b0d80eb387ae1d19f9`  
-Canonical semantic spec SHA-256: `5bbeb345ebd8883149138d2f29f8606f919949ae285aa2839fa337921dfc7112`  
-Role: `RESEARCH_ONLY_LEGACY_CANDIDATE_RECONSTRUCTION`
+Canonical strategy spec SHA-256: `5bbeb345ebd8883149138d2f29f8606f919949ae285aa2839fa337921dfc7112`
+Implementation: [`scripts/b_breakout_retest.py`](../scripts/b_breakout_retest.py)
 
-Exact reconstruction is PASS. The implementation preserves the V0 first qualifying
-breakout scan and unconditional `break` even when later pullback checks fail. It
-consumes the existing Phase 2B `GenerationInputManifest`; it does not modify frozen
-inputs. Parity, semantic-hash mutation, edge-break, and fixed decision tests pass:
+Exact reconstruction, semantic hash, edge behavior, numeric projection and parity
+tests passed. B retains the V0 first qualifying-breakout scan and unconditional
+break behavior. C was not evaluated.
 
-`7 passed`
+## Fixed B replay results
 
-## Fixed eligibility evaluation
+Scope: `DEVELOPMENT` / `RECONSTRUCTED_RETROSPECTIVE`, 769 signal sessions from
+2023-06-30 through 2026-08-28, 4,041,140 candidate evaluations, T+1 XSHG open
+entry. Future corporate actions were used only for ex-post outcome measurement.
 
-The protocol was written before attempting the run. It permits one fixed replay only;
-there is no threshold search, parameter sweep, TOP-N optimization, result-driven rule
-change, Phase 2F, or Final OOS access. Signal timing is T close and execution is the
-next XSHG session open.
+| Horizon | Available N | Positive rate | Mean return | Median return | Mean MFE | Median MFE | Mean MAE | Median MAE |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1D | 17,689 | 48.6065% | +0.1857% | 0.0000% | +2.2477% | +1.4379% | -1.7401% | -1.3239% |
+| 3D | 17,635 | 48.7950% | +0.4335% | -0.0424% | +4.2894% | +2.7451% | -3.1110% | -2.3029% |
+| 5D | 17,602 | 48.6252% | +0.6808% | -0.1137% | +5.8392% | +3.7030% | -4.0632% | -3.0155% |
+| 10D | 17,558 | 51.6403% | +1.4603% | +0.3226% | +8.9776% | +5.6893% | -5.7403% | -4.3573% |
 
-Frozen input identity:
+Event N (qualified B events): **17,714**.
 
-- dataset: `core-signal-hithink-continuous-2023-06-30-to-2026-08-28-v1`;
-- fixed signal sessions: 769, 2023-06-30 through 2026-08-28;
-- raw input content SHA-256: `68d10afc4a0e3341c124f8a5e896292faf8ca271ab15cfbb7ac55fe485db8ccb`;
-- core projection stream SHA-256: `882b8925e787d67d7035de07f91cd3c941b7394661bd32d5d534cc62e3996c1b`;
-- outcome scope: `DEVELOPMENT` / `RECONSTRUCTED_RETROSPECTIVE`;
-- Final OOS: `false`.
+### Year robustness, primary 10D
 
-The attempt was `NOT_EXECUTED_FAIL_CLOSED`: pandas could not open the frozen
-`daily_k.parquet` because the bundled runtime has neither `pyarrow` nor
-`fastparquet`. An offline-only package-cache check found no usable reader. No parquet
-rows were consumed, no frozen input was rewritten, and no output event artifact or
-eligibility manifest was manufactured.
+| Signal year | Available 10D N | Positive rate | Mean 10D return |
+| --- | ---: | ---: | ---: |
+| 2023 | 2,587 | 37.2632% | -0.8380% |
+| 2024 | 6,177 | 60.5472% | +3.2352% |
+| 2025 | 6,684 | 53.1418% | +1.5428% |
+| 2026 | 2,110 | 38.4360% | -1.1795% |
 
-| Required output | Result |
-| --- | --- |
-| Event N | `NOT_COMPUTED` |
-| 1D positive / mean / median | `NOT_COMPUTED` |
-| 3D positive / mean / median | `NOT_COMPUTED` |
-| 5D positive / mean / median | `NOT_COMPUTED` |
-| 10D positive / mean / median | `NOT_COMPUTED` |
-| MFE / MAE | `NOT_COMPUTED` |
-| Signal concentration | `NOT_COMPUTED` |
-| Year robustness | `NOT_COMPUTED` |
+Robust years: **4** (each has at least 10 events). Positive-mean robust years:
+**2** (2024 and 2025).
 
-The actual blocker is `P1-ENV-FROZEN-DATA-PARQUET-READER`. This is not a candidate
-performance result. The final decision is therefore `NO_REPRODUCIBLE_STRATEGY_CANDIDATE`
-for this run, rather than `CANDIDATE_REJECTED`.
+### Signal concentration
 
-## Governance and next product path
+- qualified unique symbols: `4,454`
+- top-1 symbol share: `0.1186%`
+- top-5 symbol share: `0.5758%`
+- qualified-symbol HHI: `0.00035472`
 
-- Formal Delivery Ladder remains `development candidate`.
-- No `FROZEN_CANDIDATE_CONTRACT_V1` was created.
-- No candidate-bound prospective input package was created.
-- No Final OOS, Phase 2F, parameter tuning, or second/third candidate evaluation was
-  performed.
-- Shortest next product path: restore an approved offline parquet-capable reader in
-  the execution environment, rerun this same fixed B protocol without changing the
-  rule or frozen inputs, then make exactly one of the three allowed candidate
-  decisions. Only an eligible result may proceed to a candidate-bound prospective
-  input package and a fresh `FROZEN_CANDIDATE_PREREQUISITES` gate; a performance
-  rejection stops the nomination work.
+## Fixed eligibility gate audit
+
+| Gate | Frozen requirement | Result |
+| --- | --- | --- |
+| exact reconstruction / manifest parity | exact B identity and all sampled manifest projections pass | PASS; 1,538/1,538, parity SHA `bd19b7c65f934dc9b60fbe78fe9919bc41406a9eec96e0cf81224efc075437d9` |
+| total events | >= 30 | PASS; 17,714 |
+| available per horizon | each >= 30 | PASS; minimum 17,558 |
+| primary horizon | 10D | PASS |
+| 10D positive rate | >= 50% | PASS; 51.6403% |
+| 10D mean return | > 0 | PASS; +1.4603% |
+| 10D median return | > 0 | PASS; +0.3226% |
+| robust years | >= 3 years with >= 10 events | PASS; 4 |
+| positive robust-year means | >= 2 | PASS; 2 |
+
+The thresholds above are frozen and are not eligible for post-result adjustment.
+No parameter sweep, threshold search, TOP-N optimization, Phase 2F, C returns,
+Final OOS read, or production-rule change occurred.
+
+## Frozen research artifacts
+
+- event artifact: `data/validation/strategy_candidate_eligibility_v1/b_breakout_retest_eligibility_events.jsonl.gz`
+  - rows: `17,714`; bytes: `2,506,292`
+  - file SHA-256: `8940a4a346ac6911ba669f84a9ceba7ef878b0ed0ce51edf673439b52aa056b9`
+- eligibility manifest: `data/validation/strategy_candidate_eligibility_v1/strategy_development_eligibility_manifest.json`
+  - bytes: `378,134`
+  - file SHA-256: `a0c5a195ea991a471fd56eb80534d03091d6bd308f6c6f263476737380a28c9a`
+  - semantic manifest SHA-256: `5e123206d7961475d656d1e0b14695a514a4edec88d01e61890a2d58f7b4e77b`
+  - content SHA-256: `e754787836b28316430278372ab2d84817091d4608da394f9207f695a4c27aee`
+
+## Candidate-bound prospective path and final stop
+
+B eligibility is complete and eligible. The contract is defined in
+[`candidate_bound_prospective_input_contract_v1.md`](candidate_bound_prospective_input_contract_v1.md)
+and binds the B strategy/spec SHA, T close/T+1, universe, sector semantics, names,
+market_env, provider/version, calendar, availability/fail-closed, recovery and
+generation/output identity.
+
+No prospective live instance has been fabricated. Rejudged
+`FROZEN_CANDIDATE_PREREQUISITES` status:
+
+- decision: `FROZEN_CANDIDATE_BLOCKED`
+- sole remaining P1: `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`
+- current state: waiting for the first real candidate-bound `LIVE_OBSERVED` T-close
+  input package with `known_at <= T`
+- `FROZEN_CANDIDATE_CONTRACT_V1`: not created
+- Formal Delivery Ladder: remains `development candidate`
+
+If the first prospective package fails availability, provenance, timing, recovery,
+or identity checks, the path fails closed. No C evaluation follows this eligible B
+decision, and no automatic promotion is implied.

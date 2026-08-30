@@ -196,15 +196,34 @@
   `6cac746123e315199cbeeb1a612868ef77b50af6c7c64b0d80eb387ae1d19f9`，canonical
   semantic spec SHA `5bbeb345ebd8883149138d2f29f8606f919949ae285aa2839fa337921dfc7112`；
   focused parity/hash/edge/decision tests `7 passed`。
-- eligibility stop：预先固定的 `STRATEGY_DEVELOPMENT_ELIGIBILITY_V1` 已尝试一次，
-  但 bundled runtime 缺少 `pyarrow` / `fastparquet`，且离线 cache 没有可用 parquet
-  reader；在读取 frozen DEVELOPMENT parquet 前 fail closed。因此 event N、四个
-  horizon 的 positive/mean/median、MFE/MAE、signal concentration、year robustness
-  全部 `NOT_COMPUTED`，没有生成伪造 event artifact。
-- decision：`NO_REPRODUCIBLE_STRATEGY_CANDIDATE`，真实 blocker 为
-  `P1-ENV-FROZEN-DATA-PARQUET-READER`。这不是 B 的收益 rejection，也不是 C 的
-  rejection；不自动启动第二个 candidate。Formal Delivery Ladder 保持
-  `development candidate`，不创建 `FROZEN_CANDIDATE_CONTRACT_V1`。
-- consequence：提供批准的离线 parquet reader 后，只能按原 B spec、原 frozen inputs
-  和同一 fixed protocol 重跑一次，再形成一个允许的最终 candidate decision。若 eligible
-  才进入 candidate-bound prospective input package；若 rejected 则停止。
+- eligibility environment stop：此前的环境阻塞状态统一为
+  `CANDIDATE_ELIGIBILITY_BLOCKED_ENVIRONMENT`，原因是
+  `B_ELIGIBILITY_NOT_EXECUTED_MISSING_PARQUET_READER`。这不是 B performance
+  rejection、no-rule conclusion 或 C rejection。
+- fixed replay：安装 exact-pinned `pyarrow==17.0.0` 后，以 Python 3.12.13、
+  pandas 2.2.3 只运行一次相同的 `STRATEGY_DEVELOPMENT_ELIGIBILITY_V1`；首次
+  parquet read 前 registry required artifacts 13/13、daily_k exact SHA
+  `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426`、raw source、
+  checkpoint、CORE projection/manifest identity 均通过，frozen bytes 未修改。
+- frozen protocol：`ELIGIBILITY_RULE_FROZEN_BEFORE_B_RETURNS_READ = true`；
+  minimum N=30、primary=10D、10D positive rate >=50%、mean >0、median >0、
+  robust years >=3（每年 >=10 events）、positive robust-year means >=2。结果未改动
+  threshold。
+- B result：Event N `17,714`；available N 1D/3D/5D/10D 为 `17,689` / `17,635` /
+  `17,602` / `17,558`；10D positive rate / mean / median 为 `51.6403%` /
+  `+1.4603%` / `+0.3226%`；4 个 robust years 中 2 个 mean 为正，fixed gates 全部
+  PASS。
+- decision：`CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`。这是 B candidate
+  eligibility 的 `ADOPT`，不是 production strategy promotion、parameter validation
+  或 Final OOS 结论。event artifact SHA 为
+  `8940a4a346ac6911ba669f84a9ceba7ef878b0ed0ce51edf673439b52aa056b9`；eligibility
+  manifest file SHA 为 `a0c5a195ea991a471fd56eb80534d03091d6bd308f6c6f263476737380a28c9a`。
+- prospective contract：定义
+  `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V1`，绑定 B strategy/spec
+  SHA、T close/T+1、universe、sector semantics、names、market_env、provider/version、
+  calendar、availability/fail-closed、recovery 和 generation/output identity；不伪造
+  尚未发生的 live instance。
+- rejudged prerequisites：`FROZEN_CANDIDATE_BLOCKED`；唯一 P1 为
+  `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`，等待首个真实 candidate-bound
+  `LIVE_OBSERVED` T-close package 并验证 `known_at <= T`。不测试 C、不启动 Phase 2F、
+  不调参、不读 Final OOS、不创建 `FROZEN_CANDIDATE_CONTRACT_V1`。
