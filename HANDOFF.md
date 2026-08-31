@@ -453,3 +453,27 @@ Final OOS、不 merge。
 - invariants：B strategy/spec/threshold、冻结 historical artifact、Final OOS sealed
   status 和 T-close/T+1 semantics unchanged；当前没有 live package/watchlist 或新的
   prospective evidence。
+
+## 21. Post-merge first LIVE_OBSERVED acquisition attempt — 2026-08-31
+
+- PR #17 was squash-merged after final exact-head review: final PR head
+  `ef48d192c7709a7194348369c689070c665da2b4`; merge SHA
+  `91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b`.
+- Merge master correctness run `33399324692` completed `success` with exact
+  `headSha=91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b`.
+- A new independent formal acquisition used `T=2026-08-31`, `T+1=2026-09-01`,
+  `LIVE_OBSERVED`, and fresh `observed_at_bjt=2026-08-31T22:01:28.307161+08:00`.
+  It did not reuse the 15:21/16:27 attempts, capability probe, or partial responses.
+- The post-merge provider path reached exact Sina sector/member validation and failed
+  closed with `INPUT_CONFLICT: display-name conflict for 000012: universe/member`.
+  Quotes, stock/index Kline, market_env, READY manifest, package serialization,
+  persistence, Drive upload, and recovery read-back were not reached.
+- Final current decision is
+  `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`; no package hash, file
+  hash, byte length, local logical path, Drive reference, or recovery state exists.
+  No new frozen-artifact registry record was fabricated; the compact attempt evidence
+  is `data/governance/prospective_input_attempt_evidence_20260831.json` and is marked
+  `not_a_frozen_artifact=true`.
+- B strategy/spec/thresholds, scope/version, T-close/T+1, fail-closed, provenance,
+  monitoring/rollback, Final OOS sealed/unread, C exclusion, Phase 2F exclusion,
+  and no-tuning/no-promotion boundaries remain unchanged.
