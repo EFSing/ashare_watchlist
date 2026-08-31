@@ -171,3 +171,93 @@
   prospective evidence 后，回到 `FROZEN_CANDIDATE_PREREQUISITES` decision point；
   缺少这些证据时仍保持 BLOCKED。完整审计见
   [`frozen_candidate_prerequisites_audit.md`](frozen_candidate_prerequisites_audit.md)。
+
+## 2026-08-30 — Strategy Candidate Nomination V1
+
+- context：PR #13 已以 expected head `0f5629765ef0eebbae0c6981f2d7ccafab7f7e35`
+  squash merge；其 master merge CI 已成功。当前任务只允许确定下一只值得进入
+  development eligibility 验证的 candidate，不允许调参、Phase 2F 或 Final OOS。
+- A decision：`REJECT_A_PLATFORM_BREAKOUT_LEGACY_V1_AS_FROZEN_CANDIDATE`。冻结的
+  Phase 2E V2 primary evidence 为 1D 42.4594% / -0.1270%，3D 42.6095% / -0.2281%，
+  5D 40.6703% / -0.5085%，10D 41.3134% / -0.4631%；scope 是 DEVELOPMENT /
+  RECONSTRUCTED_RETROSPECTIVE，不是 Final OOS。A 仍是 research baseline / regression
+  witness；该 decision 不外推到平台突破思想、未来 A 版本或 Research V2。
+- inventory：只审计已有固定 V0 provenance 的 A、B breakout-retest、C
+  main-trend-retest；D / generic old history types 因 exact mapping/provenance 不完整
+  排除。未引入其他项目规则。
+- nomination：在读取 B/C development returns 之前，按 exact provenance、未知来源、
+  frozen/recoverable data、无 backfill、Phase 2B contract、implementation/inference
+  complexity 的 lexicographic rule，唯一提名
+  `NOMINATE_B_BREAKOUT_RETEST_LEGACY_V1_FOR_DEVELOPMENT_ELIGIBILITY`。B lower
+  complexity；若仍相同，B→C 是固定 research tie-break，不是预测排名。C 不做 returns
+  evaluation。
+- reconstruction：B exact V0 reconstruction PASS；V0 source commit
+  `c8406c393c0b135eafb0aec763576ae869fddcff`，source SHA
+  `6cac746123e315199cbeeb1a612868ef77b50af6c7c64b0d80eb387ae1d19f9`，canonical
+  semantic spec SHA `5bbeb345ebd8883149138d2f29f8606f919949ae285aa2839fa337921dfc7112`；
+  focused parity/hash/edge/decision tests `7 passed`。
+- eligibility environment stop：此前的环境阻塞状态统一为
+  `CANDIDATE_ELIGIBILITY_BLOCKED_ENVIRONMENT`，原因是
+  `B_ELIGIBILITY_NOT_EXECUTED_MISSING_PARQUET_READER`。这不是 B performance
+  rejection、no-rule conclusion 或 C rejection。
+- fixed replay：安装 exact-pinned `pyarrow==17.0.0` 后，以 Python 3.12.13、
+  pandas 2.2.3 只运行一次相同的 `STRATEGY_DEVELOPMENT_ELIGIBILITY_V1`；首次
+  parquet read 前 registry required artifacts 13/13、daily_k exact SHA
+  `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426`、raw source、
+  checkpoint、CORE projection/manifest identity 均通过，frozen bytes 未修改。
+- frozen protocol：`ELIGIBILITY_RULE_FROZEN_BEFORE_B_RETURNS_READ = true`；
+  minimum N=30、primary=10D、10D positive rate >=50%、mean >0、median >0、
+  robust years >=3（每年 >=10 events）、positive robust-year means >=2。结果未改动
+  threshold。
+- B result：Event N `17,714`；available N 1D/3D/5D/10D 为 `17,689` / `17,635` /
+  `17,602` / `17,558`；10D positive rate / mean / median 为 `51.6403%` /
+  `+1.4603%` / `+0.3226%`；4 个 robust years 中 2 个 mean 为正，fixed gates 全部
+  PASS。
+- decision：`CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`。这是 B candidate
+  eligibility 的 `ADOPT`，不是 production strategy promotion、parameter validation
+  或 Final OOS 结论。event artifact SHA 为
+  `8940a4a346ac6911ba669f84a9ceba7ef878b0ed0ce51edf673439b52aa056b9`；eligibility
+  original manifest file SHA 为 `a0c5a195ea991a471fd56eb80534d03091d6bd308f6c6f263476737380a28c9a`；
+  该文件后续仅因 provenance correctness 修复而 deterministic rematerialized，当前
+  file SHA 由 2026-08-31 closure entry 记录。
+- prospective contract：定义
+  `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V1`，绑定 B strategy/spec
+  SHA、T close/T+1、universe、sector semantics、names、market_env、provider/version、
+  calendar、availability/fail-closed、recovery 和 generation/output identity；不伪造
+  尚未发生的 live instance。
+- rejudged prerequisites：`FROZEN_CANDIDATE_BLOCKED`；唯一 P1 为
+  `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`，等待首个真实 candidate-bound
+  `LIVE_OBSERVED` T-close package 并验证 `known_at <= T`。不测试 C、不启动 Phase 2F、
+  不调参、不读 Final OOS、不创建 `FROZEN_CANDIDATE_CONTRACT_V1`。
+
+## 2026-08-31 — PR #14 governance conflict and provenance correctness closure
+
+- context：Sol 独立审计发现 active PR body 仍保留旧的 parquet-reader stop /
+  `NO_REPRODUCIBLE_STRATEGY_CANDIDATE` 叙述，与 HEAD 上已完成的 B eligibility
+  及 HANDOFF/CURRENT_STATUS/本日志冲突；同时 eligibility manifest provenance
+  serialization 允许 CLI absolute path 影响 manifest identity。
+- decision：只修 active PR metadata、eligibility provenance canonicalization 和
+  formal decision-artifact registry；B fixed rule/spec/thresholds、observed metrics、
+  event set 与 decision 全部保持不变。
+- provenance：不同 filesystem root 及 relative/absolute invocation 的 regression
+  证明 canonical identity 相同；path 只保存稳定 repo-relative logical provenance，
+  `Path.resolve()` 的 machine-specific result 不进入 semantic/content/manifest hash。
+- deterministic verification：同一冻结 raw/CORE inputs 与既有固定 protocol 完成一次
+  reproducibility verification；event count `17,714`、event file SHA
+  `8940a4a346ac6911ba669f84a9ceba7ef878b0ed0ce51edf673439b52aa056b9`、event semantic
+  SHA `a16e48dfbe8a93f64d8bf1bad6e00d3eaf32c10fd60eed09dc5574247b8119bc`、metrics
+  identity、all gates 和 `CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES` 与修复前完全
+  一致。manifest 只做 deterministic provenance rematerialization；new manifest
+  semantic SHA 为 `f79ec9baa494f2f0256843c2540988bd25c94269ed9a1fd4ada228759bd8e0a2`，
+  payload content SHA 为 `e754787836b28316430278372ab2d84817091d4608da394f9207f695a4c27aee`，
+  file SHA 为 `5e0a557c1930de7b4f182f09f43b45c0c11b19b2d7c992bf9e7fa7e6cc6de048`。
+- registry：两个 B artifacts 均登记为 `required_for_decision=true`、
+  `required_for_replay=false`，并验证 registry 的实际 file/content SHA 与提交文件
+  完全匹配；不记录 absolute path、URL、token 或 secret。
+- governance outcome：Formal Delivery Ladder 仍为 `development candidate`，不创建
+  `FROZEN_CANDIDATE_CONTRACT_V1`；唯一当前 P1 仍为
+  `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`；不 promotion、不测试 C、不启动
+  Phase 2F、不调参、不读 Final OOS。
+- revisit condition：只有首个真实 candidate-bound `LIVE_OBSERVED` T-close input
+  instance 到来，或正式 strategy/protocol/data/provenance identity 改变时，才重新
+  进入对应 decision gate。

@@ -241,7 +241,7 @@ def _load_stock_store(raw_path: Path) -> tuple[dict[str, Any], dict[str, Any]]:
         "volume",
         "turnover",
     ]
-    frame = pd.read_parquet(raw_path, columns=columns)
+    frame = pd.read_parquet(raw_path, columns=columns, engine="pyarrow")
     if frame.duplicated(["thscode", "date_ms"]).any():
         raise RuntimeError("daily-K contains duplicate thscode/date_ms keys")
     if frame[columns[1:]].isna().any().any():
@@ -297,7 +297,7 @@ def _load_events(raw_path: Path) -> tuple[dict[str, list[tuple[int, float, float
         "allotment_ratio",
         "allotment_price",
     ]
-    frame = pd.read_parquet(raw_path, columns=columns)
+    frame = pd.read_parquet(raw_path, columns=columns, engine="pyarrow")
     events: dict[str, list[tuple[int, float, float, float, float]]] = defaultdict(list)
     for row in frame.itertuples(index=False, name=None):
         symbol, ex_date_ms, dividend, bonus, allotment, allotment_price = row
