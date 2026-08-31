@@ -444,3 +444,32 @@
   `KNOWN_DEVELOPMENT_VS_PROSPECTIVE_UNIVERSE_SCOPE_DIFFERENCE`，不自动推翻既有 decision。
 - consequence：PR #17 仍是现有 correction PR 的最后 hardening；合并前不获取真实
   prospective input，不生成 package/watchlist，不启动 C/Phase 2F，不调参，不读 Final OOS。
+
+## 2026-08-31 — First post-merge LIVE_OBSERVED acquisition attempt
+
+- context：PR #17 已按 actual expected head `ef48d192c7709a7194348369c689070c665da2b4`
+  squash merge，merge SHA 为 `91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b`；merge master
+  exact-head correctness run `33399324692` 成功。随后在同一合法 XSHG T-close window
+  用 fresh `observed_at_bjt=2026-08-31T22:01:28.307161+08:00` 执行正式 acquisition。
+- contract：T=`2026-08-31`，T+1=`2026-09-01`，`LIVE_OBSERVED`，scope/version 为
+  `SH_SZ_A_SHARE_ONLY` / `TRADABLE_UNIVERSE_SCOPE_V1`；universe/names 使用 HiThink
+  primary，sector 使用 AkShare 1.18.94 exact `新浪行业` spot/detail；没有复用此前失败
+  attempt、capability probe 或 partial response。
+- finding：在 exact Sina sector/member display-name consistency 阶段发现
+  `INPUT_CONFLICT: display-name conflict for 000012: universe/member`；quotes、Kline、
+  market_env、manifest、package、persistence 和 Drive recovery 均未执行。
+- decision：`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`；这是 required
+  name/provenance conflict 的 fail-closed blocker，不得用猜测映射、current data 或
+  taxonomy substitution 继续。
+- consequences：没有 `READY_FOR_STRATEGY_EVALUATION`、package/content/file SHA、byte
+  length、local logical path 或 Drive persistent recovery reference；没有 canonical
+  watchlist、prospective returns、C、Phase 2F、调参、paper/live trading 或 promotion。
+  不向 frozen artifact registry 添加伪 artifact；attempt evidence 另存为
+  `data/governance/prospective_input_attempt_evidence_20260831.json`，并明确
+  `not_a_frozen_artifact=true`。
+- invariants：B strategy/spec/threshold、`5bbeb345ebd8883149138d2f29f8606f919949ae285aa2839fa337921dfc7112`、
+  exact Sina taxonomy、SH/SZ scope/version、T-close/T+1、provider/fallback provenance、
+  monitoring/rollback、Final OOS sealed/unread 均不变。
+- next decision：在 provider/name conflict 解决且新的合法 T-close window 到来后，重新
+  获取全部 required inputs；在此之前保持该 provider blocker，不构造 package，不创建
+  `FROZEN_CANDIDATE_CONTRACT_V1`。
