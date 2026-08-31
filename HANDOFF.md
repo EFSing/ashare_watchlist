@@ -26,8 +26,8 @@
 
 - repo：`EFSing/ashare_watchlist`；origin：`https://github.com/EFSing/ashare_watchlist.git`。
 - active product PR：本地 `origin/master` 为用户指定的 `4e685ba...`；本次 adapter
-  工作位于 task branch，尚未创建新 PR。GitHub authenticated PR/live CI state 无法在
-  当前环境核验，不在本文件伪造 current head 或 exact-head CI。
+  PR #15 已创建并保持 open，base=`4e685ba...`，head=`0d092788f4296bd9501a6f1f82cdb74f3de230e3`，
+  `mergeable=true`、`merged=false`。不在本任务中 merge。
 - HISTORICAL_MILESTONE_IDENTITY：PR #9 产品章程与代理开发契约 squash merge `7a27484293cbcb791c6b8407949e9e71257e016b`；Phase 2E research baseline 仍为 `74ccf86…`。
 - HISTORICAL_MILESTONE_IDENTITY：PR #10 handoff consistency repair squash merge `11db387cc51a645c4491b39cbfa3e03e1228b6c4`。
 - HISTORICAL_MILESTONE_IDENTITY：PR #12 development-candidate gate squash merge
@@ -306,7 +306,7 @@ Final OOS、不 merge。
   没有 current-data backfill、Phase 2F、promotion、调参或 Final OOS。formal
   Delivery Ladder 仍为 `development candidate`，后续仍等待首个真实 T-close
   package，并在 `FROZEN_CANDIDATE_PREREQUISITES` 重新审计。
-- GitHub live state：当前环境无法读取私有仓库的 authenticated PR/CI API，不能把
-  新分支标成已创建 PR 或已通过 exact-head CI；提交后需由 Sol/仓库侧创建或核验
-  单一 PR，并停在 review，不 merge。既有 `data/validation/continuous_speed_probe/`
-  未跟踪目录属于用户现有内容，未触碰。
+- GitHub live state：PR #15 的 exact-head correctness run `33366136847` / run #92
+  已 `success`，head 精确匹配 `0d092788f4296bd9501a6f1f82cdb74f3de230e3`；当前停在
+  Sol review，不 merge。既有 `data/validation/continuous_speed_probe/` 未跟踪目录
+  属于用户现有内容，未触碰。
