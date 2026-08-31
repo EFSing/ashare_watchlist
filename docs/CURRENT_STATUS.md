@@ -181,10 +181,12 @@ provider failure；本次已完成同日独立 retry attempt 并在 attempts `3/
 本次 T 的 package。不启动 Phase 2F、不调参、不读 Final OOS、不把 product-ladder 晋级写成
 strategy promotion。
 
-当前 review branch 的下一步是创建单一 correction PR 并停在 Sol review。只有
-review/merge 完成且得到新的明确运行授权后，才可在新的合法 T-close session 重新获取
-完整 inputs；不得把 capability probe 当作 prospective evidence，也不得回填
-`2026-08-31`。
+当前单一 correction PR 为 [PR #17](https://github.com/EFSing/ashare_watchlist/pull/17)，
+保持 `OPEN`，head=`869eade1eaf48e2d470175e234e83c99fd2168ac`；pull-request correctness
+run `33379014737` 与 push correctness run `33378978157` 均在该 exact head 成功，当前
+`CLEAN`/`MERGEABLE`。停在 Sol review；只有 review/merge 完成且得到新的明确运行授权
+后，才可在新的合法 T-close session 重新获取完整 inputs。不得把 capability probe 当作
+prospective evidence，也不得回填 `2026-08-31`。
 
 ## Strategy Candidate Nomination V1 — 2026-08-30 — final eligibility update
 

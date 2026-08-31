@@ -428,7 +428,11 @@ Final OOS、不 merge。
   表示 HiThink index endpoint 无 adjustment，不修改 B strategy。
 - verdict：`HITHINK_LIVE_PRIMARY = SUPPORTED`；
   `EXACT_SINA_SECTOR_SOURCE = AVAILABLE`。
-- stop condition：创建单一 PR，等待 Sol review；review/merge 后还需用户明确授权，才
-  能在新的合法 T-close session 重新执行完整 acquisition。当前不运行 prospective
-  package，不创建 canonical watchlist，不测试 C，不启动 Phase 2F，不调参，不读
-  Final OOS，不 merge。
+- PR/live state：单一 PR #17 已创建并保持 `OPEN`，base=`master`/
+  `3b5b2f9abb6413bd4a2bbd531e11a8162e1bb2c9`，head=
+  `869eade1eaf48e2d470175e234e83c99fd2168ac`；pull-request correctness run
+  `33379014737` 与 push correctness run `33378978157` 均在该 exact head 成功，PR
+  当前 `CLEAN`/`MERGEABLE`。这是 live GitHub snapshot；不得把它视为已合并。
+- stop condition：停在 Sol review；review/merge 后还需用户明确授权，才能在新的合法
+  T-close session 重新执行完整 acquisition。当前不运行 prospective package，不创建
+  canonical watchlist，不测试 C，不启动 Phase 2F，不调参，不读 Final OOS，不 merge。

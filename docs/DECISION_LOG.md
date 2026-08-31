@@ -416,6 +416,9 @@
   no-current-data-backfill、no-future-bar 和 existing frozen artifacts 均不变。
 - verdict：`HITHINK_LIVE_PRIMARY = SUPPORTED`；
   `EXACT_SINA_SECTOR_SOURCE = AVAILABLE`。
-- next decision：创建单一 correction PR 并停在 Sol review。review/merge 后是否运行新
-  的 prospective T-close acquisition，必须由用户在新的合法 close session 明确授权；
-  本任务不自动选择新的 T、不生成 package，不启动 C/Phase 2F、不调参、不读 Final OOS。
+- next decision：单一 correction PR #17 已创建并保持 `OPEN`，head=
+  `869eade1eaf48e2d470175e234e83c99fd2168ac`；pull-request correctness run
+  `33379014737` 与 push correctness run `33378978157` 均在该 exact head 成功，当前
+  `CLEAN`/`MERGEABLE`。停在 Sol review；review/merge 后是否运行新的 prospective
+  T-close acquisition，必须由用户在新的合法 close session 明确授权；本任务不自动
+  选择新的 T、不生成 package、不启动 C/Phase 2F、不调参、不读 Final OOS、不 merge。
