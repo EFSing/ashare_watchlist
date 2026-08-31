@@ -386,3 +386,61 @@
   B strategy/spec/threshold、Phase 2B semantics、frozen artifact identities、Final OOS
   sealed state 和既有 `phase2e.hithink_probe` non-blocking metadata debt 均未改变。
   不创建 `FROZEN_CANDIDATE_CONTRACT_V1`，不 promotion、不测试 C、不启动 Phase 2F、不调参。
+
+## 2026-08-31 — P0 live sector taxonomy mismatch correction
+
+- task classification：`correctness blocker` P0，并包含阻止当前 candidate-bound live
+  path 使用的 product/provider architecture blocker；不启动新的 strategy research。
+- research question and materiality：当前 authenticated HiThink Financial-API 是否能
+  支持 universe/names 与 stock/index K primary，以及 AkShare 当前是否仍能提供 B 冻结的
+  exact Sina industry membership；答案决定能否修正 live adapter，而不修改 B spec。停止
+  条件是 endpoint capability、返回 schema/taxonomy 和 fail-closed boundary 均被核实。
+- finding：merged master 的 `stock_board_industry_name_em` /
+  `stock_board_industry_cons_em` 是东方财富 industry taxonomy，违反 B exact legacy
+  provenance（AkShare `stock_sector_spot` / `stock_sector_detail`，`新浪行业`）。两次
+  `2026-08-31` attempt 都在 package 构造前失败，故没有 contaminated prospective
+  artifact，也不改写既有失败事实。
+- capability evidence（非 prospective evidence）：HiThink authenticated metadata/
+  ticker、snapshot、stock historical K、index historical K、adjustment-events 当前均
+  返回 HTTP 200 / `code=0` 与结构化字段；AkShare `1.18.94` 的 exact Sina spot/detail
+  当前可调用，live probe 返回 49 个行业及首个 detail 的 19 个成员。没有保存 raw
+  payload、没有构造 manifest/package、没有进行收益研究或 Final OOS 读取。
+- decision：`ADOPT` 最小 provider correction。HiThink metadata primary universe/name；
+  HiThink `adjust=forward` stock K 和 unadjusted index K primary；exact Sina API 是唯
+  一 sector source；Tencent quotes 保留既有字段语义；Tencent Kline 仅作为明确版本化
+  `LIVE_MARKET_DATA_FAILOVER_POLICY_V1` / `TENCENT_QFQ_FALLBACK_V1` transport fallback。
+  EM/THS/SW 代替、taxonomy/schema/date/coverage failure 和非 transient provider failure
+  均 fail closed。HiThink index 使用 `PROVIDER_RAW_SNAPSHOT`，不伪装成 qfq。
+- invariants：B strategy/spec/threshold、spec SHA
+  `5bbeb345ebd8883149138d2f29f8606f919949ae285aa2839fa337921dfc7112`、T-close/T+1、
+  no-current-data-backfill、no-future-bar 和 existing frozen artifacts 均不变。
+- verdict：`HITHINK_LIVE_PRIMARY = SUPPORTED`；
+  `EXACT_SINA_SECTOR_SOURCE = AVAILABLE`。
+- next decision：单一 correction PR #17 已创建并保持 `OPEN`，head=
+  `869eade1eaf48e2d470175e234e83c99fd2168ac`；pull-request correctness run
+  `33379014737` 与 push correctness run `33378978157` 均在该 exact head 成功，当前
+  `CLEAN`/`MERGEABLE`。停在 Sol review；review/merge 后是否运行新的 prospective
+  T-close acquisition，必须由用户在新的合法 close session 明确授权；本任务不自动
+  选择新的 T、不生成 package、不启动 C/Phase 2F、不调参、不读 Final OOS、不 merge。
+
+## 2026-08-31 — PR #17 adjustment boundary and tradable-universe scope closure
+
+- task classification：`correctness blocker`（stock raw Kline 可被通用 validator 接受）
+  加 `product blocker` hardening（live universe scope 未进入稳定 identity）；不是新的
+  strategy research、参数选择、Phase 2F 或 Final OOS 任务。
+- research question / materiality：不新增研究问题；修正直接决定 live input 是否能
+  fail closed，以及未来 BJ 纳入是否会被识别为不同产品范围。停止条件是 stock/index
+  provider-adjustment 配对、scope identity、provenance 和回归测试全部明确。
+- decision：`ADOPT`。`KlineManifest` 只接受 `PROVIDER_QFQ_SNAPSHOT`；`IndexManifest`
+  只接受 HiThink Financial-API + `PROVIDER_RAW_SNAPSHOT`，或 Tencent +
+  `PROVIDER_QFQ_SNAPSHOT` 的 explicit fallback；其他 adjustment/provider 配对 reject。
+- decision：`ADOPT` `TRADABLE_UNIVERSE_SCOPE_V1 = SH_SZ_A_SHARE_ONLY`。SH/SZ A 股
+  included，BJ explicitly excluded，BJ absence 不属于 incomplete coverage；scope/version
+  进入 UniverseManifest content hash、GenerationInput input fingerprint、live
+  generation identity、provider metadata 和 prospective provenance。
+- invariants：B strategy、B spec SHA、B threshold、既有 frozen historical artifacts、
+  Final OOS sealed 状态和 T-close/T+1 semantics 均不变。既有 B development eligibility
+  不重跑、不改写；若历史输入包含 BJ，只记录
+  `KNOWN_DEVELOPMENT_VS_PROSPECTIVE_UNIVERSE_SCOPE_DIFFERENCE`，不自动推翻既有 decision。
+- consequence：PR #17 仍是现有 correction PR 的最后 hardening；合并前不获取真实
+  prospective input，不生成 package/watchlist，不启动 C/Phase 2F，不调参，不读 Final OOS。
