@@ -171,3 +171,18 @@ Sina spot returned 49 sectors and the first detail call returned 19 members. No 
 saved, no package was run, and T=`2026-08-31` remains failed. The branch is ready for Sol
 review; after review/merge, a new real T-close acquisition still requires explicit user
 authorization and a fresh complete provider capture.
+
+## Post-merge formal attempt — 2026-08-31
+
+After PR #17 was squash-merged at `91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b` and
+merge master correctness run `33399324692` succeeded, a new complete acquisition was
+started with fresh `observed_at_bjt=2026-08-31T22:01:28.307161+08:00` for
+T=`2026-08-31` / T+1=`2026-09-01`. It reached exact Sina sector/member display-name
+validation and failed closed:
+
+    INPUT_CONFLICT: display-name conflict for 000012: universe/member
+
+No READY manifest, package, hash, local persistence, Drive upload, recovery read-back,
+canonical watchlist, prospective return, or performance output was created. Final
+prerequisite status is `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`.
+See the compact evidence record and audit for the exact no-artifact boundary.
