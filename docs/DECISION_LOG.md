@@ -422,3 +422,25 @@
   `CLEAN`/`MERGEABLE`。停在 Sol review；review/merge 后是否运行新的 prospective
   T-close acquisition，必须由用户在新的合法 close session 明确授权；本任务不自动
   选择新的 T、不生成 package、不启动 C/Phase 2F、不调参、不读 Final OOS、不 merge。
+
+## 2026-08-31 — PR #17 adjustment boundary and tradable-universe scope closure
+
+- task classification：`correctness blocker`（stock raw Kline 可被通用 validator 接受）
+  加 `product blocker` hardening（live universe scope 未进入稳定 identity）；不是新的
+  strategy research、参数选择、Phase 2F 或 Final OOS 任务。
+- research question / materiality：不新增研究问题；修正直接决定 live input 是否能
+  fail closed，以及未来 BJ 纳入是否会被识别为不同产品范围。停止条件是 stock/index
+  provider-adjustment 配对、scope identity、provenance 和回归测试全部明确。
+- decision：`ADOPT`。`KlineManifest` 只接受 `PROVIDER_QFQ_SNAPSHOT`；`IndexManifest`
+  只接受 HiThink Financial-API + `PROVIDER_RAW_SNAPSHOT`，或 Tencent +
+  `PROVIDER_QFQ_SNAPSHOT` 的 explicit fallback；其他 adjustment/provider 配对 reject。
+- decision：`ADOPT` `TRADABLE_UNIVERSE_SCOPE_V1 = SH_SZ_A_SHARE_ONLY`。SH/SZ A 股
+  included，BJ explicitly excluded，BJ absence 不属于 incomplete coverage；scope/version
+  进入 UniverseManifest content hash、GenerationInput input fingerprint、live
+  generation identity、provider metadata 和 prospective provenance。
+- invariants：B strategy、B spec SHA、B threshold、既有 frozen historical artifacts、
+  Final OOS sealed 状态和 T-close/T+1 semantics 均不变。既有 B development eligibility
+  不重跑、不改写；若历史输入包含 BJ，只记录
+  `KNOWN_DEVELOPMENT_VS_PROSPECTIVE_UNIVERSE_SCOPE_DIFFERENCE`，不自动推翻既有 decision。
+- consequence：PR #17 仍是现有 correction PR 的最后 hardening；合并前不获取真实
+  prospective input，不生成 package/watchlist，不启动 C/Phase 2F，不调参，不读 Final OOS。

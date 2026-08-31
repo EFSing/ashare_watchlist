@@ -243,14 +243,14 @@ Phase 2B T-close/T+1、anti-lookahead、Final OOS sealed invariants 未改变。
 
 本任务对当前 master 做了执行路径审计：原有代码只有 Phase 2B
 `freeze_generation_inputs()` validator 和旧 Tencent quote/Kline utility，没有能从
-AkShare/Tencent provider 构造完整 candidate-bound `GenerationInputManifest` 的
+AkShare/HiThink/Tencent provider 构造完整 candidate-bound `GenerationInputManifest` 的
 acquisition adapter。因此 `P1-FC-LIVE-ACQUISITION-ADAPTER_MISSING` 被识别为本轮
 真正的产品 P1，并在未改变任何 B strategy/spec/threshold 的单一实现分支中补齐。
 
 [`live_acquisition_adapter_v1.md`](live_acquisition_adapter_v1.md) 和
 [`scripts/live_acquisition.py`](../scripts/live_acquisition.py) 定义并测试了
-AkShare universe、sector definitions/membership/rank、Tencent T quote、Tencent
-`PROVIDER_QFQ_SNAPSHOT` stock/index daily K、display names、market_env、runtime/
+HiThink SH/SZ A-share universe/names、exact Sina sector definitions/membership/rank、
+Tencent T quote、HiThink forward stock / raw index daily K（Tencent qfq fallback）、display names、market_env、runtime/
 provider provenance、T-close/T+1、freshness/completeness/conflict、deterministic
 identity、immutable input persistence 和 fail-closed 行为。实际 runtime 的 AkShare
 版本为 `1.18.94`；pyarrow 保持 `25.0.1`，没有为 prospective path 降级。
@@ -262,3 +262,23 @@ AkShare sector membership 阶段以 `PROVIDER_FAILURE / ConnectionError` fail cl
 package。Formal Delivery Ladder 仍为 `development candidate`，prerequisite
 decision 仍为 `FROZEN_CANDIDATE_BLOCKED`；provider 可用时，可以在同一 T 日正式收盘后
 以新的 observed_at 独立重试并重新审计，跨日则等待下一个 T-close。
+
+## PR #17 final contract hardening — 2026-08-31
+
+PR #17 在现有 provider correction 上补齐最后一个 correctness boundary：stock
+`KlineManifest` 只接受 `PROVIDER_QFQ_SNAPSHOT`；HiThink index primary 只接受
+`HiThink Financial-API` + `PROVIDER_RAW_SNAPSHOT`；Tencent index fallback 只接受
+`Tencent` + `PROVIDER_QFQ_SNAPSHOT`，其他 provider/adjustment 配对 fail closed。
+
+当前 live universe contract 正式版本化为
+`TRADABLE_UNIVERSE_SCOPE_V1 = SH_SZ_A_SHARE_ONLY`：沪市/深市 A 股 included，北交所
+explicitly excluded，BJ absence 不计为 incomplete coverage。scope/version 进入
+UniverseManifest content identity、GenerationInput input fingerprint、live generation
+identity、provider metadata 和 prospective provenance。未来纳入 BJ 必须形成新的
+scope/version identity。
+
+既有 B development eligibility 的历史 universe scope 不被重跑、改写或用来选择新
+candidate；若其历史输入包含 BJ，只保留
+`KNOWN_DEVELOPMENT_VS_PROSPECTIVE_UNIVERSE_SCOPE_DIFFERENCE` 作为 scope 差异记录，
+不据此否定既有 B decision。B strategy/spec/threshold、冻结历史 artifact 和 Final OOS
+sealed 状态均不变。

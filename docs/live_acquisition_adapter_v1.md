@@ -21,20 +21,24 @@ input instance 仍是后续 prerequisites gate。
    官方 session close；否则分别 fail closed 为 `CALENDAR_ERROR`、
    `INPUT_DATE_MISMATCH` 或 `SESSION_NOT_CLOSED`，且 provider 不会被调用。
 2. 通过 authenticated HiThink Financial-API `/api/meta/tickers/list` 获取当前
-   SH/SZ A-share universe 与 display names；分页、资产类型、交易所、代码/名称
-   冲突或空覆盖均失败。该 current snapshot 只用于当日 live T，不用于历史回填。
+   `TRADABLE_UNIVERSE_SCOPE_V1 = SH_SZ_A_SHARE_ONLY` 范围内的 SH/SZ A-share
+   universe 与 display names；BJ 明确排除，不属于该 scope 的 incomplete coverage。
+   分页、资产类型、交易所、代码/名称冲突或 SH/SZ 空覆盖均失败。该 current snapshot
+   只用于当日 live T，不用于历史回填。scope/version 写入 UniverseManifest、input/
+   generation identity 和 provenance；未来纳入 BJ 必须使用新 scope/version。
 3. 通过 AkShare `stock_sector_spot(indicator="新浪行业")` 获取 exact Sina
    industry definitions/change，按涨跌幅稳定计算 rank，再通过
    `stock_sector_detail` 获取每个 label 的 members；EM/THS/SW schema、taxonomy
    marker、空结果、缺覆盖、重复/跨行业冲突或名字冲突均失败。
 4. 通过既有 Tencent quote parser 获取所有 universe symbols 的 T 日 quote。
 5. 以 HiThink `/api/a-share/prices/historical?adjust=forward` 获取每只股票 daily
-   K，以 `/api/a-share-index/prices/historical` 获取 `000001.SH` 指数 K。个股
-   保持 `PROVIDER_QFQ_SNAPSHOT`，HiThink 指数诚实标记为
-   `PROVIDER_RAW_SNAPSHOT`；缺 T、未来 bar、重复日期、不完整 OHLCV 或覆盖不足
-   均失败。只有 `LIVE_MARKET_DATA_FAILOVER_POLICY_V1` 明确允许时，单只 HiThink
-   transport failure 才可解析为版本化 Tencent `qfqday` fallback；语义/日期/schema
-   failure 不触发 fallback。
+   K，以 `/api/a-share-index/prices/historical` 获取 `000001.SH` 指数 K。股票只接受
+   `PROVIDER_QFQ_SNAPSHOT`；HiThink 指数诚实标记为 `PROVIDER_RAW_SNAPSHOT`，Tencent
+   explicit fallback index 才标记为 `PROVIDER_QFQ_SNAPSHOT`。stock raw、HiThink qfq
+   index 和其他 provider/adjustment 配对均 fail closed。缺 T、未来 bar、重复日期、
+   不完整 OHLCV 或覆盖不足均失败。只有 `LIVE_MARKET_DATA_FAILOVER_POLICY_V1`
+   明确允许时，单只 HiThink transport failure 才可解析为版本化 Tencent `qfqday`
+   fallback；语义/日期/schema failure 不触发 fallback。
 6. 从 T 日 provider index K 派生带 T、provider、adjustment 和 index hash 的 canonical
    `market_env`，再调用既有 `freeze_generation_inputs()` 构造 READY
    `GenerationInputManifest`。

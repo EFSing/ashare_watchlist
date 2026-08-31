@@ -257,6 +257,47 @@ def test_empty_universe_fails_closed():
     assert caught.value.status == INCOMPLETE_COVERAGE
 
 
+def test_bj_is_excluded_by_explicit_sh_sz_scope_without_coverage_failure():
+    hithink = FakeHiThink(
+        universe=[
+            {
+                "thscode": "600519.SH",
+                "ticker": SYMBOL,
+                "name": "测试股份",
+                "exchange": "SH",
+                "asset_type": "a-share",
+            },
+            {
+                "thscode": "430047.BJ",
+                "ticker": "430047",
+                "name": "北交测试",
+                "exchange": "BJ",
+                "asset_type": "a-share",
+            },
+        ]
+    )
+
+    package = _acquire(hithink_client=hithink)
+
+    assert package.generation_input_manifest.universe.symbols == (SYMBOL,)
+    assert package.generation_input_manifest.universe.universe_scope == "SH_SZ_A_SHARE_ONLY"
+    assert package.generation_input_manifest.universe.universe_scope_version == "TRADABLE_UNIVERSE_SCOPE_V1"
+    assert package.generation_identity_payload["universe_scope"] == {
+        "name": "SH_SZ_A_SHARE_ONLY",
+        "version": "TRADABLE_UNIVERSE_SCOPE_V1",
+    }
+    assert package.provenance["universe_scope"] == {
+        "version": "TRADABLE_UNIVERSE_SCOPE_V1",
+        "name": "SH_SZ_A_SHARE_ONLY",
+        "asset_type": "a-share",
+        "included_exchanges": ["SH", "SZ"],
+        "excluded_exchanges": ["BJ"],
+    }
+    assert package.provenance["provider_version_metadata"]["providers"]["universe"]["scope"] == package.provenance[
+        "universe_scope"
+    ]
+
+
 def test_missing_universe_name_fails_closed():
     with pytest.raises(live.LiveAcquisitionError) as caught:
         _acquire(
@@ -471,6 +512,8 @@ def test_complete_package_has_t_plus_one_market_env_and_provenance():
     assert package.provenance["quality_checks"]["generation_manifest"] == "READY_FOR_STRATEGY_EVALUATION"
     assert package.provenance["provider_version_metadata"]["runtime"]["packages"]["akshare"] == "1.18.94"
     assert package.generation_input_manifest.universe.source == "HiThink Financial-API /api/meta/tickers/list"
+    assert package.generation_input_manifest.universe.universe_scope == "SH_SZ_A_SHARE_ONLY"
+    assert package.generation_input_manifest.universe.universe_scope_version == "TRADABLE_UNIVERSE_SCOPE_V1"
     assert package.generation_input_manifest.index.provider == "HiThink Financial-API"
     assert package.generation_input_manifest.index.adjustment_mode == "PROVIDER_RAW_SNAPSHOT"
     assert package.provenance["provider_version_metadata"]["providers"]["sector"]["taxonomy"] == "新浪行业"

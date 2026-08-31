@@ -21,7 +21,7 @@ prospective observation, does not create a watchlist, and does not create
 | --- | --- |
 | candidate identity | B strategy version and exact spec SHA above; no silent rule or threshold change |
 | timing | signal uses T close only; execution is the next XSHG session T+1 |
-| universe | exact T-date universe identity, source/version, as-of date, file/content SHA and row identity |
+| universe | exact T-date universe identity, source/version, explicit `TRADABLE_UNIVERSE_SCOPE_V1 = SH_SZ_A_SHARE_ONLY`, as-of date, file/content SHA and row identity |
 | sector semantics | explicit historical membership/taxonomy status; no current-data backfill or substitute taxonomy |
 | names | exact normalized/display-name mapping used for this T input; missing or conflicting names fail closed |
 | market_env | canonical T-date market-environment identity and source/provenance |
@@ -37,6 +37,9 @@ For this candidate-bound live path, the provider identities are explicit and par
 the input manifest:
 
 - universe and display names: HiThink Financial-API metadata/tickers list, primary;
+  current live scope is SH/SZ A-share only; BJ is explicitly excluded and its absence is
+  not incomplete coverage. The scope/version participates in input and generation identity;
+  adding BJ requires a new scope/version.
 - stock K line: HiThink Financial-API historical `adjust=forward`, primary;
 - index K line: HiThink Financial-API historical index endpoint, unadjusted and marked
   `PROVIDER_RAW_SNAPSHOT`;

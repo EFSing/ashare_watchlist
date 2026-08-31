@@ -31,6 +31,11 @@ PROVIDER_QFQ_SNAPSHOT = "PROVIDER_QFQ_SNAPSHOT"
 # HiThink's index endpoint has no adjustment concept.  Keep that provider
 # semantics explicit instead of relabelling an unadjusted index as qfq.
 PROVIDER_RAW_SNAPSHOT = "PROVIDER_RAW_SNAPSHOT"
+# The live tradable universe is deliberately versioned.  Adding another
+# exchange (for example BJ) must create a new scope identity rather than
+# silently changing the meaning of an existing package.
+TRADABLE_UNIVERSE_SCOPE_V1 = "SH_SZ_A_SHARE_ONLY"
+TRADABLE_UNIVERSE_SCOPE_VERSION = "TRADABLE_UNIVERSE_SCOPE_V1"
 EXCHANGE_CALENDARS_VERSION = "4.13.2"
 
 READY_FOR_STRATEGY_EVALUATION = "READY_FOR_STRATEGY_EVALUATION"
@@ -255,6 +260,8 @@ class UniverseManifest:
     source: str
     symbols: Sequence[Any]
     temporal_semantics: str = LIVE_OBSERVED
+    universe_scope: str = TRADABLE_UNIVERSE_SCOPE_V1
+    universe_scope_version: str = TRADABLE_UNIVERSE_SCOPE_VERSION
     content_sha256: str = field(init=False)
 
     def __post_init__(self) -> None:
@@ -266,10 +273,23 @@ class UniverseManifest:
         if semantics not in {LIVE_OBSERVED, POINT_IN_TIME}:
             raise ValueError(f"unsupported temporal_semantics: {semantics}")
         object.__setattr__(self, "temporal_semantics", semantics)
+        object.__setattr__(self, "universe_scope", _require_text(self.universe_scope, "universe_scope"))
+        object.__setattr__(
+            self,
+            "universe_scope_version",
+            _require_text(self.universe_scope_version, "universe_scope_version"),
+        )
         object.__setattr__(
             self,
             "content_sha256",
-            _sha256({"symbols": list(self.symbols), "temporal_semantics": semantics}),
+            _sha256(
+                {
+                    "symbols": list(self.symbols),
+                    "temporal_semantics": semantics,
+                    "universe_scope": self.universe_scope,
+                    "universe_scope_version": self.universe_scope_version,
+                }
+            ),
         )
 
     @property
@@ -282,6 +302,8 @@ class UniverseManifest:
             "retrieved_at_bjt": self.retrieved_at_bjt,
             "source": self.source,
             "temporal_semantics": self.temporal_semantics,
+            "universe_scope": self.universe_scope,
+            "universe_scope_version": self.universe_scope_version,
             "symbols": list(self.symbols),
             "symbol_count": len(self.symbols),
             "content_sha256": self.content_sha256,
@@ -525,6 +547,10 @@ class GenerationInputManifest:
             "mode": self.run_context.mode,
             "timezone": self.run_context.timezone,
             "universe_hash": self.universe.content_sha256,
+            "universe_scope": {
+                "name": self.universe.universe_scope,
+                "version": self.universe.universe_scope_version,
+            },
             "quote_hash": self.quote_snapshot.content_sha256,
             "stock_kline_hashes": {
                 item.symbol: item.normalized_data_sha256 for item in self.stock_klines
@@ -589,13 +615,7 @@ def _validate_calendar(as_of_date: str, calendar: TradingCalendar) -> None:
         _fail(CALENDAR_ERROR, f"XSHG calendar failed: {exc}")
 
 
-def _validate_kline_dates(item: KlineManifest, as_of_date: str, label: str) -> None:
-    if item.adjustment_mode not in {PROVIDER_QFQ_SNAPSHOT, PROVIDER_RAW_SNAPSHOT}:
-        _fail(
-            UNSUPPORTED_MODE,
-            f"{label} {item.symbol} adjustment_mode must be one of "
-            f"{PROVIDER_QFQ_SNAPSHOT}, {PROVIDER_RAW_SNAPSHOT}",
-        )
+def _validate_kline_coverage(item: KlineManifest, as_of_date: str, label: str) -> None:
     if item.bar_count == 0 or item.first_bar_date is None or item.last_bar_date is None:
         _fail(INCOMPLETE_COVERAGE, f"{label} {item.symbol} has no bars")
     future_dates = [bar["date"] for bar in item.bars if bar["date"] > as_of_date]
@@ -609,6 +629,30 @@ def _validate_kline_dates(item: KlineManifest, as_of_date: str, label: str) -> N
             INPUT_DATE_MISMATCH,
             f"{label} {item.symbol} last_bar_date {item.last_bar_date} != {as_of_date}",
         )
+
+
+def _validate_stock_kline(item: KlineManifest, as_of_date: str) -> None:
+    if item.adjustment_mode != PROVIDER_QFQ_SNAPSHOT:
+        _fail(
+            UNSUPPORTED_MODE,
+            f"stock kline {item.symbol} adjustment_mode must be {PROVIDER_QFQ_SNAPSHOT}",
+        )
+    _validate_kline_coverage(item, as_of_date, "stock kline")
+
+
+def _validate_index_kline(item: IndexManifest, as_of_date: str) -> None:
+    expected_mode = {
+        "HiThink Financial-API": PROVIDER_RAW_SNAPSHOT,
+        "Tencent": PROVIDER_QFQ_SNAPSHOT,
+    }.get(item.provider)
+    if expected_mode is None or item.adjustment_mode != expected_mode:
+        _fail(
+            UNSUPPORTED_MODE,
+            "index kline provider/adjustment_mode must be "
+            "HiThink Financial-API/PROVIDER_RAW_SNAPSHOT or "
+            "Tencent/PROVIDER_QFQ_SNAPSHOT",
+        )
+    _validate_kline_coverage(item, as_of_date, "index kline")
 
 
 def _validate_live_observation_date(item: Any, as_of_date: str, label: str) -> None:
@@ -728,10 +772,10 @@ def freeze_generation_inputs(
         _fail(INCOMPLETE_COVERAGE, f"stock klines outside universe: {', '.join(extra_klines)}")
     for item in sorted(kline_by_symbol.values(), key=lambda value: value.symbol):
         _ensure_same_date(item.as_of_date, as_of_date, f"stock kline {item.symbol}")
-        _validate_kline_dates(item, as_of_date, "stock kline")
+        _validate_stock_kline(item, as_of_date)
 
     _ensure_same_date(index.as_of_date, as_of_date, "index")
-    _validate_kline_dates(index, as_of_date, "index kline")
+    _validate_index_kline(index, as_of_date)
 
     live_inputs = [
         ("universe", universe),

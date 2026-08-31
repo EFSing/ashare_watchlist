@@ -46,6 +46,8 @@ from generation_contract import (
     PROVIDER_RAW_SNAPSHOT,
     READY_FOR_STRATEGY_EVALUATION,
     SESSION_NOT_CLOSED,
+    TRADABLE_UNIVERSE_SCOPE_V1,
+    TRADABLE_UNIVERSE_SCOPE_VERSION,
     XSHG_CALENDAR,
     GenerationInputManifest,
     IndexManifest,
@@ -102,6 +104,16 @@ TENCENT_QUOTE_SOURCE = "qt.gtimg.cn"
 TENCENT_KLINE_SOURCE = "web.ifzq.gtimg.cn/appstock/app/fqkline/get"
 INDEX_SYMBOL = "sh000001"
 HITHINK_INDEX_SYMBOL = "000001.SH"
+
+
+def _tradable_universe_scope_metadata() -> dict[str, Any]:
+    return {
+        "version": TRADABLE_UNIVERSE_SCOPE_VERSION,
+        "name": TRADABLE_UNIVERSE_SCOPE_V1,
+        "asset_type": "a-share",
+        "included_exchanges": ["SH", "SZ"],
+        "excluded_exchanges": ["BJ"],
+    }
 
 # B's fixed evaluator reads the last 250 stock bars.  The index market-env
 # calculation reads a 20-session moving average and therefore needs 21 bars.
@@ -674,7 +686,13 @@ def _build_universe(
     for index, row in enumerate(rows):
         asset_type = _text(_field(row, ("asset_type",), f"universe[{index}].asset_type"), "universe asset_type")
         exchange = _text(_field(row, ("exchange",), f"universe[{index}].exchange"), "universe exchange").upper()
-        if asset_type.lower() != "a-share" or exchange not in {"SH", "SZ"}:
+        if asset_type.lower() != "a-share":
+            continue
+        # BJ is intentionally outside the current tradable product scope;
+        # its absence is not an incomplete SH/SZ coverage signal.
+        if exchange == "BJ":
+            continue
+        if exchange not in {"SH", "SZ"}:
             continue
         symbol = _code(_field(row, ("ticker", "thscode"), f"universe[{index}].ticker"), f"universe[{index}].ticker")
         thscode = _text(_field(row, ("thscode",), f"universe[{index}].thscode"), "universe thscode").upper()
@@ -695,6 +713,8 @@ def _build_universe(
             source=f"HiThink Financial-API {HITHINK_UNIVERSE_API}",
             symbols=tuple(names),
             temporal_semantics=LIVE_OBSERVED,
+            universe_scope=TRADABLE_UNIVERSE_SCOPE_V1,
+            universe_scope_version=TRADABLE_UNIVERSE_SCOPE_VERSION,
         ),
         dict(sorted(names.items())),
     )
@@ -965,9 +985,9 @@ def _resolve_market_bars(
         if len(bars) < count:
             _fail(INCOMPLETE_COVERAGE, f"HiThink historical coverage for {thscode} is {len(bars)} < {count}")
         normalized = list(bars)
-        for index, bar in enumerate(normalized):
+        for bar_index, bar in enumerate(normalized):
             if not isinstance(bar, Mapping) or not isinstance(bar.get("date"), str):
-                _fail(PROVIDER_FAILURE, f"HiThink historical bar {thscode}[{index}] has no canonical date")
+                _fail(PROVIDER_FAILURE, f"HiThink historical bar {thscode}[{bar_index}] has no canonical date")
         future_dates = [bar["date"] for bar in normalized if bar["date"] > as_of_date]
         if future_dates:
             _fail(FUTURE_DATA_DETECTED, f"HiThink historical bar {thscode} is after {as_of_date}: {future_dates[0]}")
@@ -1064,6 +1084,10 @@ def _generation_identity_payload(
         "as_of_date": manifest.signal_date,
         "earliest_execution_date": manifest.earliest_execution_date,
         "input_fingerprint": manifest.input_fingerprint,
+        "universe_scope": {
+            "name": manifest.universe.universe_scope,
+            "version": manifest.universe.universe_scope_version,
+        },
         "display_names": dict(sorted(display_names.items())),
         "market_env": _copy_json(dict(market_env), "market_env"),
     }
@@ -1125,6 +1149,15 @@ class LiveInputPackage:
             or candidate.get("spec_sha256") != STRATEGY_SPEC_SHA256
         ):
             _fail(INPUT_CONFLICT, "provenance candidate identity does not match the nominated candidate")
+        provenance_scope = provenance.get("universe_scope")
+        expected_scope = {
+            "name": self.generation_input_manifest.universe.universe_scope,
+            "version": self.generation_input_manifest.universe.universe_scope_version,
+        }
+        if not isinstance(provenance_scope, Mapping) or any(
+            provenance_scope.get(key) != value for key, value in expected_scope.items()
+        ):
+            _fail(INPUT_CONFLICT, "provenance universe scope does not match the generation manifest")
         calendar = provenance.get("calendar")
         if not isinstance(calendar, Mapping):
             _fail(PROVIDER_FAILURE, "provenance calendar evidence is missing")
@@ -1419,6 +1452,7 @@ def acquire_live_generation_inputs(
                 "base_url": HITHINK_BASE_URL,
                 "api": HITHINK_UNIVERSE_API,
                 "selection": "PRIMARY",
+                "scope": _tradable_universe_scope_metadata(),
             },
             "sector": {
                 "provider": "AkShare",
@@ -1483,6 +1517,7 @@ def acquire_live_generation_inputs(
         "contract": PROSPECTIVE_PROVENANCE_CONTRACT,
         "observation_status": LIVE_OBSERVED,
         "retrieved_at_bjt": retrieved_at_bjt,
+        "universe_scope": _tradable_universe_scope_metadata(),
         "known_at_rule": "acquisition occurs only when retrieved_at_bjt >= XSHG session close on T",
         "candidate": {"strategy_version": STRATEGY_VERSION, "spec_sha256": STRATEGY_SPEC_SHA256},
         "calendar": {
@@ -1548,6 +1583,8 @@ __all__ = [
     "SINA_SPOT_SOURCE_URL",
     "SinaSectorClient",
     "TENCENT_KLINE_SOURCE",
+    "TRADABLE_UNIVERSE_SCOPE_V1",
+    "TRADABLE_UNIVERSE_SCOPE_VERSION",
     "acquire_live_generation_inputs",
     "akshare_runtime_capability",
     "persist_live_input_package",

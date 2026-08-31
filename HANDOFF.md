@@ -436,3 +436,20 @@ Final OOS、不 merge。
 - stop condition：停在 Sol review；review/merge 后还需用户明确授权，才能在新的合法
   T-close session 重新执行完整 acquisition。当前不运行 prospective package，不创建
   canonical watchlist，不测试 C，不启动 Phase 2F，不调参，不读 Final OOS，不 merge。
+
+## 20. PR #17 final contract hardening — 2026-08-31 (review branch)
+
+- classification：`correctness blocker` + `product blocker` hardening；不启动新的
+  strategy、Phase 2F、参数选择、Final OOS 或 promotion。
+- validator：stock `KlineManifest` 只接受 `PROVIDER_QFQ_SNAPSHOT`；HiThink index
+  primary 只接受 `PROVIDER_RAW_SNAPSHOT`；Tencent index fallback 只接受
+  `PROVIDER_QFQ_SNAPSHOT`；其他 provider/adjustment 配对 fail closed。
+- universe scope：`TRADABLE_UNIVERSE_SCOPE_V1 = SH_SZ_A_SHARE_ONLY`，SH/SZ A 股
+  included，BJ explicitly excluded；scope/version 已进入 UniverseManifest content
+  identity、GenerationInput input fingerprint、live generation identity、provider
+  metadata 和 provenance。BJ absence 不属于 incomplete coverage；未来加入 BJ 必须新
+  scope/version。既有 B development eligibility 不重跑；若历史输入含 BJ，只记录
+  `KNOWN_DEVELOPMENT_VS_PROSPECTIVE_UNIVERSE_SCOPE_DIFFERENCE`。
+- invariants：B strategy/spec/threshold、冻结 historical artifact、Final OOS sealed
+  status 和 T-close/T+1 semantics unchanged；当前没有 live package/watchlist 或新的
+  prospective evidence。

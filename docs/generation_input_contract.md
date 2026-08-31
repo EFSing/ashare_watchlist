@@ -47,7 +47,7 @@ session close 已有真实 provider regression coverage；provider 不可用或�
 | 对象 | 记录内容 |
 | --- | --- |
 | `RunContext` | T、close 模式、时区、XSHG 日历、是否显式 historical、provider/version metadata |
-| `UniverseManifest` | T、BJT 获取时间、source、排序后的 symbols、symbol count、`LIVE_OBSERVED`/`POINT_IN_TIME`、content SHA-256 |
+| `UniverseManifest` | T、BJT 获取时间、source、排序后的 symbols、symbol count、显式的 tradable-universe scope/version、`LIVE_OBSERVED`/`POINT_IN_TIME`、content SHA-256 |
 | `QuoteSnapshotManifest` | T、BJT 获取时间、provider/source、按 symbol 的完整 quote、content SHA-256 |
 | `KlineManifest` | 一个股票的 bars、provider、adjustment mode、首末 bar 日期、bar count、normalized data SHA-256 |
 | `IndexManifest` | 一个指数的 bars，以及与 `KlineManifest` 相同的覆盖和复权证据 |
@@ -91,8 +91,8 @@ assert manifest.status == "READY_FOR_STRATEGY_EVALUATION"
 
 ## 4. Live provider snapshot semantics
 
-当前 live close generation 可以使用 provider 返回的 close-date snapshot。个股
-HiThink `adjust=forward` 和 Tencent `qfqday` 都只能写作：
+当前 live close generation 可以使用 provider 返回的 close-date snapshot。股票
+`KlineManifest` 只允许个股 HiThink `adjust=forward` 或 Tencent `qfqday`，都只能写作：
 
 ```text
 PROVIDER_QFQ_SNAPSHOT
@@ -105,7 +105,9 @@ adjustment。HiThink 的指数历史 K 线没有复权概念，必须写作：
 PROVIDER_RAW_SNAPSHOT
 ```
 
-不得把未复权指数重新标记为 qfq。每个 `KlineManifest`/`IndexManifest` 都记录或计算：
+`IndexManifest` 则只允许 HiThink 的 `PROVIDER_RAW_SNAPSHOT` primary，或 Tencent
+qfq 的明确 fallback；其他 provider/adjustment 配对必须 reject。不得把未复权指数
+重新标记为 qfq。每个 `KlineManifest`/`IndexManifest` 都记录或计算：
 
 `provider`、`adjustment_mode`、`first_bar_date`、`last_bar_date`、
 `bar_count`、`normalized_data_sha256`。
@@ -113,6 +115,20 @@ PROVIDER_RAW_SNAPSHOT
 本阶段不重建历史复权因子。腾讯将来重新计算 qfq 时，已经保存的 manifest
 及其 SHA-256 仍是冻结的历史输入证据；新的返回值必须产生新的 normalized
 data SHA-256，不得改写旧证据。
+
+## 5.1 Tradable universe scope
+
+当前 live 产品范围固定为：
+
+```text
+TRADABLE_UNIVERSE_SCOPE_V1 = SH_SZ_A_SHARE_ONLY
+```
+
+该 scope/version 进入 `UniverseManifest` 的 content identity、
+`GenerationInputManifest.input_fingerprint` 和下游 live package generation identity，
+并作为 provider/provenance 字段保存。它包含沪市与深市 A 股，明确排除北交所；因此
+provider 返回中没有 BJ 不属于 SH/SZ scope 的 incomplete coverage。未来若纳入 BJ，
+必须定义新的 scope/version 并产生不同 identity，不能静默改变 V1 的含义。
 
 ## 5. LIVE_OBSERVED 限制
 
@@ -141,6 +157,7 @@ as_of_date
 calendar
 mode / timezone
 universe_hash
+universe_scope {name, version}
 quote_hash
 stock_kline_hashes {symbol: normalized_data_sha256}
 index_hash

@@ -14,6 +14,7 @@ from generation_contract import (
     LIVE_OBSERVED,
     POINT_IN_TIME,
     PROVIDER_QFQ_SNAPSHOT,
+    PROVIDER_RAW_SNAPSHOT,
     READY_FOR_STRATEGY_EVALUATION,
     SESSION_NOT_CLOSED,
     UNSUPPORTED_HISTORICAL_REPLAY,
@@ -53,6 +54,10 @@ def _inputs(
     historical: bool = False,
     sector_semantics: str = LIVE_OBSERVED,
     universe_semantics: str = LIVE_OBSERVED,
+    stock_adjustment_mode: str = PROVIDER_QFQ_SNAPSHOT,
+    stock_provider: str = "Tencent",
+    index_adjustment_mode: str = PROVIDER_QFQ_SNAPSHOT,
+    index_provider: str = "Tencent",
 ):
     quote_date = as_of_date if quote_date is None else quote_date
     stock_last_date = as_of_date if stock_last_date is None else stock_last_date
@@ -83,6 +88,8 @@ def _inputs(
             as_of_date=as_of_date,
             retrieved_at_bjt=retrieved_at,
             bars=_bars(stock_last_date),
+            provider=stock_provider,
+            adjustment_mode=stock_adjustment_mode,
         )
         for symbol in reversed(symbols)
     )
@@ -91,6 +98,8 @@ def _inputs(
         as_of_date=as_of_date,
         retrieved_at_bjt=retrieved_at,
         bars=_bars(index_last_date),
+        provider=index_provider,
+        adjustment_mode=index_adjustment_mode,
     )
     sector = SectorManifest(
         as_of_date=as_of_date,
@@ -167,6 +176,52 @@ def test_stock_kline_future_bar_fails_fast():
         _freeze(stock_last_date="2026-08-28")
 
     assert caught.value.status == FUTURE_DATA_DETECTED
+
+
+def test_raw_stock_kline_is_rejected():
+    with pytest.raises(GenerationContractError) as caught:
+        _freeze(stock_adjustment_mode=PROVIDER_RAW_SNAPSHOT)
+
+    assert caught.value.status == UNSUPPORTED_MODE
+
+
+def test_hithink_raw_index_kline_is_accepted():
+    manifest = _freeze(
+        index_provider="HiThink Financial-API",
+        index_adjustment_mode=PROVIDER_RAW_SNAPSHOT,
+    )
+
+    assert manifest.index.provider == "HiThink Financial-API"
+    assert manifest.index.adjustment_mode == PROVIDER_RAW_SNAPSHOT
+
+
+def test_tencent_qfq_index_fallback_is_accepted():
+    manifest = _freeze(index_provider="Tencent", index_adjustment_mode=PROVIDER_QFQ_SNAPSHOT)
+
+    assert manifest.index.provider == "Tencent"
+    assert manifest.index.adjustment_mode == PROVIDER_QFQ_SNAPSHOT
+
+
+@pytest.mark.parametrize(
+    ("stock_adjustment_mode", "index_provider", "index_adjustment_mode"),
+    [
+        ("UNSUPPORTED_MODE", "Tencent", PROVIDER_QFQ_SNAPSHOT),
+        (PROVIDER_QFQ_SNAPSHOT, "HiThink Financial-API", PROVIDER_QFQ_SNAPSHOT),
+        (PROVIDER_QFQ_SNAPSHOT, "Tencent", PROVIDER_RAW_SNAPSHOT),
+        (PROVIDER_QFQ_SNAPSHOT, "Other", PROVIDER_RAW_SNAPSHOT),
+    ],
+)
+def test_unsupported_stock_or_index_adjustment_mapping_fails(
+    stock_adjustment_mode, index_provider, index_adjustment_mode
+):
+    with pytest.raises(GenerationContractError) as caught:
+        _freeze(
+            stock_adjustment_mode=stock_adjustment_mode,
+            index_provider=index_provider,
+            index_adjustment_mode=index_adjustment_mode,
+        )
+
+    assert caught.value.status == UNSUPPORTED_MODE
 
 
 def test_index_latest_bar_must_equal_t():
@@ -262,6 +317,33 @@ def test_symbol_order_does_not_change_input_fingerprint():
     assert first.universe.symbols == ("000001", "600000")
     assert first.input_fingerprint == second.input_fingerprint
     assert first.universe.content_sha256 == second.universe.content_sha256
+
+
+def test_universe_scope_is_part_of_manifest_and_input_identity():
+    first = _freeze()
+    changed_values = list(_inputs())
+    changed_values[1] = UniverseManifest(
+        as_of_date=AS_OF,
+        retrieved_at_bjt=RETRIEVED_AT,
+        source="akshare.stock_info_a_code_name",
+        symbols=("600000",),
+        temporal_semantics=LIVE_OBSERVED,
+        universe_scope="SH_SZ_BJ_A_SHARE",
+        universe_scope_version="TRADABLE_UNIVERSE_SCOPE_V2",
+    )
+    second = freeze_generation_inputs(
+        *changed_values,
+        calendar=TradingCalendar(holidays=set(), session_close_time=time(15, 0)),
+    )
+
+    assert first.universe.universe_scope == "SH_SZ_A_SHARE_ONLY"
+    assert first.universe.universe_scope_version == "TRADABLE_UNIVERSE_SCOPE_V1"
+    assert second.input_fingerprint != first.input_fingerprint
+    assert second.universe.content_sha256 != first.universe.content_sha256
+    assert second._fingerprint_payload()["universe_scope"] == {
+        "name": "SH_SZ_BJ_A_SHARE",
+        "version": "TRADABLE_UNIVERSE_SCOPE_V2",
+    }
 
 
 def test_retrieved_at_does_not_change_content_or_input_fingerprint():
