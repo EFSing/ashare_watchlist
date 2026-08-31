@@ -4,28 +4,30 @@
 
 ## 1. Current Objective
 
-- 当前工作对象：继续现有 PR #14；执行 B eligibility 完成后的 frozen-candidate prerequisites handoff。
+- 当前工作对象：在用户指定的 `origin/master=4e685ba28668ada29f78e6fa4a56be1cacc259ea`
+  上完成首个 prospective T-close live acquisition execution-path readiness。
 - PR #12 已 merge；正式 Delivery Ladder 为 `development candidate`。
 - 该晋级只承认 deterministic daily generation → canonical watchlist → explicit
   fail-closed → provenance / versioning → monitoring / rollback 的受控产品路径，
   不承认 strategy promotion。
 - Scope：保留既有 Phase 2B input/timing contract 和 legacy evaluator semantics；不改变
   生产策略、数据、冻结 artifact 或 Phase 2F 研究结果。
-- 本次修复边界：只更新 development-candidate gate 的正式治理状态，不启动新的
-  strategy、phase 或 promotion 工作。
+- 本次任务边界：只补齐首个 prospective package 所需的 AkShare/Tencent acquisition
+  adapter、runtime pin 和 fail-closed regression evidence，不启动新的 strategy、phase
+  或 promotion 工作。
 - 禁止事项：不启动 Phase 2F；不读取 Final OOS；不 promotion；不调参；不把当前数据回填历史；不替换新浪历史行业 membership；不重跑已完成 CORE replay；不以“差不多”的新文件替代 frozen bytes。
-- 完成条件：PR #12 的 development-candidate path 在受控输入上可重复演示，canonical
-  watchlist 与显式失败处理、监控/回滚/版本边界均有回归证据；当前停在
-  `development-candidate` gate，并完成 frozen-candidate prerequisites decision；
-  不据此 promotion 或进入 Final OOS。
+- 完成条件：adapter path 在 mock/fixture 上可重复构造完整 READY
+  `GenerationInputManifest`，但正式状态仍停在 `development candidate`，等待首个真实
+  `LIVE_OBSERVED` T-close package；不据此 promotion 或进入 Final OOS。
 - 停止条件：出现 `PROJECT_GOVERNANCE_STATE_CONFLICT`、任一 required hash 不匹配、外部 raw artifact 无法证明为同一 bytes、或任务要求越过 research / OOS / promotion 边界。
 - CI provenance 规则：本文件只保存 `last verified CI provenance`，不要求也不允许把当前 commit 自己产生的 CI run 回写到同一 commit；每个新会话必须实时查询当前 branch、HEAD、`origin/master`、PR state、exact-head CI 和 working tree。
 
 ## 2. Current Repository State
 
 - repo：`EFSing/ashare_watchlist`；origin：`https://github.com/EFSing/ashare_watchlist.git`。
-- active product PR：PR #12 已 merged；当前 active PR 为 #14。本次 PR 的 live state、head
-  和 CI 必须在每次 intake 实时查询，不在本文件写入会自引用的 current HEAD。
+- active product PR：本地 `origin/master` 为用户指定的 `4e685ba...`；本次 adapter
+  工作位于 task branch，尚未创建新 PR。GitHub authenticated PR/live CI state 无法在
+  当前环境核验，不在本文件伪造 current head 或 exact-head CI。
 - HISTORICAL_MILESTONE_IDENTITY：PR #9 产品章程与代理开发契约 squash merge `7a27484293cbcb791c6b8407949e9e71257e016b`；Phase 2E research baseline 仍为 `74ccf86…`。
 - HISTORICAL_MILESTONE_IDENTITY：PR #10 handoff consistency repair squash merge `11db387cc51a645c4491b39cbfa3e03e1228b6c4`。
 - HISTORICAL_MILESTONE_IDENTITY：PR #12 development-candidate gate squash merge
@@ -283,3 +285,28 @@ event count、event identities、全部 metrics、fixed thresholds、gate audit�
 candidate-selection experiment。Phase 2B T-close/T+1、anti-lookahead、Final OOS sealed
 invariants 未改变。当前停在 Sol review；不测试 C、不启动 Phase 2F、不调参、不读
 Final OOS、不 merge。
+
+## 15. Live acquisition adapter readiness — 2026-08-31
+
+- task branch：`codex/live-acquisition-adapter-v1`，从用户指定的
+  `origin/master=4e685ba28668ada29f78e6fa4a56be1cacc259ea` 派生；本分支不承载
+  nomination branch 的额外提交。
+- implementation：确认原 master 缺少 AkShare/Tencent live acquisition adapter，
+  新增 `scripts/live_acquisition.py`、mock/fixture regression tests、明确 pin
+  `akshare==1.18.94` 和对应 adapter contract 文档。
+- runtime snapshot：Python `3.12.13`、AkShare 实际版本 `1.18.94`、pandas
+  `2.2.3`、requests `2.32.3`、exchange-calendars `4.13.2`、pyarrow `25.0.1`。
+  AkShare API callable probe 只做 import/capability check，没有调用 live endpoint。
+- path boundary：adapter 能在正式 T close 后构造 universe、quotes、stock/index
+  qfq Kline、sector、market_env 和 READY `GenerationInputManifest`；pre-close、
+  wrong date、provider/schema/coverage/conflict/freshness/future-bar 失败均 fail
+  closed。display names/market_env 进入 candidate-bound generation identity；不写
+  canonical watchlist。
+- evidence boundary：本轮没有真实 `LIVE_OBSERVED` package，没有 formal output，
+  没有 current-data backfill、Phase 2F、promotion、调参或 Final OOS。formal
+  Delivery Ladder 仍为 `development candidate`，后续仍等待首个真实 T-close
+  package，并在 `FROZEN_CANDIDATE_PREREQUISITES` 重新审计。
+- GitHub live state：当前环境无法读取私有仓库的 authenticated PR/CI API，不能把
+  新分支标成已创建 PR 或已通过 exact-head CI；提交后需由 Sol/仓库侧创建或核验
+  单一 PR，并停在 review，不 merge。既有 `data/validation/continuous_speed_probe/`
+  未跟踪目录属于用户现有内容，未触碰。
