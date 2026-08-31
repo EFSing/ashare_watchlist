@@ -26,8 +26,9 @@ invariant。
 
 Sol identified `P0-LIVE-SECTOR-TAXONOMY-MISMATCH` in the merged live adapter: its
 Eastmoney industry endpoints could not satisfy B's frozen exact `新浪行业` provenance.
-The correction is on the current review branch only; the formal master path is not treated
-as corrected until its single PR is reviewed and merged. The two `2026-08-31` attempts
+PR #17 subsequently merged this correction to formal master at
+`91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b`; the merge exact-head correctness run
+`33399324692` succeeded. The two pre-merge `2026-08-31` attempts
 remain fail-closed before package construction, so no contaminated prospective artifact
 exists.
 
@@ -85,11 +86,25 @@ T-close/T+1 semantics are unchanged. No prospective package was run by this corr
 
 ## Current blockers and deferred items
 
-1. **P0 live sector taxonomy mismatch on merged path**：master 的旧 live adapter
-   使用东方财富行业 taxonomy，不能满足 B 的 exact `新浪行业` provenance；本修正分支
-   已改为 exact Sina source 并通过 capability audit，当前等待单一 PR 的 Sol review。
-   在 review/merge 前，master live path 仍视为 correctness blocker。
-2. **P1 first prospective input blocker**：当前 frozen-candidate prerequisite 仍为
+1. **P0 live sector taxonomy mismatch**：已由 PR #17 修复并合并到 master；merge
+   master correctness run `33399324692` 对 merge SHA 精确成功。
+2. **P1 first prospective input blocker**：本轮正式 acquisition 已在 exact Sina
+   sector/member display-name consistency 处 fail closed，当前具体 decision 为
+   `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`，原因为
+   `INPUT_CONFLICT: display-name conflict for 000012: universe/member`。
+3. **P1 candidate-bound prospective input**：在该 provider/name conflict 解决并取得
+   完整 READY package 前，不得进入 frozen candidate。
+4. **Scope-local correctness blocker — FULL legacy only**：历史新浪行业 membership /
+   effective-date evidence 缺失，阻止 `FULL_LEGACY_OUTPUT_VALIDATION`、完整 85-score
+   parity 和 legacy sector report；它不阻止 development-candidate product path 或当前
+   candidate-bound gate，不能写成整个系统 blocker。
+5. **Scope-local provenance limitation**：retrospective official dump 没有 per-bar
+   historical vintage timestamp，限制历史 known-at 结论的强度；live prospective
+   inputs 仍必须按 T 的 observed-at contract 处理。
+
+已解决：`daily_k.parquet` recovery evidence 与 registry exact SHA 匹配，状态为 `FULLY_RECOVERABLE`。
+
+Deferred（当前不阻止 usable milestone）：Phase 2F 后续 Research V2、历史新浪 membership acquisition 的完整研究、完整 legacy 85-score parity、任何参数选择/调参、performance-based rule change，以及 later production hardening 中不影响 P0/P1 的运营增强。
    `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`；2026-08-31 正式
    master-baseline acquisition 在 AkShare sector membership 阶段发生
    `ConnectionError`，未形成 package。后续需要一个 candidate-bound、
@@ -181,12 +196,10 @@ provider failure；本次已完成同日独立 retry attempt 并在 attempts `3/
 本次 T 的 package。不启动 Phase 2F、不调参、不读 Final OOS、不把 product-ladder 晋级写成
 strategy promotion。
 
-当前单一 correction PR 为 [PR #17](https://github.com/EFSing/ashare_watchlist/pull/17)，
-保持 `OPEN`，head=`869eade1eaf48e2d470175e234e83c99fd2168ac`；pull-request correctness
-run `33379014737` 与 push correctness run `33378978157` 均在该 exact head 成功，当前
-`CLEAN`/`MERGEABLE`。停在 Sol review；只有 review/merge 完成且得到新的明确运行授权
-后，才可在新的合法 T-close session 重新获取完整 inputs。不得把 capability probe 当作
-prospective evidence，也不得回填 `2026-08-31`。
+PR #17 的 review-branch snapshot 已结束；该 PR 已从 final head
+`ef48d192c7709a7194348369c689070c665da2b4` squash-merged to master at
+`91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b`，merge master exact-head correctness run
+`33399324692` succeeded。后续 acquisition 结果见本文末的 post-merge decision。
 
 ## Strategy Candidate Nomination V1 — 2026-08-30 — final eligibility update
 
@@ -255,15 +268,15 @@ provider provenance、T-close/T+1、freshness/completeness/conflict、determinis
 identity、immutable input persistence 和 fail-closed 行为。实际 runtime 的 AkShare
 版本为 `1.18.94`；pyarrow 保持 `25.0.1`，没有为 prospective path 降级。
 
-这是 implementation/runtime readiness；PR #15 已合并到 master。合并前本分支和
+这是 implementation/runtime readiness；PR #15 已合并到 master；PR #17 随后完成 provider correction。合并前本分支和
 测试没有调用 live endpoint；合并后首个正式 master-baseline acquisition 已在
 AkShare sector membership 阶段以 `PROVIDER_FAILURE / ConnectionError` fail closed，
 没有冻结 `LIVE_OBSERVED` T 日数据、没有生成 canonical watchlist 或 prospective
 package。Formal Delivery Ladder 仍为 `development candidate`，prerequisite
 decision 仍为 `FROZEN_CANDIDATE_BLOCKED`；provider 可用时，可以在同一 T 日正式收盘后
-以新的 observed_at 独立重试并重新审计，跨日则等待下一个 T-close。
+以新的 observed_at 独立重试并重新审计；本轮 post-merge attempt 的失败结果见本文末。
 
-## PR #17 final contract hardening — 2026-08-31
+## PR #17 final contract hardening — 2026-08-31 (historical review snapshot)
 
 PR #17 在现有 provider correction 上补齐最后一个 correctness boundary：stock
 `KlineManifest` 只接受 `PROVIDER_QFQ_SNAPSHOT`；HiThink index primary 只接受
@@ -282,3 +295,27 @@ candidate；若其历史输入包含 BJ，只保留
 `KNOWN_DEVELOPMENT_VS_PROSPECTIVE_UNIVERSE_SCOPE_DIFFERENCE` 作为 scope 差异记录，
 不据此否定既有 B decision。B strategy/spec/threshold、冻结历史 artifact 和 Final OOS
 sealed 状态均不变。
+
+## Post-merge formal acquisition decision — 2026-08-31
+
+PR #17 was squash-merged at `91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b` from final
+head `ef48d192c7709a7194348369c689070c665da2b4`; merge master exact-head correctness
+run `33399324692` succeeded. A new `LIVE_OBSERVED` attempt for T=`2026-08-31`
+used fresh `observed_at_bjt=2026-08-31T22:01:28.307161+08:00` and T+1=`2026-09-01`.
+
+The attempt failed closed at exact Sina sector/member display-name consistency:
+
+    INPUT_CONFLICT: display-name conflict for 000012: universe/member
+
+The final frozen-candidate prerequisites status is
+`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`. No READY manifest or
+package was created; quotes, Klines, hashes, persistence, Google Drive backup/recovery,
+canonical watchlist, prospective returns, C, Phase 2F, tuning, paper/live trading,
+and production promotion were not performed. The attempt evidence is recorded in
+[`prospective_acquisition_evidence_20260831.md`](prospective_acquisition_evidence_20260831.md)
+and the machine-readable record is explicitly not a frozen artifact.
+
+The formal Delivery Ladder remains `development candidate`; B remains
+`CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES` at candidate eligibility. Strategy/spec/
+thresholds, frozen artifacts, Final OOS sealed/unread status, and all no-backfill/no-future
+boundaries are unchanged.
