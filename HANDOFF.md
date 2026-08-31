@@ -239,13 +239,13 @@
 
 ## 12. Last Verified
 
-- last_updated_at：`2026-08-31`（Asia/Shanghai；PR #15 post-merge snapshot）
-- last_verified_master_snapshot：`f1fed4608210aa175ac268189a8d7f032b0b88e0`
-- latest_test_result：本分支治理变更后的本地验证与 exact-head CI 见 PR live state；
-  merge 后 master correctness run `33367655723` success。
-- latest_ci_run_provenance：run `33367655723` / headSha `f1fed4608210aa175ac268189a8d7f032b0b88e0` /
-  success；不制造 CI 自引用更新循环。
-- updated_by_task：`PR #15 merge and first prospective T-close acquisition attempt`
+- last_updated_at：`2026-08-31`（Asia/Shanghai；PR #16 merge and same-day retry decision）
+- last_verified_master_snapshot：`c5988d18fdec72d3148a5f6e22df1a1153731986`
+- latest_test_result：PR #16 exact-head CI 与 merge 后 master correctness 均 success；
+  当前 master snapshot 的 correctness run 为 `33373176281`。
+- latest_ci_run_provenance：run `33373176281` / headSha
+  `c5988d18fdec72d3148a5f6e22df1a1153731986` / success；不制造 CI 自引用更新循环。
+- updated_by_task：`PR #16 bounded AkShare retry and same-day acquisition decision`
 
 ## 13. Strategy Candidate Nomination V1 — final eligibility update
 
