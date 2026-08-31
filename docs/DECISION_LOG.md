@@ -261,3 +261,29 @@
 - revisit condition：只有首个真实 candidate-bound `LIVE_OBSERVED` T-close input
   instance 到来，或正式 strategy/protocol/data/provenance identity 改变时，才重新
   进入对应 decision gate。
+
+## 2026-08-31 — Live acquisition adapter readiness
+
+- task classification：本轮属于 product blocker 审计，并包含 correctness fail-closed
+  风险；不是新的 strategy research、参数选择、Phase 2F 或 Final OOS 任务。
+- audit finding：当前 master 原有 Phase 2B `GenerationInputManifest` 只验证已构造
+  的输入，没有 AkShare universe/sector adapter，也没有 Tencent qfq stock/index K
+  acquisition path，因此确认存在 `P1-FC-LIVE-ACQUISITION-ADAPTER_MISSING`。
+- implementation decision：在从当前 master 派生的单一分支中补齐最小
+  `scripts/live_acquisition.py`，绑定 B strategy/spec identity，严格执行 T close /
+  T+1、`LIVE_OBSERVED`、provider/version、names、market_env、coverage/conflict/
+  freshness、fingerprint、immutable persistence 和 fail-closed contract；新增
+  AkShare `1.18.94` 明确 pin。B strategy/spec/threshold、冻结数据和既有 research
+  artifacts 均未修改。
+- readiness evidence：mock/fixture tests 覆盖 pre-close、wrong date、provider
+  unavailable、空/不完整 universe、sector member/rank/name failures、stale/missing
+  quote/Kline、future bar、T+1、deterministic fingerprint/bytes、no backfill 和
+  incomplete manifest 不产生 output。实际 runtime probe 读取 AkShare `1.18.94`；
+  pyarrow 保持 `25.0.1`，没有执行 research optional pin 的降级。
+- boundary：这是 implementation/runtime readiness，不是 prospective evidence；本轮
+  不调用 live provider，不生成或冻结正式 `LIVE_OBSERVED` T-close package，不生成
+  canonical watchlist。Formal Delivery Ladder 仍为 `development candidate`，唯一
+  formal prerequisite blocker 仍为 `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`。
+- revisit condition：Sol review/CI 后合并才可将 adapter 视为 master path；正式收盘后
+  才能运行真实 T 日采集，并按 `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V1`
+  审计首个 package。

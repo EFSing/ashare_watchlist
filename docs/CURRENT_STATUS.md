@@ -144,3 +144,26 @@ manifest file SHA `5e0a557c1930de7b4f182f09f43b45c0c11b19b2d7c992bf9e7fa7e6cc6de
 event count、event identities、全部 metrics、fixed thresholds、gate audit 和
 eligibility decision 与修复前完全一致；这不是第二次 candidate-selection experiment。
 Phase 2B T-close/T+1、anti-lookahead、Final OOS sealed invariants 未改变。
+
+## Live acquisition adapter readiness — 2026-08-31
+
+本任务对当前 master 做了执行路径审计：原有代码只有 Phase 2B
+`freeze_generation_inputs()` validator 和旧 Tencent quote/Kline utility，没有能从
+AkShare/Tencent provider 构造完整 candidate-bound `GenerationInputManifest` 的
+acquisition adapter。因此 `P1-FC-LIVE-ACQUISITION-ADAPTER_MISSING` 被识别为本轮
+真正的产品 P1，并在未改变任何 B strategy/spec/threshold 的单一实现分支中补齐。
+
+[`live_acquisition_adapter_v1.md`](live_acquisition_adapter_v1.md) 和
+[`scripts/live_acquisition.py`](../scripts/live_acquisition.py) 定义并测试了
+AkShare universe、sector definitions/membership/rank、Tencent T quote、Tencent
+`PROVIDER_QFQ_SNAPSHOT` stock/index daily K、display names、market_env、runtime/
+provider provenance、T-close/T+1、freshness/completeness/conflict、deterministic
+identity、immutable input persistence 和 fail-closed 行为。实际 runtime 的 AkShare
+版本为 `1.18.94`；pyarrow 保持 `25.0.1`，没有为 prospective path 降级。
+
+这是 implementation/runtime readiness，不是 formal live evidence。正式 Delivery
+Ladder 仍为 `development candidate`；本分支和测试没有调用 live endpoint、没有冻结
+`LIVE_OBSERVED` T 日数据、没有生成 canonical watchlist 或正式 prospective package。
+合并后仍须等待第一个真实收盘后的 candidate-bound `LIVE_OBSERVED` package，随后在
+`FROZEN_CANDIDATE_PREREQUISITES` decision point 审计；在此之前唯一的 formal
+prerequisite blocker 仍为 `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`。
