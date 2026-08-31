@@ -287,3 +287,46 @@
 - revisit condition：Sol review/CI 后合并才可将 adapter 视为 master path；正式收盘后
   才能运行真实 T 日采集，并按 `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V1`
   审计首个 package。
+
+## 2026-08-31 — First prospective T-close acquisition attempt
+
+- task classification：本轮属于 product blocker 审计，并包含 provider-induced
+  correctness fail-closed 风险；不是新的 strategy research、参数选择、Phase 2F 或
+  Final OOS 任务。
+- baseline：PR #15 已按 expected head
+  `f0528744d9fe0add78436a543b15afa12c2e229e` squash merge，merge SHA 为
+  `f1fed4608210aa175ac268189a8d7f032b0b88e0`；master correctness run
+  `33367655723` success，head 精确匹配 merge SHA。
+- timing：T=`2026-08-31` 被 exchange-calendars/XSHG 判定为真实 session，官方
+  session close 为 `2026-08-31T15:00:00+08:00`，T+1 为 `2026-09-01`。正式调用使用
+  实际运行时 `observed_at_bjt=2026-08-31T15:21:18.969554+08:00`，满足 close 后
+  precondition。
+- provider result：正式调用 `acquire_live_generation_inputs()` 在 AkShare sector
+  membership acquisition 阶段发生 `ConnectionError`，adapter 映射为
+  `PROVIDER_FAILURE` 并停止。已做首次调用加两次有限重试；另外在切换到 merge
+  master 后做了一次 formal master-baseline attempt，结果相同。
+- decision：`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`。本次没有
+  READY `GenerationInputManifest`，没有 `LIVE_OBSERVED` package，没有 universe/
+  sector/quote/Kline completeness evidence，没有 input/generation fingerprint，
+  没有 package content/file SHA 或 logical path。
+- fail-closed evidence：T/session-close/date gate PASS；AkShare runtime capability
+  已可读取且版本为 `1.18.94`；sector membership provider failure STOP；Tencent
+  quote、stock/index Kline、market_env、manifest READY、persistence、exact-byte
+  read-back、recovery 和 frozen-candidate audit downstream checks 均
+  `NOT_REACHED`，不得写成 PASS。
+- persistence/recovery：`ASHARE_DATA_ROOT` 本次显式指向仓库 `data` 根；由于没有
+  完整 package，`data/prospective_inputs/` 未创建，没有 local package、persistent
+  backup 或 recovery identity 可登记。没有修改 `data/governance/frozen_artifacts.json`。
+- hash audit note：对既有、非 replay-required 的 `phase2e.hithink_probe` record
+  进行 JSON/hash audit 时发现，当前 exact bytes SHA 为 registered `file_sha256`
+  `395601b...`，但预存 `working_tree_sha256` 为 `af694b...`。这是本轮之前的
+  provenance discrepancy；未自动修复、未重新下载、未改变 frozen identity，也没有把
+  该 probe 用作本次 live evidence。后续若要修复，需单独记录明确治理 decision。
+- consequences：Formal Delivery Ladder 保持 `development candidate`；B 的
+  `CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`、strategy/spec/threshold、冻结数据、
+  existing artifacts 和 Final OOS sealed 状态不变；不创建
+  `FROZEN_CANDIDATE_CONTRACT_V1`，不 promotion、不测试 C、不启动 Phase 2F、不调参、
+  不读 Final OOS。
+- revisit condition：仅在 provider 可用后的新真实 XSHG T-close session 重新 acquisition；
+  不把 2026-08-31 的失败回填为成功，不跳过 sector coverage，不猜 membership，且
+  必须重新满足完整 `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V1`。

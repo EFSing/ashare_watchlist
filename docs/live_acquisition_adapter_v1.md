@@ -68,3 +68,16 @@ incomplete manifest 不写 output。
 review 前不获取真实 provider 数据；正式收盘后才允许以真实 T 日输入运行，并按
 `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V1` 审计首个
 `LIVE_OBSERVED` package。
+
+## Post-merge execution result — 2026-08-31
+
+PR #15 was squash-merged to master at
+`f1fed4608210aa175ac268189a8d7f032b0b88e0`, with master correctness run
+`33367655723` successful at that exact head. The first formal master-baseline call for
+T=`2026-08-31` started at actual BJT runtime
+`2026-08-31T15:21:18.969554+08:00`, after the XSHG close at 15:00 BJT, but AkShare
+sector membership acquisition raised `ConnectionError`. The adapter returned
+`PROVIDER_FAILURE` and stopped; no READY manifest, live package, quote/Kline package,
+fingerprint, persistence, or canonical watchlist was created. `data/prospective_inputs/`
+remained absent. This is a real provider blocker, not `LIVE_OBSERVED` evidence; the next
+attempt must use a new valid T-close session and must re-run the complete contract.
