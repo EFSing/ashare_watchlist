@@ -663,7 +663,7 @@
       "payload_content_sha256": "e754787836b28316430278372ab2d84817091d4608da394f9207f695a4c27aee",
       "file_sha256": "5e0a557c1930de7b4f182f09f43b45c0c11b19b2d7c992bf9e7fa7e6cc6de048",
       "producer_or_source": "scripts/strategy_development_eligibility.py; deterministic provenance rematerialization of fixed B evidence",
-      "frozen_by_commit": "fffb8851bd25feaa8ca06f32a5d9aa231a4e8aed",
+      "frozen_by_commit": "69bc4bd25174bdb981d464089d872440824bc808",
       "status": ["LOCAL_PRESENT", "HASH_VERIFIED", "PERSISTENT_BACKUP_PRESENT", "RECOVERY_VERIFIED", "FULLY_RECOVERABLE"],
       "recoverability_status": "FULLY_RECOVERABLE",
       "storage_location_type": "git_remote_pr_branch",
