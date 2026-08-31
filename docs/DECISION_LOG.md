@@ -330,3 +330,35 @@
 - revisit condition：仅在 provider 可用后的新真实 XSHG T-close session 重新 acquisition；
   不把 2026-08-31 的失败回填为成功，不跳过 sector coverage，不猜 membership，且
   必须重新满足完整 `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V1`。
+
+## 2026-08-31 — PR #16 same-day retry semantics and AkShare bounded retry
+
+- context：Sol review 发现 active PR #16 草稿把同日 retry 错写成只能等待下一个
+  T-close session；真实 AkShare acquisition 还显示三个 provider-read API 没有
+  adapter-level transient retry，sector membership 的单次 `ConnectionError` 会终止整次采集。
+- task classification：product blocker hardening，并包含 provider-induced correctness
+  fail-closed 风险；不启动新的 strategy、Phase、promotion、参数选择或 Final OOS。
+- decision：`ADOPT` 最小 retry hardening；同一 BJT 日期 T 在正式收盘后允许新的独立
+  live acquisition attempt。每次 attempt 使用新的真实 `observed_at`、重新获取全部
+  required input、不复用 failed attempt 的 partial response；第一次失败保留，跨到
+  下一 BJT 日期后禁止用当前 live provider 数据构造此前 T 的 package。
+- implementation：AkShare `stock_info_a_code_name`、`stock_board_industry_name_em`
+  和每个 `stock_board_industry_cons_em` read 只对 transient network/connection
+  exception 做固定最多 3 次 retry，backoff bounded 为 `0.25s`、`0.50s`。schema、
+  empty、duplicate、name/sector conflict、coverage 等 response semantics 在 retry
+  边界外一次性校验；exhaustion 映射 `PROVIDER_FAILURE` 且不产生 formal output。
+- identity：attempt/backoff 仅为 process diagnostics，不进入 canonical input /
+  generation/package content identity 或成功 provenance；不改变 provider source、
+  B strategy/spec/threshold、Phase 2B contract、冻结 artifact 或 Final OOS。
+- scale audit：完整 universe 的固定执行模型是 1 次 universe read、1 次 definitions
+  read、每个 definition 1 次逻辑 member read、`ceil(N / 50)` 个 Tencent quote batch、
+  N 个 stock Kline request 加 1 个 index request。它是 execution diagnostics，不是筛选
+  规则；不得缩 universe 或跳过股票。首次正式失败在 sector membership，后续实际计数
+  保持 `NOT_REACHED`。
+- evidence：新增回归覆盖 universe/definitions transient recovery、persistent
+  3-attempt failure、sector-member recovery、semantic/schema no-retry、no-output 和
+  retry-independent identity；full pytest、compile、JSON/hash、diff 和 secret checks
+  必须在 PR #16 exact head 上通过。
+- consequences：Formal Delivery Ladder 仍为 `development candidate`；唯一 frozen
+  prerequisite P1 仍为 `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`，同日窗口内
+  可在 clean merged master 重新 acquisition；不创建 `FROZEN_CANDIDATE_CONTRACT_V1`。

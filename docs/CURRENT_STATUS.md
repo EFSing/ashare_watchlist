@@ -111,14 +111,40 @@ artifact 可登记。未进入 Tencent quote/Kline、market_env、persistence �
 frozen-candidate prerequisite 的后续 checks。Formal Delivery Ladder 仍为
 `development candidate`；不创建 `FROZEN_CANDIDATE_CONTRACT_V1`。
 
+## PR #16 — same-day retry semantics and AkShare bounded retry
+
+Sol review 将 `PROJECT_GOVERNANCE_STATE_CONFLICT` 限定为旧草稿把 retry 语义写成
+“只能等下一个 T-close session”。Phase 2B contract 没有这个限制：在同一北京时间
+日期 T、正式收盘后，可以发起新的独立 live acquisition attempt。每次 attempt 必须
+使用新的真实 `observed_at`，不复用失败 attempt 的 partial provider responses，也不把
+第一次失败改写为成功；跨到 `2026-09-01` 后，当前 live provider 数据绝不能构造
+`T=2026-08-31` package。
+
+PR #16 的最小代码 hardening 只对 AkShare
+`stock_info_a_code_name`、`stock_board_industry_name_em` 和每个
+`stock_board_industry_cons_em` provider read 提供固定最多 3 次的 transient
+network/connection retry，并使用 bounded backoff。schema、empty、duplicate、name/
+sector conflict 和 coverage 等语义错误仍在 retry 边界外 fail closed；attempt/backoff
+不进入 canonical input/generation/package identity。新增回归覆盖 transient recovery、
+3-attempt exhaustion、sector-member recovery、semantic/schema no-retry 和 no-output。
+
+执行规模审计（execution diagnostics，不是筛选规则）保持完整 universe：AkShare
+universe 1 次 read、sector definitions 1 次 read、每个 definition 1 次逻辑 member
+read（transient retry 只增加同一 read 的 provider attempts）、Tencent quote 每 50
+个 symbol 一个 batch，即 `ceil(universe_symbol_count / 50)`，planned stock Kline
+request 数为 `universe_symbol_count`，另加 1 次 index Kline request。此前正式失败发生
+在 sector membership，尚无真实 universe/definition 完成计数或后续 quote/Kline 计数；
+不得用缩小 universe、跳过股票或改 strategy 解决潜在规模问题。
+
 ## Current next action
 
 当前已在 `development candidate`。B 已通过一次且仅一次的冻结 eligibility，结果为
 `CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`。candidate-bound contract 已定义，
 但 `FROZEN_CANDIDATE_PREREQUISITES` 仍为 `FROZEN_CANDIDATE_BLOCKED`，当前 P1 是
 `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`，具体 blocker 为 AkShare sector
-provider failure。只能在后续新真实 T-close session 重新 acquisition；不把本次失败
-回填为成功，不启动 Phase 2F、不调参、不读 Final OOS、不把 product-ladder 晋级写成
+provider failure。若仍在同一 T 日且已正式收盘，可以重新发起独立 acquisition attempt；
+不复用本次失败的 partial response，也不把本次失败回填为成功。跨到下一北京时间日后，
+不得再用当前 live provider 数据构造本次 T 的 package。不启动 Phase 2F、不调参、不读 Final OOS、不把 product-ladder 晋级写成
 strategy promotion。
 
 ## Strategy Candidate Nomination V1 — 2026-08-30 — final eligibility update
@@ -193,5 +219,5 @@ identity、immutable input persistence 和 fail-closed 行为。实际 runtime �
 AkShare sector membership 阶段以 `PROVIDER_FAILURE / ConnectionError` fail closed，
 没有冻结 `LIVE_OBSERVED` T 日数据、没有生成 canonical watchlist 或 prospective
 package。Formal Delivery Ladder 仍为 `development candidate`，prerequisite
-decision 仍为 `FROZEN_CANDIDATE_BLOCKED`；后续只能在新的真实 T-close session 重试
-并重新审计。
+decision 仍为 `FROZEN_CANDIDATE_BLOCKED`；provider 可用时，可以在同一 T 日正式收盘后
+以新的 observed_at 独立重试并重新审计，跨日则等待下一个 T-close。

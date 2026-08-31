@@ -82,9 +82,10 @@
    availability/recovery 和 output identity。
 3. 已定义 `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V1`，但不把
    contract 写成 live evidence，也不创建 `FROZEN_CANDIDATE_CONTRACT_V1`。
-4. 下一步只在 provider 可用后的新真实 T-close session 重试并审计 package；不把
-   `2026-08-31` 的失败回填为成功，不自动启动 Phase 2F、不调参、不读 Final OOS、
-   不 promotion、不测试 C。
+4. 若仍在同一北京时间日期 T 且已正式收盘，可在 provider 可用后发起新的独立
+   live acquisition attempt 并审计 package；不把 `2026-08-31` 的失败回填为成功，
+   不自动启动 Phase 2F、不调参、不读 Final OOS、不 promotion、不测试 C。跨到下一
+   北京时间日后，当前 live provider 数据不得用于构造此前 T 的 package。
 
 ### Deferred
 
@@ -339,5 +340,35 @@ Final OOS、不 merge。
   logical path；`data/prospective_inputs/` 未创建，没有 recovery copy 可登记，也
   没有 canonical watchlist。Tencent quote/Kline、market_env、persistence 和后续
   frozen-candidate checks 均为 `NOT_REACHED`。
-- next gate：`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`；只能在
-  provider 可用后的新真实 T-close session 重新执行完整 contract，不回填本次 T。
+- next gate：`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`；若仍在同一
+  BJT 日期且已正式收盘，可用新的 `observed_at` 独立重新执行完整 contract，不复用
+  本次失败的 partial response；跨日后不得回填本次 T。
+
+## 17. PR #16 — same-day retry semantics and bounded AkShare reads
+
+- task classification：本轮仍属于 product blocker 审计，并包含 provider-induced
+  correctness fail-closed 风险；不是新的 strategy research、参数选择、Phase 2F 或
+  Final OOS 任务。
+- governance conflict closure：Sol review 将 `PROJECT_GOVERNANCE_STATE_CONFLICT`
+  限定为 retry 表述错误。Phase 2B 允许在同一 BJT 日期 T、正式 session close 后发起
+  新的独立 acquisition attempt；每次使用新的真实 `observed_at`，不复用 failed
+  attempt 的 partial response，不改写第一次失败。跨至 `2026-09-01` 后，当前 live
+  provider 数据不得构造 `T=2026-08-31` package。
+- implementation：`scripts/live_acquisition.py` 对
+  `stock_info_a_code_name`、`stock_board_industry_name_em` 和每个
+  `stock_board_industry_cons_em` provider read 增加固定最多 3 次 transient
+  network/connection retry，backoff 为 bounded `0.25s` / `0.50s`。返回后的 schema、
+  empty、duplicate、name/sector conflict 和 coverage validation 不重试；exhaustion
+  映射 `PROVIDER_FAILURE`，不形成 formal output。
+- identity boundary：retry attempts/backoff 只保留进程内诊断，不进入 canonical input
+  fingerprint、candidate-bound generation fingerprint、package content identity 或
+  成功 provenance；provider source、最终捕获数据和 runtime identity 语义不变。
+- scale audit：完整 universe 的模型为 1 次 universe read、1 次 definitions read、
+  每个 sector definition 1 次逻辑 member read、`ceil(N / 50)` 个 Tencent quote
+  batches、N 个 planned stock Kline requests 加 1 个 index Kline request；这些是
+  execution diagnostics，不是筛选规则。首次正式失败在 sector membership，后续
+  quote/Kline 计数为 `NOT_REACHED`，不允许缩 universe 或跳过股票。
+- evidence boundary：本次实现与回归测试不改变 B strategy/spec/threshold、Phase 2B
+  protocol、provider source semantics、冻结 artifact identity 或 Final OOS 状态；
+  同日新的真实 acquisition 必须在 clean merged master 上重新获取全部 required
+  input，并在 `FROZEN_CANDIDATE_PREREQUISITES` 决策点审计。
