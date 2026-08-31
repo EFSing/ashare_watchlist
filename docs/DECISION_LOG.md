@@ -386,3 +386,36 @@
   B strategy/spec/threshold、Phase 2B semantics、frozen artifact identities、Final OOS
   sealed state 和既有 `phase2e.hithink_probe` non-blocking metadata debt 均未改变。
   不创建 `FROZEN_CANDIDATE_CONTRACT_V1`，不 promotion、不测试 C、不启动 Phase 2F、不调参。
+
+## 2026-08-31 — P0 live sector taxonomy mismatch correction
+
+- task classification：`correctness blocker` P0，并包含阻止当前 candidate-bound live
+  path 使用的 product/provider architecture blocker；不启动新的 strategy research。
+- research question and materiality：当前 authenticated HiThink Financial-API 是否能
+  支持 universe/names 与 stock/index K primary，以及 AkShare 当前是否仍能提供 B 冻结的
+  exact Sina industry membership；答案决定能否修正 live adapter，而不修改 B spec。停止
+  条件是 endpoint capability、返回 schema/taxonomy 和 fail-closed boundary 均被核实。
+- finding：merged master 的 `stock_board_industry_name_em` /
+  `stock_board_industry_cons_em` 是东方财富 industry taxonomy，违反 B exact legacy
+  provenance（AkShare `stock_sector_spot` / `stock_sector_detail`，`新浪行业`）。两次
+  `2026-08-31` attempt 都在 package 构造前失败，故没有 contaminated prospective
+  artifact，也不改写既有失败事实。
+- capability evidence（非 prospective evidence）：HiThink authenticated metadata/
+  ticker、snapshot、stock historical K、index historical K、adjustment-events 当前均
+  返回 HTTP 200 / `code=0` 与结构化字段；AkShare `1.18.94` 的 exact Sina spot/detail
+  当前可调用，live probe 返回 49 个行业及首个 detail 的 19 个成员。没有保存 raw
+  payload、没有构造 manifest/package、没有进行收益研究或 Final OOS 读取。
+- decision：`ADOPT` 最小 provider correction。HiThink metadata primary universe/name；
+  HiThink `adjust=forward` stock K 和 unadjusted index K primary；exact Sina API 是唯
+  一 sector source；Tencent quotes 保留既有字段语义；Tencent Kline 仅作为明确版本化
+  `LIVE_MARKET_DATA_FAILOVER_POLICY_V1` / `TENCENT_QFQ_FALLBACK_V1` transport fallback。
+  EM/THS/SW 代替、taxonomy/schema/date/coverage failure 和非 transient provider failure
+  均 fail closed。HiThink index 使用 `PROVIDER_RAW_SNAPSHOT`，不伪装成 qfq。
+- invariants：B strategy/spec/threshold、spec SHA
+  `5bbeb345ebd8883149138d2f29f8606f919949ae285aa2839fa337921dfc7112`、T-close/T+1、
+  no-current-data-backfill、no-future-bar 和 existing frozen artifacts 均不变。
+- verdict：`HITHINK_LIVE_PRIMARY = SUPPORTED`；
+  `EXACT_SINA_SECTOR_SOURCE = AVAILABLE`。
+- next decision：创建单一 correction PR 并停在 Sol review。review/merge 后是否运行新
+  的 prospective T-close acquisition，必须由用户在新的合法 close session 明确授权；
+  本任务不自动选择新的 T、不生成 package，不启动 C/Phase 2F、不调参、不读 Final OOS。

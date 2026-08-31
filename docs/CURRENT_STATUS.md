@@ -22,6 +22,26 @@ invariant。
 - Phase 2D：PIT validation protocol 已冻结；任何输入必须证明 `known_at <= T`，当前值不能回填历史。
 - Phase 2E：HiThink CORE replay、continuous replay 和 adjusted DEVELOPMENT returns V2 已提交并合并到 master（PR #6）。
 
+## Provider architecture correction — 2026-08-31
+
+Sol identified `P0-LIVE-SECTOR-TAXONOMY-MISMATCH` in the merged live adapter: its
+Eastmoney industry endpoints could not satisfy B's frozen exact `新浪行业` provenance.
+The correction is on the current review branch only; the formal master path is not treated
+as corrected until its single PR is reviewed and merged. The two `2026-08-31` attempts
+remain fail-closed before package construction, so no contaminated prospective artifact
+exists.
+
+Current capability decisions are `HITHINK_LIVE_PRIMARY = SUPPORTED` and
+`EXACT_SINA_SECTOR_SOURCE = AVAILABLE`. The branch uses HiThink metadata for current
+universe/names, HiThink stock/index K as primary (stock forward-adjusted, index explicitly
+`PROVIDER_RAW_SNAPSHOT`), exact AkShare Sina sector APIs, and a separately versioned
+Tencent Kline transport fallback. EM/THS/SW substitution is rejected; provider, API,
+taxonomy, adjustment and fallback identities are included in manifest provenance.
+
+This is a correctness/product architecture correction. B strategy/spec/thresholds and the
+`5bbeb345ebd8883149138d2f29f8606f919949ae285aa2839fa337921dfc7112` spec SHA are unchanged;
+T-close/T+1 semantics are unchanged. No prospective package was run by this correction.
+
 ## Product readiness
 
 - 已有：canonical watchlist schema、盘前/盘后复核、表现追踪、持仓/配对工具；Phase 2B 的 T close / XSHG T+1 contract；Phase 2D PIT contract；Phase 2E CORE / DEVELOPMENT artifacts、registry、hash 和 recovery governance。
@@ -65,18 +85,22 @@ invariant。
 
 ## Current blockers and deferred items
 
-1. **P1 first prospective input blocker**：当前 frozen-candidate prerequisite 仍为
+1. **P0 live sector taxonomy mismatch on merged path**：master 的旧 live adapter
+   使用东方财富行业 taxonomy，不能满足 B 的 exact `新浪行业` provenance；本修正分支
+   已改为 exact Sina source 并通过 capability audit，当前等待单一 PR 的 Sol review。
+   在 review/merge 前，master live path 仍视为 correctness blocker。
+2. **P1 first prospective input blocker**：当前 frozen-candidate prerequisite 仍为
    `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`；2026-08-31 正式
    master-baseline acquisition 在 AkShare sector membership 阶段发生
    `ConnectionError`，未形成 package。后续需要一个 candidate-bound、
    `LIVE_OBSERVED`、`known_at <= T` 的真实 T-close package，并证明
    universe/sector/names/market_env、provider/version、calendar、availability/recovery
    和 output identity。
-2. **Scope-local correctness blocker — FULL legacy only**：历史新浪行业 membership /
+3. **Scope-local correctness blocker — FULL legacy only**：历史新浪行业 membership /
    effective-date evidence 缺失，阻止 `FULL_LEGACY_OUTPUT_VALIDATION`、完整 85-score
    parity 和 legacy sector report；它不阻止 development-candidate product path 或当前
    candidate-bound gate，不能写成整个系统 blocker。
-3. **Scope-local provenance limitation**：retrospective official dump 没有 per-bar
+4. **Scope-local provenance limitation**：retrospective official dump 没有 per-bar
    historical vintage timestamp，限制历史 known-at 结论的强度；live prospective
    inputs 仍必须按 T 的 observed-at contract 处理。
 
@@ -156,6 +180,11 @@ provider failure；本次已完成同日独立 retry attempt 并在 attempts `3/
 必须重新获取全部 input；跨到下一北京时间日后，不得再用当前 live provider 数据构造
 本次 T 的 package。不启动 Phase 2F、不调参、不读 Final OOS、不把 product-ladder 晋级写成
 strategy promotion。
+
+当前 review branch 的下一步是创建单一 correction PR 并停在 Sol review。只有
+review/merge 完成且得到新的明确运行授权后，才可在新的合法 T-close session 重新获取
+完整 inputs；不得把 capability probe 当作 prospective evidence，也不得回填
+`2026-08-31`。
 
 ## Strategy Candidate Nomination V1 — 2026-08-30 — final eligibility update
 

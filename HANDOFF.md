@@ -397,3 +397,38 @@ Final OOS、不 merge。
   eligibility、strategy/spec/threshold、冻结 artifact、Final OOS sealed status 和
   non-blocking `phase2e.hithink_probe` metadata debt 均未改变。停止在本 decision node，
   不创建 `FROZEN_CANDIDATE_CONTRACT_V1`。
+
+## 19. P0 live sector taxonomy correction — 2026-08-31 (review branch)
+
+- task classification：本轮是 `correctness blocker`，同时修正阻止 candidate-bound
+  live path 可用的 provider architecture；不是 strategy research、参数选择、Phase
+  2F、Final OOS 或 promotion。
+- intake live state：用户指定 master/`origin/master` 为
+  `3b5b2f9abb6413bd4a2bbd531e11a8162e1bb2c9`，intake 时无 open PR；本修正分支为
+  `codex/live-provider-taxonomy-correction`。已有未跟踪
+  `data/validation/continuous_speed_probe/` 属于用户内容，未触碰。
+- blocker：merged adapter 使用 Eastmoney
+  `stock_board_industry_name_em` / `stock_board_industry_cons_em`，但 B 冻结的 exact
+  legacy provenance 是 AkShare Sina `stock_sector_spot` / `stock_sector_detail`，
+  taxonomy=`新浪行业`；EM/THS/SW 不能替代。两次 `2026-08-31` live attempt 均在
+  package 构造前 fail closed，没有 contaminated prospective artifact。
+- capability audit：HiThink Financial-API 的 authenticated metadata/ticker、snapshot、
+  stock/index historical K 和 adjustment-events endpoint 当前均返回 HTTP 200 /
+  `code=0` 结构化响应；AkShare `1.18.94` 的 exact Sina spot/detail 当前可调用，probe
+  返回 49 个行业及首个 detail 的 19 个成员。probe 只验证能力，不保存 payload、不构造
+  manifest/package、不改变 T=`2026-08-31` 的失败事实。
+- decision：`ADOPT` 最小 provider correction。HiThink metadata 为 universe/name
+  primary；HiThink forward stock K、raw index K 为 market-data primary；exact Sina
+  sector 为唯一 sector source；Tencent quote 保留既有语义；Tencent Kline fallback
+  仅在 `LIVE_MARKET_DATA_FAILOVER_POLICY_V1` / `TENCENT_QFQ_FALLBACK_V1` 下显式记录；
+  provider/schema/date/coverage/taxonomy failure 全部 fail closed。
+- invariant：B strategy/spec/threshold、B spec SHA
+  `5bbeb345ebd8883149138d2f29f8606f919949ae285aa2839fa337921dfc7112`、T-close/T+1、
+  no current-data backfill 和 no-future semantics 均不变；新增 raw-index mode 只诚实
+  表示 HiThink index endpoint 无 adjustment，不修改 B strategy。
+- verdict：`HITHINK_LIVE_PRIMARY = SUPPORTED`；
+  `EXACT_SINA_SECTOR_SOURCE = AVAILABLE`。
+- stop condition：创建单一 PR，等待 Sol review；review/merge 后还需用户明确授权，才
+  能在新的合法 T-close session 重新执行完整 acquisition。当前不运行 prospective
+  package，不创建 canonical watchlist，不测试 C，不启动 Phase 2F，不调参，不读
+  Final OOS，不 merge。

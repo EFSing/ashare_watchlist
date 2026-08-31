@@ -8,10 +8,10 @@
 `LIVE_OBSERVED` evidence，也不创建或冻结任何正式 prospective package、canonical
 watchlist 或 `FROZEN_CANDIDATE_CONTRACT_V1`。
 
-本次审计确认 master 原有代码只有 Phase 2B manifest validator，没有 AkShare 或
-Tencent daily-K acquisition adapter。因此当前 P1
-`P1-FC-LIVE-ACQUISITION-ADAPTER_MISSING` 在本分支以最小实现解决；合并前仍不改变
-formal Delivery Ladder，首个真实 T-close input instance 仍是后续 prerequisites gate。
+master 上已合并的 adapter 暴露了 correctness blocker：B 的 exact legacy sector
+provenance 是新浪行业，但 live path 使用了东方财富 industry APIs。本分支只修正
+provider architecture；合并前仍不改变 formal Delivery Ladder，首个真实 T-close
+input instance 仍是后续 prerequisites gate。
 
 ## Implemented path
 
@@ -20,15 +20,22 @@ formal Delivery Ladder，首个真实 T-close input instance 仍是后续 prereq
 1. 验证 `as_of_date` 是 XSHG session、当前 BJT 日期就是 T，并且当前时间不早于
    官方 session close；否则分别 fail closed 为 `CALENDAR_ERROR`、
    `INPUT_DATE_MISMATCH` 或 `SESSION_NOT_CLOSED`，且 provider 不会被调用。
-2. 通过 AkShare `stock_info_a_code_name` 获取 T 日 universe 与 display names。
-3. 通过 AkShare `stock_board_industry_name_em` 获取行业 definitions/rank/change，
-   再通过 `stock_board_industry_cons_em` 获取每个行业的 members；缺列、空结果、
-   缺覆盖、重复/跨行业冲突或名字冲突均失败。
+2. 通过 authenticated HiThink Financial-API `/api/meta/tickers/list` 获取当前
+   SH/SZ A-share universe 与 display names；分页、资产类型、交易所、代码/名称
+   冲突或空覆盖均失败。该 current snapshot 只用于当日 live T，不用于历史回填。
+3. 通过 AkShare `stock_sector_spot(indicator="新浪行业")` 获取 exact Sina
+   industry definitions/change，按涨跌幅稳定计算 rank，再通过
+   `stock_sector_detail` 获取每个 label 的 members；EM/THS/SW schema、taxonomy
+   marker、空结果、缺覆盖、重复/跨行业冲突或名字冲突均失败。
 4. 通过既有 Tencent quote parser 获取所有 universe symbols 的 T 日 quote。
-5. 通过 Tencent `appstock/fqkline/get` 的 `qfqday` 获取每只股票和 `sh000001`
-   指数的 daily K；只接受 `PROVIDER_QFQ_SNAPSHOT`，缺 T、未来 bar、重复日期、
-   不完整 OHLCV 或覆盖不足均失败。
-6. 从 T 日 qfq index K 派生带 T、provider、adjustment 和 index hash 的 canonical
+5. 以 HiThink `/api/a-share/prices/historical?adjust=forward` 获取每只股票 daily
+   K，以 `/api/a-share-index/prices/historical` 获取 `000001.SH` 指数 K。个股
+   保持 `PROVIDER_QFQ_SNAPSHOT`，HiThink 指数诚实标记为
+   `PROVIDER_RAW_SNAPSHOT`；缺 T、未来 bar、重复日期、不完整 OHLCV 或覆盖不足
+   均失败。只有 `LIVE_MARKET_DATA_FAILOVER_POLICY_V1` 明确允许时，单只 HiThink
+   transport failure 才可解析为版本化 Tencent `qfqday` fallback；语义/日期/schema
+   failure 不触发 fallback。
+6. 从 T 日 provider index K 派生带 T、provider、adjustment 和 index hash 的 canonical
    `market_env`，再调用既有 `freeze_generation_inputs()` 构造 READY
    `GenerationInputManifest`。
 7. 返回内存 `LiveInputPackage`，将 candidate/spec、display names、market_env、
@@ -51,22 +58,29 @@ formal Delivery Ladder，首个真实 T-close input instance 仍是后续 prereq
 - pyarrow：保留当前 `25.0.1`；未为 prospective runtime 降级，`17.0.0` 仍只是
   research optional pin
 
-已做的 capability probe 只 import AkShare 并检查三个 API callable；没有调用任何
-live endpoint，没有获取或保存正式 T 日数据。
+当前 capability verification（非 formal evidence）结果：HiThink authenticated
+metadata、snapshot、stock/index historical K 和 adjustment-events endpoint 均返回
+HTTP 200 / `code=0` 与结构化字段；AkShare 1.18.94 的 exact Sina APIs callable，
+live spot 返回 49 个行业，首个 label 的 detail 返回 19 个成员。probe 没有保存
+payload、没有构造 manifest/package，也没有改变 `2026-08-31` 的两次失败事实。
+
+Capability decision：`HITHINK_LIVE_PRIMARY = SUPPORTED`；
+`EXACT_SINA_SECTOR_SOURCE = AVAILABLE`。
 
 ## Acceptance tests
 
-`tests/test_live_acquisition.py` 使用 fake AkShare frames、Tencent response fixture
-和固定时间，覆盖 pre-close、wrong date、provider unavailable、空/不完整 universe、
-sector rank/member/name errors、stale/missing quote、stale/future Kline、T+1、
-fingerprint/byte determinism、immutable persistence、current-data backfill、
-AkShare transient recovery / bounded exhaustion、sector-member retry、semantic/schema
-no-retry 和 incomplete manifest 不写 output。
+`tests/test_live_acquisition.py` 使用 fake HiThink/Sina frames、Tencent response
+fixture 和固定时间，覆盖 pre-close、wrong date、HiThink/Sina unavailable、空/不完整
+universe、exact Sina acceptance、EM/THS/SW taxonomy rejection、sector member/name
+errors、stale/missing quote、stale/future Kline、T+1、HiThink primary、显式 Tencent
+fallback、provider identity/fingerprint/byte determinism、immutable persistence、
+semantic/schema no-retry 和 incomplete manifest 不写 output。
 
 ## Remaining gate
 
 本分支完成的是 implementation/runtime readiness，不是 evidence freeze。合并和 Sol
-review 前不获取真实 provider 数据；正式收盘后才允许以真实 T 日输入运行，并按
+review 前不获取真实 provider input/package；已允许的 capability probe 不保存 payload、
+不构造 manifest/package，也不改变历史失败事实。正式收盘后才允许以真实 T 日输入运行，并按
 `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V1` 审计首个
 `LIVE_OBSERVED` package。
 
@@ -128,3 +142,28 @@ No `data/prospective_inputs/` directory, partial formal evidence, fingerprint, o
 created. The final prerequisite decision remains
 `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`; the task stops at this provider
 blocker without automatic further attempts.
+
+## P0 live taxonomy correction — 2026-08-31 (this branch)
+
+Sol identified that the merged master path used Eastmoney industry APIs
+`stock_board_industry_name_em` / `stock_board_industry_cons_em`, which cannot satisfy B's
+frozen exact Sina-industry provenance. This is a correctness blocker, not a reason to alter
+B's strategy or thresholds. The two same-day master attempts above remain failures and no
+contaminated prospective artifact exists.
+
+The correction in this branch makes HiThink Financial-API metadata the primary current
+SH/SZ A-share universe/name source, HiThink forward-adjusted stock K and unadjusted index K
+the primary market-data source, and AkShare `1.18.94`'s exact
+`stock_sector_spot(indicator="新浪行业")` / `stock_sector_detail` pair the only sector
+source. EM, THS and SW taxonomies are rejected before a package can be constructed. Tencent
+Kline is available only as the explicitly versioned
+`LIVE_MARKET_DATA_FAILOVER_POLICY_V1` / `TENCENT_QFQ_FALLBACK_V1` transport fallback; it
+never substitutes the sector taxonomy. The index raw mode is named
+`PROVIDER_RAW_SNAPSHOT`, so it is not mislabeled as qfq.
+
+Capability probes were read-only and non-formal: HiThink metadata, snapshot, stock/index
+historical K and adjustment-events endpoints returned HTTP 200 / `code=0`; exact AkShare
+Sina spot returned 49 sectors and the first detail call returned 19 members. No payload was
+saved, no package was run, and T=`2026-08-31` remains failed. The branch is ready for Sol
+review; after review/merge, a new real T-close acquisition still requires explicit user
+authorization and a fresh complete provider capture.

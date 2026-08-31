@@ -23,6 +23,7 @@ import os
 import platform
 import tempfile
 import time
+import urllib.parse
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
@@ -42,6 +43,7 @@ from generation_contract import (
     INPUT_DATE_MISMATCH,
     LIVE_OBSERVED,
     PROVIDER_QFQ_SNAPSHOT,
+    PROVIDER_RAW_SNAPSHOT,
     READY_FOR_STRATEGY_EVALUATION,
     SESSION_NOT_CLOSED,
     XSHG_CALENDAR,
@@ -67,7 +69,7 @@ from trading_calendar import CalendarUnavailable, TradingCalendar, default_calen
 
 LIVE_INPUT_PACKAGE_SCHEMA = "CANDIDATE_BOUND_LIVE_INPUT_PACKAGE_V1"
 GENERATION_IDENTITY_SCHEMA = "CANDIDATE_BOUND_GENERATION_IDENTITY_V1"
-MARKET_ENV_SCHEMA = "MARKET_ENV_FROM_TENCENT_QFQ_INDEX_V1"
+MARKET_ENV_SCHEMA = "MARKET_ENV_FROM_PROVIDER_INDEX_V2"
 PROSPECTIVE_PROVENANCE_CONTRACT = "CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V1"
 
 PROVIDER_UNAVAILABLE = "PROVIDER_UNAVAILABLE"
@@ -77,12 +79,29 @@ MISSING_DISPLAY_NAME = "MISSING_DISPLAY_NAME"
 PERSISTENCE_CONFLICT = "PERSISTENCE_CONFLICT"
 PERSISTENCE_FAILURE = "PERSISTENCE_FAILURE"
 
-AKSHARE_UNIVERSE_API = "stock_info_a_code_name"
-AKSHARE_SECTOR_DEFINITIONS_API = "stock_board_industry_name_em"
-AKSHARE_SECTOR_MEMBERS_API = "stock_board_industry_cons_em"
+HITHINK_BASE_URL = "https://fuyao.aicubes.cn"
+HITHINK_API_KEY_ENV = "HITHINK_FINANCE_API_KEY"
+HITHINK_API_VERSION = "FINANCIAL_API_REST_V1"
+HITHINK_UNIVERSE_API = "/api/meta/tickers/list"
+HITHINK_QUOTE_API = "/api/a-share/prices/snapshot"
+HITHINK_STOCK_KLINE_API = "/api/a-share/prices/historical"
+HITHINK_INDEX_KLINE_API = "/api/a-share-index/prices/historical"
+HITHINK_ADJUSTMENT_API = "/api/a-share/corporate-actions/adjustment-factors"
+AKSHARE_SINA_SPOT_API = "stock_sector_spot"
+AKSHARE_SINA_DETAIL_API = "stock_sector_detail"
+SINA_TAXONOMY = "新浪行业"
+SINA_SOURCE_URL = "http://finance.sina.com.cn/stock/sl/"
+SINA_SPOT_SOURCE_URL = "http://vip.stock.finance.sina.com.cn/q/view/newSinaHy.php"
+SINA_DETAIL_COUNT_SOURCE_URL = "http://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/Market_Center.getHQNodeStockCount"
+SINA_DETAIL_SOURCE_URL = "http://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/Market_Center.getHQNodeData"
+HITHINK_LIVE_PRIMARY = "SUPPORTED"
+EXACT_SINA_SECTOR_SOURCE = "AVAILABLE"
+MARKET_DATA_FAILOVER_POLICY_VERSION = "LIVE_MARKET_DATA_FAILOVER_POLICY_V1"
+TENCENT_FALLBACK_VERSION = "TENCENT_QFQ_FALLBACK_V1"
 TENCENT_QUOTE_SOURCE = "qt.gtimg.cn"
 TENCENT_KLINE_SOURCE = "web.ifzq.gtimg.cn/appstock/app/fqkline/get"
 INDEX_SYMBOL = "sh000001"
+HITHINK_INDEX_SYMBOL = "000001.SH"
 
 # B's fixed evaluator reads the last 250 stock bars.  The index market-env
 # calculation reads a 20-session moving average and therefore needs 21 bars.
@@ -98,6 +117,9 @@ _BJT = timezone(timedelta(hours=8))
 # validated exactly once and is never hidden by another provider call.
 AKSHARE_MAX_ATTEMPTS = 3
 AKSHARE_RETRY_BACKOFF_SECONDS = 0.25
+HITHINK_MAX_ATTEMPTS = 3
+HITHINK_RETRY_BACKOFF_SECONDS = 0.25
+ALLOW_TENCENT_KLINE_FALLBACK = True
 
 
 class LiveAcquisitionError(GenerationContractError):
@@ -231,6 +253,12 @@ def _code(value: Any, field_name: str) -> str:
     return text
 
 
+def _hithink_thscode(symbol: str) -> str:
+    code = _code(symbol, "symbol")
+    exchange = "SH" if code.startswith("6") else "SZ"
+    return f"{code}.{exchange}"
+
+
 def _text(value: Any, field_name: str) -> str:
     value = _python_scalar(value)
     if _missing(value) or not isinstance(value, str):
@@ -274,6 +302,67 @@ def _field(row: Mapping[str, Any], aliases: Sequence[str], field_name: str) -> A
     _fail(PROVIDER_FAILURE, f"row is missing {field_name}")
 
 
+def _hithink_bar_date(value: Any, field_name: str) -> str:
+    value = _python_scalar(value)
+    if _missing(value) or isinstance(value, bool):
+        _fail(INCOMPLETE_COVERAGE, f"{field_name} is missing")
+    try:
+        timestamp_ms = int(value)
+    except (TypeError, ValueError) as exc:
+        _fail(PROVIDER_FAILURE, f"{field_name} is not a millisecond timestamp")
+        raise AssertionError from exc
+    if timestamp_ms <= 0:
+        _fail(PROVIDER_FAILURE, f"{field_name} is not positive")
+    try:
+        return datetime.fromtimestamp(timestamp_ms / 1000, tz=timezone.utc).astimezone(_BJT).date().isoformat()
+    except (OverflowError, OSError, ValueError) as exc:
+        _fail(PROVIDER_FAILURE, f"{field_name} is outside the supported date range")
+        raise AssertionError from exc
+
+
+def _normalize_hithink_bars(raw_bars: Sequence[Any], thscode: str) -> list[dict[str, Any]]:
+    bars: list[dict[str, Any]] = []
+    seen_dates: set[str] = set()
+    for index, raw_bar in enumerate(raw_bars):
+        if not isinstance(raw_bar, Mapping):
+            _fail(PROVIDER_FAILURE, f"HiThink historical bar {thscode}[{index}] is not a mapping")
+        bar_date = _hithink_bar_date(raw_bar.get("date_ms"), f"{thscode}[{index}].date_ms")
+        if bar_date in seen_dates:
+            _fail(INPUT_CONFLICT, f"duplicate HiThink historical bar date for {thscode}: {bar_date}")
+        seen_dates.add(bar_date)
+        opening = _number(raw_bar.get("open_price"), f"{thscode}[{index}].open", positive=True)
+        closing = _number(raw_bar.get("close_price"), f"{thscode}[{index}].close", positive=True)
+        high = _number(raw_bar.get("high_price"), f"{thscode}[{index}].high", positive=True)
+        low = _number(raw_bar.get("low_price"), f"{thscode}[{index}].low", positive=True)
+        volume = _number(raw_bar.get("volume"), f"{thscode}[{index}].volume", non_negative=True)
+        turnover = _number(raw_bar.get("turnover"), f"{thscode}[{index}].turnover", non_negative=True)
+        if high < low or high < opening or high < closing or low > opening or low > closing:
+            _fail(INPUT_CONFLICT, f"HiThink historical OHLC conflict for {thscode} on {bar_date}")
+        bars.append(
+            {
+                "date": bar_date,
+                "open": opening,
+                "high": high,
+                "low": low,
+                "close": closing,
+                "volume": volume,
+                "turnover": turnover,
+            }
+        )
+    bars.sort(key=lambda item: item["date"])
+    return bars
+
+
+class _HiThinkReadFailure(RuntimeError):
+    """A transient HiThink read exhausted its bounded attempts."""
+
+    def __init__(self, api_name: str, attempts: int, cause: Exception) -> None:
+        self.api_name = api_name
+        self.attempts = attempts
+        self.cause = cause
+        super().__init__(f"{api_name} failed after {attempts} attempts: {type(cause).__name__}")
+
+
 def _load_akshare(module: ModuleType | Any | None) -> tuple[Any, str]:
     if module is None:
         try:
@@ -288,8 +377,146 @@ def _load_akshare(module: ModuleType | Any | None) -> tuple[Any, str]:
     return module, version
 
 
-class AkShareClient:
-    """Small, injectable wrapper around the exact APIs used by this package."""
+class HiThinkClient:
+    """Injectable client for the authenticated HiThink Financial-API path."""
+
+    def __init__(
+        self,
+        *,
+        api_key: str | None = None,
+        request_get: Callable[..., Any] | None = None,
+        max_attempts: int = HITHINK_MAX_ATTEMPTS,
+    ) -> None:
+        self.api_key = api_key or os.environ.get(HITHINK_API_KEY_ENV)
+        if not isinstance(self.api_key, str) or not self.api_key.strip():
+            _fail(PROVIDER_UNAVAILABLE, f"{HITHINK_API_KEY_ENV} is missing or empty")
+        self.request_get = request_get or requests.get
+        self.max_attempts = max_attempts
+        self.read_attempts: list[dict[str, Any]] = []
+
+    def capability_report(self) -> dict[str, Any]:
+        return {
+            "provider": "HiThink Financial-API",
+            "base_url": HITHINK_BASE_URL,
+            "api_version": HITHINK_API_VERSION,
+            "authenticated": True,
+            "live_primary_status": HITHINK_LIVE_PRIMARY,
+            "apis": {
+                "universe": HITHINK_UNIVERSE_API,
+                "quotes": HITHINK_QUOTE_API,
+                "stock_klines": HITHINK_STOCK_KLINE_API,
+                "index_klines": HITHINK_INDEX_KLINE_API,
+                "adjustment_events": HITHINK_ADJUSTMENT_API,
+            },
+        }
+
+    @staticmethod
+    def _is_transient_read_error(exc: Exception) -> bool:
+        return isinstance(
+            exc,
+            (
+                ConnectionError,
+                TimeoutError,
+                requests.exceptions.ConnectionError,
+                requests.exceptions.Timeout,
+            ),
+        )
+
+    def _read(
+        self,
+        api_name: str,
+        path: str,
+        params: Mapping[str, Any],
+        *,
+        timeout: float,
+    ) -> Mapping[str, Any]:
+        query = urllib.parse.urlencode(params)
+        url = f"{HITHINK_BASE_URL}{path}?{query}" if query else f"{HITHINK_BASE_URL}{path}"
+        for attempt in range(1, self.max_attempts + 1):
+            try:
+                response = self.request_get(
+                    url,
+                    timeout=timeout,
+                    headers={"X-api-key": self.api_key},
+                )
+                raise_for_status = getattr(response, "raise_for_status", None)
+                if callable(raise_for_status):
+                    raise_for_status()
+                payload = response.json()
+                if not isinstance(payload, Mapping):
+                    raise ValueError("response JSON is not an object")
+                if payload.get("code") != 0:
+                    raise ValueError("response code is not zero")
+                data = payload.get("data")
+                if not isinstance(data, Mapping):
+                    raise ValueError("response data is not an object")
+            except Exception as exc:
+                transient = self._is_transient_read_error(exc)
+                if not transient or attempt == self.max_attempts:
+                    self.read_attempts.append(
+                        {"api": api_name, "attempts": attempt, "result": "FAILURE"}
+                    )
+                    if transient:
+                        raise _HiThinkReadFailure(api_name, attempt, exc) from exc
+                    raise
+                time.sleep(min(HITHINK_RETRY_BACKOFF_SECONDS * attempt, 1.0))
+            else:
+                self.read_attempts.append(
+                    {"api": api_name, "attempts": attempt, "result": "SUCCESS"}
+                )
+                return data
+        raise AssertionError("unreachable HiThink retry loop")
+
+    def universe(self, *, timeout: float = 15.0) -> list[dict[str, Any]]:
+        limit = 10000
+        offset = 0
+        rows: list[dict[str, Any]] = []
+        while True:
+            data = self._read(
+                HITHINK_UNIVERSE_API,
+                HITHINK_UNIVERSE_API,
+                {"exchange": "SH,SZ", "asset_type": "a-share", "limit": limit, "offset": offset},
+                timeout=timeout,
+            )
+            page = data.get("item")
+            if not isinstance(page, list):
+                raise ValueError("HiThink universe item is not a list")
+            rows.extend(item for item in page if isinstance(item, Mapping))
+            if len(page) < limit:
+                break
+            offset += limit
+        return rows
+
+    def historical_bars(
+        self,
+        thscode: str,
+        *,
+        start: int,
+        end: int,
+        index: bool,
+        timeout: float = 15.0,
+    ) -> list[dict[str, Any]]:
+        path = HITHINK_INDEX_KLINE_API if index else HITHINK_STOCK_KLINE_API
+        params: dict[str, Any] = {
+            "thscode": thscode,
+            "interval": "1d",
+            "start": start,
+            "end": end,
+        }
+        if not index:
+            params["adjust"] = "forward"
+        data = self._read(path, path, params, timeout=timeout)
+        returned_symbol = data.get("thscode")
+        if returned_symbol is not None and str(returned_symbol).strip().upper() != thscode.upper():
+            raise ValueError(f"HiThink historical response symbol mismatch for {thscode}")
+        raw_bars = data.get("item")
+        if not isinstance(raw_bars, list) or not raw_bars:
+            raise ValueError(f"HiThink historical bars are empty for {thscode}")
+        return _normalize_hithink_bars(raw_bars, thscode)
+
+
+class SinaSectorClient:
+    """Small wrapper around the exact legacy Sina-industry APIs only."""
 
     def __init__(self, module: ModuleType | Any | None = None, package_version: str | None = None) -> None:
         self.module, actual_version = _load_akshare(module)
@@ -297,11 +524,7 @@ class AkShareClient:
         if not isinstance(self.package_version, str) or not self.package_version.strip():
             _fail(PROVIDER_UNAVAILABLE, "AkShare package version is empty")
         self.package_version = self.package_version.strip()
-        self._apis = (
-            AKSHARE_UNIVERSE_API,
-            AKSHARE_SECTOR_DEFINITIONS_API,
-            AKSHARE_SECTOR_MEMBERS_API,
-        )
+        self._apis = (AKSHARE_SINA_SPOT_API, AKSHARE_SINA_DETAIL_API)
         missing = [name for name in self._apis if not callable(getattr(self.module, name, None))]
         if missing:
             _fail(PROVIDER_UNAVAILABLE, f"AkShare API capability missing: {', '.join(missing)}")
@@ -315,6 +538,16 @@ class AkShareClient:
         return {
             "package": "akshare",
             "version": self.package_version,
+            "source_url": SINA_SOURCE_URL,
+            "source_urls": {
+                "spot": SINA_SPOT_SOURCE_URL,
+                "detail_count": SINA_DETAIL_COUNT_SOURCE_URL,
+                "detail": SINA_DETAIL_SOURCE_URL,
+            },
+            "taxonomy": SINA_TAXONOMY,
+            "source_status": EXACT_SINA_SECTOR_SOURCE,
+            "exact_legacy_taxonomy": True,
+            "forbidden_substitutions": ["申万行业", "同花顺行业"],
             "apis": {name: True for name in self._apis},
         }
 
@@ -351,26 +584,26 @@ class AkShareClient:
                 return value
         raise AssertionError("unreachable AkShare retry loop")
 
-    def universe(self) -> Any:
-        return self._read(AKSHARE_UNIVERSE_API, self.module.stock_info_a_code_name)
-
     def sector_definitions(self) -> Any:
-        return self._read(AKSHARE_SECTOR_DEFINITIONS_API, self.module.stock_board_industry_name_em)
+        return self._read(
+            AKSHARE_SINA_SPOT_API,
+            lambda: self.module.stock_sector_spot(indicator=SINA_TAXONOMY),
+        )
 
     def sector_members(self, sector_code: str) -> Any:
-        api_name = f"{AKSHARE_SECTOR_MEMBERS_API}[{sector_code}]"
+        api_name = f"{AKSHARE_SINA_DETAIL_API}[{sector_code}]"
         result = self._read(
             api_name,
-            lambda: self.module.stock_board_industry_cons_em(symbol=sector_code),
+            lambda: self.module.stock_sector_detail(sector=sector_code),
         )
         self.completed_sector_member_reads += 1
         return result
 
 
 def akshare_runtime_capability() -> dict[str, Any]:
-    """Import-only capability probe; it never calls an AkShare data API."""
+    """Import-only exact-Sina capability probe; it never calls a data API."""
 
-    return AkShareClient().capability_report()
+    return SinaSectorClient().capability_report()
 
 
 def _runtime_versions(akshare_version: str) -> dict[str, Any]:
@@ -428,13 +661,28 @@ def _build_universe(
 ) -> tuple[UniverseManifest, dict[str, str]]:
     rows = _records(
         frame,
-        AKSHARE_UNIVERSE_API,
-        {"code": ("code", "证券代码"), "name": ("name", "证券简称")},
+        HITHINK_UNIVERSE_API,
+        {
+            "thscode": ("thscode",),
+            "ticker": ("ticker",),
+            "name": ("name",),
+            "exchange": ("exchange",),
+            "asset_type": ("asset_type",),
+        },
     )
     names: dict[str, str] = {}
     for index, row in enumerate(rows):
-        symbol = _code(_field(row, ("code", "证券代码"), f"universe[{index}].code"), f"universe[{index}].code")
-        name = _text(_field(row, ("name", "证券简称"), f"universe[{index}].name"), f"universe[{index}].name")
+        asset_type = _text(_field(row, ("asset_type",), f"universe[{index}].asset_type"), "universe asset_type")
+        exchange = _text(_field(row, ("exchange",), f"universe[{index}].exchange"), "universe exchange").upper()
+        if asset_type.lower() != "a-share" or exchange not in {"SH", "SZ"}:
+            continue
+        symbol = _code(_field(row, ("ticker", "thscode"), f"universe[{index}].ticker"), f"universe[{index}].ticker")
+        thscode = _text(_field(row, ("thscode",), f"universe[{index}].thscode"), "universe thscode").upper()
+        if not thscode.endswith(f".{exchange}"):
+            _fail(INPUT_CONFLICT, f"HiThink universe exchange/thscode conflict for {symbol}")
+        if not symbol.startswith(("60", "68", "00", "30")):
+            continue
+        name = _text(_field(row, ("name",), f"universe[{index}].name"), f"universe[{index}].name")
         if symbol in names:
             _fail(INPUT_CONFLICT, f"duplicate universe symbol: {symbol}")
         names[symbol] = name
@@ -444,7 +692,7 @@ def _build_universe(
         UniverseManifest(
             as_of_date=as_of_date,
             retrieved_at_bjt=retrieved_at_bjt,
-            source=f"AkShare.{AKSHARE_UNIVERSE_API}",
+            source=f"HiThink Financial-API {HITHINK_UNIVERSE_API}",
             symbols=tuple(names),
             temporal_semantics=LIVE_OBSERVED,
         ),
@@ -453,37 +701,42 @@ def _build_universe(
 
 
 def _build_sector(
-    client: AkShareClient,
+    client: SinaSectorClient,
     as_of_date: str,
     retrieved_at_bjt: str,
     names: Mapping[str, str],
 ) -> SectorManifest:
     definition_rows = _records(
         client.sector_definitions(),
-        AKSHARE_SECTOR_DEFINITIONS_API,
+        AKSHARE_SINA_SPOT_API,
         {
-            "sector_rank": ("排名", "rank", "sector_rank"),
-            "sector_name": ("板块名称", "sector_name", "name"),
-            "sector_code": ("板块代码", "sector_code", "code"),
-            "sector_chg": ("涨跌幅", "sector_chg", "change_pct"),
+            "sector_code": ("label",),
+            "sector_name": ("板块",),
+            "sector_chg": ("涨跌幅",),
         },
     )
-    definitions: dict[str, dict[str, Any]] = {}
+    raw_definitions: list[dict[str, Any]] = []
     for index, row in enumerate(definition_rows):
-        sector_code = _text(_field(row, ("板块代码", "sector_code", "code"), f"sector definition[{index}].code"), "sector code")
-        sector_name = _text(_field(row, ("板块名称", "sector_name", "name"), f"sector definition[{index}].name"), "sector name")
-        rank = _number(_field(row, ("排名", "rank", "sector_rank"), f"sector definition[{index}].rank"), "sector rank", positive=True)
-        change = _number(_field(row, ("涨跌幅", "sector_chg", "change_pct"), f"sector definition[{index}].change"), "sector change")
-        if sector_code in definitions or any(item["sector_name"] == sector_name for item in definitions.values()):
+        for marker in ("taxonomy", "行业分类", "industry_taxonomy", "分类"):
+            if marker in row and _text(row[marker], f"sector definition[{index}].{marker}") != SINA_TAXONOMY:
+                _fail(INPUT_CONFLICT, f"sector definition taxonomy is not {SINA_TAXONOMY}")
+        sector_code = _text(_field(row, ("label",), f"sector definition[{index}].label"), "sector label")
+        sector_name = _text(_field(row, ("板块",), f"sector definition[{index}].name"), "sector name")
+        change = _number(_field(row, ("涨跌幅",), f"sector definition[{index}].change"), "sector change")
+        if any(item["sector_code"] == sector_code or item["sector_name"] == sector_name for item in raw_definitions):
             _fail(INPUT_CONFLICT, f"duplicate sector definition: {sector_code}/{sector_name}")
-        definitions[sector_code] = {
+        raw_definitions.append({
             "sector_code": sector_code,
             "sector_name": sector_name,
-            "sector_rank": rank,
             "sector_chg": change,
-        }
-    if not definitions:
+        })
+    if not raw_definitions:
         _fail(INCOMPLETE_COVERAGE, "sector definitions are empty")
+    ordered_definitions = sorted(raw_definitions, key=lambda item: (-item["sector_chg"], item["sector_code"]))
+    definitions = {
+        item["sector_code"]: {**item, "sector_rank": rank}
+        for rank, item in enumerate(ordered_definitions, start=1)
+    }
     client.sector_definition_count = len(definitions)
 
     members: dict[str, list[dict[str, Any]]] = {}
@@ -493,11 +746,14 @@ def _build_sector(
         client.current_sector_name = definition["sector_name"]
         rows = _records(
             client.sector_members(sector_code),
-            f"{AKSHARE_SECTOR_MEMBERS_API}[{sector_code}]",
+            f"{AKSHARE_SINA_DETAIL_API}[{sector_code}]",
             {"code": ("代码", "code"), "name": ("名称", "name")},
         )
         sector_members: list[dict[str, Any]] = []
         for index, row in enumerate(rows):
+            for marker in ("taxonomy", "行业分类", "industry_taxonomy", "分类"):
+                if marker in row and _text(row[marker], f"{sector_code}[{index}].{marker}") != SINA_TAXONOMY:
+                    _fail(INPUT_CONFLICT, f"sector member taxonomy is not {SINA_TAXONOMY}")
             symbol = _code(_field(row, ("代码", "code"), f"{sector_code}[{index}].code"), f"{sector_code}[{index}].code")
             member_name = _text(_field(row, ("名称", "name"), f"{sector_code}[{index}].name"), f"{sector_code}[{index}].name")
             if symbol not in names:
@@ -528,8 +784,8 @@ def _build_sector(
         as_of_date=as_of_date,
         retrieved_at_bjt=retrieved_at_bjt,
         source=(
-            f"AkShare.{AKSHARE_SECTOR_DEFINITIONS_API}+"
-            f"AkShare.{AKSHARE_SECTOR_MEMBERS_API}"
+            f"AkShare.{AKSHARE_SINA_SPOT_API}(indicator={SINA_TAXONOMY})+"
+            f"AkShare.{AKSHARE_SINA_DETAIL_API}(taxonomy={SINA_TAXONOMY})"
         ),
         definitions=definitions,
         members=members,
@@ -538,8 +794,37 @@ def _build_sector(
     )
 
 
+def _utc_midnight_ms(value: str) -> int:
+    return int(datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp() * 1000)
+
+
+def _historical_window(as_of_date: str, count: int) -> tuple[int, int]:
+    start_date = date.fromisoformat(as_of_date) - timedelta(days=max(count * 2 + 40, 120))
+    return _utc_midnight_ms(start_date.isoformat()), _utc_midnight_ms(as_of_date)
+
+
+def _hithink_failure_message(
+    client: HiThinkClient | Any,
+    exc: Exception,
+    *,
+    elapsed_seconds: float,
+    universe_symbol_count: int,
+    unexecuted_stage: str,
+) -> str:
+    latest = getattr(client, "read_attempts", [])[-1] if getattr(client, "read_attempts", []) else {}
+    api_name = getattr(exc, "api_name", latest.get("api", "UNKNOWN"))
+    attempts = getattr(exc, "attempts", latest.get("attempts", 1))
+    cause = getattr(exc, "cause", exc)
+    return (
+        "HiThink Financial-API provider failure; "
+        f"api={api_name}; attempts={attempts}; elapsed_acquisition_seconds={elapsed_seconds:.3f}; "
+        f"universe_symbol_count={universe_symbol_count}; "
+        f"unexecuted_stage={unexecuted_stage}; cause={type(cause).__name__}"
+    )
+
+
 def _akshare_failure_message(
-    client: AkShareClient,
+    client: SinaSectorClient,
     exc: Exception,
     *,
     elapsed_seconds: float,
@@ -641,6 +926,90 @@ def _fetch_qfq_bars(
     return bars
 
 
+def _is_hithink_transient(exc: Exception) -> bool:
+    return isinstance(
+        exc,
+        (
+            ConnectionError,
+            TimeoutError,
+            requests.exceptions.ConnectionError,
+            requests.exceptions.Timeout,
+        ),
+    )
+
+
+def _resolve_market_bars(
+    client: HiThinkClient | Any,
+    symbol: str,
+    *,
+    count: int,
+    as_of_date: str,
+    timeout: float,
+    request_get: Callable[..., Any],
+    retries: int,
+    index: bool,
+    allow_tencent_fallback: bool,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    start_ms, end_ms = _historical_window(as_of_date, count)
+    thscode = HITHINK_INDEX_SYMBOL if index else _hithink_thscode(symbol)
+    try:
+        bars = client.historical_bars(
+            thscode,
+            start=start_ms,
+            end=end_ms,
+            index=index,
+            timeout=timeout,
+        )
+        if not isinstance(bars, Sequence) or isinstance(bars, (str, bytes)):
+            _fail(PROVIDER_FAILURE, f"HiThink historical bars are not a sequence for {thscode}")
+        if len(bars) < count:
+            _fail(INCOMPLETE_COVERAGE, f"HiThink historical coverage for {thscode} is {len(bars)} < {count}")
+        normalized = list(bars)
+        for index, bar in enumerate(normalized):
+            if not isinstance(bar, Mapping) or not isinstance(bar.get("date"), str):
+                _fail(PROVIDER_FAILURE, f"HiThink historical bar {thscode}[{index}] has no canonical date")
+        future_dates = [bar["date"] for bar in normalized if bar["date"] > as_of_date]
+        if future_dates:
+            _fail(FUTURE_DATA_DETECTED, f"HiThink historical bar {thscode} is after {as_of_date}: {future_dates[0]}")
+        if normalized[-1].get("date") != as_of_date:
+            _fail(
+                INPUT_DATE_MISMATCH,
+                f"HiThink historical latest bar for {thscode} is {normalized[-1].get('date')} != {as_of_date}",
+            )
+        return normalized, {
+            "provider": "HiThink Financial-API",
+            "source": (
+                f"{HITHINK_INDEX_KLINE_API}(unadjusted)"
+                if index
+                else f"{HITHINK_STOCK_KLINE_API}(adjust=forward)"
+            ),
+            "adjustment_mode": PROVIDER_RAW_SNAPSHOT if index else PROVIDER_QFQ_SNAPSHOT,
+            "selection": "PRIMARY",
+        }
+    except LiveAcquisitionError:
+        raise
+    except Exception as exc:
+        if not _is_hithink_transient(exc) and not isinstance(exc, _HiThinkReadFailure):
+            _fail(PROVIDER_FAILURE, f"HiThink historical acquisition failed for {thscode}: {type(exc).__name__}")
+        if not allow_tencent_fallback:
+            _fail(PROVIDER_FAILURE, f"HiThink historical acquisition failed for {thscode}: fallback disabled")
+        tencent_symbol = INDEX_SYMBOL if index else symbol
+        fallback = _fetch_qfq_bars(
+            tencent_symbol,
+            count=count,
+            as_of_date=as_of_date,
+            timeout=timeout,
+            retries=retries,
+            request_get=request_get,
+        )
+        return fallback, {
+            "provider": "Tencent",
+            "source": TENCENT_KLINE_SOURCE,
+            "adjustment_mode": PROVIDER_QFQ_SNAPSHOT,
+            "selection": "EXPLICIT_FALLBACK",
+        }
+
+
 def _market_env(index: IndexManifest) -> dict[str, Any]:
     if len(index.bars) < MIN_INDEX_BARS_FOR_MARKET_ENV:
         _fail(INCOMPLETE_COVERAGE, f"index needs at least {MIN_INDEX_BARS_FOR_MARKET_ENV} bars for market_env")
@@ -729,8 +1098,11 @@ class LiveInputPackage:
         canonical_env = _copy_json(dict(self.market_env), "market_env")
         if canonical_env.get("as_of_date") != self.generation_input_manifest.signal_date:
             _fail(INPUT_DATE_MISMATCH, "market_env.as_of_date does not equal signal date")
-        if canonical_env.get("adjustment_mode") != PROVIDER_QFQ_SNAPSHOT:
-            _fail("UNSUPPORTED_MODE", "market_env must retain PROVIDER_QFQ_SNAPSHOT semantics")
+        if canonical_env.get("adjustment_mode") not in {PROVIDER_QFQ_SNAPSHOT, PROVIDER_RAW_SNAPSHOT}:
+            _fail(
+                "UNSUPPORTED_MODE",
+                "market_env must retain a supported provider snapshot adjustment mode",
+            )
         object.__setattr__(self, "market_env", canonical_env)
         if not isinstance(self.provenance, Mapping):
             _fail(PROVIDER_FAILURE, "provenance must be a mapping")
@@ -880,6 +1252,10 @@ def acquire_live_generation_inputs(
     akshare_module: ModuleType | Any | None = None,
     akshare_version: str | None = None,
     request_get: Callable[..., Any] | None = None,
+    hithink_client: HiThinkClient | Any | None = None,
+    hithink_request_get: Callable[..., Any] | None = None,
+    sina_module: ModuleType | Any | None = None,
+    allow_tencent_fallback: bool = ALLOW_TENCENT_KLINE_FALLBACK,
     quote_timeout: float = 15.0,
     quote_retries: int = 3,
     kline_timeout: float = 15.0,
@@ -901,32 +1277,35 @@ def acquire_live_generation_inputs(
     if stock_bar_count <= 0 or index_bar_count <= 0:
         _fail(INCOMPLETE_COVERAGE, "bar counts must be positive")
 
-    client = AkShareClient(akshare_module, akshare_version)
+    hithink = hithink_client or HiThinkClient(request_get=hithink_request_get)
+    if not all(callable(getattr(hithink, name, None)) for name in ("universe", "historical_bars", "capability_report")):
+        _fail(PROVIDER_UNAVAILABLE, "HiThink client capability is incomplete")
+    sina = SinaSectorClient(sina_module if sina_module is not None else akshare_module, akshare_version)
     acquisition_started = time.monotonic()
     retrieved_at_bjt = _timestamp_text(observed_at)
     try:
-        universe_frame = client.universe()
+        universe_frame = hithink.universe(timeout=kline_timeout)
     except Exception as exc:
         _fail(
             PROVIDER_FAILURE,
-            _akshare_failure_message(
-                client,
+            _hithink_failure_message(
+                hithink,
                 exc,
                 elapsed_seconds=time.monotonic() - acquisition_started,
                 universe_symbol_count=0,
-                unexecuted_stage="sector definitions, sector membership, Tencent quotes, stock/index Kline, market_env, manifest, persistence",
+                unexecuted_stage="exact Sina sector, Tencent quotes, stock/index Kline, market_env, manifest, persistence",
             ),
         )
     universe, display_names = _build_universe(universe_frame, target_date, retrieved_at_bjt)
     try:
-        sector = _build_sector(client, target_date, retrieved_at_bjt, display_names)
+        sector = _build_sector(sina, target_date, retrieved_at_bjt, display_names)
     except LiveAcquisitionError:
         raise
     except Exception as exc:
         _fail(
             PROVIDER_FAILURE,
             _akshare_failure_message(
-                client,
+                sina,
                 exc,
                 elapsed_seconds=time.monotonic() - acquisition_started,
                 universe_symbol_count=len(universe.symbols),
@@ -973,61 +1352,111 @@ def acquire_live_generation_inputs(
     )
 
     stock_klines: list[KlineManifest] = []
+    stock_resolutions: dict[str, dict[str, Any]] = {}
     for symbol in universe.symbols:
-        bars = _fetch_qfq_bars(
+        bars, resolution = _resolve_market_bars(
+            hithink,
             symbol,
             count=stock_bar_count,
             as_of_date=target_date,
             timeout=kline_timeout,
             retries=kline_retries,
             request_get=get,
+            index=False,
+            allow_tencent_fallback=allow_tencent_fallback,
         )
+        stock_resolutions[symbol] = resolution
         stock_klines.append(
             KlineManifest(
                 symbol=symbol,
                 as_of_date=target_date,
                 retrieved_at_bjt=retrieved_at_bjt,
                 bars=bars,
-                provider="Tencent",
-                adjustment_mode=PROVIDER_QFQ_SNAPSHOT,
-                source=TENCENT_KLINE_SOURCE,
+                provider=resolution["provider"],
+                adjustment_mode=resolution["adjustment_mode"],
+                source=resolution["source"],
                 temporal_semantics=LIVE_OBSERVED,
             )
         )
-    index_bars = _fetch_qfq_bars(
+    index_bars, index_resolution = _resolve_market_bars(
+        hithink,
         INDEX_SYMBOL,
         count=index_bar_count,
         as_of_date=target_date,
         timeout=kline_timeout,
         retries=kline_retries,
         request_get=get,
+        index=True,
+        allow_tencent_fallback=allow_tencent_fallback,
     )
     index = IndexManifest(
         symbol=INDEX_SYMBOL,
         as_of_date=target_date,
         retrieved_at_bjt=retrieved_at_bjt,
         bars=index_bars,
-        provider="Tencent",
-        adjustment_mode=PROVIDER_QFQ_SNAPSHOT,
-        source=TENCENT_KLINE_SOURCE,
+        provider=index_resolution["provider"],
+        adjustment_mode=index_resolution["adjustment_mode"],
+        source=index_resolution["source"],
         temporal_semantics=LIVE_OBSERVED,
     )
     market_env = _market_env(index)
-    runtime_versions = _runtime_versions(client.package_version)
+    runtime_versions = _runtime_versions(sina.package_version)
     provider_metadata = {
         "runtime": runtime_versions,
+        "market_data_failover": {
+            "policy_version": MARKET_DATA_FAILOVER_POLICY_VERSION,
+            "tencent_fallback_allowed": bool(allow_tencent_fallback),
+            "tencent_fallback_version": TENCENT_FALLBACK_VERSION,
+            "fallback_symbols": sorted(
+                [symbol for symbol, resolution in stock_resolutions.items() if resolution["selection"] == "EXPLICIT_FALLBACK"]
+                + ([INDEX_SYMBOL] if index_resolution["selection"] == "EXPLICIT_FALLBACK" else [])
+            ),
+        },
         "providers": {
-            "universe": {"provider": "AkShare", "api": AKSHARE_UNIVERSE_API},
+            "universe": {
+                "provider": "HiThink Financial-API",
+                "api_version": HITHINK_API_VERSION,
+                "base_url": HITHINK_BASE_URL,
+                "api": HITHINK_UNIVERSE_API,
+                "selection": "PRIMARY",
+            },
             "sector": {
                 "provider": "AkShare",
-                "definitions_api": AKSHARE_SECTOR_DEFINITIONS_API,
-                "members_api": AKSHARE_SECTOR_MEMBERS_API,
+                "api_version": sina.package_version,
+                "source_url": SINA_SOURCE_URL,
+                "source_urls": {
+                    "spot": SINA_SPOT_SOURCE_URL,
+                    "detail_count": SINA_DETAIL_COUNT_SOURCE_URL,
+                    "detail": SINA_DETAIL_SOURCE_URL,
+                },
+                "taxonomy": SINA_TAXONOMY,
+                "exact_legacy_taxonomy": True,
+                "spot_api": AKSHARE_SINA_SPOT_API,
+                "detail_api": AKSHARE_SINA_DETAIL_API,
+                "forbidden_substitutions": ["申万行业", "同花顺行业"],
             },
             "quotes": {"provider": "Tencent", "source": TENCENT_QUOTE_SOURCE},
-            "stock_klines": {"provider": "Tencent", "source": TENCENT_KLINE_SOURCE, "adjustment_mode": PROVIDER_QFQ_SNAPSHOT},
-            "index": {"provider": "Tencent", "source": TENCENT_KLINE_SOURCE, "adjustment_mode": PROVIDER_QFQ_SNAPSHOT},
+            "stock_klines": {
+                "provider": "HiThink Financial-API",
+                "api_version": HITHINK_API_VERSION,
+                "base_url": HITHINK_BASE_URL,
+                "api": HITHINK_STOCK_KLINE_API,
+                "adjust": "forward",
+                "primary": "HiThink Financial-API",
+                "fallback": "Tencent",
+            },
+            "index": {
+                "provider": "HiThink Financial-API",
+                "api_version": HITHINK_API_VERSION,
+                "base_url": HITHINK_BASE_URL,
+                "api": HITHINK_INDEX_KLINE_API,
+                "adjustment_mode": PROVIDER_RAW_SNAPSHOT,
+                "primary": "HiThink Financial-API",
+                "fallback": "Tencent",
+            },
         },
-        "akshare_capability": client.capability_report(),
+        "hithink_capability": hithink.capability_report(),
+        "akshare_sina_capability": sina.capability_report(),
     }
     run_context = RunContext(
         as_of_date=target_date,
@@ -1086,13 +1515,22 @@ def acquire_live_generation_inputs(
 __all__ = [
     "AKSHARE_MAX_ATTEMPTS",
     "AKSHARE_RETRY_BACKOFF_SECONDS",
-    "AKSHARE_SECTOR_DEFINITIONS_API",
-    "AKSHARE_SECTOR_MEMBERS_API",
-    "AKSHARE_UNIVERSE_API",
-    "AkShareClient",
+    "AKSHARE_SINA_DETAIL_API",
+    "AKSHARE_SINA_SPOT_API",
+    "ALLOW_TENCENT_KLINE_FALLBACK",
     "DEFAULT_INDEX_BAR_COUNT",
     "DEFAULT_STOCK_BAR_COUNT",
+    "EXACT_SINA_SECTOR_SOURCE",
     "GENERATION_IDENTITY_SCHEMA",
+    "HITHINK_API_KEY_ENV",
+    "HITHINK_API_VERSION",
+    "HITHINK_BASE_URL",
+    "HITHINK_INDEX_KLINE_API",
+    "HITHINK_LIVE_PRIMARY",
+    "HITHINK_MAX_ATTEMPTS",
+    "HITHINK_STOCK_KLINE_API",
+    "HITHINK_UNIVERSE_API",
+    "HiThinkClient",
     "INPUT_CONFLICT",
     "LiveAcquisitionError",
     "LiveInputPackage",
@@ -1103,6 +1541,12 @@ __all__ = [
     "PERSISTENCE_FAILURE",
     "PROVIDER_FAILURE",
     "PROVIDER_UNAVAILABLE",
+    "PROVIDER_RAW_SNAPSHOT",
+    "SINA_TAXONOMY",
+    "SINA_DETAIL_COUNT_SOURCE_URL",
+    "SINA_DETAIL_SOURCE_URL",
+    "SINA_SPOT_SOURCE_URL",
+    "SinaSectorClient",
     "TENCENT_KLINE_SOURCE",
     "acquire_live_generation_inputs",
     "akshare_runtime_capability",

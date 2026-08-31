@@ -28,6 +28,9 @@ XSHG_CALENDAR = "XSHG"
 LIVE_OBSERVED = "LIVE_OBSERVED"
 POINT_IN_TIME = "POINT_IN_TIME"
 PROVIDER_QFQ_SNAPSHOT = "PROVIDER_QFQ_SNAPSHOT"
+# HiThink's index endpoint has no adjustment concept.  Keep that provider
+# semantics explicit instead of relabelling an unadjusted index as qfq.
+PROVIDER_RAW_SNAPSHOT = "PROVIDER_RAW_SNAPSHOT"
 EXCHANGE_CALENDARS_VERSION = "4.13.2"
 
 READY_FOR_STRATEGY_EVALUATION = "READY_FOR_STRATEGY_EVALUATION"
@@ -587,10 +590,11 @@ def _validate_calendar(as_of_date: str, calendar: TradingCalendar) -> None:
 
 
 def _validate_kline_dates(item: KlineManifest, as_of_date: str, label: str) -> None:
-    if item.adjustment_mode != PROVIDER_QFQ_SNAPSHOT:
+    if item.adjustment_mode not in {PROVIDER_QFQ_SNAPSHOT, PROVIDER_RAW_SNAPSHOT}:
         _fail(
             UNSUPPORTED_MODE,
-            f"{label} {item.symbol} adjustment_mode must be {PROVIDER_QFQ_SNAPSHOT}",
+            f"{label} {item.symbol} adjustment_mode must be one of "
+            f"{PROVIDER_QFQ_SNAPSHOT}, {PROVIDER_RAW_SNAPSHOT}",
         )
     if item.bar_count == 0 or item.first_bar_date is None or item.last_bar_date is None:
         _fail(INCOMPLETE_COVERAGE, f"{label} {item.symbol} has no bars")

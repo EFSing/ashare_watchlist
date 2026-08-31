@@ -1,6 +1,6 @@
 # Candidate-Bound Prospective Input / Provenance Contract V1
 
-更新时间：2026-08-30（Asia/Shanghai）
+更新时间：2026-08-31（Asia/Shanghai）
 
 ## Contract identity
 
@@ -30,6 +30,26 @@ prospective observation, does not create a watchlist, and does not create
 | availability/fail-closed | completeness, freshness, duplicate/conflict checks, and explicit failure status when unavailable |
 | recovery | recoverable input package, byte/content hashes, recovery status and deterministic retry identity |
 | generation fingerprint/output identity | fingerprint binds all output-affecting inputs, candidate identity, schema/contract versions, and canonical output bytes/SHA |
+
+## Live provider resolution policy
+
+For this candidate-bound live path, the provider identities are explicit and part of
+the input manifest:
+
+- universe and display names: HiThink Financial-API metadata/tickers list, primary;
+- stock K line: HiThink Financial-API historical `adjust=forward`, primary;
+- index K line: HiThink Financial-API historical index endpoint, unadjusted and marked
+  `PROVIDER_RAW_SNAPSHOT`;
+- quotes: Tencent snapshot, retaining the existing quote-field semantics;
+- sector: AkShare `stock_sector_spot(indicator="新浪行业")` plus
+  `stock_sector_detail`, exact V0 Sina-industry taxonomy only.
+
+Tencent K-line fallback is allowed only under the versioned
+`LIVE_MARKET_DATA_FAILOVER_POLICY_V1` / `TENCENT_QFQ_FALLBACK_V1` policy. A fallback
+must be recorded as `EXPLICIT_FALLBACK` in provider metadata and in the resolved
+manifest provider identity. It is not an implicit taxonomy or data substitution;
+universe, exact Sina sector, schema, date, coverage, and conflict failures remain
+fail-closed.
 
 ## Acceptance rules for the first instance
 
