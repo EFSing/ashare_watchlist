@@ -59,8 +59,9 @@ live endpoint，没有获取或保存正式 T 日数据。
 `tests/test_live_acquisition.py` 使用 fake AkShare frames、Tencent response fixture
 和固定时间，覆盖 pre-close、wrong date、provider unavailable、空/不完整 universe、
 sector rank/member/name errors、stale/missing quote、stale/future Kline、T+1、
-fingerprint/byte determinism、immutable persistence、current-data backfill 和
-incomplete manifest 不写 output。
+fingerprint/byte determinism、immutable persistence、current-data backfill、
+AkShare transient recovery / bounded exhaustion、sector-member retry、semantic/schema
+no-retry 和 incomplete manifest 不写 output。
 
 ## Remaining gate
 
@@ -68,3 +69,44 @@ incomplete manifest 不写 output。
 review 前不获取真实 provider 数据；正式收盘后才允许以真实 T 日输入运行，并按
 `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V1` 审计首个
 `LIVE_OBSERVED` package。
+
+## Post-merge execution result — 2026-08-31
+
+PR #15 was squash-merged to master at
+`f1fed4608210aa175ac268189a8d7f032b0b88e0`, with master correctness run
+`33367655723` successful at that exact head. The first formal master-baseline call for
+T=`2026-08-31` started at actual BJT runtime
+`2026-08-31T15:21:18.969554+08:00`, after the XSHG close at 15:00 BJT, but AkShare
+sector membership acquisition raised `ConnectionError`. The adapter returned
+`PROVIDER_FAILURE` and stopped; no READY manifest, live package, quote/Kline package,
+fingerprint, persistence, or canonical watchlist was created. `data/prospective_inputs/`
+remained absent. This is a real provider blocker, not `LIVE_OBSERVED` evidence. The same
+Phase 2B T-close contract permits a new independent attempt on the same BJT date T after the
+official close; it must use a new real `observed_at`, re-acquire every required input, and not
+reuse any partial response from the failed attempt. Once the BJT date has advanced to
+`2026-09-01`, current live provider data must never be used to construct a `T=2026-08-31`
+package; the next valid T-close session is then required.
+
+## AkShare bounded transient retry — PR #16
+
+Each of the three AkShare provider-read APIs is retried independently for transient network/
+connection exceptions, with a fixed maximum of 3 attempts and bounded backoff (`0.25s`, then
+`0.50s`). The retry boundary ends when a response is returned: schema, empty, duplicate,
+name/sector conflict, and coverage validation are performed once and fail closed without
+another read. A retry never changes source, date, universe, or strategy semantics; exhausted
+transient failures map to `PROVIDER_FAILURE` and create no formal package.
+
+Retry attempt/backoff details are process diagnostics only. They are excluded from the canonical
+input fingerprint, candidate-bound generation fingerprint, package content identity, and
+successful provenance; only the final captured inputs and actual provider/runtime identities are
+represented there.
+
+## Execution-scale audit
+
+The current complete-universe execution model is: one universe read; one sector-definition read;
+one logical sector-member read per returned definition (with transient retry scoped to that same
+read); Tencent quote batches of 50 symbols, `ceil(universe_symbol_count / 50)`; and
+`universe_symbol_count` planned stock-Kline requests, plus one index-Kline request. These are
+execution diagnostics, not selection rules. No stock may be silently dropped to reduce the
+scale. The first formal failure stopped in sector membership, so its real universe, definition,
+quote-batch, and Kline counts remain `NOT_REACHED`.

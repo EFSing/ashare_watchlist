@@ -38,16 +38,31 @@ class FakeFrame:
 
 
 class FakeAkShare:
-    def __init__(self, *, universe=None, definitions=None, members=None):
+    def __init__(self, *, universe=None, definitions=None, members=None, failures=None):
         self._universe = universe
         self._definitions = definitions
         self._members = members
+        self._failures = {key: list(values) for key, values in (failures or {}).items()}
+        self.universe_calls = 0
+        self.definition_calls = 0
         self.member_calls = []
 
+    def _maybe_fail(self, api_name):
+        failures = self._failures.get(api_name, [])
+        if failures:
+            failure = failures.pop(0)
+            if isinstance(failure, BaseException):
+                raise failure
+            raise RuntimeError(failure)
+
     def stock_info_a_code_name(self):
+        self.universe_calls += 1
+        self._maybe_fail("universe")
         return FakeFrame(self._universe if self._universe is not None else [{"code": SYMBOL, "name": "测试股份"}])
 
     def stock_board_industry_name_em(self):
+        self.definition_calls += 1
+        self._maybe_fail("definitions")
         return FakeFrame(
             self._definitions
             if self._definitions is not None
@@ -56,6 +71,7 @@ class FakeAkShare:
 
     def stock_board_industry_cons_em(self, symbol):
         self.member_calls.append(symbol)
+        self._maybe_fail("members")
         return FakeFrame(
             self._members
             if self._members is not None
@@ -178,29 +194,100 @@ def test_missing_universe_name_fails_closed():
     assert caught.value.status == INCOMPLETE_COVERAGE
 
 
-def test_missing_sector_rank_fails_closed():
+def test_akshare_transient_universe_connection_retries_then_succeeds(monkeypatch):
+    sleeps = []
+    monkeypatch.setattr(live.time, "sleep", sleeps.append)
+    ak = FakeAkShare(failures={"universe": [ConnectionError("temporary")]})
+
+    package = _acquire(akshare_module=ak)
+
+    assert package.generation_input_manifest.status == "READY_FOR_STRATEGY_EVALUATION"
+    assert ak.universe_calls == 2
+    assert sleeps == [live.AKSHARE_RETRY_BACKOFF_SECONDS]
+
+
+def test_akshare_transient_sector_definition_connection_retries_then_succeeds(monkeypatch):
+    sleeps = []
+    monkeypatch.setattr(live.time, "sleep", sleeps.append)
+    ak = FakeAkShare(failures={"definitions": [ConnectionError("temporary")]})
+
+    package = _acquire(akshare_module=ak)
+
+    assert package.generation_input_manifest.status == "READY_FOR_STRATEGY_EVALUATION"
+    assert ak.definition_calls == 2
+    assert sleeps == [live.AKSHARE_RETRY_BACKOFF_SECONDS]
+
+
+def test_persistent_akshare_connection_failure_stops_after_three_attempts_without_output(tmp_path, monkeypatch):
+    monkeypatch.setattr(live.time, "sleep", lambda seconds: None)
+    ak = FakeAkShare(
+        failures={"definitions": [ConnectionError("down")] * live.AKSHARE_MAX_ATTEMPTS}
+    )
+
     with pytest.raises(live.LiveAcquisitionError) as caught:
-        _acquire(
-            akshare_module=FakeAkShare(
-                definitions=[{"排名": 1, "板块名称": "银行", "板块代码": "BK0475"}]
-            )
-        )
+        _acquire(akshare_module=ak)
 
     assert caught.value.status == live.PROVIDER_FAILURE
+    assert ak.definition_calls == live.AKSHARE_MAX_ATTEMPTS
+    assert "api=stock_board_industry_name_em" in str(caught.value)
+    assert "attempts=3" in str(caught.value)
+    assert "universe_symbol_count=1" in str(caught.value)
+    assert "unexecuted_stage=Tencent quotes" in str(caught.value)
+    assert list(tmp_path.rglob("*.json")) == []
+
+
+def test_transient_sector_member_connection_retries_current_read_only(monkeypatch):
+    sleeps = []
+    monkeypatch.setattr(live.time, "sleep", sleeps.append)
+    ak = FakeAkShare(failures={"members": [ConnectionError("temporary")]})
+
+    package = _acquire(akshare_module=ak)
+
+    assert package.generation_input_manifest.status == "READY_FOR_STRATEGY_EVALUATION"
+    assert ak.member_calls == ["BK0475", "BK0475"]
+    assert sleeps == [live.AKSHARE_RETRY_BACKOFF_SECONDS]
+
+
+def test_retry_attempts_are_not_part_of_package_identity(monkeypatch):
+    monkeypatch.setattr(live.time, "sleep", lambda seconds: None)
+    first = _acquire()
+    retried = _acquire(
+        akshare_module=FakeAkShare(failures={"members": [ConnectionError("temporary")]})
+    )
+
+    assert first.generation_fingerprint == retried.generation_fingerprint
+    assert first.content_sha256 == retried.content_sha256
+    assert first.to_bytes() == retried.to_bytes()
+
+
+def test_missing_sector_rank_fails_closed():
+    ak = FakeAkShare(
+        definitions=[{"排名": 1, "板块名称": "银行", "板块代码": "BK0475"}]
+    )
+    with pytest.raises(live.LiveAcquisitionError) as caught:
+        _acquire(akshare_module=ak)
+
+    assert caught.value.status == live.PROVIDER_FAILURE
+    assert ak.definition_calls == 1
+    assert ak.member_calls == []
 
 
 def test_empty_sector_membership_fails_closed():
+    ak = FakeAkShare(members=[])
     with pytest.raises(live.LiveAcquisitionError) as caught:
-        _acquire(akshare_module=FakeAkShare(members=[]))
+        _acquire(akshare_module=ak)
 
     assert caught.value.status == INCOMPLETE_COVERAGE
+    assert ak.member_calls == ["BK0475"]
 
 
 def test_sector_member_name_conflict_fails_closed():
+    ak = FakeAkShare(members=[{"代码": SYMBOL, "名称": "另一名称"}])
     with pytest.raises(live.LiveAcquisitionError) as caught:
-        _acquire(akshare_module=FakeAkShare(members=[{"代码": SYMBOL, "名称": "另一名称"}]))
+        _acquire(akshare_module=ak)
 
     assert caught.value.status == live.INPUT_CONFLICT
+    assert ak.member_calls == ["BK0475"]
 
 
 def test_stale_t_quote_fails_closed():

@@ -1,8 +1,8 @@
 # CURRENT STATUS
 
-更新时间：2026-08-30（Asia/Shanghai）
+更新时间：2026-08-31（Asia/Shanghai）
 Formal Delivery Ladder：`development candidate`
-Product-governance milestone：PR #12 squash merge `7dfb59b9f379c7d74f95c3e522fde55bcdf49ba1`；post-merge master correctness run `33268086906` success（last-verified provenance snapshot）
+Product-governance milestone：PR #15 squash merge `f1fed4608210aa175ac268189a8d7f032b0b88e0`；post-merge master correctness run `33367655723` success（last-verified provenance snapshot）
 Phase 2E research baseline：PR #6 / `74ccf86dfdea3b9d4b0124fb54346aa429735508`
 职责：记录项目正式处于什么状态，以及哪些研究结论已经成立。长期产品目标和 usable gate 见 [`PRODUCT_CHARTER.md`](PRODUCT_CHARTER.md)，接手动作见 [`HANDOFF.md`](../HANDOFF.md)，决策理由见 [`DECISION_LOG.md`](DECISION_LOG.md)。
 
@@ -28,6 +28,9 @@ invariant。
 - PR #12 的 development-candidate path 已在受控输入上证明端到端 deterministic
   generation → canonical watchlist output → explicit failure → monitoring/rollback/
   versioning；该产品里程碑现已写入 master 的正式 Ladder。
+- PR #15 已将 AkShare/Tencent live acquisition adapter 合并到 master；但首个正式
+  master-baseline T-close acquisition 在 AkShare sector membership 阶段以
+  `PROVIDER_FAILURE / ConnectionError` fail closed，未形成 live package。
 - 当前已达到 `development candidate`，仍未达到 frozen candidate、prospective/paper
   observation 或 production strategy promotion；下一层须通过
   [`frozen_candidate_prerequisites_audit.md`](frozen_candidate_prerequisites_audit.md)。
@@ -62,8 +65,10 @@ invariant。
 
 ## Current blockers and deferred items
 
-1. **P1 first prospective input blocker**：唯一剩余的 frozen-candidate prerequisite 是
-   `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`；需要一个 candidate-bound、
+1. **P1 first prospective input blocker**：当前 frozen-candidate prerequisite 仍为
+   `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`；2026-08-31 正式
+   master-baseline acquisition 在 AkShare sector membership 阶段发生
+   `ConnectionError`，未形成 package。后续需要一个 candidate-bound、
    `LIVE_OBSERVED`、`known_at <= T` 的真实 T-close package，并证明
    universe/sector/names/market_env、provider/version、calendar、availability/recovery
    和 output identity。
@@ -79,20 +84,68 @@ invariant。
 
 Deferred（当前不阻止 usable milestone）：Phase 2F 后续 Research V2、历史新浪 membership acquisition 的完整研究、完整 legacy 85-score parity、任何参数选择/调参、performance-based rule change，以及 later production hardening 中不影响 P0/P1 的运营增强。
 
+治理校验注意：现有、非 replay-required 的 `phase2e.hithink_probe` registry record
+预存 `working_tree_sha256=af694b...`，但当前 exact bytes 的 SHA 为其 registered
+`file_sha256=395601b...`。本轮未修改 frozen registry，也未用该 provider probe 作为
+live package/recovery evidence；该 pre-existing provenance discrepancy 需另行显式
+修复或决策，不改变本轮正式 acquisition 的 provider blocker。
+
 ## Phase 2F product rationale and exit decision
 
 Phase 2E V2 的 DEVELOPMENT returns 是描述性、`RECONSTRUCTED_RETROSPECTIVE`、非 promotion 证据；Phase 2F 值得做，是因为它能在不改策略/阈值的前提下回答当前候选的失败结构是否足以拒绝候选，或是否值得另立一个预注册、范围受限的 research protocol。local-only Phase 2F diagnostic 已给出边界内画像，但未证明稳定可迁移 edge。
 
 **Decision：`NEEDS_MORE_EVIDENCE`。** 不 adopt 当前诊断为 production rule，不自动启动 Research V2；若未来要继续，只能先定义 materiality、预注册比较和 exit gate。该 decision 不阻止当前 product path 的 development work，也不授权读取 Final OOS。
 
+## First prospective acquisition attempt — 2026-08-31
+
+正式 master baseline 为 `f1fed4608210aa175ac268189a8d7f032b0b88e0`。T=`2026-08-31`
+是 XSHG session，session close=`2026-08-31T15:00:00+08:00`，下一交易日
+T+1=`2026-09-01`。调用开始于实际运行时 `2026-08-31T15:21:18.969554+08:00`；
+AkShare universe/sector acquisition 在 sector membership 请求阶段以
+`ConnectionError` fail closed，状态为 `PROVIDER_FAILURE`。
+
+没有形成 READY `GenerationInputManifest`，没有 `LIVE_OBSERVED` package，没有
+input/generation fingerprint、package content/file SHA 或 logical path，
+`data/prospective_inputs/` 未创建；没有 canonical watchlist，也没有 recovery
+artifact 可登记。未进入 Tencent quote/Kline、market_env、persistence 或
+frozen-candidate prerequisite 的后续 checks。Formal Delivery Ladder 仍为
+`development candidate`；不创建 `FROZEN_CANDIDATE_CONTRACT_V1`。
+
+## PR #16 — same-day retry semantics and AkShare bounded retry
+
+Sol review 将 `PROJECT_GOVERNANCE_STATE_CONFLICT` 限定为旧草稿把 retry 语义写成
+“只能等下一个 T-close session”。Phase 2B contract 没有这个限制：在同一北京时间
+日期 T、正式收盘后，可以发起新的独立 live acquisition attempt。每次 attempt 必须
+使用新的真实 `observed_at`，不复用失败 attempt 的 partial provider responses，也不把
+第一次失败改写为成功；跨到 `2026-09-01` 后，当前 live provider 数据绝不能构造
+`T=2026-08-31` package。
+
+PR #16 的最小代码 hardening 只对 AkShare
+`stock_info_a_code_name`、`stock_board_industry_name_em` 和每个
+`stock_board_industry_cons_em` provider read 提供固定最多 3 次的 transient
+network/connection retry，并使用 bounded backoff。schema、empty、duplicate、name/
+sector conflict 和 coverage 等语义错误仍在 retry 边界外 fail closed；attempt/backoff
+不进入 canonical input/generation/package identity。新增回归覆盖 transient recovery、
+3-attempt exhaustion、sector-member recovery、semantic/schema no-retry 和 no-output。
+
+执行规模审计（execution diagnostics，不是筛选规则）保持完整 universe：AkShare
+universe 1 次 read、sector definitions 1 次 read、每个 definition 1 次逻辑 member
+read（transient retry 只增加同一 read 的 provider attempts）、Tencent quote 每 50
+个 symbol 一个 batch，即 `ceil(universe_symbol_count / 50)`，planned stock Kline
+request 数为 `universe_symbol_count`，另加 1 次 index Kline request。此前正式失败发生
+在 sector membership，尚无真实 universe/definition 完成计数或后续 quote/Kline 计数；
+不得用缩小 universe、跳过股票或改 strategy 解决潜在规模问题。
+
 ## Current next action
 
 当前已在 `development candidate`。B 已通过一次且仅一次的冻结 eligibility，结果为
 `CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`。candidate-bound contract 已定义，
-但 `FROZEN_CANDIDATE_PREREQUISITES` 仍为 `FROZEN_CANDIDATE_BLOCKED`，唯一 P1 是
-`P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`。等待首个真实 input instance 后
-才可再次审计；不启动 Phase 2F、不调参、不读 Final OOS、不把 product-ladder 晋级
-写成 strategy promotion。
+但 `FROZEN_CANDIDATE_PREREQUISITES` 仍为 `FROZEN_CANDIDATE_BLOCKED`，当前 P1 是
+`P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`，具体 blocker 为 AkShare sector
+provider failure。若仍在同一 T 日且已正式收盘，可以重新发起独立 acquisition attempt；
+不复用本次失败的 partial response，也不把本次失败回填为成功。跨到下一北京时间日后，
+不得再用当前 live provider 数据构造本次 T 的 package。不启动 Phase 2F、不调参、不读 Final OOS、不把 product-ladder 晋级写成
+strategy promotion。
 
 ## Strategy Candidate Nomination V1 — 2026-08-30 — final eligibility update
 
@@ -161,9 +214,10 @@ provider provenance、T-close/T+1、freshness/completeness/conflict、determinis
 identity、immutable input persistence 和 fail-closed 行为。实际 runtime 的 AkShare
 版本为 `1.18.94`；pyarrow 保持 `25.0.1`，没有为 prospective path 降级。
 
-这是 implementation/runtime readiness，不是 formal live evidence。正式 Delivery
-Ladder 仍为 `development candidate`；本分支和测试没有调用 live endpoint、没有冻结
-`LIVE_OBSERVED` T 日数据、没有生成 canonical watchlist 或正式 prospective package。
-合并后仍须等待第一个真实收盘后的 candidate-bound `LIVE_OBSERVED` package，随后在
-`FROZEN_CANDIDATE_PREREQUISITES` decision point 审计；在此之前唯一的 formal
-prerequisite blocker 仍为 `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`。
+这是 implementation/runtime readiness；PR #15 已合并到 master。合并前本分支和
+测试没有调用 live endpoint；合并后首个正式 master-baseline acquisition 已在
+AkShare sector membership 阶段以 `PROVIDER_FAILURE / ConnectionError` fail closed，
+没有冻结 `LIVE_OBSERVED` T 日数据、没有生成 canonical watchlist 或 prospective
+package。Formal Delivery Ladder 仍为 `development candidate`，prerequisite
+decision 仍为 `FROZEN_CANDIDATE_BLOCKED`；provider 可用时，可以在同一 T 日正式收盘后
+以新的 observed_at 独立重试并重新审计，跨日则等待下一个 T-close。

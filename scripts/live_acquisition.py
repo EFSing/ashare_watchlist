@@ -92,9 +92,26 @@ MIN_INDEX_BARS_FOR_MARKET_ENV = 21
 
 _BJT = timezone(timedelta(hours=8))
 
+# AkShare reads are provider calls, not input semantics.  Keep the retry
+# policy deliberately small and fixed: a transient transport failure may be
+# retried for the same read, but a malformed/empty/conflicting response is
+# validated exactly once and is never hidden by another provider call.
+AKSHARE_MAX_ATTEMPTS = 3
+AKSHARE_RETRY_BACKOFF_SECONDS = 0.25
+
 
 class LiveAcquisitionError(GenerationContractError):
     """A fail-closed provider, completeness, or persistence violation."""
+
+
+class _AkShareReadFailure(RuntimeError):
+    """A transient AkShare read exhausted its bounded attempts."""
+
+    def __init__(self, api_name: str, attempts: int, cause: Exception) -> None:
+        self.api_name = api_name
+        self.attempts = attempts
+        self.cause = cause
+        super().__init__(f"{api_name} failed after {attempts} attempts: {type(cause).__name__}")
 
 
 def _fail(status: str, message: str) -> None:
@@ -288,6 +305,11 @@ class AkShareClient:
         missing = [name for name in self._apis if not callable(getattr(self.module, name, None))]
         if missing:
             _fail(PROVIDER_UNAVAILABLE, f"AkShare API capability missing: {', '.join(missing)}")
+        self.read_attempts: list[dict[str, Any]] = []
+        self.sector_definition_count: int | None = None
+        self.completed_sector_member_reads = 0
+        self.current_sector_code: str | None = None
+        self.current_sector_name: str | None = None
 
     def capability_report(self) -> dict[str, Any]:
         return {
@@ -296,14 +318,53 @@ class AkShareClient:
             "apis": {name: True for name in self._apis},
         }
 
+    @staticmethod
+    def _is_transient_read_error(exc: Exception) -> bool:
+        return isinstance(
+            exc,
+            (
+                ConnectionError,
+                TimeoutError,
+                requests.exceptions.ConnectionError,
+                requests.exceptions.Timeout,
+            ),
+        )
+
+    def _read(self, api_name: str, reader: Callable[[], Any]) -> Any:
+        for attempt in range(1, AKSHARE_MAX_ATTEMPTS + 1):
+            try:
+                value = reader()
+            except Exception as exc:
+                transient = self._is_transient_read_error(exc)
+                if not transient or attempt == AKSHARE_MAX_ATTEMPTS:
+                    self.read_attempts.append(
+                        {"api": api_name, "attempts": attempt, "result": "FAILURE"}
+                    )
+                    if transient:
+                        raise _AkShareReadFailure(api_name, attempt, exc) from exc
+                    raise
+                time.sleep(min(AKSHARE_RETRY_BACKOFF_SECONDS * attempt, 1.0))
+            else:
+                self.read_attempts.append(
+                    {"api": api_name, "attempts": attempt, "result": "SUCCESS"}
+                )
+                return value
+        raise AssertionError("unreachable AkShare retry loop")
+
     def universe(self) -> Any:
-        return self.module.stock_info_a_code_name()
+        return self._read(AKSHARE_UNIVERSE_API, self.module.stock_info_a_code_name)
 
     def sector_definitions(self) -> Any:
-        return self.module.stock_board_industry_name_em()
+        return self._read(AKSHARE_SECTOR_DEFINITIONS_API, self.module.stock_board_industry_name_em)
 
     def sector_members(self, sector_code: str) -> Any:
-        return self.module.stock_board_industry_cons_em(symbol=sector_code)
+        api_name = f"{AKSHARE_SECTOR_MEMBERS_API}[{sector_code}]"
+        result = self._read(
+            api_name,
+            lambda: self.module.stock_board_industry_cons_em(symbol=sector_code),
+        )
+        self.completed_sector_member_reads += 1
+        return result
 
 
 def akshare_runtime_capability() -> dict[str, Any]:
@@ -423,10 +484,13 @@ def _build_sector(
         }
     if not definitions:
         _fail(INCOMPLETE_COVERAGE, "sector definitions are empty")
+    client.sector_definition_count = len(definitions)
 
     members: dict[str, list[dict[str, Any]]] = {}
     by_symbol: dict[str, dict[str, Any]] = {}
     for sector_code, definition in sorted(definitions.items()):
+        client.current_sector_code = sector_code
+        client.current_sector_name = definition["sector_name"]
         rows = _records(
             client.sector_members(sector_code),
             f"{AKSHARE_SECTOR_MEMBERS_API}[{sector_code}]",
@@ -471,6 +535,31 @@ def _build_sector(
         members=members,
         rank_input=rank_input,
         temporal_semantics=LIVE_OBSERVED,
+    )
+
+
+def _akshare_failure_message(
+    client: AkShareClient,
+    exc: Exception,
+    *,
+    elapsed_seconds: float,
+    universe_symbol_count: int,
+    unexecuted_stage: str,
+) -> str:
+    latest = client.read_attempts[-1] if client.read_attempts else {}
+    api_name = getattr(exc, "api_name", latest.get("api", "UNKNOWN"))
+    attempts = getattr(exc, "attempts", latest.get("attempts", 1))
+    cause = getattr(exc, "cause", exc)
+    sector_code = client.current_sector_code or "N/A"
+    sector_name = client.current_sector_name or "N/A"
+    return (
+        "AkShare provider failure; "
+        f"api={api_name}; sector_code={sector_code}; sector_name={sector_name}; "
+        f"attempts={attempts}; elapsed_acquisition_seconds={elapsed_seconds:.3f}; "
+        f"completed_sector_calls={client.completed_sector_member_reads}; "
+        f"sector_definition_count={client.sector_definition_count if client.sector_definition_count is not None else 'NOT_REACHED'}; "
+        f"universe_symbol_count={universe_symbol_count}; "
+        f"unexecuted_stage={unexecuted_stage}; cause={type(cause).__name__}"
     )
 
 
@@ -813,18 +902,37 @@ def acquire_live_generation_inputs(
         _fail(INCOMPLETE_COVERAGE, "bar counts must be positive")
 
     client = AkShareClient(akshare_module, akshare_version)
+    acquisition_started = time.monotonic()
     retrieved_at_bjt = _timestamp_text(observed_at)
     try:
         universe_frame = client.universe()
     except Exception as exc:
-        _fail(PROVIDER_FAILURE, f"AkShare universe acquisition failed: {type(exc).__name__}")
+        _fail(
+            PROVIDER_FAILURE,
+            _akshare_failure_message(
+                client,
+                exc,
+                elapsed_seconds=time.monotonic() - acquisition_started,
+                universe_symbol_count=0,
+                unexecuted_stage="sector definitions, sector membership, Tencent quotes, stock/index Kline, market_env, manifest, persistence",
+            ),
+        )
     universe, display_names = _build_universe(universe_frame, target_date, retrieved_at_bjt)
     try:
         sector = _build_sector(client, target_date, retrieved_at_bjt, display_names)
     except LiveAcquisitionError:
         raise
     except Exception as exc:
-        _fail(PROVIDER_FAILURE, f"AkShare sector acquisition failed: {type(exc).__name__}")
+        _fail(
+            PROVIDER_FAILURE,
+            _akshare_failure_message(
+                client,
+                exc,
+                elapsed_seconds=time.monotonic() - acquisition_started,
+                universe_symbol_count=len(universe.symbols),
+                unexecuted_stage="Tencent quotes, stock/index Kline, market_env, manifest, persistence",
+            ),
+        )
 
     get = request_get or requests.get
     try:
@@ -976,6 +1084,8 @@ def acquire_live_generation_inputs(
 
 
 __all__ = [
+    "AKSHARE_MAX_ATTEMPTS",
+    "AKSHARE_RETRY_BACKOFF_SECONDS",
     "AKSHARE_SECTOR_DEFINITIONS_API",
     "AKSHARE_SECTOR_MEMBERS_API",
     "AKSHARE_UNIVERSE_API",

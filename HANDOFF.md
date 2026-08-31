@@ -4,46 +4,48 @@
 
 ## 1. Current Objective
 
-- 当前工作对象：在用户指定的 `origin/master=4e685ba28668ada29f78e6fa4a56be1cacc259ea`
-  上完成首个 prospective T-close live acquisition execution-path readiness。
+- 当前工作对象：在已合并的 `origin/master=f1fed4608210aa175ac268189a8d7f032b0b88e0`
+  上完成首个 prospective T-close live acquisition，并审计 frozen-candidate prerequisites。
 - PR #12 已 merge；正式 Delivery Ladder 为 `development candidate`。
 - 该晋级只承认 deterministic daily generation → canonical watchlist → explicit
   fail-closed → provenance / versioning → monitoring / rollback 的受控产品路径，
   不承认 strategy promotion。
 - Scope：保留既有 Phase 2B input/timing contract 和 legacy evaluator semantics；不改变
   生产策略、数据、冻结 artifact 或 Phase 2F 研究结果。
-- 本次任务边界：只补齐首个 prospective package 所需的 AkShare/Tencent acquisition
-  adapter、runtime pin 和 fail-closed regression evidence，不启动新的 strategy、phase
-  或 promotion 工作。
+- 本次任务边界：adapter 已合并；本轮只执行首个真实 T-close acquisition 和
+  fail-closed prerequisite audit，不启动新的 strategy、phase 或 promotion 工作。
 - 禁止事项：不启动 Phase 2F；不读取 Final OOS；不 promotion；不调参；不把当前数据回填历史；不替换新浪历史行业 membership；不重跑已完成 CORE replay；不以“差不多”的新文件替代 frozen bytes。
-- 完成条件：adapter path 在 mock/fixture 上可重复构造完整 READY
-  `GenerationInputManifest`，但正式状态仍停在 `development candidate`，等待首个真实
-  `LIVE_OBSERVED` T-close package；不据此 promotion 或进入 Final OOS。
+- 本轮结果：正式 master-baseline acquisition 在 AkShare sector membership 阶段因
+  `ConnectionError` fail closed；没有形成 `LIVE_OBSERVED` package，正式状态仍停在
+  `development candidate`，不据此 promotion 或进入 Final OOS。
 - 停止条件：出现 `PROJECT_GOVERNANCE_STATE_CONFLICT`、任一 required hash 不匹配、外部 raw artifact 无法证明为同一 bytes、或任务要求越过 research / OOS / promotion 边界。
 - CI provenance 规则：本文件只保存 `last verified CI provenance`，不要求也不允许把当前 commit 自己产生的 CI run 回写到同一 commit；每个新会话必须实时查询当前 branch、HEAD、`origin/master`、PR state、exact-head CI 和 working tree。
 
 ## 2. Current Repository State
 
 - repo：`EFSing/ashare_watchlist`；origin：`https://github.com/EFSing/ashare_watchlist.git`。
-- active product PR：本地 `origin/master` 为用户指定的 `4e685ba...`；本次 adapter
-  PR #15 已创建并保持 open，base=`4e685ba...`，head=`0d092788f4296bd9501a6f1f82cdb74f3de230e3`，
-  `mergeable=true`、`merged=false`。不在本任务中 merge。
+- active product PR：`PR #15: MERGED`；当前 active governance follow-up 为 PR #16，
+  base=`f1fed4608210aa175ac268189a8d7f032b0b88e0`，具体 head/CI 仍按每次 intake
+  实时核对。PR #15 已按 expected head
+  `f0528744d9fe0add78436a543b15afa12c2e229e` squash merge，merge SHA 为
+  `f1fed4608210aa175ac268189a8d7f032b0b88e0`。merge 后 master correctness run
+  `33367655723` success，head 精确匹配 merge SHA。
 - HISTORICAL_MILESTONE_IDENTITY：PR #9 产品章程与代理开发契约 squash merge `7a27484293cbcb791c6b8407949e9e71257e016b`；Phase 2E research baseline 仍为 `74ccf86…`。
 - HISTORICAL_MILESTONE_IDENTITY：PR #10 handoff consistency repair squash merge `11db387cc51a645c4491b39cbfa3e03e1228b6c4`。
 - HISTORICAL_MILESTONE_IDENTITY：PR #12 development-candidate gate squash merge
   `7dfb59b9f379c7d74f95c3e522fde55bcdf49ba1`；merge 后 master correctness run
   `33268086906` success，headSha 精确匹配该 merge commit。
-- last_verified_master_snapshot：`7dfb59b9f379c7d74f95c3e522fde55bcdf49ba1`；这是
-  PR #12 已合并后的静态 provenance snapshot，不要求等于新会话 intake 时的 live HEAD。
+- last_verified_master_snapshot：`f1fed4608210aa175ac268189a8d7f032b0b88e0`；这是
+  PR #15 合并后的静态 provenance snapshot，不要求等于后续新会话 intake 时的 live HEAD。
 - last_verified_branch：`master`；仅表示上述 snapshot 的来源，不是 current branch invariant。
-- last_verified_ci_provenance：master correctness run `33268086906`，
-  headSha=`7dfb59b9f379c7d74f95c3e522fde55bcdf49ba1`，success；仅是最近一次 CI
+- last_verified_ci_provenance：master correctness run `33367655723`，
+  headSha=`f1fed4608210aa175ac268189a8d7f032b0b88e0`，success；仅是最近一次 CI
   证据，不是未来 live CI invariant。
 - live state gate：新会话必须实时执行 Git / GitHub 核验；current branch、HEAD、`origin/master`、active PR、exact-head CI 和 working tree 以实时结果为准。
 - expected working tree state：tracked working tree clean；`.pytest_cache/`、`__pycache__/` 和本机 `daily_k.parquet` 可被 `.gitignore` 忽略，但 `daily_k.parquet` 的 recovery identity 现在由 registry 记录的 Google Drive private archive member evidence 独立确认。Windows text checkout 的 CRLF SHA 若存在，以 registry 的 Git-blob `file_sha256` 为恢复身份。
 - formal phase / research status：Phase 2E 已完成；CORE continuous replay 和 DEVELOPMENT
-  returns V2 已冻结；FULL legacy 85-score validation 仍 blocked。PR #12 已合并，formal
-  Delivery Ladder 为 `development candidate`；本机另有未推送 Phase 2F 分支，见下方，
+  returns V2 已冻结；FULL legacy 85-score validation 仍 blocked。PR #15 已合并，formal
+  Delivery Ladder 仍为 `development candidate`；本机另有未推送 Phase 2F 分支，见下方，
   不是 formal master 状态。
 
 ## 3. Completed Work
@@ -71,15 +73,19 @@
 
 ### Frozen-candidate prerequisites decision
 
-1. `FROZEN_CANDIDATE_BLOCKED`：B 已通过冻结 eligibility，但尚无首个真实
-   candidate-bound `LIVE_OBSERVED` T-close input instance。
-2. 唯一 P1 为 `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`；需要证明
+1. `FROZEN_CANDIDATE_BLOCKED`：B 已通过冻结 eligibility，但首个真实
+   candidate-bound `LIVE_OBSERVED` T-close input instance 在正式 master-baseline
+   acquisition 中因 AkShare sector membership `ConnectionError` 未形成。
+2. 当前 P1 为 `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`，具体 fail-closed
+   原因为 `PROVIDER_FAILURE`；需要证明
    `known_at <= T`、universe/sector/names/market_env、provider/version、calendar、
    availability/recovery 和 output identity。
 3. 已定义 `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V1`，但不把
    contract 写成 live evidence，也不创建 `FROZEN_CANDIDATE_CONTRACT_V1`。
-4. 下一步只等待并审计首个真实 package；不自动启动 Phase 2F、不调参、不读 Final
-   OOS、不 promotion、不测试 C。
+4. 若仍在同一北京时间日期 T 且已正式收盘，可在 provider 可用后发起新的独立
+   live acquisition attempt 并审计 package；不把 `2026-08-31` 的失败回填为成功，
+   不自动启动 Phase 2F、不调参、不读 Final OOS、不 promotion、不测试 C。跨到下一
+   北京时间日后，当前 live provider 数据不得用于构造此前 T 的 package。
 
 ### Deferred
 
@@ -169,18 +175,25 @@
 
 - resolved：`daily_k.parquet` 的本机 bytes 与 Google Drive private-download archive 的唯一 parquet member 均 hash-verified；registry 状态为 `FULLY_RECOVERABLE`。
 - research/design：历史新浪行业 membership / effective-date evidence 缺失，FULL 85-score parity blocked；retrospective raw dump 没有 per-bar historical vintage timestamp。
-- provider/external：需要可按 T 提供新浪行业 membership 的 source 或带 effective-date 的权限/导出；不能用其他 taxonomy 替代。
+- provider/external：需要可按 T 提供新浪行业 membership 的 source 或带 effective-date 的权限/导出；不能用其他 taxonomy 替代。首个正式 T-close acquisition 另因 AkShare sector membership `ConnectionError` 失败；未进入 quote/Kline 或 persistence 阶段。
 - environment：新设备必须有 Python 3.11/3.12、锁定依赖和可读的 external raw artifact；环境差异不是数据恢复证明。
 - artifact availability：Phase 2F 诊断文件只在本机 local branch，未进入 origin；不纳入本次治理 PR。
-- product readiness：PR #12 已证明端到端 development-candidate path；当前正式 Ladder
-  为 `development candidate`，但尚未达到 frozen candidate 或 production strategy。
+- product readiness：PR #12 已证明端到端 development-candidate path；PR #15 已将
+  live adapter 合并到 master，但首个正式 acquisition 因 provider failure 未形成
+  package；当前正式 Ladder 为 `development candidate`，尚未达到 frozen candidate 或
+  production strategy。
 - next-ladder blocker：prerequisites decision 为 `FROZEN_CANDIDATE_BLOCKED`；B 已获
-  eligibility，但唯一剩余 P1 是首个 candidate-bound prospective T-close input。
+  eligibility，但首个 candidate-bound prospective T-close input 在 provider failure
+  下仍缺失。
 - contract boundary：candidate-bound prospective input/provenance contract 已定义；
   未定义且不得以现有 development contract 代替 `FROZEN_CANDIDATE_CONTRACT_V1`。
 - scope-local blocker：历史新浪行业 membership 缺失只阻止 FULL legacy / 85-score
   validation；它不阻止 development-candidate product path，不能升级为全局 blocker。
 - governance semantics：snapshot SHA、historical milestone SHA 和 last-verified CI 只保存 provenance；只有 material semantic divergence、required frozen identity mismatch 或非法历史后继才是 `PROJECT_GOVERNANCE_STATE_CONFLICT`。
+- hash audit note：现有非 replay-required 的 `phase2e.hithink_probe` registry record
+  预存 `working_tree_sha256=af694b...`，但当前 exact bytes 为其 registered
+  `file_sha256=395601b...`；该 pre-existing discrepancy 未由本轮修改，不能把它当作
+  新 live package 或 recovery evidence。策略/输入冻结 identity 未改变。
 - non-blocking debt：忽略目录中的测试缓存不属于版本化 artifact，但声明 handoff 前应保持 tracked working tree clean。
 
 ## 9. Lessons / Pitfalls — DO NOT REPEAT
@@ -224,13 +237,13 @@
 
 ## 12. Last Verified
 
-- last_updated_at：`2026-08-30`（Asia/Shanghai；post-merge snapshot）
-- last_verified_master_snapshot：`7dfb59b9f379c7d74f95c3e522fde55bcdf49ba1`
+- last_updated_at：`2026-08-31`（Asia/Shanghai；PR #15 post-merge snapshot）
+- last_verified_master_snapshot：`f1fed4608210aa175ac268189a8d7f032b0b88e0`
 - latest_test_result：本分支治理变更后的本地验证与 exact-head CI 见 PR live state；
-  merge 后 master correctness run `33268086906` success。
-- latest_ci_run_provenance：run `33268086906` / headSha `7dfb59b9f379c7d74f95c3e522fde55bcdf49ba1` /
+  merge 后 master correctness run `33367655723` success。
+- latest_ci_run_provenance：run `33367655723` / headSha `f1fed4608210aa175ac268189a8d7f032b0b88e0` /
   success；不制造 CI 自引用更新循环。
-- updated_by_task：`frozen-candidate prerequisites audit and delivery-ladder semantic refresh`
+- updated_by_task：`PR #15 merge and first prospective T-close acquisition attempt`
 
 ## 13. Strategy Candidate Nomination V1 — final eligibility update
 
@@ -286,7 +299,7 @@ candidate-selection experiment。Phase 2B T-close/T+1、anti-lookahead、Final O
 invariants 未改变。当前停在 Sol review；不测试 C、不启动 Phase 2F、不调参、不读
 Final OOS、不 merge。
 
-## 15. Live acquisition adapter readiness — 2026-08-31
+## 15. Live acquisition adapter readiness — 2026-08-31 (pre-merge implementation snapshot)
 
 - task branch：`codex/live-acquisition-adapter-v1`，从用户指定的
   `origin/master=4e685ba28668ada29f78e6fa4a56be1cacc259ea` 派生；本分支不承载
@@ -306,7 +319,56 @@ Final OOS、不 merge。
   没有 current-data backfill、Phase 2F、promotion、调参或 Final OOS。formal
   Delivery Ladder 仍为 `development candidate`，后续仍等待首个真实 T-close
   package，并在 `FROZEN_CANDIDATE_PREREQUISITES` 重新审计。
-- GitHub live state：PR #15 的 exact-head correctness run `33366136847` / run #92
-  已 `success`，head 精确匹配 `0d092788f4296bd9501a6f1f82cdb74f3de230e3`；当前停在
-  Sol review，不 merge。既有 `data/validation/continuous_speed_probe/` 未跟踪目录
-  属于用户现有内容，未触碰。
+- GitHub live state at the time：PR #15 的 exact-head correctness run `33366136847`
+  / run #92 已 `success`，head 精确匹配当时的
+  `0d092788f4296bd9501a6f1f82cdb74f3de230e3`；该 PR 后续已按 expected head
+  `f0528744d9fe0add78436a543b15afa12c2e229e` squash merge。既有
+  `data/validation/continuous_speed_probe/` 未跟踪目录属于用户现有内容，未触碰。
+
+## 16. First prospective T-close acquisition — 2026-08-31
+
+- formal baseline：PR #15 merge master
+  `f1fed4608210aa175ac268189a8d7f032b0b88e0`；post-merge correctness run
+  `33367655723` success；当前 product PR 为 `NONE`。
+- timing：T=`2026-08-31` 是 XSHG session，session close
+  `2026-08-31T15:00:00+08:00`，T+1=`2026-09-01`；正式调用的实际
+  `observed_at_bjt` 为 `2026-08-31T15:21:18.969554+08:00`。
+- result：`acquire_live_generation_inputs()` 在 AkShare sector membership 阶段
+  以 `ConnectionError` 映射为 `PROVIDER_FAILURE`；有限 retries 已耗尽，未形成 READY
+  manifest 或 `LIVE_OBSERVED` package。
+- no artifact：没有 input/generation fingerprint、package content/file SHA 或
+  logical path；`data/prospective_inputs/` 未创建，没有 recovery copy 可登记，也
+  没有 canonical watchlist。Tencent quote/Kline、market_env、persistence 和后续
+  frozen-candidate checks 均为 `NOT_REACHED`。
+- next gate：`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`；若仍在同一
+  BJT 日期且已正式收盘，可用新的 `observed_at` 独立重新执行完整 contract，不复用
+  本次失败的 partial response；跨日后不得回填本次 T。
+
+## 17. PR #16 — same-day retry semantics and bounded AkShare reads
+
+- task classification：本轮仍属于 product blocker 审计，并包含 provider-induced
+  correctness fail-closed 风险；不是新的 strategy research、参数选择、Phase 2F 或
+  Final OOS 任务。
+- governance conflict closure：Sol review 将 `PROJECT_GOVERNANCE_STATE_CONFLICT`
+  限定为 retry 表述错误。Phase 2B 允许在同一 BJT 日期 T、正式 session close 后发起
+  新的独立 acquisition attempt；每次使用新的真实 `observed_at`，不复用 failed
+  attempt 的 partial response，不改写第一次失败。跨至 `2026-09-01` 后，当前 live
+  provider 数据不得构造 `T=2026-08-31` package。
+- implementation：`scripts/live_acquisition.py` 对
+  `stock_info_a_code_name`、`stock_board_industry_name_em` 和每个
+  `stock_board_industry_cons_em` provider read 增加固定最多 3 次 transient
+  network/connection retry，backoff 为 bounded `0.25s` / `0.50s`。返回后的 schema、
+  empty、duplicate、name/sector conflict 和 coverage validation 不重试；exhaustion
+  映射 `PROVIDER_FAILURE`，不形成 formal output。
+- identity boundary：retry attempts/backoff 只保留进程内诊断，不进入 canonical input
+  fingerprint、candidate-bound generation fingerprint、package content identity 或
+  成功 provenance；provider source、最终捕获数据和 runtime identity 语义不变。
+- scale audit：完整 universe 的模型为 1 次 universe read、1 次 definitions read、
+  每个 sector definition 1 次逻辑 member read、`ceil(N / 50)` 个 Tencent quote
+  batches、N 个 planned stock Kline requests 加 1 个 index Kline request；这些是
+  execution diagnostics，不是筛选规则。首次正式失败在 sector membership，后续
+  quote/Kline 计数为 `NOT_REACHED`，不允许缩 universe 或跳过股票。
+- evidence boundary：本次实现与回归测试不改变 B strategy/spec/threshold、Phase 2B
+  protocol、provider source semantics、冻结 artifact identity 或 Final OOS 状态；
+  同日新的真实 acquisition 必须在 clean merged master 上重新获取全部 required
+  input，并在 `FROZEN_CANDIDATE_PREREQUISITES` 决策点审计。
