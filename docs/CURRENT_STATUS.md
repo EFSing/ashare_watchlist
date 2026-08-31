@@ -136,15 +136,25 @@ request 数为 `universe_symbol_count`，另加 1 次 index Kline request。此�
 在 sector membership，尚无真实 universe/definition 完成计数或后续 quote/Kline 计数；
 不得用缩小 universe、跳过股票或改 strategy 解决潜在规模问题。
 
+PR #16 合并后，在 clean merged master `c9d5e50be833bf5bb1c3c83c0a2fa1b3e83979c1`
+上于新的真实 `observed_at_bjt=2026-08-31T16:27:36.974203+08:00` 重新获取全部
+required input。第二次 attempt 的 AkShare `stock_info_a_code_name` 在固定 attempts
+`3/3` 后仍以 `ConnectionError` 失败，adapter acquisition elapsed 为 `0.782s`；
+sector code/name 不适用，completed sector calls `0`，sector definition count
+`NOT_REACHED`，universe symbol count `0`，Tencent quote batch、stock/index Kline、
+market_env、manifest 和 persistence 均 `NOT_REACHED`。没有创建
+`data/prospective_inputs/` 或任何 partial formal evidence。
+
 ## Current next action
 
 当前已在 `development candidate`。B 已通过一次且仅一次的冻结 eligibility，结果为
 `CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`。candidate-bound contract 已定义，
 但 `FROZEN_CANDIDATE_PREREQUISITES` 仍为 `FROZEN_CANDIDATE_BLOCKED`，当前 P1 是
 `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`，具体 blocker 为 AkShare sector
-provider failure。若仍在同一 T 日且已正式收盘，可以重新发起独立 acquisition attempt；
-不复用本次失败的 partial response，也不把本次失败回填为成功。跨到下一北京时间日后，
-不得再用当前 live provider 数据构造本次 T 的 package。不启动 Phase 2F、不调参、不读 Final OOS、不把 product-ladder 晋级写成
+provider failure；本次已完成同日独立 retry attempt 并在 attempts `3/3` 后再次 fail closed，
+本任务停在该真实 blocker，不自动无限重试。后续若得到新的明确运行授权且 provider 可用，
+必须重新获取全部 input；跨到下一北京时间日后，不得再用当前 live provider 数据构造
+本次 T 的 package。不启动 Phase 2F、不调参、不读 Final OOS、不把 product-ladder 晋级写成
 strategy promotion。
 
 ## Strategy Candidate Nomination V1 — 2026-08-30 — final eligibility update

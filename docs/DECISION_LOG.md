@@ -362,3 +362,27 @@
 - consequences：Formal Delivery Ladder 仍为 `development candidate`；唯一 frozen
   prerequisite P1 仍为 `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`，同日窗口内
   可在 clean merged master 重新 acquisition；不创建 `FROZEN_CANDIDATE_CONTRACT_V1`。
+
+## 2026-08-31 — PR #16 merged and same-day retry remained blocked
+
+- context：PR #16 的 bounded AkShare retry hardening 已在 exact-head CI 全绿后合并；
+  按 Phase 2B 同日 close contract，在北京时间仍为 `2026-08-31` 时于 clean merged
+  master 上重新发起独立 acquisition。
+- provenance：PR #16 final head 为
+  `f604dc39c681ee63c075cc0fea5cef367d6296f5`，squash merge SHA 为
+  `c9d5e50be833bf5bb1c3c83c0a2fa1b3e83979c1`；merge master correctness run
+  `33372781495` success，head 精确匹配 merge SHA。新的 attempt 使用真实
+  `observed_at_bjt=2026-08-31T16:27:36.974203+08:00`，没有复用第一次 attempt。
+- result：AkShare `stock_info_a_code_name` 在固定 `3/3` attempts 后以
+  `ConnectionError` fail closed，provider/API 为 AkShare/universe，acquisition elapsed
+  `0.782s`；sector code/name 不适用，completed sector calls `0`，sector definition
+  count `NOT_REACHED`，universe symbol count `0`，Tencent quote batch、stock/index
+  Kline、market_env、manifest 和 persistence 均 `NOT_REACHED`。
+- decision：`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`。两次失败均保留；
+  没有 READY manifest、`LIVE_OBSERVED` package、fingerprint、content/file SHA、
+  logical path、partial formal evidence 或 recovery copy。没有把失败改写为成功，也
+  没有 current-data backfill；本任务不自动无限重试。
+- consequences：Formal Delivery Ladder 仍为 `development candidate`；B eligibility、
+  B strategy/spec/threshold、Phase 2B semantics、frozen artifact identities、Final OOS
+  sealed state 和既有 `phase2e.hithink_probe` non-blocking metadata debt 均未改变。
+  不创建 `FROZEN_CANDIDATE_CONTRACT_V1`，不 promotion、不测试 C、不启动 Phase 2F、不调参。

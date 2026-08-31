@@ -82,10 +82,12 @@
    availability/recovery 和 output identity。
 3. 已定义 `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V1`，但不把
    contract 写成 live evidence，也不创建 `FROZEN_CANDIDATE_CONTRACT_V1`。
-4. 若仍在同一北京时间日期 T 且已正式收盘，可在 provider 可用后发起新的独立
-   live acquisition attempt 并审计 package；不把 `2026-08-31` 的失败回填为成功，
-   不自动启动 Phase 2F、不调参、不读 Final OOS、不 promotion、不测试 C。跨到下一
-   北京时间日后，当前 live provider 数据不得用于构造此前 T 的 package。
+4. 同一北京时间日期 T、正式收盘后的第二次独立 acquisition 已于
+   `2026-08-31T16:27:36.974203+08:00` 发起，但 AkShare universe read 在固定 3 次
+   transient retry 后仍为 `PROVIDER_FAILURE`；没有 package。保留两次失败，不自动
+   无限重试；后续只有在 provider 可用且得到新的明确运行授权时，才可重新完整采集。
+   跨到下一北京时间日后，当前 live provider 数据不得用于构造此前 T 的 package；
+   不启动 Phase 2F、不调参、不读 Final OOS、不 promotion、不测试 C。
 
 ### Deferred
 
@@ -372,3 +374,26 @@ Final OOS、不 merge。
   protocol、provider source semantics、冻结 artifact identity 或 Final OOS 状态；
   同日新的真实 acquisition 必须在 clean merged master 上重新获取全部 required
   input，并在 `FROZEN_CANDIDATE_PREREQUISITES` 决策点审计。
+
+## 18. PR #16 merge and same-day retry decision — 2026-08-31
+
+- PR #16：exact head `f604dc39c681ee63c075cc0fea5cef367d6296f5`，squash merge
+  `c9d5e50be833bf5bb1c3c83c0a2fa1b3e83979c1`；merge master correctness run
+  `33372781495` success，head 精确匹配 merge SHA。
+- second attempt：clean merged master `c9d5e50…` 上重新运行完整
+  `acquire_live_generation_inputs(T=2026-08-31)`，新的真实
+  `observed_at_bjt=2026-08-31T16:27:36.974203+08:00`。第一次
+  `15:21:18.969554+08:00` 的失败和 partial-response 不被复用。
+- result：AkShare `stock_info_a_code_name` 在 attempts `3/3` 后为
+  `PROVIDER_FAILURE / ConnectionError`；adapter acquisition elapsed
+  `0.782s`。sector code/name 不适用；completed sector calls `0`；sector definition
+  count `NOT_REACHED`；universe symbol count `0`；Tencent quote batches、stock/index
+  Kline、market_env、manifest 和 persistence 均 `NOT_REACHED`。
+- artifact/recovery：没有 READY manifest、`LIVE_OBSERVED` package、input/generation
+  fingerprint、content/file SHA、logical path 或 `data/prospective_inputs/`；没有
+  partial formal evidence，也没有 recovery copy。最终 decision 为
+  `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`。
+- current formal state：Formal Delivery Ladder 仍为 `development candidate`；B
+  eligibility、strategy/spec/threshold、冻结 artifact、Final OOS sealed status 和
+  non-blocking `phase2e.hithink_probe` metadata debt 均未改变。停止在本 decision node，
+  不创建 `FROZEN_CANDIDATE_CONTRACT_V1`。

@@ -110,3 +110,21 @@ read); Tencent quote batches of 50 symbols, `ceil(universe_symbol_count / 50)`; 
 execution diagnostics, not selection rules. No stock may be silently dropped to reduce the
 scale. The first formal failure stopped in sector membership, so its real universe, definition,
 quote-batch, and Kline counts remain `NOT_REACHED`.
+
+## Same-day post-merge retry result — 2026-08-31
+
+After PR #16 was squash-merged at `c9d5e50be833bf5bb1c3c83c0a2fa1b3e83979c1` and
+master correctness run `33372781495` passed at that exact head, a new complete acquisition
+attempt was run with `observed_at_bjt=2026-08-31T16:27:36.974203+08:00`. It did not reuse
+the earlier `15:21:18.969554+08:00` attempt or any partial response.
+
+AkShare `stock_info_a_code_name` failed with `ConnectionError` after the fixed 3 attempts.
+The adapter returned `PROVIDER_FAILURE` after `0.782s` of acquisition time. Sector code/name
+were not applicable; completed sector calls were `0`; sector definition count and all later
+stages were `NOT_REACHED`; the known universe count was `0`. No Tencent quote batch, stock or
+index Kline request, market_env, READY manifest, persistence, or canonical watchlist occurred.
+
+No `data/prospective_inputs/` directory, partial formal evidence, fingerprint, or SHA was
+created. The final prerequisite decision remains
+`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`; the task stops at this provider
+blocker without automatic further attempts.
