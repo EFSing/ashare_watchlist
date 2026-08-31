@@ -24,7 +24,9 @@
 ## 2. Current Repository State
 
 - repo：`EFSing/ashare_watchlist`；origin：`https://github.com/EFSing/ashare_watchlist.git`。
-- active product PR：`PR: NONE`；PR #15 已按 expected head
+- active product PR：`PR #15: MERGED`；当前 active governance follow-up 为 PR #16，
+  base=`f1fed4608210aa175ac268189a8d7f032b0b88e0`，具体 head/CI 仍按每次 intake
+  实时核对。PR #15 已按 expected head
   `f0528744d9fe0add78436a543b15afa12c2e229e` squash merge，merge SHA 为
   `f1fed4608210aa175ac268189a8d7f032b0b88e0`。merge 后 master correctness run
   `33367655723` success，head 精确匹配 merge SHA。
