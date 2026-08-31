@@ -101,11 +101,24 @@
     "recovery_readback": "NOT_REACHED"
   },
   "failure": {
-    "final_decision": "FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE",
+    "final_decision": "FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_INPUT_CONFLICT",
+    "classification": "INPUT_PROVIDER_DATA_CONSISTENCY_CONFLICT",
+    "provider_connectivity_failure": false,
     "code": "INPUT_CONFLICT",
     "stage": "exact_sina_sector/display_name_consistency",
     "symbol": "000012",
     "detail": "display-name conflict for 000012: universe/member",
+    "diagnostics": {
+      "symbol": "000012",
+      "universe_raw_name": "NOT_RECORDED_IN_ORIGINAL_ATTEMPT",
+      "sector_raw_name": "NOT_RECORDED_IN_ORIGINAL_ATTEMPT",
+      "normalized_universe_name": "NOT_COMPUTED_FROM_HISTORICAL_ATTEMPT",
+      "normalized_sector_name": "NOT_COMPUTED_FROM_HISTORICAL_ATTEMPT",
+      "normalization_version": "NOT_APPLIED_IN_ORIGINAL_ATTEMPT",
+      "universe_count_reached": "NOT_RECORDED_IN_ORIGINAL_ATTEMPT",
+      "sector_definition_count_reached": "NOT_RECORDED_IN_ORIGINAL_ATTEMPT",
+      "completed_sector_member_calls": "NOT_RECORDED_IN_ORIGINAL_ATTEMPT"
+    },
     "fail_closed": true
   },
   "counts": {

@@ -8,10 +8,10 @@
 `LIVE_OBSERVED` evidence，也不创建或冻结任何正式 prospective package、canonical
 watchlist 或 `FROZEN_CANDIDATE_CONTRACT_V1`。
 
-master 上已合并的 adapter 暴露了 correctness blocker：B 的 exact legacy sector
-provenance 是新浪行业，但 live path 使用了东方财富 industry APIs。本分支只修正
-provider architecture；合并前仍不改变 formal Delivery Ladder，首个真实 T-close
-input instance 仍是后续 prerequisites gate。
+PR #17 已将 live path 修正为 B 所需的 exact 新浪行业 provider architecture；本 PR #18
+延续只处理该路径暴露的 display-name consistency correctness blocker。合并前仍不
+改变 formal Delivery Ladder，首个真实 T-close input instance 仍是后续 prerequisites
+gate。
 
 ## Implemented path
 
@@ -51,6 +51,10 @@ input instance 仍是后续 prerequisites gate。
 `market_env` 进入 candidate-bound `generation_fingerprint`，以避免同一 raw input
 下的辅助输入变化被静默接受。
 
+The live package schema is now `CANDIDATE_BOUND_LIVE_INPUT_PACKAGE_V2` and its
+generation identity is `CANDIDATE_BOUND_GENERATION_IDENTITY_V2`; both identities carry
+the registered display-name normalization version.
+
 ## Runtime readiness snapshot
 
 - Python：`3.12.13`
@@ -78,7 +82,8 @@ fixture 和固定时间，覆盖 pre-close、wrong date、HiThink/Sina unavailab
 universe、exact Sina acceptance、EM/THS/SW taxonomy rejection、sector member/name
 errors、stale/missing quote、stale/future Kline、T+1、HiThink primary、显式 Tencent
 fallback、provider identity/fingerprint/byte determinism、immutable persistence、
-semantic/schema no-retry 和 incomplete manifest 不写 output。
+semantic/schema no-retry、registered display-name normalization/raw-name preservation、
+substantive ST/`*ST`/company-name conflicts 和 incomplete manifest 不写 output。
 
 ## Remaining gate
 
@@ -183,6 +188,29 @@ validation and failed closed:
     INPUT_CONFLICT: display-name conflict for 000012: universe/member
 
 No READY manifest, package, hash, local persistence, Drive upload, recovery read-back,
-canonical watchlist, prospective return, or performance output was created. Final
-prerequisite status is `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`.
-See the compact evidence record and audit for the exact no-artifact boundary.
+canonical watchlist, prospective return, or performance output was created. The exact
+failure is an input/provider-data consistency conflict, not provider connectivity; the
+correct prerequisite status is
+`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_INPUT_CONFLICT`. See the compact evidence record
+and audit for the exact no-artifact boundary.
+
+## PR #18 continuation — display-name consistency correctness fix
+
+The current live capability diagnostic compared the complete
+`SH_SZ_A_SHARE_ONLY` universe against all 49 exact Sina sector definitions and their
+member responses. It found 2,539 common symbols: 2,492 exact raw-name matches and 47
+raw-name mismatches. The fixed normalization rule
+`DISPLAY_NAME_NORMALIZATION_NFKC_TRIM_EXPLICIT_ZERO_WIDTH_V1` resolved zero of those
+47; the remaining differences are interior spaces or listing-status suffixes. The
+diagnostic therefore concluded
+`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_SUBSTANTIVE_NAME_CONFLICT` and the adapter
+continues to fail closed. Full raw-name/code-point detail is in
+[`current_capability_name_diagnostic_20260831.md`](current_capability_name_diagnostic_20260831.md).
+
+The implementation retains both raw provider values, compares only their normalized
+forms, keeps the symbol as the security identity, and puts the normalization version in
+the candidate-bound generation identity and provenance. A name conflict exposes a
+non-secret structured diagnostic containing the symbol, both raw names, both normalized
+names, universe count reached, sector definition count reached, and completed
+sector-member calls. Historical 2026-08-31 evidence is not rewritten with current raw
+values or counts, and no partial formal package is persisted.

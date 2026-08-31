@@ -23,6 +23,7 @@ import os
 import platform
 import tempfile
 import time
+import unicodedata
 import urllib.parse
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
@@ -69,10 +70,16 @@ from tencent_quotes import (
 from trading_calendar import CalendarUnavailable, TradingCalendar, default_calendar
 
 
-LIVE_INPUT_PACKAGE_SCHEMA = "CANDIDATE_BOUND_LIVE_INPUT_PACKAGE_V1"
-GENERATION_IDENTITY_SCHEMA = "CANDIDATE_BOUND_GENERATION_IDENTITY_V1"
+LIVE_INPUT_PACKAGE_SCHEMA = "CANDIDATE_BOUND_LIVE_INPUT_PACKAGE_V2"
+GENERATION_IDENTITY_SCHEMA = "CANDIDATE_BOUND_GENERATION_IDENTITY_V2"
 MARKET_ENV_SCHEMA = "MARKET_ENV_FROM_PROVIDER_INDEX_V2"
 PROSPECTIVE_PROVENANCE_CONTRACT = "CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V1"
+DISPLAY_NAME_NORMALIZATION_VERSION = "DISPLAY_NAME_NORMALIZATION_NFKC_TRIM_EXPLICIT_ZERO_WIDTH_V1"
+DISPLAY_NAME_NORMALIZATION_ZERO_WIDTH_CODEPOINTS = (0x200B, 0x200C, 0x200D, 0x2060, 0xFEFF)
+DISPLAY_NAME_NORMALIZATION_RULE = (
+    "remove explicit zero-width formatting characters; Unicode NFKC; "
+    "trim leading/trailing whitespace"
+)
 
 PROVIDER_UNAVAILABLE = "PROVIDER_UNAVAILABLE"
 PROVIDER_FAILURE = "PROVIDER_FAILURE"
@@ -137,6 +144,15 @@ ALLOW_TENCENT_KLINE_FALLBACK = True
 class LiveAcquisitionError(GenerationContractError):
     """A fail-closed provider, completeness, or persistence violation."""
 
+    def __init__(
+        self,
+        status: str,
+        message: str,
+        diagnostics: Mapping[str, Any] | None = None,
+    ) -> None:
+        self.diagnostics = copy.deepcopy(dict(diagnostics or {}))
+        super().__init__(status, message)
+
 
 class _AkShareReadFailure(RuntimeError):
     """A transient AkShare read exhausted its bounded attempts."""
@@ -148,8 +164,12 @@ class _AkShareReadFailure(RuntimeError):
         super().__init__(f"{api_name} failed after {attempts} attempts: {type(cause).__name__}")
 
 
-def _fail(status: str, message: str) -> None:
-    raise LiveAcquisitionError(status, message)
+def _fail(
+    status: str,
+    message: str,
+    diagnostics: Mapping[str, Any] | None = None,
+) -> None:
+    raise LiveAcquisitionError(status, message, diagnostics)
 
 
 def _canonical_date(value: date | datetime | str) -> str:
@@ -276,6 +296,58 @@ def _text(value: Any, field_name: str) -> str:
     if _missing(value) or not isinstance(value, str):
         _fail(INCOMPLETE_COVERAGE, f"{field_name} is missing")
     return value.strip()
+
+
+def _display_name(value: Any, field_name: str) -> str:
+    """Validate a provider name while preserving its exact raw value."""
+
+    value = _python_scalar(value)
+    if _missing(value) or not isinstance(value, str):
+        _fail(INCOMPLETE_COVERAGE, f"{field_name} is missing")
+    return value
+
+
+def normalize_display_name(value: str) -> str:
+    """Apply only the pre-registered, semantics-preserving name cleanup."""
+
+    if not isinstance(value, str):
+        raise TypeError("display name must be a string")
+    without_zero_width = "".join(
+        character
+        for character in value
+        if ord(character) not in DISPLAY_NAME_NORMALIZATION_ZERO_WIDTH_CODEPOINTS
+    )
+    return unicodedata.normalize("NFKC", without_zero_width).strip()
+
+
+def _code_points(value: str) -> str:
+    return " ".join(f"U+{ord(character):04X}" for character in value)
+
+
+def _display_name_conflict_diagnostics(
+    client: SinaSectorClient,
+    names: Mapping[str, str],
+    symbol: str,
+    sector_name: str,
+) -> dict[str, Any]:
+    universe_name = names[symbol]
+    return {
+        "symbol": symbol,
+        "universe_raw_name": universe_name,
+        "sector_raw_name": sector_name,
+        "normalized_universe_name": normalize_display_name(universe_name),
+        "normalized_sector_name": normalize_display_name(sector_name),
+        "universe_name_code_points": _code_points(universe_name),
+        "sector_name_code_points": _code_points(sector_name),
+        "normalization_version": DISPLAY_NAME_NORMALIZATION_VERSION,
+        "universe_count_reached": len(names),
+        "sector_definition_count_reached": (
+            client.sector_definition_count
+            if client.sector_definition_count is not None
+            else "NOT_REACHED"
+        ),
+        "completed_sector_member_calls": client.completed_sector_member_reads,
+    }
 
 
 def _records(frame: Any, field_name: str, required_columns: Mapping[str, Sequence[str]]) -> list[dict[str, Any]]:
@@ -700,7 +772,10 @@ def _build_universe(
             _fail(INPUT_CONFLICT, f"HiThink universe exchange/thscode conflict for {symbol}")
         if not symbol.startswith(("60", "68", "00", "30")):
             continue
-        name = _text(_field(row, ("name",), f"universe[{index}].name"), f"universe[{index}].name")
+        name = _display_name(
+            _field(row, ("name",), f"universe[{index}].name"),
+            f"universe[{index}].name",
+        )
         if symbol in names:
             _fail(INPUT_CONFLICT, f"duplicate universe symbol: {symbol}")
         names[symbol] = name
@@ -775,11 +850,18 @@ def _build_sector(
                 if marker in row and _text(row[marker], f"{sector_code}[{index}].{marker}") != SINA_TAXONOMY:
                     _fail(INPUT_CONFLICT, f"sector member taxonomy is not {SINA_TAXONOMY}")
             symbol = _code(_field(row, ("代码", "code"), f"{sector_code}[{index}].code"), f"{sector_code}[{index}].code")
-            member_name = _text(_field(row, ("名称", "name"), f"{sector_code}[{index}].name"), f"{sector_code}[{index}].name")
+            member_name = _display_name(
+                _field(row, ("名称", "name"), f"{sector_code}[{index}].name"),
+                f"{sector_code}[{index}].name",
+            )
             if symbol not in names:
                 _fail(INPUT_CONFLICT, f"sector member {symbol} is outside the T-date universe")
-            if member_name != names[symbol]:
-                _fail(INPUT_CONFLICT, f"display-name conflict for {symbol}: universe/member")
+            if normalize_display_name(member_name) != normalize_display_name(names[symbol]):
+                _fail(
+                    INPUT_CONFLICT,
+                    f"display-name conflict for {symbol}: universe/member",
+                    _display_name_conflict_diagnostics(client, names, symbol, member_name),
+                )
             if symbol in by_symbol:
                 _fail(INPUT_CONFLICT, f"symbol belongs to multiple sector memberships: {symbol}")
             record = {
@@ -1088,6 +1170,14 @@ def _generation_identity_payload(
             "name": manifest.universe.universe_scope,
             "version": manifest.universe.universe_scope_version,
         },
+        "display_name_normalization": {
+            "version": DISPLAY_NAME_NORMALIZATION_VERSION,
+            "zero_width_codepoints": [
+                f"U+{codepoint:04X}"
+                for codepoint in DISPLAY_NAME_NORMALIZATION_ZERO_WIDTH_CODEPOINTS
+            ],
+            "rule": DISPLAY_NAME_NORMALIZATION_RULE,
+        },
         "display_names": dict(sorted(display_names.items())),
         "market_env": _copy_json(dict(market_env), "market_env"),
     }
@@ -1112,7 +1202,10 @@ class LiveInputPackage:
             raise ValueError("live input package requires a READY generation manifest")
         if not isinstance(self.display_names, Mapping) or not isinstance(self.market_env, Mapping):
             raise ValueError("display_names and market_env must be mappings")
-        names = {str(key).strip().lower(): _text(value, f"display_names[{key}]") for key, value in self.display_names.items()}
+        names = {
+            str(key).strip().lower(): _display_name(value, f"display_names[{key}]")
+            for key, value in self.display_names.items()
+        }
         expected = set(self.generation_input_manifest.universe.symbols)
         if set(names) != expected:
             missing = sorted(expected - set(names))
@@ -1517,6 +1610,14 @@ def acquire_live_generation_inputs(
         "contract": PROSPECTIVE_PROVENANCE_CONTRACT,
         "observation_status": LIVE_OBSERVED,
         "retrieved_at_bjt": retrieved_at_bjt,
+        "display_name_normalization": {
+            "version": DISPLAY_NAME_NORMALIZATION_VERSION,
+            "zero_width_codepoints": [
+                f"U+{codepoint:04X}"
+                for codepoint in DISPLAY_NAME_NORMALIZATION_ZERO_WIDTH_CODEPOINTS
+            ],
+            "rule": DISPLAY_NAME_NORMALIZATION_RULE,
+        },
         "universe_scope": _tradable_universe_scope_metadata(),
         "known_at_rule": "acquisition occurs only when retrieved_at_bjt >= XSHG session close on T",
         "candidate": {"strategy_version": STRATEGY_VERSION, "spec_sha256": STRATEGY_SPEC_SHA256},
@@ -1555,6 +1656,9 @@ __all__ = [
     "ALLOW_TENCENT_KLINE_FALLBACK",
     "DEFAULT_INDEX_BAR_COUNT",
     "DEFAULT_STOCK_BAR_COUNT",
+    "DISPLAY_NAME_NORMALIZATION_VERSION",
+    "DISPLAY_NAME_NORMALIZATION_ZERO_WIDTH_CODEPOINTS",
+    "DISPLAY_NAME_NORMALIZATION_RULE",
     "EXACT_SINA_SECTOR_SOURCE",
     "GENERATION_IDENTITY_SCHEMA",
     "HITHINK_API_KEY_ENV",
@@ -1587,5 +1691,6 @@ __all__ = [
     "TRADABLE_UNIVERSE_SCOPE_VERSION",
     "acquire_live_generation_inputs",
     "akshare_runtime_capability",
+    "normalize_display_name",
     "persist_live_input_package",
 ]

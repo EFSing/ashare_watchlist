@@ -178,7 +178,13 @@ file SHA ä¸º `5e0a557c1930de7b4f182f09f43b45c0c11b19b2d7c992bf9e7fa7e6cc6de048`ã
 | deterministic input/generation identity | NOT CREATED | no complete manifest/package existed |
 | Final OOS / C / Phase 2F / tuning / promotion | PASS boundary | Final OOS sealed/unread; all prohibited paths untouched |
 
-Final decision: `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`.
+Final decision: `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_INPUT_CONFLICT`.
 The machine-readable failure evidence is
 `data/governance/prospective_input_attempt_evidence_20260831.json`; it is explicitly
-not a frozen artifact. No `FROZEN_CANDIDATE_CONTRACT_V1` is created.
+not a frozen artifact. The failure classification is
+`INPUT_PROVIDER_DATA_CONSISTENCY_CONFLICT`, not provider connectivity. The original
+attempt did not record raw names or execution counts, so those fields remain explicitly
+unrecorded rather than being backfilled from the current diagnostic. The current
+read-only name diagnostic is
+[`current_capability_name_diagnostic_20260831.md`](current_capability_name_diagnostic_20260831.md)
+and is not prospective evidence. No `FROZEN_CANDIDATE_CONTRACT_V1` is created.

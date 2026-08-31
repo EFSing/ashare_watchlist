@@ -18,9 +18,20 @@ It failed closed at exact Sina sector/member display-name consistency:
 
 This is the final prerequisite decision for this attempt:
 
-    FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE
+    FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_INPUT_CONFLICT
 
-The failure occurred before Tencent quotes, stock/index Kline completion, market_env, manifest/package serialization, persistence, or any output. No package reached READY_FOR_STRATEGY_EVALUATION; therefore no package hash, file hash, byte length, local logical path, Drive reference, or recovery state can be asserted. The frozen artifact registry was not given a fabricated artifact record; the machine-readable attempt record is explicitly marked not_a_frozen_artifact=true.
+The blocker classification is `INPUT_PROVIDER_DATA_CONSISTENCY_CONFLICT`, not a provider
+connectivity failure. The failure occurred before Tencent quotes, stock/index Kline
+completion, market_env, manifest/package serialization, persistence, or any output. No
+package reached READY_FOR_STRATEGY_EVALUATION; therefore no package hash, file hash, byte
+length, local logical path, Drive reference, or recovery state can be asserted. The frozen
+artifact registry was not given a fabricated artifact record; the machine-readable attempt
+record is explicitly marked not_a_frozen_artifact=true.
+
+The original attempt recorded the conflicting symbol and detail but did not capture the raw
+names or execution counts. Those fields remain explicitly `NOT_RECORDED_IN_ORIGINAL_ATTEMPT`
+in the historical evidence; the later current capability diagnostic is separate and is not
+used to backfill this attempt.
 
 ## Provider boundary
 
@@ -36,3 +47,5 @@ B strategy/spec/thresholds, frozen historical artifacts, Final OOS sealed/unread
 
 No canonical watchlist, prospective returns/performance evaluation, C evaluation, Phase 2F, tuning, paper/live trading, or production promotion was performed.
 
+The current capability diagnostic and its non-formal status are recorded separately in
+[`current_capability_name_diagnostic_20260831.md`](current_capability_name_diagnostic_20260831.md).

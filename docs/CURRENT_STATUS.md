@@ -2,7 +2,7 @@
 
 更新时间：2026-08-31（Asia/Shanghai）
 Formal Delivery Ladder：`development candidate`
-Product-governance milestone：PR #15 squash merge `f1fed4608210aa175ac268189a8d7f032b0b88e0`；post-merge master correctness run `33367655723` success（last-verified provenance snapshot）
+Product-governance milestone：PR #17 squash merge `91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b`；post-merge master correctness run `33399324692` success（last-verified provenance snapshot）
 Phase 2E research baseline：PR #6 / `74ccf86dfdea3b9d4b0124fb54346aa429735508`
 职责：记录项目正式处于什么状态，以及哪些研究结论已经成立。长期产品目标和 usable gate 见 [`PRODUCT_CHARTER.md`](PRODUCT_CHARTER.md)，接手动作见 [`HANDOFF.md`](../HANDOFF.md)，决策理由见 [`DECISION_LOG.md`](DECISION_LOG.md)。
 
@@ -90,8 +90,9 @@ T-close/T+1 semantics are unchanged. No prospective package was run by this corr
    master correctness run `33399324692` 对 merge SHA 精确成功。
 2. **P1 first prospective input blocker**：本轮正式 acquisition 已在 exact Sina
    sector/member display-name consistency 处 fail closed，当前具体 decision 为
-   `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`，原因为
-   `INPUT_CONFLICT: display-name conflict for 000012: universe/member`。
+   `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_INPUT_CONFLICT`，分类为
+   `INPUT_PROVIDER_DATA_CONSISTENCY_CONFLICT`，不是 provider connectivity failure；
+   原因为 `INPUT_CONFLICT: display-name conflict for 000012: universe/member`。
 3. **P1 candidate-bound prospective input**：在该 provider/name conflict 解决并取得
    完整 READY package 前，不得进入 frozen candidate。
 4. **Scope-local correctness blocker — FULL legacy only**：历史新浪行业 membership /
@@ -308,8 +309,9 @@ The attempt failed closed at exact Sina sector/member display-name consistency:
     INPUT_CONFLICT: display-name conflict for 000012: universe/member
 
 The final frozen-candidate prerequisites status is
-`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`. No READY manifest or
-package was created; quotes, Klines, hashes, persistence, Google Drive backup/recovery,
+`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_INPUT_CONFLICT`. This is an
+`INPUT_PROVIDER_DATA_CONSISTENCY_CONFLICT`, not provider connectivity. No READY manifest
+or package was created; quotes, Klines, hashes, persistence, Google Drive backup/recovery,
 canonical watchlist, prospective returns, C, Phase 2F, tuning, paper/live trading,
 and production promotion were not performed. The attempt evidence is recorded in
 [`prospective_acquisition_evidence_20260831.md`](prospective_acquisition_evidence_20260831.md)
@@ -319,3 +321,35 @@ The formal Delivery Ladder remains `development candidate`; B remains
 `CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES` at candidate eligibility. Strategy/spec/
 thresholds, frozen artifacts, Final OOS sealed/unread status, and all no-backfill/no-future
 boundaries are unchanged.
+
+## PR #18 continuation — display-name blocker diagnosis and minimal fix
+
+The 2026-08-31 formal attempt remains a failed `LIVE_OBSERVED` attempt; it is not
+rewritten as success. Its `INPUT_CONFLICT` is classified as
+`INPUT_PROVIDER_DATA_CONSISTENCY_CONFLICT`, with final decision
+`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_INPUT_CONFLICT`. Provider connectivity is
+explicitly false. The original attempt did not record raw names or execution counts,
+so those fields remain unrecorded rather than being backfilled from a later current
+diagnostic.
+
+The non-formal current capability diagnostic read the complete HiThink
+`SH_SZ_A_SHARE_ONLY` universe and exact Sina sector/member source: 5,220 universe
+symbols, 49 definitions, 49 completed member calls, 2,539 common symbols, 2,492
+exact raw-name matches, and 47 raw-name mismatches. The registered normalization
+(`NFKC`, explicit zero-width formatting cleanup, leading/trailing whitespace trim)
+resolved zero mismatches. All 47 remain unequal after normalization, so the current
+decision is `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_SUBSTANTIVE_NAME_CONFLICT`.
+The raw-name and code-point detail is in
+[`current_capability_name_diagnostic_20260831.md`](current_capability_name_diagnostic_20260831.md).
+
+PR #18 keeps `B_BREAKOUT_RETEST_LEGACY_V1`, its spec SHA and thresholds,
+`TRADABLE_UNIVERSE_SCOPE_V1 = SH_SZ_A_SHARE_ONLY`, exact Sina taxonomy, T-close/T+1,
+Final OOS sealed/unread, C exclusion, and no-tuning/no-promotion boundaries unchanged.
+The live adapter retains both raw provider names, compares normalized values, keeps
+symbol as the security identity, versions the normalization in generation identity and
+provenance, and exposes safe structured conflict diagnostics. No partial formal package
+is persisted.
+
+The next formal window is only after the 2026-09-01 XSHG close, and only after PR #18
+has completed Sol review and merged to clean master; no T=`2026-08-31` package may be
+constructed.
