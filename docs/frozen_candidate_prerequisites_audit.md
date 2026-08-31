@@ -165,3 +165,20 @@ file SHA 为 `5e0a557c1930de7b4f182f09f43b45c0c11b19b2d7c992bf9e7fa7e6cc6de048`�
 本次 deterministic reproducibility verification 的 event count、event identities、
 全部 metrics、fixed thresholds、gate audit 和 eligibility decision 与修复前完全一致；
 没有 C、Phase 2F、调参、Final OOS 或 production promotion。
+
+## 2026-08-31 — First formal post-merge package audit
+
+| prerequisite | result | evidence |
+| --- | --- | --- |
+| B decision / spec / threshold | PASS unchanged | `B_BREAKOUT_RETEST_LEGACY_V1`; spec SHA remains `5bbeb345ebd8883149138d2f29f8606f919949ae285aa2839fa337921dfc7112`; frozen eligibility decision unchanged |
+| SH/SZ scope / exact Sina taxonomy | PASS for selected boundary | `TRADABLE_UNIVERSE_SCOPE_V1`; exact `stock_sector_spot(indicator="新浪行业")` + `stock_sector_detail` path used |
+| LIVE_OBSERVED / T-close → T+1 | PASS precondition | T=`2026-08-31`, T+1=`2026-09-01`, observed after 15:00 BJT close |
+| provider / fallback provenance | BLOCKED at name consistency | `INPUT_CONFLICT` for symbol `000012`; later providers not reached |
+| immutable persistence / Drive backup / recovery | NOT APPLICABLE | no READY package existed; no bytes were eligible for persistence or upload |
+| deterministic input/generation identity | NOT CREATED | no complete manifest/package existed |
+| Final OOS / C / Phase 2F / tuning / promotion | PASS boundary | Final OOS sealed/unread; all prohibited paths untouched |
+
+Final decision: `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`.
+The machine-readable failure evidence is
+`data/governance/prospective_input_attempt_evidence_20260831.json`; it is explicitly
+not a frozen artifact. No `FROZEN_CANDIDATE_CONTRACT_V1` is created.
