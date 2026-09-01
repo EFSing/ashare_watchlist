@@ -698,8 +698,15 @@ Final OOS、不 merge。
   future live binding 已切换至 V3 contract；尚无 live instance。V3 见
   [`docs/candidate_bound_prospective_input_contract_v3.md`](docs/candidate_bound_prospective_input_contract_v3.md)，
   evidence 见 [`docs/b_corrected_reconstruction_20260901.md`](docs/b_corrected_reconstruction_20260901.md)。
-- live snapshot at this handoff：branch=`codex/b-corrected-reconstruction-20260901`，
+- live snapshot before correctness PR creation：branch=`codex/b-corrected-reconstruction-20260901`，
   HEAD=`28e871552da0813fd51b510a9ef0980976556d29`，`origin/master` 同 SHA，尚无新
   open PR；working tree 的 corrected implementation/audit/docs 为本任务改动，既有
   未跟踪 user directory `data/validation/continuous_speed_probe/` 未读取、未修改、未删除。
-  在 correctness PR merge 和其 master exact-head CI 成功前，不运行 T-close acquisition。
+- current live snapshot after correctness PR creation：PR #20 open，head=
+  `c81df8623318d1a37f47345e1bdbc461ec9a4e14`，base/
+  `origin/master`=`28e871552da0813fd51b510a9ef0980976556d29`，changed-file scope
+  remains the single correctness set above；exact-head runs `33496711659` and
+  `33496611236` are both `success`，GitHub state=`CLEAN / MERGEABLE`。PR #20 尚未
+  merge：当前用户授权明确覆盖 PR #19 的 merge，不自动扩展为 PR #20 的外部 merge；
+  等待用户对该具体 merge 的 direction。correctness PR merge 和其 master exact-head
+  CI 成功前，不运行 T-close acquisition。
