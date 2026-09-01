@@ -553,3 +553,117 @@
   backfill and no T=`2026-09-01` acquisition/package is created in this task. Formal
   Delivery Ladder remains `development candidate`; B eligibility remains
   `CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`; Final OOS remains `SEALED / UNREAD`。
+
+## 2026-09-01 — Sector provenance closure and exact B semantic stop
+
+- classification：`correctness blocker` + `product blocker`。这是对现有 candidate-bound
+  input gate 的 closure，不是新的 strategy research、Phase、参数选择、C、Final OOS
+  或 promotion。
+- research question / materiality：V0 的 missing-sector 与 multi-sector 行为是否被
+  当前 B evaluator 和 V2 live contract 精确保留；AkShare `1.18.94` 是否相对 exact
+  Sina raw endpoint 造成当前 2,682 missing symbols；以及当前 package-level fail-close
+  能否直接解释为 per-symbol Model S。结果会决定是否允许进入合法 T-close capture，
+  因而属于 correctness/product gate，而非可忽略的分组研究。
+- inputs：V0 exact source
+  `EFSing/ashare_watchlist-V0@c8406c393c0b135eafb0aec763576ae869fddcff`，当前
+  `scripts/b_breakout_retest.py`、`scripts/a_platform_breakout.py`、generation/live
+  contract，AkShare `1.18.94` installed source，以及 2026-09-01 current HiThink/Sina
+  in-memory responses。未读取 Final OOS，未使用 2026-08-31 partial attempt 回填。
+- stop condition：只在 source semantics、provider parity、coverage decomposition、
+  five multi-sector identities、package/per-symbol distinction 都明确后停止；若
+  evaluator 偏离 exact frozen B，则不得修 B 或继续 T-close capture。
+- finding：V0 missing sector 使用 `("-",50,0.0)` 继续 B，multi-sector 为 provider
+  order 下 last-write-wins；current B missing evidence 返回 `INSUFFICIENT_DATA`，
+  且绕过 adapter 的 ambiguous manifest 会取第一条有效记录。V2 adapter 的完整覆盖
+  与 distinct multi-sector package fail-close 是额外的 input-integrity hardening。
+- provider decision：`EXACT_SINA_CURRENT_SOURCE_INTRINSICALLY_INCOMPLETE`；同时
+  `REJECT` `EXACT_SINA_AKSHARE_WRAPPER_INCOMPLETE`。49/49 exact definitions 的
+  raw/wrapper member rows、per-sector counts/boundaries 均一致；当前 source coverage
+  shortfall 不是已证实的 wrapper parsing/pagination 漏抓。count endpoint
+  under-reporting 保留为 future provider-consistency diagnostic，当前不改 wrapper。
+- final decision：`B_RECONSTRUCTION_SEMANTIC_MISMATCH`。不采用 Model S/V3，不改变
+  B/spec/threshold/taxonomy/scope/name policy，不生成 partial package。formal
+  `LIVE_OBSERVED` capture=`NOT_RUN`；Delivery Ladder 仍为 `development candidate`。
+  详细 evidence、5-symbol table、2,682 decomposition 和 machine-readable record 见
+  [`sector_provenance_closure_20260901.md`](sector_provenance_closure_20260901.md)。
+- invariants：PR #18 merge SHA 为
+  `17371fde39a6b24241532b131caf5927cb9b8933`，exact merge correctness run
+  `33476256589` success；B spec SHA
+  `5bbeb345ebd8883149138d2f29f8606f919949ae285aa2839fa337921dfc7112`、Final OOS
+  `SEALED / UNREAD`、no-backfill/no-future、C/Phase 2F/promotion exclusions remain
+  unchanged。
+
+## 2026-09-01 — B frozen spec text conflict blocks semantic repair
+
+- context：本轮按既定 closure 指令重新读取 exact V0 source，并在修复 evaluator 前核对
+  current B semantic spec。任务分类仍为 `correctness blocker` + `product blocker`，
+  不是 strategy research、参数选择、Phase 2F、C、Final OOS 或 promotion。
+- exact V0 evidence：指定
+  `EFSing/ashare_watchlist-V0@c8406c393c0b135eafb0aec763576ae869fddcff` 的
+  `get_sectors()` 以 spot `label` iteration、detail member row iteration 和
+  `mapping[symbol] = name` 构成 provider-order last-write-wins；主流程
+  `sec_map.get(code, "-")`、`sec_rank_map.get(sec_name, 50)`、
+  `sec_chg_map.get(sec_name, 0.0)` 对缺失 sector 采用 exact legacy tuple，并继续
+  `analyze()`。该事实支持 `LEGACY_PROVIDER_ORDER_LAST_WRITE_WINS_V1` 与
+  `("-", 50, 0.0)`，不支持当前 `INSUFFICIENT_DATA` 分支。
+- spec finding：当前 B `LEGACY_SPEC` 继承的 sector evidence contract 明确包含
+  `silent_fallback=False` 和 `missing_status=INSUFFICIENT_DATA`。这不是只存在于
+  package-level contract 的解释差异，而是 frozen executable spec text conflict。
+- decision：`B_FROZEN_SPEC_TEXT_CONFLICT`。不在本轮修改 B evaluator、live contract、
+  strategy version、B spec SHA 或旧 eligibility artifact；停止在 Sol review，不继续
+  T-close acquisition。只有先解决 spec text / frozen identity 决策后，才可重新审计
+  eligibility call path。
+- independent provenance finding：指定 commit 的 Git blob
+  `ashare_watchlist/scripts/screen_system.py` SHA-256 为
+  `843935d9b86ec05af848ee8cc54812334475e3d17807cb93349a02c84896417a`，与现有声明
+  `6cac746123e315199cbeeb1a612868ef77b50af6c7c64b0d80eb387ae1d19f9` 不一致。根据
+  governance contract，不覆盖旧身份，另标记 `PROJECT_GOVERNANCE_STATE_CONFLICT` /
+  `UNKNOWN_ORIGIN`，交由 Sol review。
+- eligibility：按上述 mandated stop condition，既有 17,714-event artifact 尚未完成
+  affected/unaffected call-path audit；状态为
+  `EXISTING_B_ELIGIBILITY_ARTIFACT_AFFECTED=UNRESOLVED`。没有把旧 bytes 标记为
+  superseded，没有重跑 eligibility，没有生成 corrected artifact。
+- live provenance：本地 closure branch rebase 后 HEAD=
+  `3d5f3b185f95a8215eed3eb0a88a54e568333acc`，`origin/master`=
+  `fc0698c20fb3e7909090cf5073c59d1a2dd710f3`；GitHub open PR=0，PR #18 merge SHA=
+  `17371fde39a6b24241532b131caf5927cb9b8933`，merge exact-head run `33476256589`
+  success。closure branch push 被安全审查拒绝，故 remote branch protection remains
+  `REMOTE_PROTECTION_NOT_ESTABLISHED`；没有使用替代路径外发内部治理/诊断证据。
+
+## 2026-09-01 — B candidate identity/provenance closure
+
+- classification：`correctness blocker` + `product blocker`；本条 closure 不启动新的
+  strategy、Phase、参数选择、C、Final OOS、T-close acquisition 或 eligibility replay。
+- research question：指定 V0 source identity 是否可在不混淆 Git object、raw file 和
+  Windows line-ending hash 的前提下验证；以及 PR #14 的 B spec sector semantics 是否是
+  exact V0 reconstruction，还是未授权的 generic hardening inheritance。
+- materiality：这两个结论直接决定是否可以使用当前 `B_BREAKOUT_RETEST_LEGACY_V1`
+  identity 进入后续 frozen-candidate decision；hash/provenance 或 missing-sector 语义
+  错误会污染候选身份，因此是 P0/P1 correctness gate，不是普通 research improvement。
+- inputs / stop：只用 V0 commit/path/raw bytes、current repository history、PR #14 tree,
+  source tests、nomination/spec/eligibility docs 和已冻结 development manifest/event
+  evidence；不读取 Final OOS、不获取新数据、不运行 replay。完成 raw-vs-CRLF identity、
+  spec creation lineage、V0-vs-spec matrix、Case A/B/C 判定和 artifact call-path audit
+  后停止。
+- identity finding / decision：remote `EFSing/ashare_watchlist-V0@c8406c…` 的 exact raw
+  file SHA-256 为 `843935d9…`。测试过的 LF-to-CRLF 变体为合法 64 字符值
+  `6cac7461…d19f9`，但历史声明值为 63 字符 `6cac7461…d19f9`，二者不相等；
+  Git blob OID=`ede1ee…`、object format=`sha1` 是独立 identity。决定：
+  `NEEDS_MORE_EVIDENCE`；不改 declared SHA，不修改 B spec hash。
+- lineage finding：PR #14 squash commit `4e685ba28668ada29f78e6fa4a56be1cacc259ea` 创建
+  `scripts/b_breakout_retest.py:LEGACY_SPEC`，先 `copy.deepcopy(A_LEGACY_SPEC)`，只覆盖
+  identity/legacy-source/B-match/B-score/status fields；sector evidence block 来自 A
+  generic hardened spec。exact V0 path 明确使用 `("-",50,0.0)` 缺失 fallback 继续评估，
+  multi-sector 为 provider-order last-write-wins。没有找到 pre-returns 的 B-specific
+  stricter adoption evidence。语义证据指向 Case A，但因 source identity 未解决，最终
+  classification 必须保持 `B_CANDIDATE_IDENTITY_UNRESOLVED`，不能宣布 Case A。
+- eligibility impact：既有 generator 走不接收 sector 的
+  `evaluate_numeric_projection`；parity fixture 只使用 neutral sentinel，score 未输出。
+  这些只是待身份解决后的结构性审计输入；按 mandated stop condition，本轮不形成
+  impact 结论。因此 `EXISTING_B_ELIGIBILITY_ARTIFACT_AFFECTED=UNRESOLVED`，
+  `ELIGIBILITY_ARTIFACT_SEMANTICALLY_INVARIANT=UNRESOLVED`，
+  `ELIGIBILITY_ARTIFACT_REGENERATION_REQUIRED=UNRESOLVED`。未把旧 artifact 标记为
+  superseded/overwrite，真实 historical sector missing/multi counters 也未填猜测。
+- consequence：current B spec SHA、evaluator、live contract、threshold、old artifact、
+  Final OOS 和 formal T-close 状态全部保持不变。下一节点是 Sol/user review 决定是否
+  授权另一个 versioned semantic repair；在该决策前不得恢复 exact candidate gate。

@@ -384,10 +384,98 @@ provenance; distinct sector memberships remain fail closed. No partial formal pa
 is persisted. The source audit confirms B consumes sector evidence/rank/change, so the
 sector requirement remains executable and cannot be relaxed or substituted.
 
-The current decision is
+At the pre-merge snapshot, the decision was
 `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_SECTOR_MEMBERSHIP_AMBIGUITY`, with independent
 exact-Sina coverage failure. The active contract is
 `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V2`; V1 remains historical.
-PR #18 has not been merged, so no T=`2026-08-31` or T=`2026-09-01` package may be
-constructed in this task. The full source matrix and current snapshot audit are in
+At that snapshot, PR #18 had not been merged, so no T=`2026-08-31` or T=`2026-09-01`
+package had been constructed. The full source matrix and current snapshot audit are in
 [`b_dependency_audit_20260901.md`](b_dependency_audit_20260901.md).
+
+## 2026-09-01 sector-provenance closure — current status
+
+Formal Delivery Ladder remains `development candidate`. PR #18 is now merged at
+`17371fde39a6b24241532b131caf5927cb9b8933`; exact merge push correctness run
+`33476256589` succeeded. The current closure branch was created from that clean
+merged master.
+
+The current blocker is `B_RECONSTRUCTION_SEMANTIC_MISMATCH`: exact V0 missing-sector
+behavior defaults to `("-", 50, 0.0)` and continues evaluation, while the current B
+evaluator returns per-symbol `INSUFFICIENT_DATA`. The current V2 live adapter also
+has package-level full-coverage and distinct-multi-sector fail-close rules; these
+are recorded separately and are not treated as proof that Model S/V3 is adopted.
+
+Current exact-Sina diagnostics remain non-prospective: 49/49 definitions audited,
+2,983 raw and wrapper rows, 2,978 raw unique symbols, 2,682 scoped-universe symbols
+without membership, 439 outside-scope symbols, and five distinct multi-sector
+symbols. No safe wrapper correction was found. No formal `LIVE_OBSERVED` T-close
+capture, READY manifest, package, canonical watchlist, prospective result, C,
+Phase 2F, promotion, or Final OOS read was performed. Final OOS remains
+`SEALED / UNREAD`.
+
+Closure evidence and the machine-readable decision are in
+[`sector_provenance_closure_20260901.md`](sector_provenance_closure_20260901.md).
+
+## 2026-09-01 continuation — frozen B spec text conflict
+
+本轮继续核对指定 V0 commit 后发现，当前 B executable spec 不能直接进入语义修复：
+`scripts/b_breakout_retest.py` 的 `LEGACY_SPEC["input_contract"]["sector_evidence"]`
+明确声明 `silent_fallback=False` 与 `missing_status=INSUFFICIENT_DATA`，而 exact V0
+在缺失 sector 时使用 `("-", 50, 0.0)` 并继续评估。因此当前正式 stop state 为
+`B_FROZEN_SPEC_TEXT_CONFLICT`，需 Sol review；不能静默改 evaluator 后继续使用原
+spec SHA，也不继续 T-close acquisition。
+
+本次 live intake：closure branch rebase 后 HEAD 为
+`3d5f3b185f95a8215eed3eb0a88a54e568333acc`，`origin/master` 为
+`fc0698c20fb3e7909090cf5073c59d1a2dd710f3`；open PR 为 0，PR #18 已 merge 到
+`17371fde39a6b24241532b131caf5927cb9b8933`，merge exact-head run `33476256589`
+成功。closure branch 未能推送到 origin，remote protection 为
+`REMOTE_PROTECTION_NOT_ESTABLISHED`；未通过替代路径外发内部治理/诊断证据。
+
+另一个独立的 frozen identity audit 发现，指定 V0 commit 的 Git blob SHA 为
+`843935d9b86ec05af848ee8cc54812334475e3d17807cb93349a02c84896417a`，而现有声明为
+`6cac746123e315199cbeeb1a612868ef77b50af6c7c64b0d80eb387ae1d19f9`；原声明未覆盖，
+因此同时保持 `PROJECT_GOVERNANCE_STATE_CONFLICT` / `UNKNOWN_ORIGIN`，不继续生成。
+旧 17,714-event eligibility artifact 尚未审计，
+`EXISTING_B_ELIGIBILITY_ARTIFACT_AFFECTED=UNRESOLVED`；没有 supersede 标记、corrected
+artifact、contract 修改或 `T=2026-09-01` capture。Formal Delivery Ladder 仍为
+`development candidate`，B eligibility decision 和旧 frozen bytes 均未改写。
+
+## 2026-09-01 — B candidate identity/provenance closure
+
+本轮完成了停止状态要求的 provenance 与 candidate identity 审计，没有修改
+evaluator、live contract、spec、threshold、旧 frozen artifact 或任何 live input。
+
+V0 repository identity 已确认为 `EFSing/ashare_watchlist-V0`、`main` ref、commit
+`c8406c393c0b135eafb0aec763576ae869fddcff`、path
+`ashare_watchlist/scripts/screen_system.py`。其 Git object format 为 `sha1`，Git blob
+OID 为 `ede1ee62451fa9b817bf390ab75e963115a678dc`，raw/LF file SHA-256 为
+`843935d9b86ec05af848ee8cc54812334475e3d17807cb93349a02c84896417a`。CRLF 转换后的
+64-char SHA 为 `6cac746123e3151999cbeeb1a612868ef77b50af6c7c64b0d80eb387ae1d19f9`，
+而历史声明 `6cac746123e315199cbeeb1a612868ef77b50af6c7c64b0d80eb387ae1d19f9` 只有
+63 chars，二者不相等。因此 repository/commit/path 已建立，但 required source-file
+declaration 仍未验证；声明值未覆盖，完整 audit 见
+[`b_candidate_identity_provenance_20260901.md`](b_candidate_identity_provenance_20260901.md)。
+
+PR #14 创建的 `scripts/b_breakout_retest.py:LEGACY_SPEC` 由
+`copy.deepcopy(A_LEGACY_SPEC)` 产生；A 的 generic sector block 已有
+`silent_fallback=False` / `missing_status=INSUFFICIENT_DATA`，B-specific overrides 未
+重写它。exact V0 的实际 B path 则是缺失 sector 使用 `("-",50,0.0)` 继续评估、
+multi-sector 按 provider traversal last-write-wins；nomination/history/tests 没有发现
+pre-returns 的 B-specific stricter adoption evidence。因此当前 candidate identity
+classification 已从未决审计推进为：
+
+`B_CANDIDATE_IDENTITY_UNRESOLVED`
+
+按 mandated stop condition，本轮没有形成 eligibility artifact impact 结论：
+`EXISTING_B_ELIGIBILITY_ARTIFACT_AFFECTED=UNRESOLVED`。旧 17,714-event bytes 未
+supersede/overwrite，未重跑 eligibility。虽然现有 generator 的结构性 call path 使用
+不接收 sector 的 `evaluate_numeric_projection`、fixed parity sample 仅使用 neutral
+sentinel、score 不在 projection/event，但这些事实要在 source/candidate identity 解决后
+才能形成正式 impact decision；真实 missing/multi-sector symbol-date 数量不填猜测。
+Formal Delivery Ladder 仍为 `development candidate`，B spec/evaluator/contract/old
+artifact 不变，Final OOS 仍 `SEALED / UNREAD`，formal T-close capture 仍 `NOT_RUN`。
+
+当前停止点是 Sol/user 解决 declared SHA 的正确 64-char identity 或 historical
+source/canonicalization 证据；在此之前不宣布 Case A/B，不创建新的 spec/version，不修
+evaluator，不重跑 eligibility，不继续 T-close acquisition。
