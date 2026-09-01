@@ -667,3 +667,41 @@
 - consequence：current B spec SHA、evaluator、live contract、threshold、old artifact、
   Final OOS 和 formal T-close 状态全部保持不变。下一节点是 Sol/user review 决定是否
   授权另一个 versioned semantic repair；在该决策前不得恢复 exact candidate gate。
+
+## 2026-09-01 — authoritative V0 source and corrected B reconstruction
+
+- classification：`correctness blocker` + `product blocker`；本次是既定 correctness
+  repair，不是策略优化或重新 nomination。C、Phase 2F、调参、promotion、Final OOS、
+  自动 freeze 和 T-close backfill 均不在范围内。
+- merge provenance：PR #19 final head=`f99c33993fed00e38e87785a88155034ceaf57c3`，
+  squash merge SHA=`28e871552da0813fd51b510a9ef0980976556d29`；post-merge master
+  exact-head correctness run=`33491720346` success。PR #19 的历史
+  `B_CANDIDATE_IDENTITY_UNRESOLVED` 不改写。
+- source decision：`V0_SOURCE_IDENTITY_RESOLVED_AUTHORITATIVE_RAW_GIT_BYTES`。
+  authoritative tuple 为 repository `EFSing/ashare_watchlist-V0`、commit
+  `c8406c393c0b135eafb0aec763576ae869fddcff`、path
+  `ashare_watchlist/scripts/screen_system.py`、raw/LF SHA
+  `843935d9b86ec05af848ee8cc54812334475e3d17807cb93349a02c84896417a`。历史合法
+  CRLF witness 为 `6cac746123e3151999cbeeb1a612868ef77b50af6c7c64b0d80eb387ae1d19f9`；
+  旧 63-character declaration 分类为 `HISTORICAL_SOURCE_SHA_TRANSCRIPTION_ERROR`。
+- old identity decision：`B_BREAKOUT_RETEST_LEGACY_V1` / old spec SHA
+  `5bbeb345ebd8883149138d2f29f8606f919949ae285aa2839fa337921dfc7112` 保留为历史
+  reconstruction 和旧 eligibility bytes，分类为
+  `SUPERSEDED_RECONSTRUCTION_WITH_PROVENANCE_AND_SECTOR_SEMANTIC_DEFECT`，不原地
+  重写、不冒充 corrected artifact。
+- corrected decision：创建 `B_BREAKOUT_RETEST_LEGACY_V1_1`，role 为
+  `CORRECTED_EXACT_V0_RECONSTRUCTION`，spec SHA 为
+  `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`；显式恢复
+  exact V0 missing tuple `(-,50,0.0)` continue 与
+  `LEGACY_PROVIDER_ORDER_LAST_WRITE_WINS_V1`，保留 raw memberships/provider order，
+  不设 score cutoff/TOP-N。semantic decision=`B_CORRECTED_RECONSTRUCTION_SEMANTICS_ADOPTED`。
+- eligibility impact decision：`EXISTING_B_ELIGIBILITY_ARTIFACT_AFFECTED=FALSE`，
+  `ELIGIBILITY_ARTIFACT_EVENT_SET_INVARIANT`。冻结 development input 为 769 sessions、
+  4,041,140 evaluated symbol-dates；old/corrected event count=17,714；projection、
+  status、event membership differences=0；sector missing/multi counts 因历史 CORE
+  input 不携带 membership 而保持 `NOT_AVAILABLE_IN_FROZEN_DEVELOPMENT_INPUT`。不需要
+  correctness returns regeneration，旧 artifact 不覆盖。
+- candidate decision：`CORRECTED_B_CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`。
+  future contract 采用 V3；V3 仍是 `CONTRACT_DEFINED_NO_LIVE_INSTANCE`。下一 gate 是
+  correctness PR 的 review/merge/CI，然后才可在合法收盘窗口 fresh acquire；不把当前
+  diagnostic 作为 prospective evidence。

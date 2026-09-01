@@ -444,13 +444,19 @@ def test_missing_sector_rank_fails_closed():
     assert ak.member_calls == []
 
 
-def test_empty_sector_membership_fails_closed():
+def test_missing_sector_membership_uses_exact_v0_default():
     ak = FakeAkShare(members=[])
-    with pytest.raises(live.LiveAcquisitionError) as caught:
-        _acquire(akshare_module=ak)
+    package = _acquire(akshare_module=ak)
 
-    assert caught.value.status == INCOMPLETE_COVERAGE
     assert ak.member_calls == ["new_bank"]
+    quality = package.provenance["sector_membership_quality"]
+    assert quality["missing_universe_symbol_count"] == 1
+    assert quality["missing_universe_symbols"] == [SYMBOL]
+    assert quality["resolution_policy"] == live.SECTOR_RESOLUTION_POLICY
+    assert quality["resolved_memberships"][SYMBOL]["resolution"] == "V0_MISSING_DEFAULT"
+    assert quality["resolved_memberships"][SYMBOL]["sector_name"] == "-"
+    assert quality["resolved_memberships"][SYMBOL]["sector_rank"] == 50
+    assert quality["resolved_memberships"][SYMBOL]["sector_chg"] == 0.0
 
 
 def test_sector_member_name_mismatch_is_symbol_authoritative_diagnostic():
@@ -550,7 +556,7 @@ def test_substantive_name_difference_is_retained_as_diagnostic_without_identity_
     assert diagnostic["normalized_universe_name"] != diagnostic["normalized_sector_name"]
 
 
-def test_exact_duplicate_sector_row_is_deduplicated_and_retained_in_diagnostics():
+def test_exact_duplicate_sector_row_is_retained_in_raw_traversal_and_diagnostics():
     ak = FakeAkShare(
         members=[
             {"代码": SYMBOL, "名称": "测试股份"},
@@ -560,26 +566,16 @@ def test_exact_duplicate_sector_row_is_deduplicated_and_retained_in_diagnostics(
 
     package = _acquire(akshare_module=ak)
 
-    assert package.generation_input_manifest.sector.rank_input == [
-        {
-            "symbol": SYMBOL,
-            "display_name": "测试股份",
-            "display_name_normalized": "测试股份",
-            "universe_display_name": "测试股份",
-            "universe_display_name_normalized": "测试股份",
-            "sector_code": "new_bank",
-            "sector_name": "银行",
-            "sector_rank": 1,
-            "sector_chg": 1.5,
-        }
-    ]
+    assert len(package.generation_input_manifest.sector.rank_input) == 2
+    assert package.generation_input_manifest.sector.rank_input[0]["sector_code"] == "new_bank"
+    assert package.generation_input_manifest.sector.rank_input[1]["sector_code"] == "new_bank"
     quality = package.provenance["sector_membership_quality"]
     assert quality["duplicate_row_count"] == 1
     assert quality["duplicate_rows"][0]["classification"] == "EXACT_DUPLICATE_PROVIDER_ROW"
     assert quality["duplicate_rows"][0]["raw_row"] == {"代码": SYMBOL, "名称": "测试股份"}
 
 
-def test_same_symbol_in_multiple_sectors_fails_closed_with_structured_diagnostics():
+def test_same_symbol_in_multiple_sectors_uses_exact_v0_last_write_wins_with_provenance():
     ak = FakeAkShare(
         definitions=[
             {"label": "new_bank", "板块": "银行", "涨跌幅": 1.5},
@@ -587,15 +583,37 @@ def test_same_symbol_in_multiple_sectors_fails_closed_with_structured_diagnostic
         ]
     )
 
-    with pytest.raises(live.LiveAcquisitionError) as caught:
-        _acquire(akshare_module=ak)
+    package = _acquire(akshare_module=ak)
 
-    assert caught.value.status == live.INPUT_CONFLICT
-    assert caught.value.diagnostics["symbol"] == SYMBOL
-    assert {item["sector_code"] for item in caught.value.diagnostics["memberships"]} == {
-        "new_bank",
-        "new_insurance",
-    }
+    assert package.generation_input_manifest.sector.rank_input[0]["sector_code"] == "new_bank"
+    assert package.generation_input_manifest.sector.rank_input[1]["sector_code"] == "new_insurance"
+    quality = package.provenance["sector_membership_quality"]
+    assert quality["multi_sector_symbol_count"] == 1
+    assert quality["multi_sector_symbols"] == [SYMBOL]
+    assert quality["resolution_policy"] == live.SECTOR_RESOLUTION_POLICY
+    assert quality["resolved_memberships"][SYMBOL]["sector_code"] == "new_insurance"
+    assert quality["resolved_memberships_sha256"] == live._sha256_json(quality["resolved_memberships"])
+    assert package.generation_identity_payload["sector_membership_resolution"]["resolved_memberships_sha256"] == (
+        quality["resolved_memberships_sha256"]
+    )
+
+
+def test_sector_membership_outside_tradable_scope_is_retained_without_shrinking_universe():
+    package = _acquire(
+        akshare_module=FakeAkShare(
+            members=[
+                {"代码": SYMBOL, "名称": "测试股份"},
+                {"代码": "000001", "名称": "范围外股份"},
+            ]
+        )
+    )
+    assert package.generation_input_manifest.universe.symbols == (SYMBOL,)
+    assert [row["symbol"] for row in package.generation_input_manifest.sector.rank_input] == [
+        SYMBOL,
+        "000001",
+    ]
+    quality = package.provenance["sector_membership_quality"]
+    assert quality["outside_universe_membership_count"] == 1
 
 
 def test_normalized_display_name_identity_is_deterministic():

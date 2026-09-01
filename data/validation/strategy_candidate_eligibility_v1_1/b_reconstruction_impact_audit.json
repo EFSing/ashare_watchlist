@@ -1,0 +1,67 @@
+{
+  "comparison": {
+    "candidate_threshold_basis": "both identities have no score cutoff and no TOP-N selection",
+    "candidate_threshold_crossings": 0,
+    "corrected_projection_shared_callable_identity": true,
+    "corrected_qualified_event_count": 17714,
+    "method": "exact shared callable identity plus frozen event-artifact membership proof; no outcome replay",
+    "old_event_artifact_membership_differences": 0,
+    "old_qualified_event_count": 17714,
+    "projection_differences": 0,
+    "qualification_event_membership_differences": 0,
+    "score_comparison_status": "NOT_APPLICABLE_NUMERIC_PROJECTION_EXCLUDES_SCORE",
+    "score_differences": null,
+    "status_differences": 0
+  },
+  "corrected_reconstruction": {
+    "spec_sha256": "f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd",
+    "strategy_version": "B_BREAKOUT_RETEST_LEGACY_V1_1"
+  },
+  "decision": "ELIGIBILITY_ARTIFACT_EVENT_SET_INVARIANT",
+  "event_set_delta": [],
+  "first_projection_difference": null,
+  "forbidden_scope": {
+    "final_oos_read": false,
+    "old_artifact_overwritten": false,
+    "parameters_changed": false,
+    "phase_2f_started": false,
+    "promotion_started": false,
+    "returns_regenerated": false,
+    "thresholds_changed": false
+  },
+  "frozen_input": {
+    "checkpoint_path": "data/validation/core_signal_validation_continuous_parts/core_signal_validation_resume_checkpoint.json",
+    "checkpoint_sha256": "22f7ac7515ef2177f49fbcb316b33945c31132fe8a3b3dc360b1161ccf2256a3",
+    "dataset_version": "core-signal-hithink-continuous-2023-06-30-to-2026-08-28-v1",
+    "evaluated_symbol_dates": 4041140,
+    "final_oos_read": false,
+    "forward_returns_read": false,
+    "signal_date_count": 769,
+    "signal_dates_end": "2026-08-28",
+    "signal_dates_start": "2023-06-30"
+  },
+  "old_reconstruction": {
+    "event_artifact_path": "data/validation/strategy_candidate_eligibility_v1/b_breakout_retest_eligibility_events.jsonl.gz",
+    "event_artifact_sha256": "8940a4a346ac6911ba669f84a9ceba7ef878b0ed0ce51edf673439b52aa056b9",
+    "spec_sha256": "5bbeb345ebd8883149138d2f29f8606f919949ae285aa2839fa337921dfc7112",
+    "strategy_version": "B_BREAKOUT_RETEST_LEGACY_V1"
+  },
+  "schema_version": "B_RECONSTRUCTION_IMPACT_AUDIT_V1",
+  "sector_observations": {
+    "missing_sector_symbol_dates": null,
+    "multi_sector_symbol_dates": null,
+    "reason": "CORE replay intentionally loads no historical sector membership; its neutral sentinel is excluded from the numeric projection",
+    "status": "NOT_AVAILABLE_IN_FROZEN_DEVELOPMENT_INPUT"
+  },
+  "source": {
+    "commit": "c8406c393c0b135eafb0aec763576ae869fddcff",
+    "path": "ashare_watchlist/scripts/screen_system.py",
+    "raw_file_sha256": "843935d9b86ec05af848ee8cc54812334475e3d17807cb93349a02c84896417a",
+    "repository": "EFSing/ashare_watchlist-V0"
+  },
+  "status": "COMPLETE",
+  "task_classification": [
+    "correctness_blocker",
+    "product_blocker"
+  ]
+}

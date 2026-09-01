@@ -1,0 +1,51 @@
+{
+  "schema_version": "B_CORRECTED_RECONSTRUCTION_DECISION_V1",
+  "status": "COMPLETE",
+  "task_classification": [
+    "correctness_blocker",
+    "product_blocker"
+  ],
+  "decision": "ADOPT_AUTHORITATIVE_RAW_V0_SOURCE_AND_CREATE_CORRECTED_B_RECONSTRUCTION",
+  "semantic_decision": "B_CORRECTED_RECONSTRUCTION_SEMANTICS_ADOPTED",
+  "old_reconstruction": {
+    "strategy_version": "B_BREAKOUT_RETEST_LEGACY_V1",
+    "spec_sha256": "5bbeb345ebd8883149138d2f29f8606f919949ae285aa2839fa337921dfc7112",
+    "disposition": "HISTORICAL_RETROSPECTIVE_EVIDENCE_NOT_OVERWRITTEN",
+    "source_sha_classification": "HISTORICAL_SOURCE_SHA_TRANSCRIPTION_ERROR"
+  },
+  "corrected_reconstruction": {
+    "strategy_version": "B_BREAKOUT_RETEST_LEGACY_V1_1",
+    "spec_sha256": "f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd",
+    "role": "CORRECTED_EXACT_V0_RECONSTRUCTION"
+  },
+  "source": {
+    "repository": "EFSing/ashare_watchlist-V0",
+    "commit": "c8406c393c0b135eafb0aec763576ae869fddcff",
+    "path": "ashare_watchlist/scripts/screen_system.py",
+    "raw_file_sha256": "843935d9b86ec05af848ee8cc54812334475e3d17807cb93349a02c84896417a",
+    "historical_crlf_working_tree_sha256": "6cac746123e3151999cbeeb1a612868ef77b50af6c7c64b0d80eb387ae1d19f9"
+  },
+  "eligibility_impact": {
+    "decision": "ELIGIBILITY_ARTIFACT_EVENT_SET_INVARIANT",
+    "existing_artifact_affected": false,
+    "event_set_invariant": true,
+    "evaluated_symbol_dates": 4041140,
+    "signal_date_count": 769,
+    "old_event_count": 17714,
+    "corrected_event_count": 17714,
+    "projection_differences": 0,
+    "status_differences": 0,
+    "event_membership_differences": 0,
+    "returns_regeneration_required": false,
+    "method": "exact shared callable identity plus frozen event-artifact membership proof; no outcome replay"
+  },
+  "forbidden_scope": {
+    "c_started": false,
+    "phase_2f_started": false,
+    "parameters_changed": false,
+    "final_oos_read": false,
+    "promotion_started": false,
+    "automatic_freeze": false,
+    "old_artifact_overwritten": false
+  }
+}
