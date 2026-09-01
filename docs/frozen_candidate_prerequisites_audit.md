@@ -188,3 +188,37 @@ unrecorded rather than being backfilled from the current diagnostic. The current
 read-only name diagnostic is
 [`current_capability_name_diagnostic_20260831.md`](current_capability_name_diagnostic_20260831.md)
 and is not prospective evidence. No `FROZEN_CANDIDATE_CONTRACT_V1` is created.
+
+## 2026-09-01 continuation audit — current provider dependency boundary
+
+> `LOCAL_CURRENT_SNAPSHOT_DIAGNOSTIC_NOT_PROSPECTIVE_EVIDENCE`
+
+The B source audit is now explicit. Exact six-digit symbol is the security/trading
+identity. Display names are not consumed by B for symbol joins, candidate selection,
+hard gates, trigger, stop, target, RR, score, final status or canonical identity; the
+active correction therefore adopts `DISPLAY_NAME_CONSISTENCY_POLICY_V2_SYMBOL_AUTHORITATIVE`
+and retains raw/normalized mismatch diagnostics in the V2 contract and generation identity.
+
+B does consume sector evidence: `sector_rank` and `sector_chg` feed the 85-score
+`strong_sector` and `sector_linkage` components, while missing evidence returns
+`INSUFFICIENT_DATA` through `SECTOR_EVIDENCE_COMPLETE`. Sector remains an executable
+required input; this audit does not authorize dropping it, shrinking the universe, or
+substituting EM/THS/SW taxonomy. The B spec SHA remains
+`5bbeb345ebd8883149138d2f29f8606f919949ae285aa2839fa337921dfc7112`.
+
+The fresh 2026-09-01 current-only probe passed the declared runtime and provider
+capability checks but found 5,221 scoped HiThink symbols versus 2,978 unique exact-Sina
+sector symbols. It reported 2,682 universe symbols without sector membership, 439 sector
+symbols outside the universe, and five distinct multi-sector symbols:
+`000587`, `000602`, `002217`, `002617`, `600714`. It found no exact duplicate symbol in
+that snapshot. These counts are not historical T=`2026-08-31` evidence and do not create
+a live package.
+
+Current decision is
+`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_SECTOR_MEMBERSHIP_AMBIGUITY`, with independent
+exact-Sina coverage failure. `NEEDS_MORE_EVIDENCE` remains the research decision for a
+future legitimate T-close response that is complete and unambiguous. No T=`2026-09-01`
+acquisition is run because PR #18 is not merged to clean master and the sector gate is
+unresolved. The detailed matrix is in
+[`b_dependency_audit_20260901.md`](b_dependency_audit_20260901.md); V1 audit/evidence is
+preserved unchanged.

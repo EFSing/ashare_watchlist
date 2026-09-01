@@ -70,10 +70,11 @@ from tencent_quotes import (
 from trading_calendar import CalendarUnavailable, TradingCalendar, default_calendar
 
 
-LIVE_INPUT_PACKAGE_SCHEMA = "CANDIDATE_BOUND_LIVE_INPUT_PACKAGE_V2"
-GENERATION_IDENTITY_SCHEMA = "CANDIDATE_BOUND_GENERATION_IDENTITY_V2"
+LIVE_INPUT_PACKAGE_SCHEMA = "CANDIDATE_BOUND_LIVE_INPUT_PACKAGE_V3"
+GENERATION_IDENTITY_SCHEMA = "CANDIDATE_BOUND_GENERATION_IDENTITY_V3"
 MARKET_ENV_SCHEMA = "MARKET_ENV_FROM_PROVIDER_INDEX_V2"
-PROSPECTIVE_PROVENANCE_CONTRACT = "CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V1"
+PROSPECTIVE_PROVENANCE_CONTRACT = "CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V2"
+DISPLAY_NAME_CONSISTENCY_POLICY = "DISPLAY_NAME_CONSISTENCY_POLICY_V2_SYMBOL_AUTHORITATIVE"
 DISPLAY_NAME_NORMALIZATION_VERSION = "DISPLAY_NAME_NORMALIZATION_NFKC_TRIM_EXPLICIT_ZERO_WIDTH_V1"
 DISPLAY_NAME_NORMALIZATION_ZERO_WIDTH_CODEPOINTS = (0x200B, 0x200C, 0x200D, 0x2060, 0xFEFF)
 DISPLAY_NAME_NORMALIZATION_RULE = (
@@ -120,6 +121,18 @@ def _tradable_universe_scope_metadata() -> dict[str, Any]:
         "asset_type": "a-share",
         "included_exchanges": ["SH", "SZ"],
         "excluded_exchanges": ["BJ"],
+    }
+
+
+def _display_name_policy_metadata() -> dict[str, Any]:
+    return {
+        "version": DISPLAY_NAME_CONSISTENCY_POLICY,
+        "security_identity": "exact_symbol",
+        "comparison_normalization_version": DISPLAY_NAME_NORMALIZATION_VERSION,
+        "mismatch_action": "RETAIN_RAW_AND_AUDIT;DO_NOT_JOIN_OR_FILTER_BY_NAME",
+        "fuzzy_reconciliation": False,
+        "interior_whitespace_removed": False,
+        "status_suffixes_removed": False,
     }
 
 # B's fixed evaluator reads the last 250 stock bars.  The index market-env
@@ -324,15 +337,20 @@ def _code_points(value: str) -> str:
     return " ".join(f"U+{ord(character):04X}" for character in value)
 
 
-def _display_name_conflict_diagnostics(
+def _display_name_mismatch_diagnostics(
     client: SinaSectorClient,
     names: Mapping[str, str],
     symbol: str,
     sector_name: str,
+    *,
+    sector_code: str,
+    sector_label: str,
 ) -> dict[str, Any]:
     universe_name = names[symbol]
     return {
         "symbol": symbol,
+        "sector_code": sector_code,
+        "sector_name": sector_label,
         "universe_raw_name": universe_name,
         "sector_raw_name": sector_name,
         "normalized_universe_name": normalize_display_name(universe_name),
@@ -340,7 +358,39 @@ def _display_name_conflict_diagnostics(
         "universe_name_code_points": _code_points(universe_name),
         "sector_name_code_points": _code_points(sector_name),
         "normalization_version": DISPLAY_NAME_NORMALIZATION_VERSION,
+        "policy_version": DISPLAY_NAME_CONSISTENCY_POLICY,
         "universe_count_reached": len(names),
+        "sector_definition_count_reached": (
+            client.sector_definition_count
+            if client.sector_definition_count is not None
+            else "NOT_REACHED"
+        ),
+        "completed_sector_member_calls": client.completed_sector_member_reads,
+    }
+
+
+def _sector_membership_diagnostics(
+    client: SinaSectorClient,
+    symbol: str,
+    existing: Mapping[str, Any],
+    candidate: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "symbol": symbol,
+        "memberships": [
+            {
+                key: copy.deepcopy(record.get(key))
+                for key in (
+                    "sector_code",
+                    "sector_name",
+                    "sector_rank",
+                    "sector_chg",
+                    "display_name",
+                )
+            }
+            for record in (existing, candidate)
+        ],
+        "duplicate_row_count": len(client.duplicate_sector_rows),
         "sector_definition_count_reached": (
             client.sector_definition_count
             if client.sector_definition_count is not None
@@ -617,6 +667,8 @@ class SinaSectorClient:
         self.completed_sector_member_reads = 0
         self.current_sector_code: str | None = None
         self.current_sector_name: str | None = None
+        self.display_name_mismatches: list[dict[str, Any]] = []
+        self.duplicate_sector_rows: list[dict[str, Any]] = []
 
     def capability_report(self) -> dict[str, Any]:
         return {
@@ -856,22 +908,54 @@ def _build_sector(
             )
             if symbol not in names:
                 _fail(INPUT_CONFLICT, f"sector member {symbol} is outside the T-date universe")
-            if normalize_display_name(member_name) != normalize_display_name(names[symbol]):
-                _fail(
-                    INPUT_CONFLICT,
-                    f"display-name conflict for {symbol}: universe/member",
-                    _display_name_conflict_diagnostics(client, names, symbol, member_name),
-                )
-            if symbol in by_symbol:
-                _fail(INPUT_CONFLICT, f"symbol belongs to multiple sector memberships: {symbol}")
             record = {
                 "symbol": symbol,
                 "display_name": member_name,
+                "display_name_normalized": normalize_display_name(member_name),
+                "universe_display_name": names[symbol],
+                "universe_display_name_normalized": normalize_display_name(names[symbol]),
                 "sector_code": sector_code,
                 "sector_name": definition["sector_name"],
                 "sector_rank": definition["sector_rank"],
                 "sector_chg": definition["sector_chg"],
             }
+            if symbol in by_symbol:
+                previous = by_symbol[symbol]
+                semantic_fields = (
+                    "symbol",
+                    "display_name",
+                    "sector_code",
+                    "sector_name",
+                    "sector_rank",
+                    "sector_chg",
+                )
+                if all(previous[field] == record[field] for field in semantic_fields):
+                    client.duplicate_sector_rows.append(
+                        {
+                            "symbol": symbol,
+                            "sector_code": sector_code,
+                            "row_index": index,
+                            "classification": "EXACT_DUPLICATE_PROVIDER_ROW",
+                            "raw_row": copy.deepcopy(row),
+                        }
+                    )
+                    continue
+                _fail(
+                    INPUT_CONFLICT,
+                    f"symbol belongs to multiple sector memberships: {symbol}",
+                    _sector_membership_diagnostics(client, symbol, previous, record),
+                )
+            if record["display_name_normalized"] != record["universe_display_name_normalized"]:
+                client.display_name_mismatches.append(
+                    _display_name_mismatch_diagnostics(
+                        client,
+                        names,
+                        symbol,
+                        member_name,
+                        sector_code=sector_code,
+                        sector_label=definition["sector_name"],
+                    )
+                )
             by_symbol[symbol] = record
             sector_members.append(record)
         if not sector_members:
@@ -1155,6 +1239,18 @@ def _generation_identity_payload(
     display_names: Mapping[str, str],
     market_env: Mapping[str, Any],
 ) -> dict[str, Any]:
+    diagnostics = manifest.provider_version_metadata.get("display_name_diagnostics")
+    if not isinstance(diagnostics, Mapping):
+        _fail(PROVIDER_FAILURE, "manifest display-name diagnostics are missing")
+    mismatches = diagnostics.get("mismatches")
+    mismatch_count = diagnostics.get("mismatch_count")
+    if (
+        not isinstance(mismatches, list)
+        or isinstance(mismatch_count, bool)
+        or not isinstance(mismatch_count, int)
+        or mismatch_count != len(mismatches)
+    ):
+        _fail(PROVIDER_FAILURE, "manifest display-name diagnostics are invalid")
     return {
         "schema_version": GENERATION_IDENTITY_SCHEMA,
         "input_package_schema": LIVE_INPUT_PACKAGE_SCHEMA,
@@ -1177,6 +1273,11 @@ def _generation_identity_payload(
                 for codepoint in DISPLAY_NAME_NORMALIZATION_ZERO_WIDTH_CODEPOINTS
             ],
             "rule": DISPLAY_NAME_NORMALIZATION_RULE,
+        },
+        "display_name_consistency_policy": _display_name_policy_metadata(),
+        "display_name_diagnostics": {
+            "mismatch_count": mismatch_count,
+            "mismatches": copy.deepcopy(mismatches),
         },
         "display_names": dict(sorted(display_names.items())),
         "market_env": _copy_json(dict(market_env), "market_env"),
@@ -1226,6 +1327,39 @@ class LiveInputPackage:
         provenance = _copy_json(dict(self.provenance), "provenance")
         if provenance.get("contract") != PROSPECTIVE_PROVENANCE_CONTRACT:
             _fail(PROVIDER_FAILURE, "provenance contract is missing or unsupported")
+        if provenance.get("display_name_consistency_policy") != _display_name_policy_metadata():
+            _fail(INPUT_CONFLICT, "provenance display-name consistency policy is missing or unsupported")
+        display_name_diagnostics = provenance.get("display_name_diagnostics")
+        if not isinstance(display_name_diagnostics, Mapping):
+            _fail(PROVIDER_FAILURE, "provenance display-name diagnostics are missing")
+        mismatches = display_name_diagnostics.get("mismatches")
+        mismatch_count = display_name_diagnostics.get("mismatch_count")
+        if (
+            not isinstance(mismatches, list)
+            or isinstance(mismatch_count, bool)
+            or not isinstance(mismatch_count, int)
+            or mismatch_count != len(mismatches)
+        ):
+            _fail(PROVIDER_FAILURE, "provenance display-name diagnostics are invalid")
+        sector_quality = provenance.get("sector_membership_quality")
+        if not isinstance(sector_quality, Mapping):
+            _fail(PROVIDER_FAILURE, "provenance sector membership quality is missing")
+        duplicate_rows = sector_quality.get("duplicate_rows")
+        duplicate_count = sector_quality.get("duplicate_row_count")
+        if (
+            not isinstance(duplicate_rows, list)
+            or isinstance(duplicate_count, bool)
+            or not isinstance(duplicate_count, int)
+            or duplicate_count != len(duplicate_rows)
+        ):
+            _fail(PROVIDER_FAILURE, "provenance sector duplicate diagnostics are invalid")
+        ambiguous_count = sector_quality.get("ambiguous_membership_count")
+        if (
+            isinstance(ambiguous_count, bool)
+            or not isinstance(ambiguous_count, int)
+            or ambiguous_count != 0
+        ):
+            _fail(INPUT_CONFLICT, "provenance contains ambiguous sector memberships")
         if provenance.get("observation_status") != LIVE_OBSERVED:
             _fail("UNSUPPORTED_MODE", "live input provenance must be LIVE_OBSERVED")
         retrieved_at = provenance.get("retrieved_at_bjt")
@@ -1271,7 +1405,8 @@ class LiveInputPackage:
             "freshness_and_session_close",
             "universe_non_empty_and_unique",
             "sector_definitions_membership_rank",
-            "display_name_coverage_and_conflicts",
+            "sector_membership_unambiguous",
+            "display_name_coverage_and_symbol_identity",
             "quote_t_date_and_coverage",
             "stock_kline_t_date_no_future_bar",
             "index_kline_t_date_no_future_bar",
@@ -1290,6 +1425,8 @@ class LiveInputPackage:
             self.market_env,
         )
         object.__setattr__(self, "generation_identity_payload", identity_payload)
+        if identity_payload.get("display_name_consistency_policy") != _display_name_policy_metadata():
+            _fail(INPUT_CONFLICT, "generation identity display-name policy is missing or unsupported")
         object.__setattr__(self, "generation_fingerprint", _sha256_json(identity_payload))
         object.__setattr__(self, "content_sha256", _sha256_json(self._payload_without_content_hash()))
 
@@ -1529,6 +1666,16 @@ def acquire_live_generation_inputs(
     runtime_versions = _runtime_versions(sina.package_version)
     provider_metadata = {
         "runtime": runtime_versions,
+        "display_name_consistency_policy": _display_name_policy_metadata(),
+        "display_name_diagnostics": {
+            "mismatch_count": len(sina.display_name_mismatches),
+            "mismatches": copy.deepcopy(sina.display_name_mismatches),
+        },
+        "sector_membership_quality": {
+            "duplicate_row_count": len(sina.duplicate_sector_rows),
+            "duplicate_rows": copy.deepcopy(sina.duplicate_sector_rows),
+            "ambiguous_membership_count": 0,
+        },
         "market_data_failover": {
             "policy_version": MARKET_DATA_FAILOVER_POLICY_VERSION,
             "tencent_fallback_allowed": bool(allow_tencent_fallback),
@@ -1610,6 +1757,7 @@ def acquire_live_generation_inputs(
         "contract": PROSPECTIVE_PROVENANCE_CONTRACT,
         "observation_status": LIVE_OBSERVED,
         "retrieved_at_bjt": retrieved_at_bjt,
+        "display_name_consistency_policy": _display_name_policy_metadata(),
         "display_name_normalization": {
             "version": DISPLAY_NAME_NORMALIZATION_VERSION,
             "zero_width_codepoints": [
@@ -1617,6 +1765,15 @@ def acquire_live_generation_inputs(
                 for codepoint in DISPLAY_NAME_NORMALIZATION_ZERO_WIDTH_CODEPOINTS
             ],
             "rule": DISPLAY_NAME_NORMALIZATION_RULE,
+        },
+        "display_name_diagnostics": {
+            "mismatch_count": len(sina.display_name_mismatches),
+            "mismatches": copy.deepcopy(sina.display_name_mismatches),
+        },
+        "sector_membership_quality": {
+            "duplicate_row_count": len(sina.duplicate_sector_rows),
+            "duplicate_rows": copy.deepcopy(sina.duplicate_sector_rows),
+            "ambiguous_membership_count": 0,
         },
         "universe_scope": _tradable_universe_scope_metadata(),
         "known_at_rule": "acquisition occurs only when retrieved_at_bjt >= XSHG session close on T",
@@ -1633,7 +1790,8 @@ def acquire_live_generation_inputs(
             "freshness_and_session_close": "PASS",
             "universe_non_empty_and_unique": "PASS",
             "sector_definitions_membership_rank": "PASS",
-            "display_name_coverage_and_conflicts": "PASS",
+            "sector_membership_unambiguous": "PASS",
+            "display_name_coverage_and_symbol_identity": "PASS",
             "quote_t_date_and_coverage": "PASS",
             "stock_kline_t_date_no_future_bar": "PASS",
             "index_kline_t_date_no_future_bar": "PASS",
@@ -1656,6 +1814,7 @@ __all__ = [
     "ALLOW_TENCENT_KLINE_FALLBACK",
     "DEFAULT_INDEX_BAR_COUNT",
     "DEFAULT_STOCK_BAR_COUNT",
+    "DISPLAY_NAME_CONSISTENCY_POLICY",
     "DISPLAY_NAME_NORMALIZATION_VERSION",
     "DISPLAY_NAME_NORMALIZATION_ZERO_WIDTH_CODEPOINTS",
     "DISPLAY_NAME_NORMALIZATION_RULE",

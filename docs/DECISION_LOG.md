@@ -509,3 +509,47 @@
   no tuning 均不变。2026-09-01 白天只完成修复与 review；PR #18 完成 Sol review 并合并
   到 clean master，且 XSHG 正式收盘后，才可运行新的 `T=2026-09-01` `LIVE_OBSERVED`
   acquisition；不构造 T=`2026-08-31` package。
+
+## 2026-09-01 — B dependency audit, symbol-authoritative names, and sector gate
+
+- classification：`correctness blocker` + `product blocker`；任务只处理首个
+  candidate-bound prospective input 的可执行依赖与 cross-machine development path，
+  不启动新的 strategy research、参数选择、Phase 2F、C、Final OOS 或 promotion。
+- research question：B 的 display name、sector membership、`sector_name`、
+  `sector_rank`、`sector_chg` 是否真的进入 executable/output semantics；当前 exact
+  Sina provider 能否在不缩 universe、不替换 taxonomy、不回填历史的情况下满足它们。
+- materiality：该结论决定 PR #18 的 name correction 是否安全，以及 B 是否仍需完整
+  sector evidence 才能进入 frozen-candidate gate。停止条件是 source call graph、
+  field/gate matrix、provider coverage、duplicate 和 ambiguity 已明确；不因当前快照
+  发现新的分组或指标而扩大研究。
+- inputs：`scripts/b_breakout_retest.py`、`scripts/a_platform_breakout.py`、B
+  nomination/eligibility/prospective contract、PR #18 changes，以及 fresh `.venv`
+  的 read-only HiThink/AkShare probe。当前 payload 只在内存中读取，结果记录在
+  `docs/b_dependency_audit_20260901.md`，明确标记为
+  `LOCAL_CURRENT_SNAPSHOT_DIAGNOSTIC_NOT_PROSPECTIVE_EVIDENCE`。
+- source finding：exact six-digit symbol 是 security/trading identity；display name
+  不参与 symbol join、candidate selection、hard gates、trigger、stop、target、RR、
+  score、final status 或 B canonical identity。`sector_rank`/`sector_chg` 分别进入
+  B 85-score 的 `strong_sector`/`sector_linkage`，缺 sector evidence 返回
+  `INSUFFICIENT_DATA`，故 sector 仍是 `EXECUTABLE_REQUIRED`，不是 generic baggage。
+- decision：`ADOPT`
+  `DISPLAY_NAME_CONSISTENCY_POLICY_V2_SYMBOL_AUTHORITATIVE`。raw HiThink/Sina names
+  独立保留，registered normalization 只做 diagnostic；不 fuzzy reconcile、不生成
+  alias、不用名字 join/filter；policy/diagnostics 进入 active V2 contract、provenance
+  和 generation identity。V1 historical evidence 不改写。
+- current provider evidence：fresh preflight exact versions 全部 PASS；HiThink current
+  scope 为 5,221 symbols，exact Sina 为 49 definitions/49 member calls；sector audit
+  报告 2,682 个 universe symbols 缺 membership、439 个 sector symbols 在 universe 外、
+  47 个 raw-name mismatch（normalization resolve 0），以及 `000587`、`000602`、
+  `002217`、`002617`、`600714` 五个 distinct multi-sector memberships；当前无 exact
+  duplicate symbol。该事实随 provider snapshot 变化，不回填 2026-08-31。
+- decision：`NEEDS_MORE_EVIDENCE` for a future legitimate T-close exact-Sina response
+  that is complete and unambiguous for the full scope. Exact duplicate same-sector rows
+  may be deterministically deduplicated only with raw row/count provenance; distinct
+  sector memberships remain fail closed, with no silent drop/substitution/backfill。
+- current gate：
+  `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_SECTOR_MEMBERSHIP_AMBIGUITY`, with an
+  independent exact-Sina coverage failure. PR #18 remains unmerged; no T=`2026-08-31`
+  backfill and no T=`2026-09-01` acquisition/package is created in this task. Formal
+  Delivery Ladder remains `development candidate`; B eligibility remains
+  `CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`; Final OOS remains `SEALED / UNREAD`。

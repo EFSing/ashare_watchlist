@@ -5,21 +5,27 @@
 ## 1. Current Objective
 
 - 当前工作对象：继续现有 PR #18（base `91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b`），
-  修复首个 prospective T-close acquisition 的 display-name consistency blocker，
-  并保持该 PR OPEN 等待 Sol review。
+  完成 display-name policy correction、B dependency source audit 和 fresh-machine
+  bootstrap，并保持该 PR OPEN 等待 Sol/user decision。
 - PR #12 已 merge；正式 Delivery Ladder 为 `development candidate`。
 - 该晋级只承认 deterministic daily generation → canonical watchlist → explicit
   fail-closed → provenance / versioning → monitoring / rollback 的受控产品路径，
   不承认 strategy promotion。
 - Scope：保留既有 Phase 2B input/timing contract 和 legacy evaluator semantics；不改变
   生产策略、数据、冻结 artifact 或 Phase 2F 研究结果。
-- 本次任务边界：adapter 已合并；本轮只执行首个真实 T-close acquisition 和
-  fail-closed prerequisite audit，不启动新的 strategy、phase 或 promotion 工作。
+- 本次任务边界：只修改 candidate-bound contract/policy、adapter diagnostics、exact
+  duplicate handling、bootstrap、tests 和治理记录；不启动真实 T-close acquisition，
+  不启动新的 strategy、phase 或 promotion 工作。
 - 禁止事项：不启动 Phase 2F；不读取 Final OOS；不 promotion；不调参；不把当前数据回填历史；不替换新浪历史行业 membership；不重跑已完成 CORE replay；不以“差不多”的新文件替代 frozen bytes。
 - 本轮历史结果：正式 master-baseline acquisition 在 exact Sina sector/member 阶段
   因 `INPUT_CONFLICT` fail closed；该 blocker 是 input/provider-data consistency
   conflict，不是 provider connectivity failure。没有形成 `LIVE_OBSERVED` package，
   正式状态仍停在 `development candidate`，不据此 promotion 或进入 Final OOS。
+- 本轮 source audit 结果：B 不消费 display name；exact symbol 是 security identity，
+  因而采用 `DISPLAY_NAME_CONSISTENCY_POLICY_V2_SYMBOL_AUTHORITATIVE`。B 确实消费
+  sector membership/rank/change；当前 exact Sina snapshot 存在全 universe coverage
+  缺口和同一 symbol 多 sector 歧义，故当前 decision 为
+  `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_SECTOR_MEMBERSHIP_AMBIGUITY`。
 - 停止条件：出现 `PROJECT_GOVERNANCE_STATE_CONFLICT`、任一 required hash 不匹配、外部 raw artifact 无法证明为同一 bytes、或任务要求越过 research / OOS / promotion 边界。
 - CI provenance 规则：本文件只保存 `last verified CI provenance`，不要求也不允许把当前 commit 自己产生的 CI run 回写到同一 commit；每个新会话必须实时查询当前 branch、HEAD、`origin/master`、PR state、exact-head CI 和 working tree。
 
@@ -75,20 +81,20 @@
 ### Frozen-candidate prerequisites decision
 
 1. `FROZEN_CANDIDATE_BLOCKED`：B 已通过冻结 eligibility，但首个真实
-   candidate-bound `LIVE_OBSERVED` T-close input instance 在正式 master-baseline
-   acquisition 中因 exact Sina display-name `INPUT_CONFLICT` 未形成。
-2. 当前 P1 为 `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`，具体 fail-closed
-   原因为 `INPUT_PROVIDER_DATA_CONSISTENCY_CONFLICT`；需要证明
-   `known_at <= T`、universe/sector/names/market_env、provider/version、calendar、
-   availability/recovery 和 output identity。
-3. 已定义 `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V1`，但不把
+   candidate-bound `LIVE_OBSERVED` T-close input instance 尚未形成；2026-08-31 的
+   formal attempt 仍保留原始 `INPUT_CONFLICT` 事实。
+2. 当前 P1 为 `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`，现阶段的精确
+   provider gate 是 `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_SECTOR_MEMBERSHIP_AMBIGUITY`
+   并伴随 exact-Sina coverage failure；不得缩 universe、丢弃 symbol、猜 sector、
+   用 EM/THS/SW 替代或 current-data backfill。
+3. 已定义 active `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V2`；V1
+   保持历史 evidence。V2 仅落实已完成 source audit 的 symbol-authoritative name
+   policy，保留 B required sector evidence/coverage/ambiguity/fail-closed 语义；不把
    contract 写成 live evidence，也不创建 `FROZEN_CANDIDATE_CONTRACT_V1`。
-4. 两次早期 provider connectivity failures 与 2026-08-31T22:01:28 的
-   input-conflict attempt 均保留；后者不得再写成 `PROVIDER_FAILURE`。PR #18 的
-   current capability diagnostic 另行证明当前名称差异中无一可由安全 normalization
-   消除；在修复完成、Sol review/merge 后，跨到下一北京时间日也不得用当前数据构造
-   T=`2026-08-31` package。不启动 Phase 2F、不调参、不读 Final OOS、不 promotion、
-   不测试 C。
+4. fresh `.venv` 和 current read-only provider audit 已完成；Google Drive current
+   app connector probe 已完成 streamed-reference/upload-readback 验证，但 formal
+   `daily_k.parquet` recovery 未重新物化 hash。当前不运行 T=`2026-09-01` acquisition；
+   不启动 Phase 2F、不调参、不读 Final OOS、不 promotion、不测试 C。
 
 ### Deferred
 
@@ -508,3 +514,41 @@ Final OOS、不 merge。
   taxonomy、T-close/T+1、Final OOS sealed/unread、C/Phase 2F exclusion 和 no tuning 均不变。
   2026-09-01 白天只完成修复/review；PR #18 Sol review/merge 后，且 XSHG 正式收盘，才
   允许新的 `T=2026-09-01`, `LIVE_OBSERVED` acquisition；绝不构造 T=`2026-08-31` package。
+
+## 23. 2026-09-01 continuation — B dependency audit and fresh-machine handoff
+
+- task classification：`correctness blocker` + `product blocker`；不启动 strategy、
+  Phase 2F、C、Final OOS、tuning、promotion 或 T-close acquisition。
+- source decision：B 不消费 display name for join/selection/gates/trigger/stop/target/
+  RR/score/status/canonical identity；exact symbol 是 security identity。B 确实消费
+  sector membership/evidence、`sector_rank` 和 `sector_chg`，后两者进入 B 85-score，
+  missing evidence 返回 `INSUFFICIENT_DATA`。详细 matrix 见
+  [`docs/b_dependency_audit_20260901.md`](docs/b_dependency_audit_20260901.md)。
+- policy decision：`ADOPT`
+  `DISPLAY_NAME_CONSISTENCY_POLICY_V2_SYMBOL_AUTHORITATIVE`；raw names 独立保留，
+  registered normalization 只做 diagnostics，不 fuzzy reconcile、不生成 alias、不用
+  name join/filter。active contract 为
+  `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V2`，V1 保持历史 evidence。
+- current provider diagnostic：fresh preflight exact dependency versions PASS；HiThink
+  5,221 scoped symbols，exact Sina 49 definitions/49 member calls；sector audit 当前
+  2,682 universe symbols 缺 membership、439 sector symbols outside universe、47 name
+  mismatches（normalization resolve 0）、5 distinct multi-sector symbols
+  (`000587`,`000602`,`002217`,`002617`,`600714`)，exact duplicate symbol 为 0。结果
+  明确标记为 `LOCAL_CURRENT_SNAPSHOT_DIAGNOSTIC_NOT_PROSPECTIVE_EVIDENCE`，不回填
+  2026-08-31。
+- current gate：`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_SECTOR_MEMBERSHIP_AMBIGUITY`
+  并伴随 exact-Sina coverage failure；`NEEDS_MORE_EVIDENCE` 只针对 future legitimate
+  T-close 的 complete/unambiguous sector response。不得丢 symbol、缩 universe、猜
+  sector、换 taxonomy 或写入 partial package。
+- fresh-machine status：workspace-local `.venv` rebuilt from `pyproject.toml` with
+  `.[test,research]`; runtime and preflight PASS. Codex app Drive profile、formal backup
+  metadata/raw streamed read reference 和 temporary upload/readback/delete probe PASS；
+  formal `daily_k.parquet` byte-level recovery hash 未在本轮重新物化，因此不升级其
+  existing recovery claim。
+- live snapshot before this governance change：branch
+  `codex/prospective-input-blocker-evidence-20260831`，HEAD/PR #18 head
+  `dc358ca3456d1aba7704513c309e165b24309f11`，base/`origin/master`
+  `91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b`，PR `OPEN/CLEAN/MERGEABLE`；exact-head
+  correctness runs `33407668273` and `33407662674` were `success` at that snapshot.
+  This is persisted pre-change provenance; final live head/CI must be re-queried after
+  the governance commit/push.
