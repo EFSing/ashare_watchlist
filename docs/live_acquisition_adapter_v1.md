@@ -1,6 +1,6 @@
-# Live acquisition adapter V1
+# Live acquisition adapter V1 (current candidate contract V2)
 
-更新时间：2026-08-31（Asia/Shanghai）
+更新时间：2026-09-01（Asia/Shanghai）
 
 ## Decision boundary
 
@@ -8,10 +8,10 @@
 `LIVE_OBSERVED` evidence，也不创建或冻结任何正式 prospective package、canonical
 watchlist 或 `FROZEN_CANDIDATE_CONTRACT_V1`。
 
-master 上已合并的 adapter 暴露了 correctness blocker：B 的 exact legacy sector
-provenance 是新浪行业，但 live path 使用了东方财富 industry APIs。本分支只修正
-provider architecture；合并前仍不改变 formal Delivery Ladder，首个真实 T-close
-input instance 仍是后续 prerequisites gate。
+PR #17 已将 live path 修正为 B 所需的 exact 新浪行业 provider architecture；本次
+治理修正将 display-name consistency 从 security hard gate 改为 symbol-authoritative
+diagnostic policy。它不改变 formal Delivery Ladder，首个真实 T-close input instance
+仍是后续 prerequisites gate。
 
 ## Implemented path
 
@@ -29,7 +29,10 @@ input instance 仍是后续 prerequisites gate。
 3. 通过 AkShare `stock_sector_spot(indicator="新浪行业")` 获取 exact Sina
    industry definitions/change，按涨跌幅稳定计算 rank，再通过
    `stock_sector_detail` 获取每个 label 的 members；EM/THS/SW schema、taxonomy
-   marker、空结果、缺覆盖、重复/跨行业冲突或名字冲突均失败。
+   marker、空结果、缺覆盖或跨行业冲突均失败。display name 的 raw 值保留，按
+   `DISPLAY_NAME_CONSISTENCY_POLICY_V2_SYMBOL_AUTHORITATIVE` 做诊断；同 sector 的
+   exact duplicate provider row 可确定性去重并进入 provenance，名字差异不再用于
+   symbol join/filter/security identity。
 4. 通过既有 Tencent quote parser 获取所有 universe symbols 的 T 日 quote。
 5. 以 HiThink `/api/a-share/prices/historical?adjust=forward` 获取每只股票 daily
    K，以 `/api/a-share-index/prices/historical` 获取 `000001.SH` 指数 K。股票只接受
@@ -50,6 +53,13 @@ input instance 仍是后续 prerequisites gate。
 `GenerationInputManifest.input_fingerprint` 保持 Phase 2B 语义；display names 和
 `market_env` 进入 candidate-bound `generation_fingerprint`，以避免同一 raw input
 下的辅助输入变化被静默接受。
+
+The live package schema is now `CANDIDATE_BOUND_LIVE_INPUT_PACKAGE_V3` and its
+generation identity is `CANDIDATE_BOUND_GENERATION_IDENTITY_V3`; both identities carry
+the registered display-name normalization and
+`DISPLAY_NAME_CONSISTENCY_POLICY_V2_SYMBOL_AUTHORITATIVE` versions. The active
+provenance contract is `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V2`;
+V1 remains preserved historical contract evidence.
 
 ## Runtime readiness snapshot
 
@@ -78,14 +88,16 @@ fixture 和固定时间，覆盖 pre-close、wrong date、HiThink/Sina unavailab
 universe、exact Sina acceptance、EM/THS/SW taxonomy rejection、sector member/name
 errors、stale/missing quote、stale/future Kline、T+1、HiThink primary、显式 Tencent
 fallback、provider identity/fingerprint/byte determinism、immutable persistence、
-semantic/schema no-retry 和 incomplete manifest 不写 output。
+semantic/schema no-retry、registered display-name normalization/raw-name preservation、
+symbol-authoritative substantive ST/`*ST`/company-name diagnostics、exact duplicate
+de-duplication、sector membership ambiguity and incomplete manifest 不写 output。
 
 ## Remaining gate
 
 本分支完成的是 implementation/runtime readiness，不是 evidence freeze。合并和 Sol
 review 前不获取真实 provider input/package；已允许的 capability probe 不保存 payload、
 不构造 manifest/package，也不改变历史失败事实。正式收盘后才允许以真实 T 日输入运行，并按
-`CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V1` 审计首个
+`CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V2` 审计首个
 `LIVE_OBSERVED` package。
 
 ## Post-merge execution result — 2026-08-31
@@ -171,3 +183,39 @@ Sina spot returned 49 sectors and the first detail call returned 19 members. No 
 saved, no package was run, and T=`2026-08-31` remains failed. The branch is ready for Sol
 review; after review/merge, a new real T-close acquisition still requires explicit user
 authorization and a fresh complete provider capture.
+
+## Post-merge formal attempt — 2026-08-31
+
+After PR #17 was squash-merged at `91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b` and
+merge master correctness run `33399324692` succeeded, a new complete acquisition was
+started with fresh `observed_at_bjt=2026-08-31T22:01:28.307161+08:00` for
+T=`2026-08-31` / T+1=`2026-09-01`. It reached exact Sina sector/member display-name
+validation and failed closed:
+
+    INPUT_CONFLICT: display-name conflict for 000012: universe/member
+
+No READY manifest, package, hash, local persistence, Drive upload, recovery read-back,
+canonical watchlist, prospective return, or performance output was created. The exact
+failure is an input/provider-data consistency conflict, not provider connectivity; the
+correct prerequisite status is
+`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_INPUT_CONFLICT`. See the compact evidence record
+and audit for the exact no-artifact boundary.
+
+## PR #18 continuation — display-name consistency correctness fix
+
+The current live capability diagnostic compared the complete
+`SH_SZ_A_SHARE_ONLY` universe against all exact Sina sector definitions and their
+member responses. The 2026-08-31 snapshot remains historical diagnostic evidence in
+[`current_capability_name_diagnostic_20260831.md`](current_capability_name_diagnostic_20260831.md).
+The fresh 2026-09-01 probe is recorded separately as a current snapshot only; its
+counts must not be used to rewrite the 2026-08-31 formal attempt.
+
+The implementation retains both raw provider values, compares only their normalized
+forms, keeps the exact symbol as the security identity, and puts both the normalization
+and policy versions in the candidate-bound generation identity and provenance. A name
+mismatch is a non-secret structured diagnostic containing the symbol, both raw names,
+both normalized names, and code points; it is not used for join/filter/security identity.
+An exact duplicate sector row retains its raw row/count diagnostic without changing the
+semantic membership set. A symbol in multiple distinct sectors remains fail-closed.
+Historical 2026-08-31 evidence is not rewritten with current raw values or counts, and
+no partial formal package is persisted.

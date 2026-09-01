@@ -165,3 +165,60 @@ file SHA 为 `5e0a557c1930de7b4f182f09f43b45c0c11b19b2d7c992bf9e7fa7e6cc6de048`�
 本次 deterministic reproducibility verification 的 event count、event identities、
 全部 metrics、fixed thresholds、gate audit 和 eligibility decision 与修复前完全一致；
 没有 C、Phase 2F、调参、Final OOS 或 production promotion。
+
+## 2026-08-31 — First formal post-merge package audit
+
+| prerequisite | result | evidence |
+| --- | --- | --- |
+| B decision / spec / threshold | PASS unchanged | `B_BREAKOUT_RETEST_LEGACY_V1`; spec SHA remains `5bbeb345ebd8883149138d2f29f8606f919949ae285aa2839fa337921dfc7112`; frozen eligibility decision unchanged |
+| SH/SZ scope / exact Sina taxonomy | PASS for selected boundary | `TRADABLE_UNIVERSE_SCOPE_V1`; exact `stock_sector_spot(indicator="新浪行业")` + `stock_sector_detail` path used |
+| LIVE_OBSERVED / T-close → T+1 | PASS precondition | T=`2026-08-31`, T+1=`2026-09-01`, observed after 15:00 BJT close |
+| provider / fallback provenance | BLOCKED at name consistency | `INPUT_CONFLICT` for symbol `000012`; later providers not reached |
+| immutable persistence / Drive backup / recovery | NOT APPLICABLE | no READY package existed; no bytes were eligible for persistence or upload |
+| deterministic input/generation identity | NOT CREATED | no complete manifest/package existed |
+| Final OOS / C / Phase 2F / tuning / promotion | PASS boundary | Final OOS sealed/unread; all prohibited paths untouched |
+
+Final decision: `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_INPUT_CONFLICT`.
+The machine-readable failure evidence is
+`data/governance/prospective_input_attempt_evidence_20260831.json`; it is explicitly
+not a frozen artifact. The failure classification is
+`INPUT_PROVIDER_DATA_CONSISTENCY_CONFLICT`, not provider connectivity. The original
+attempt did not record raw names or execution counts, so those fields remain explicitly
+unrecorded rather than being backfilled from the current diagnostic. The current
+read-only name diagnostic is
+[`current_capability_name_diagnostic_20260831.md`](current_capability_name_diagnostic_20260831.md)
+and is not prospective evidence. No `FROZEN_CANDIDATE_CONTRACT_V1` is created.
+
+## 2026-09-01 continuation audit — current provider dependency boundary
+
+> `LOCAL_CURRENT_SNAPSHOT_DIAGNOSTIC_NOT_PROSPECTIVE_EVIDENCE`
+
+The B source audit is now explicit. Exact six-digit symbol is the security/trading
+identity. Display names are not consumed by B for symbol joins, candidate selection,
+hard gates, trigger, stop, target, RR, score, final status or canonical identity; the
+active correction therefore adopts `DISPLAY_NAME_CONSISTENCY_POLICY_V2_SYMBOL_AUTHORITATIVE`
+and retains raw/normalized mismatch diagnostics in the V2 contract and generation identity.
+
+B does consume sector evidence: `sector_rank` and `sector_chg` feed the 85-score
+`strong_sector` and `sector_linkage` components, while missing evidence returns
+`INSUFFICIENT_DATA` through `SECTOR_EVIDENCE_COMPLETE`. Sector remains an executable
+required input; this audit does not authorize dropping it, shrinking the universe, or
+substituting EM/THS/SW taxonomy. The B spec SHA remains
+`5bbeb345ebd8883149138d2f29f8606f919949ae285aa2839fa337921dfc7112`.
+
+The fresh 2026-09-01 current-only probe passed the declared runtime and provider
+capability checks but found 5,221 scoped HiThink symbols versus 2,978 unique exact-Sina
+sector symbols. It reported 2,682 universe symbols without sector membership, 439 sector
+symbols outside the universe, and five distinct multi-sector symbols:
+`000587`, `000602`, `002217`, `002617`, `600714`. It found no exact duplicate symbol in
+that snapshot. These counts are not historical T=`2026-08-31` evidence and do not create
+a live package.
+
+Current decision is
+`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_SECTOR_MEMBERSHIP_AMBIGUITY`, with independent
+exact-Sina coverage failure. `NEEDS_MORE_EVIDENCE` remains the research decision for a
+future legitimate T-close response that is complete and unambiguous. No T=`2026-09-01`
+acquisition is run because PR #18 is not merged to clean master and the sector gate is
+unresolved. The detailed matrix is in
+[`b_dependency_audit_20260901.md`](b_dependency_audit_20260901.md); V1 audit/evidence is
+preserved unchanged.

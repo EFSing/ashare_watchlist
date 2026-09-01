@@ -23,7 +23,7 @@ prospective observation, does not create a watchlist, and does not create
 | timing | signal uses T close only; execution is the next XSHG session T+1 |
 | universe | exact T-date universe identity, source/version, explicit `TRADABLE_UNIVERSE_SCOPE_V1 = SH_SZ_A_SHARE_ONLY`, as-of date, file/content SHA and row identity |
 | sector semantics | explicit historical membership/taxonomy status; no current-data backfill or substitute taxonomy |
-| names | exact normalized/display-name mapping used for this T input; missing or conflicting names fail closed |
+| names | exact raw display-name values are retained for audit; comparison uses the fixed `DISPLAY_NAME_NORMALIZATION_NFKC_TRIM_EXPLICIT_ZERO_WIDTH_V1` rule; missing or substantively conflicting names fail closed |
 | market_env | canonical T-date market-environment identity and source/provenance |
 | provider/version | provider name, API/data version, acquisition timestamp, and dependency/runtime versions |
 | calendar | XSHG calendar identity, `Asia/Shanghai`, session-close evidence and T+1 session identity |
@@ -69,6 +69,13 @@ fail-closed.
 5. The first instance must be audited at the next
    `FROZEN_CANDIDATE_PREREQUISITES` decision point. Until then, the project remains
    at `development candidate` and no paper/live promotion is implied.
+
+Display-name normalization is deliberately limited to Unicode NFKC, removal of the
+explicit zero-width formatting code points `U+200B`, `U+200C`, `U+200D`, `U+2060`, and
+`U+FEFF`, and trimming leading/trailing whitespace. It does not remove `ST`/`*ST`, A/B
+markers, interior whitespace, suffixes, or other substantive characters. The raw universe
+and sector values remain in the package audit data; the normalization version is part of
+the candidate-bound generation identity and provenance.
 
 ## Explicit non-creation
 

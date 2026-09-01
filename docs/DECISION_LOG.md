@@ -444,3 +444,112 @@
   `KNOWN_DEVELOPMENT_VS_PROSPECTIVE_UNIVERSE_SCOPE_DIFFERENCE`，不自动推翻既有 decision。
 - consequence：PR #17 仍是现有 correction PR 的最后 hardening；合并前不获取真实
   prospective input，不生成 package/watchlist，不启动 C/Phase 2F，不调参，不读 Final OOS。
+
+## 2026-08-31 — First post-merge LIVE_OBSERVED acquisition attempt
+
+- context：PR #17 已按 actual expected head `ef48d192c7709a7194348369c689070c665da2b4`
+  squash merge，merge SHA 为 `91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b`；merge master
+  exact-head correctness run `33399324692` 成功。随后在同一合法 XSHG T-close window
+  用 fresh `observed_at_bjt=2026-08-31T22:01:28.307161+08:00` 执行正式 acquisition。
+- contract：T=`2026-08-31`，T+1=`2026-09-01`，`LIVE_OBSERVED`，scope/version 为
+  `SH_SZ_A_SHARE_ONLY` / `TRADABLE_UNIVERSE_SCOPE_V1`；universe/names 使用 HiThink
+  primary，sector 使用 AkShare 1.18.94 exact `新浪行业` spot/detail；没有复用此前失败
+  attempt、capability probe 或 partial response。
+- finding：在 exact Sina sector/member display-name consistency 阶段发现
+  `INPUT_CONFLICT: display-name conflict for 000012: universe/member`；quotes、Kline、
+  market_env、manifest、package、persistence 和 Drive recovery 均未执行。
+- decision：`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_INPUT_CONFLICT`；这是 required
+  name/provenance consistency conflict 的 fail-closed blocker，不是 provider
+  connectivity failure；不得用猜测映射、current data 或 taxonomy substitution 继续。
+- consequences：没有 `READY_FOR_STRATEGY_EVALUATION`、package/content/file SHA、byte
+  length、local logical path 或 Drive persistent recovery reference；没有 canonical
+  watchlist、prospective returns、C、Phase 2F、调参、paper/live trading 或 promotion。
+  不向 frozen artifact registry 添加伪 artifact；attempt evidence 另存为
+  `data/governance/prospective_input_attempt_evidence_20260831.json`，并明确
+  `not_a_frozen_artifact=true`。
+- invariants：B strategy/spec/threshold、`5bbeb345ebd8883149138d2f29f8606f919949ae285aa2839fa337921dfc7112`、
+  exact Sina taxonomy、SH/SZ scope/version、T-close/T+1、provider/fallback provenance、
+  monitoring/rollback、Final OOS sealed/unread 均不变。
+- next decision：在 provider/name consistency conflict 解决且新的合法 T-close window
+  到来后，重新获取全部 required inputs；在此之前保持该 input blocker，不构造 package，不创建
+  `FROZEN_CANDIDATE_CONTRACT_V1`。
+
+## 2026-08-31 — PR #18 display-name consistency conflict and minimal correctness fix
+
+- task classification：`correctness blocker`；这是输入/provider-data consistency
+  conflict，不是 provider connectivity failure，也不是新的 strategy research、Phase、
+  参数选择、Final OOS 或 promotion 任务。
+- historical correction：2026-08-31T22:01:28 的正式 attempt 保留
+  `INPUT_CONFLICT`、stage=`exact_sina_sector/display_name_consistency`、symbol=`000012`
+  和原始 detail；其 final decision 改为
+  `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_INPUT_CONFLICT`，分类为
+  `INPUT_PROVIDER_DATA_CONSISTENCY_CONFLICT`。原始 attempt 未保存 raw names 或执行
+  计数，故不以 current diagnostic 回填这些字段，也不把失败改写为成功。
+- current capability diagnostic：在不读取 returns、Final OOS 或策略结果的前提下，
+  重新读取完整当前 `SH_SZ_A_SHARE_ONLY` universe 与 exact Sina sector/member source。
+  HiThink universe 为 5,220 symbols，Sina definitions 为 49，完成 49 次 member call，
+  common symbols 为 2,539；2,492 个 raw names 一致，47 个 raw names 不一致。`000012`
+  的 raw universe name 为 `南玻Ａ`（`U+5357 U+73BB U+FF21`），raw sector name 为
+  `南 玻Ａ`（`U+5357 U+0020 U+73BB U+FF21`）。完整清单见
+  [`current_capability_name_diagnostic_20260831.md`](current_capability_name_diagnostic_20260831.md)。
+- decision：`ADOPT` 统一、预注册、语义安全的名称比较规则
+  `DISPLAY_NAME_NORMALIZATION_NFKC_TRIM_EXPLICIT_ZERO_WIDTH_V1`：只移除显式零宽
+  格式字符、执行 Unicode NFKC、trim 首尾 whitespace；raw universe/sector values
+  继续保留，symbol 仍是 security identity，normalization version 进入 generation
+  identity/provenance。`REJECT` 删除 ST/*ST、A/B 标记、内部 whitespace、listing suffix、
+  fuzzy/edit-distance、拼音或按 symbol 忽略实质分歧。
+- result：该规则消除 0 个当前 raw-name mismatch；47 个冲突 normalization 后仍不一致，
+  因而当前真实 blocker 为
+  `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_SUBSTANTIVE_NAME_CONFLICT`。adapter 继续
+  fail closed，并将 symbol、两边 raw/normalized names、universe count、sector
+  definition count 和 completed member calls 暴露为非 secret structured diagnostics。
+  该修复不产生 partial formal package。
+- invariants/next decision：B strategy/spec/threshold、`SH_SZ_A_SHARE_ONLY`、exact Sina
+  taxonomy、T-close/T+1、Final OOS sealed/unread、C exclusion、Phase 2F exclusion 和
+  no tuning 均不变。2026-09-01 白天只完成修复与 review；PR #18 完成 Sol review 并合并
+  到 clean master，且 XSHG 正式收盘后，才可运行新的 `T=2026-09-01` `LIVE_OBSERVED`
+  acquisition；不构造 T=`2026-08-31` package。
+
+## 2026-09-01 — B dependency audit, symbol-authoritative names, and sector gate
+
+- classification：`correctness blocker` + `product blocker`；任务只处理首个
+  candidate-bound prospective input 的可执行依赖与 cross-machine development path，
+  不启动新的 strategy research、参数选择、Phase 2F、C、Final OOS 或 promotion。
+- research question：B 的 display name、sector membership、`sector_name`、
+  `sector_rank`、`sector_chg` 是否真的进入 executable/output semantics；当前 exact
+  Sina provider 能否在不缩 universe、不替换 taxonomy、不回填历史的情况下满足它们。
+- materiality：该结论决定 PR #18 的 name correction 是否安全，以及 B 是否仍需完整
+  sector evidence 才能进入 frozen-candidate gate。停止条件是 source call graph、
+  field/gate matrix、provider coverage、duplicate 和 ambiguity 已明确；不因当前快照
+  发现新的分组或指标而扩大研究。
+- inputs：`scripts/b_breakout_retest.py`、`scripts/a_platform_breakout.py`、B
+  nomination/eligibility/prospective contract、PR #18 changes，以及 fresh `.venv`
+  的 read-only HiThink/AkShare probe。当前 payload 只在内存中读取，结果记录在
+  `docs/b_dependency_audit_20260901.md`，明确标记为
+  `LOCAL_CURRENT_SNAPSHOT_DIAGNOSTIC_NOT_PROSPECTIVE_EVIDENCE`。
+- source finding：exact six-digit symbol 是 security/trading identity；display name
+  不参与 symbol join、candidate selection、hard gates、trigger、stop、target、RR、
+  score、final status 或 B canonical identity。`sector_rank`/`sector_chg` 分别进入
+  B 85-score 的 `strong_sector`/`sector_linkage`，缺 sector evidence 返回
+  `INSUFFICIENT_DATA`，故 sector 仍是 `EXECUTABLE_REQUIRED`，不是 generic baggage。
+- decision：`ADOPT`
+  `DISPLAY_NAME_CONSISTENCY_POLICY_V2_SYMBOL_AUTHORITATIVE`。raw HiThink/Sina names
+  独立保留，registered normalization 只做 diagnostic；不 fuzzy reconcile、不生成
+  alias、不用名字 join/filter；policy/diagnostics 进入 active V2 contract、provenance
+  和 generation identity。V1 historical evidence 不改写。
+- current provider evidence：fresh preflight exact versions 全部 PASS；HiThink current
+  scope 为 5,221 symbols，exact Sina 为 49 definitions/49 member calls；sector audit
+  报告 2,682 个 universe symbols 缺 membership、439 个 sector symbols 在 universe 外、
+  47 个 raw-name mismatch（normalization resolve 0），以及 `000587`、`000602`、
+  `002217`、`002617`、`600714` 五个 distinct multi-sector memberships；当前无 exact
+  duplicate symbol。该事实随 provider snapshot 变化，不回填 2026-08-31。
+- decision：`NEEDS_MORE_EVIDENCE` for a future legitimate T-close exact-Sina response
+  that is complete and unambiguous for the full scope. Exact duplicate same-sector rows
+  may be deterministically deduplicated only with raw row/count provenance; distinct
+  sector memberships remain fail closed, with no silent drop/substitution/backfill。
+- current gate：
+  `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_SECTOR_MEMBERSHIP_AMBIGUITY`, with an
+  independent exact-Sina coverage failure. PR #18 remains unmerged; no T=`2026-08-31`
+  backfill and no T=`2026-09-01` acquisition/package is created in this task. Formal
+  Delivery Ladder remains `development candidate`; B eligibility remains
+  `CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`; Final OOS remains `SEALED / UNREAD`。

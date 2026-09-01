@@ -4,42 +4,49 @@
 
 ## 1. Current Objective
 
-- 当前工作对象：在已合并的 `origin/master=f1fed4608210aa175ac268189a8d7f032b0b88e0`
-  上完成首个 prospective T-close live acquisition，并审计 frozen-candidate prerequisites。
+- 当前工作对象：继续现有 PR #18（base `91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b`），
+  完成 display-name policy correction、B dependency source audit 和 fresh-machine
+  bootstrap，并保持该 PR OPEN 等待 Sol/user decision。
 - PR #12 已 merge；正式 Delivery Ladder 为 `development candidate`。
 - 该晋级只承认 deterministic daily generation → canonical watchlist → explicit
   fail-closed → provenance / versioning → monitoring / rollback 的受控产品路径，
   不承认 strategy promotion。
 - Scope：保留既有 Phase 2B input/timing contract 和 legacy evaluator semantics；不改变
   生产策略、数据、冻结 artifact 或 Phase 2F 研究结果。
-- 本次任务边界：adapter 已合并；本轮只执行首个真实 T-close acquisition 和
-  fail-closed prerequisite audit，不启动新的 strategy、phase 或 promotion 工作。
+- 本次任务边界：只修改 candidate-bound contract/policy、adapter diagnostics、exact
+  duplicate handling、bootstrap、tests 和治理记录；不启动真实 T-close acquisition，
+  不启动新的 strategy、phase 或 promotion 工作。
 - 禁止事项：不启动 Phase 2F；不读取 Final OOS；不 promotion；不调参；不把当前数据回填历史；不替换新浪历史行业 membership；不重跑已完成 CORE replay；不以“差不多”的新文件替代 frozen bytes。
-- 本轮结果：正式 master-baseline acquisition 在 AkShare sector membership 阶段因
-  `ConnectionError` fail closed；没有形成 `LIVE_OBSERVED` package，正式状态仍停在
-  `development candidate`，不据此 promotion 或进入 Final OOS。
+- 本轮历史结果：正式 master-baseline acquisition 在 exact Sina sector/member 阶段
+  因 `INPUT_CONFLICT` fail closed；该 blocker 是 input/provider-data consistency
+  conflict，不是 provider connectivity failure。没有形成 `LIVE_OBSERVED` package，
+  正式状态仍停在 `development candidate`，不据此 promotion 或进入 Final OOS。
+- 本轮 source audit 结果：B 不消费 display name；exact symbol 是 security identity，
+  因而采用 `DISPLAY_NAME_CONSISTENCY_POLICY_V2_SYMBOL_AUTHORITATIVE`。B 确实消费
+  sector membership/rank/change；当前 exact Sina snapshot 存在全 universe coverage
+  缺口和同一 symbol 多 sector 歧义，故当前 decision 为
+  `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_SECTOR_MEMBERSHIP_AMBIGUITY`。
 - 停止条件：出现 `PROJECT_GOVERNANCE_STATE_CONFLICT`、任一 required hash 不匹配、外部 raw artifact 无法证明为同一 bytes、或任务要求越过 research / OOS / promotion 边界。
 - CI provenance 规则：本文件只保存 `last verified CI provenance`，不要求也不允许把当前 commit 自己产生的 CI run 回写到同一 commit；每个新会话必须实时查询当前 branch、HEAD、`origin/master`、PR state、exact-head CI 和 working tree。
 
 ## 2. Current Repository State
 
 - repo：`EFSing/ashare_watchlist`；origin：`https://github.com/EFSing/ashare_watchlist.git`。
-- active product PR：`PR #15: MERGED`；当前 active governance follow-up 为 PR #16，
-  base=`f1fed4608210aa175ac268189a8d7f032b0b88e0`，具体 head/CI 仍按每次 intake
-  实时核对。PR #15 已按 expected head
-  `f0528744d9fe0add78436a543b15afa12c2e229e` squash merge，merge SHA 为
-  `f1fed4608210aa175ac268189a8d7f032b0b88e0`。merge 后 master correctness run
-  `33367655723` success，head 精确匹配 merge SHA。
+- active product PR：PR #17 已合并到正式 master
+  `91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b`；当前 active governance follow-up 为
+  PR #18，base=`master`/`91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b`，具体 head/CI
+  仍按每次 intake 实时核对。PR #17 merge master correctness run `33399324692`
+  success，head 精确匹配 merge SHA。
 - HISTORICAL_MILESTONE_IDENTITY：PR #9 产品章程与代理开发契约 squash merge `7a27484293cbcb791c6b8407949e9e71257e016b`；Phase 2E research baseline 仍为 `74ccf86…`。
 - HISTORICAL_MILESTONE_IDENTITY：PR #10 handoff consistency repair squash merge `11db387cc51a645c4491b39cbfa3e03e1228b6c4`。
 - HISTORICAL_MILESTONE_IDENTITY：PR #12 development-candidate gate squash merge
   `7dfb59b9f379c7d74f95c3e522fde55bcdf49ba1`；merge 后 master correctness run
   `33268086906` success，headSha 精确匹配该 merge commit。
-- last_verified_master_snapshot：`f1fed4608210aa175ac268189a8d7f032b0b88e0`；这是
-  PR #15 合并后的静态 provenance snapshot，不要求等于后续新会话 intake 时的 live HEAD。
+- last_verified_master_snapshot：`91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b`；这是
+  PR #17 合并后的静态 provenance snapshot，不要求等于后续新会话 intake 时的 live HEAD。
 - last_verified_branch：`master`；仅表示上述 snapshot 的来源，不是 current branch invariant。
-- last_verified_ci_provenance：master correctness run `33367655723`，
-  headSha=`f1fed4608210aa175ac268189a8d7f032b0b88e0`，success；仅是最近一次 CI
+- last_verified_ci_provenance：master correctness run `33399324692`，
+  headSha=`91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b`，success；仅是最近一次 CI
   证据，不是未来 live CI invariant。
 - live state gate：新会话必须实时执行 Git / GitHub 核验；current branch、HEAD、`origin/master`、active PR、exact-head CI 和 working tree 以实时结果为准。
 - expected working tree state：tracked working tree clean；`.pytest_cache/`、`__pycache__/` 和本机 `daily_k.parquet` 可被 `.gitignore` 忽略，但 `daily_k.parquet` 的 recovery identity 现在由 registry 记录的 Google Drive private archive member evidence 独立确认。Windows text checkout 的 CRLF SHA 若存在，以 registry 的 Git-blob `file_sha256` 为恢复身份。
@@ -74,19 +81,19 @@
 ### Frozen-candidate prerequisites decision
 
 1. `FROZEN_CANDIDATE_BLOCKED`：B 已通过冻结 eligibility，但首个真实
-   candidate-bound `LIVE_OBSERVED` T-close input instance 在正式 master-baseline
-   acquisition 中因 AkShare sector membership `ConnectionError` 未形成。
-2. 当前 P1 为 `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`，具体 fail-closed
-   原因为 `PROVIDER_FAILURE`；需要证明
-   `known_at <= T`、universe/sector/names/market_env、provider/version、calendar、
-   availability/recovery 和 output identity。
-3. 已定义 `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V1`，但不把
+   candidate-bound `LIVE_OBSERVED` T-close input instance 尚未形成；2026-08-31 的
+   formal attempt 仍保留原始 `INPUT_CONFLICT` 事实。
+2. 当前 P1 为 `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`，现阶段的精确
+   provider gate 是 `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_SECTOR_MEMBERSHIP_AMBIGUITY`
+   并伴随 exact-Sina coverage failure；不得缩 universe、丢弃 symbol、猜 sector、
+   用 EM/THS/SW 替代或 current-data backfill。
+3. 已定义 active `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V2`；V1
+   保持历史 evidence。V2 仅落实已完成 source audit 的 symbol-authoritative name
+   policy，保留 B required sector evidence/coverage/ambiguity/fail-closed 语义；不把
    contract 写成 live evidence，也不创建 `FROZEN_CANDIDATE_CONTRACT_V1`。
-4. 同一北京时间日期 T、正式收盘后的第二次独立 acquisition 已于
-   `2026-08-31T16:27:36.974203+08:00` 发起，但 AkShare universe read 在固定 3 次
-   transient retry 后仍为 `PROVIDER_FAILURE`；没有 package。保留两次失败，不自动
-   无限重试；后续只有在 provider 可用且得到新的明确运行授权时，才可重新完整采集。
-   跨到下一北京时间日后，当前 live provider 数据不得用于构造此前 T 的 package；
+4. fresh `.venv` 和 current read-only provider audit 已完成；Google Drive current
+   app connector probe 已完成 streamed-reference/upload-readback 验证，但 formal
+   `daily_k.parquet` recovery 未重新物化 hash。当前不运行 T=`2026-09-01` acquisition；
    不启动 Phase 2F、不调参、不读 Final OOS、不 promotion、不测试 C。
 
 ### Deferred
@@ -211,10 +218,12 @@
 
 1. formal Delivery Ladder 已为 `development candidate`；不把 product-ladder 晋级写成
    legacy strategy promotion。
-2. B eligibility 已形成 `CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`；等待唯一
-   `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`，不自动扩大研究。
-3. candidate-bound prospective input/provenance contract 已定义，但只有首个真实
-   package 通过后才重新判断 frozen candidate gate；当前不伪造 live instance。
+2. PR #18 在单一治理 PR 内记录 2026-08-31 failed attempt 的准确分类，并完成
+   display-name normalization / structured fail-closed diagnostic fix；B eligibility
+   仍为 `CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`，不自动扩大研究。
+3. candidate-bound prospective input/provenance contract 已定义，但只有 PR #18
+   完成 review/merge 后、2026-09-01 XSHG 正式收盘后的新真实 package 通过审计，才
+   重新判断 frozen candidate gate；当前不伪造 live instance。
 4. 历史新浪 membership 限制继续留在 FULL legacy validation scope；不升级为全局 blocker。
 5. 不自动启动 Phase 2F、不调参、不读 Final OOS、不 promotion。
 
@@ -453,3 +462,93 @@ Final OOS、不 merge。
 - invariants：B strategy/spec/threshold、冻结 historical artifact、Final OOS sealed
   status 和 T-close/T+1 semantics unchanged；当前没有 live package/watchlist 或新的
   prospective evidence。
+
+## 21. Post-merge first LIVE_OBSERVED acquisition attempt — 2026-08-31
+
+- PR #17 was squash-merged after final exact-head review: final PR head
+  `ef48d192c7709a7194348369c689070c665da2b4`; merge SHA
+  `91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b`.
+- Merge master correctness run `33399324692` completed `success` with exact
+  `headSha=91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b`.
+- A new independent formal acquisition used `T=2026-08-31`, `T+1=2026-09-01`,
+  `LIVE_OBSERVED`, and fresh `observed_at_bjt=2026-08-31T22:01:28.307161+08:00`.
+  It did not reuse the 15:21/16:27 attempts, capability probe, or partial responses.
+- The post-merge provider path reached exact Sina sector/member validation and failed
+  closed with `INPUT_CONFLICT: display-name conflict for 000012: universe/member`.
+  Quotes, stock/index Kline, market_env, READY manifest, package serialization,
+  persistence, Drive upload, and recovery read-back were not reached.
+- Final current decision is
+  `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_INPUT_CONFLICT`; the blocker is an
+  input/provider-data consistency conflict, not provider connectivity; no package hash, file
+  hash, byte length, local logical path, Drive reference, or recovery state exists.
+  No new frozen-artifact registry record was fabricated; the compact attempt evidence
+  is `data/governance/prospective_input_attempt_evidence_20260831.json` and is marked
+  `not_a_frozen_artifact=true`.
+- B strategy/spec/thresholds, scope/version, T-close/T+1, fail-closed, provenance,
+  monitoring/rollback, Final OOS sealed/unread, C exclusion, Phase 2F exclusion,
+  and no-tuning/no-promotion boundaries remain unchanged.
+
+## 22. PR #18 — display-name consistency blocker diagnosis and minimal fix
+
+- task classification：`correctness blocker`；不是新的 strategy research、Phase、参数选择、
+  Final OOS 或 promotion。
+- historical correction：2026-08-31T22:01:28 的 attempt 保留原始失败事实
+  `INPUT_CONFLICT` / `display-name conflict for 000012: universe/member`，但最终分类
+  修正为 `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_INPUT_CONFLICT`，类别为
+  `INPUT_PROVIDER_DATA_CONSISTENCY_CONFLICT`；provider connectivity 明确为 false。
+  原始 attempt 未记录 raw names/counts，不用 current diagnostic 回填。
+- current diagnostic：完整当前 `SH_SZ_A_SHARE_ONLY` universe 为 5,220 symbols；exact
+  Sina definitions 49，completed member calls 49；common symbols 2,539，其中 exact
+  raw-name matches 2,492，raw-name mismatches 47。固定
+  `DISPLAY_NAME_NORMALIZATION_NFKC_TRIM_EXPLICIT_ZERO_WIDTH_V1` 消除 0 个冲突；
+  所有 47 个在 normalization 后仍不一致，故当前真实 blocker 为
+  `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_SUBSTANTIVE_NAME_CONFLICT`。完整 raw/code-point
+  清单见 `docs/current_capability_name_diagnostic_20260831.md`；该文件不是 prospective
+  evidence。
+- implementation：live adapter 保留 universe/sector raw display names，只比较固定
+  normalized values；symbol 仍是 security identity；normalization version 进入
+  generation identity/provenance；name conflict 暴露 symbol、两边 raw/normalized name、
+  universe count、sector definition count 和 completed member calls 等非 secret diagnostics。
+  无 partial formal package persistence。
+- invariants/next gate：B strategy/spec/threshold、`SH_SZ_A_SHARE_ONLY`、exact Sina
+  taxonomy、T-close/T+1、Final OOS sealed/unread、C/Phase 2F exclusion 和 no tuning 均不变。
+  2026-09-01 白天只完成修复/review；PR #18 Sol review/merge 后，且 XSHG 正式收盘，才
+  允许新的 `T=2026-09-01`, `LIVE_OBSERVED` acquisition；绝不构造 T=`2026-08-31` package。
+
+## 23. 2026-09-01 continuation — B dependency audit and fresh-machine handoff
+
+- task classification：`correctness blocker` + `product blocker`；不启动 strategy、
+  Phase 2F、C、Final OOS、tuning、promotion 或 T-close acquisition。
+- source decision：B 不消费 display name for join/selection/gates/trigger/stop/target/
+  RR/score/status/canonical identity；exact symbol 是 security identity。B 确实消费
+  sector membership/evidence、`sector_rank` 和 `sector_chg`，后两者进入 B 85-score，
+  missing evidence 返回 `INSUFFICIENT_DATA`。详细 matrix 见
+  [`docs/b_dependency_audit_20260901.md`](docs/b_dependency_audit_20260901.md)。
+- policy decision：`ADOPT`
+  `DISPLAY_NAME_CONSISTENCY_POLICY_V2_SYMBOL_AUTHORITATIVE`；raw names 独立保留，
+  registered normalization 只做 diagnostics，不 fuzzy reconcile、不生成 alias、不用
+  name join/filter。active contract 为
+  `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V2`，V1 保持历史 evidence。
+- current provider diagnostic：fresh preflight exact dependency versions PASS；HiThink
+  5,221 scoped symbols，exact Sina 49 definitions/49 member calls；sector audit 当前
+  2,682 universe symbols 缺 membership、439 sector symbols outside universe、47 name
+  mismatches（normalization resolve 0）、5 distinct multi-sector symbols
+  (`000587`,`000602`,`002217`,`002617`,`600714`)，exact duplicate symbol 为 0。结果
+  明确标记为 `LOCAL_CURRENT_SNAPSHOT_DIAGNOSTIC_NOT_PROSPECTIVE_EVIDENCE`，不回填
+  2026-08-31。
+- current gate：`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_SECTOR_MEMBERSHIP_AMBIGUITY`
+  并伴随 exact-Sina coverage failure；`NEEDS_MORE_EVIDENCE` 只针对 future legitimate
+  T-close 的 complete/unambiguous sector response。不得丢 symbol、缩 universe、猜
+  sector、换 taxonomy 或写入 partial package。
+- fresh-machine status：workspace-local `.venv` rebuilt from `pyproject.toml` with
+  `.[test,research]`; runtime and preflight PASS. Codex app Drive profile、formal backup
+  metadata/raw streamed read reference 和 temporary upload/readback/delete probe PASS；
+  formal `daily_k.parquet` byte-level recovery hash 未在本轮重新物化，因此不升级其
+  existing recovery claim。
+- live snapshot before this governance change：branch
+  `codex/prospective-input-blocker-evidence-20260831`，HEAD/PR #18 head
+  `dc358ca3456d1aba7704513c309e165b24309f11`，base/`origin/master`
+  `91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b`，PR `OPEN/CLEAN/MERGEABLE`；exact-head
+  correctness runs `33407668273` and `33407662674` were `success` at that snapshot.
+  This is persisted pre-change provenance; final live head/CI must be re-queried after
+  the governance commit/push.

@@ -453,13 +453,164 @@ def test_empty_sector_membership_fails_closed():
     assert ak.member_calls == ["new_bank"]
 
 
-def test_sector_member_name_conflict_fails_closed():
+def test_sector_member_name_mismatch_is_symbol_authoritative_diagnostic():
     ak = FakeAkShare(members=[{"代码": SYMBOL, "名称": "另一名称"}])
+    package = _acquire(akshare_module=ak)
+
+    assert ak.member_calls == ["new_bank"]
+    assert package.generation_input_manifest.status == "READY_FOR_STRATEGY_EVALUATION"
+    assert package.display_names == {SYMBOL: "测试股份"}
+    assert package.provenance["display_name_consistency_policy"]["version"] == (
+        live.DISPLAY_NAME_CONSISTENCY_POLICY
+    )
+    assert package.provenance["display_name_diagnostics"]["mismatch_count"] == 1
+    assert package.provenance["display_name_diagnostics"]["mismatches"][0] == {
+        "symbol": SYMBOL,
+        "sector_code": "new_bank",
+        "sector_name": "银行",
+        "universe_raw_name": "测试股份",
+        "sector_raw_name": "另一名称",
+        "normalized_universe_name": "测试股份",
+        "normalized_sector_name": "另一名称",
+        "universe_name_code_points": "U+6D4B U+8BD5 U+80A1 U+4EFD",
+        "sector_name_code_points": "U+53E6 U+4E00 U+540D U+79F0",
+        "normalization_version": live.DISPLAY_NAME_NORMALIZATION_VERSION,
+        "policy_version": live.DISPLAY_NAME_CONSISTENCY_POLICY,
+        "universe_count_reached": 1,
+        "sector_definition_count_reached": 1,
+        "completed_sector_member_calls": 1,
+    }
+
+
+@pytest.mark.parametrize(
+    ("universe_name", "sector_name"),
+    [
+        ("ＡＢＣ", "ABC"),
+        ("  测试股份  ", "测试股份"),
+        ("测\u200b试股份", "测试股份"),
+        ("测试股份", "测试股份"),
+    ],
+)
+def test_display_name_normalization_accepts_only_registered_representation_variants(
+    universe_name, sector_name
+):
+    assert live.normalize_display_name(universe_name) == live.normalize_display_name(sector_name)
+
+
+def _custom_name_universe(name):
+    return [
+        {
+            "thscode": "600519.SH",
+            "ticker": SYMBOL,
+            "name": name,
+            "exchange": "SH",
+            "asset_type": "a-share",
+        }
+    ]
+
+
+def test_normalized_name_match_preserves_raw_names_and_symbol_identity():
+    package = _acquire(
+        hithink_client=FakeHiThink(universe=_custom_name_universe(" 测试Ａ股 ")),
+        akshare_module=FakeAkShare(members=[{"代码": SYMBOL, "名称": "测试A股"}]),
+    )
+
+    assert package.display_names == {SYMBOL: " 测试Ａ股 "}
+    assert package.generation_input_manifest.universe.symbols == (SYMBOL,)
+    assert package.generation_input_manifest.sector.rank_input[0]["display_name"] == "测试A股"
+    assert package.generation_identity_payload["display_name_normalization"]["version"] == (
+        live.DISPLAY_NAME_NORMALIZATION_VERSION
+    )
+    assert package.provenance["display_name_normalization"]["version"] == (
+        live.DISPLAY_NAME_NORMALIZATION_VERSION
+    )
+
+
+@pytest.mark.parametrize(
+    ("universe_name", "sector_name"),
+    [
+        ("ST测试", "*ST测试"),
+        ("南玻Ａ", "南 玻Ａ"),
+        ("测试股份", "另一家中国公司"),
+    ],
+)
+def test_substantive_name_difference_is_retained_as_diagnostic_without_identity_gate(
+    universe_name, sector_name
+):
+    package = _acquire(
+        hithink_client=FakeHiThink(universe=_custom_name_universe(universe_name)),
+        akshare_module=FakeAkShare(members=[{"代码": SYMBOL, "名称": sector_name}]),
+    )
+
+    assert package.generation_input_manifest.status == "READY_FOR_STRATEGY_EVALUATION"
+    assert package.display_names == {SYMBOL: universe_name}
+    diagnostic = package.provenance["display_name_diagnostics"]["mismatches"][0]
+    assert diagnostic["universe_raw_name"] == universe_name
+    assert diagnostic["sector_raw_name"] == sector_name
+    assert diagnostic["normalized_universe_name"] != diagnostic["normalized_sector_name"]
+
+
+def test_exact_duplicate_sector_row_is_deduplicated_and_retained_in_diagnostics():
+    ak = FakeAkShare(
+        members=[
+            {"代码": SYMBOL, "名称": "测试股份"},
+            {"代码": SYMBOL, "名称": "测试股份"},
+        ]
+    )
+
+    package = _acquire(akshare_module=ak)
+
+    assert package.generation_input_manifest.sector.rank_input == [
+        {
+            "symbol": SYMBOL,
+            "display_name": "测试股份",
+            "display_name_normalized": "测试股份",
+            "universe_display_name": "测试股份",
+            "universe_display_name_normalized": "测试股份",
+            "sector_code": "new_bank",
+            "sector_name": "银行",
+            "sector_rank": 1,
+            "sector_chg": 1.5,
+        }
+    ]
+    quality = package.provenance["sector_membership_quality"]
+    assert quality["duplicate_row_count"] == 1
+    assert quality["duplicate_rows"][0]["classification"] == "EXACT_DUPLICATE_PROVIDER_ROW"
+    assert quality["duplicate_rows"][0]["raw_row"] == {"代码": SYMBOL, "名称": "测试股份"}
+
+
+def test_same_symbol_in_multiple_sectors_fails_closed_with_structured_diagnostics():
+    ak = FakeAkShare(
+        definitions=[
+            {"label": "new_bank", "板块": "银行", "涨跌幅": 1.5},
+            {"label": "new_insurance", "板块": "保险", "涨跌幅": 1.0},
+        ]
+    )
+
     with pytest.raises(live.LiveAcquisitionError) as caught:
         _acquire(akshare_module=ak)
 
     assert caught.value.status == live.INPUT_CONFLICT
-    assert ak.member_calls == ["new_bank"]
+    assert caught.value.diagnostics["symbol"] == SYMBOL
+    assert {item["sector_code"] for item in caught.value.diagnostics["memberships"]} == {
+        "new_bank",
+        "new_insurance",
+    }
+
+
+def test_normalized_display_name_identity_is_deterministic():
+    first = _acquire(
+        hithink_client=FakeHiThink(universe=_custom_name_universe(" 测试Ａ股 ")),
+        akshare_module=FakeAkShare(members=[{"代码": SYMBOL, "名称": "测试A股"}]),
+    )
+    second = _acquire(
+        hithink_client=FakeHiThink(universe=_custom_name_universe(" 测试Ａ股 ")),
+        akshare_module=FakeAkShare(members=[{"代码": SYMBOL, "名称": "测试A股"}]),
+    )
+
+    assert first.generation_fingerprint == second.generation_fingerprint
+    assert first.content_sha256 == second.content_sha256
+    assert first.to_bytes() == second.to_bytes()
 
 
 def test_stale_t_quote_fails_closed():
