@@ -592,3 +592,40 @@
   `5bbeb345ebd8883149138d2f29f8606f919949ae285aa2839fa337921dfc7112`、Final OOS
   `SEALED / UNREAD`、no-backfill/no-future、C/Phase 2F/promotion exclusions remain
   unchanged。
+
+## 2026-09-01 — B frozen spec text conflict blocks semantic repair
+
+- context：本轮按既定 closure 指令重新读取 exact V0 source，并在修复 evaluator 前核对
+  current B semantic spec。任务分类仍为 `correctness blocker` + `product blocker`，
+  不是 strategy research、参数选择、Phase 2F、C、Final OOS 或 promotion。
+- exact V0 evidence：指定
+  `EFSing/ashare_watchlist-V0@c8406c393c0b135eafb0aec763576ae869fddcff` 的
+  `get_sectors()` 以 spot `label` iteration、detail member row iteration 和
+  `mapping[symbol] = name` 构成 provider-order last-write-wins；主流程
+  `sec_map.get(code, "-")`、`sec_rank_map.get(sec_name, 50)`、
+  `sec_chg_map.get(sec_name, 0.0)` 对缺失 sector 采用 exact legacy tuple，并继续
+  `analyze()`。该事实支持 `LEGACY_PROVIDER_ORDER_LAST_WRITE_WINS_V1` 与
+  `("-", 50, 0.0)`，不支持当前 `INSUFFICIENT_DATA` 分支。
+- spec finding：当前 B `LEGACY_SPEC` 继承的 sector evidence contract 明确包含
+  `silent_fallback=False` 和 `missing_status=INSUFFICIENT_DATA`。这不是只存在于
+  package-level contract 的解释差异，而是 frozen executable spec text conflict。
+- decision：`B_FROZEN_SPEC_TEXT_CONFLICT`。不在本轮修改 B evaluator、live contract、
+  strategy version、B spec SHA 或旧 eligibility artifact；停止在 Sol review，不继续
+  T-close acquisition。只有先解决 spec text / frozen identity 决策后，才可重新审计
+  eligibility call path。
+- independent provenance finding：指定 commit 的 Git blob
+  `ashare_watchlist/scripts/screen_system.py` SHA-256 为
+  `843935d9b86ec05af848ee8cc54812334475e3d17807cb93349a02c84896417a`，与现有声明
+  `6cac746123e315199cbeeb1a612868ef77b50af6c7c64b0d80eb387ae1d19f9` 不一致。根据
+  governance contract，不覆盖旧身份，另标记 `PROJECT_GOVERNANCE_STATE_CONFLICT` /
+  `UNKNOWN_ORIGIN`，交由 Sol review。
+- eligibility：按上述 mandated stop condition，既有 17,714-event artifact 尚未完成
+  affected/unaffected call-path audit；状态为
+  `EXISTING_B_ELIGIBILITY_ARTIFACT_AFFECTED=UNRESOLVED`。没有把旧 bytes 标记为
+  superseded，没有重跑 eligibility，没有生成 corrected artifact。
+- live provenance：本地 closure branch rebase 后 HEAD=
+  `3d5f3b185f95a8215eed3eb0a88a54e568333acc`，`origin/master`=
+  `fc0698c20fb3e7909090cf5073c59d1a2dd710f3`；GitHub open PR=0，PR #18 merge SHA=
+  `17371fde39a6b24241532b131caf5927cb9b8933`，merge exact-head run `33476256589`
+  success。closure branch push 被安全审查拒绝，故 remote branch protection remains
+  `REMOTE_PROTECTION_NOT_ESTABLISHED`；没有使用替代路径外发内部治理/诊断证据。

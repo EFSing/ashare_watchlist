@@ -415,3 +415,28 @@ Phase 2F, promotion, or Final OOS read was performed. Final OOS remains
 
 Closure evidence and the machine-readable decision are in
 [`sector_provenance_closure_20260901.md`](sector_provenance_closure_20260901.md).
+
+## 2026-09-01 continuation — frozen B spec text conflict
+
+本轮继续核对指定 V0 commit 后发现，当前 B executable spec 不能直接进入语义修复：
+`scripts/b_breakout_retest.py` 的 `LEGACY_SPEC["input_contract"]["sector_evidence"]`
+明确声明 `silent_fallback=False` 与 `missing_status=INSUFFICIENT_DATA`，而 exact V0
+在缺失 sector 时使用 `("-", 50, 0.0)` 并继续评估。因此当前正式 stop state 为
+`B_FROZEN_SPEC_TEXT_CONFLICT`，需 Sol review；不能静默改 evaluator 后继续使用原
+spec SHA，也不继续 T-close acquisition。
+
+本次 live intake：closure branch rebase 后 HEAD 为
+`3d5f3b185f95a8215eed3eb0a88a54e568333acc`，`origin/master` 为
+`fc0698c20fb3e7909090cf5073c59d1a2dd710f3`；open PR 为 0，PR #18 已 merge 到
+`17371fde39a6b24241532b131caf5927cb9b8933`，merge exact-head run `33476256589`
+成功。closure branch 未能推送到 origin，remote protection 为
+`REMOTE_PROTECTION_NOT_ESTABLISHED`；未通过替代路径外发内部治理/诊断证据。
+
+另一个独立的 frozen identity audit 发现，指定 V0 commit 的 Git blob SHA 为
+`843935d9b86ec05af848ee8cc54812334475e3d17807cb93349a02c84896417a`，而现有声明为
+`6cac746123e315199cbeeb1a612868ef77b50af6c7c64b0d80eb387ae1d19f9`；原声明未覆盖，
+因此同时保持 `PROJECT_GOVERNANCE_STATE_CONFLICT` / `UNKNOWN_ORIGIN`，不继续生成。
+旧 17,714-event eligibility artifact 尚未审计，
+`EXISTING_B_ELIGIBILITY_ARTIFACT_AFFECTED=UNRESOLVED`；没有 supersede 标记、corrected
+artifact、contract 修改或 `T=2026-09-01` capture。Formal Delivery Ladder 仍为
+`development candidate`，B eligibility decision 和旧 frozen bytes 均未改写。

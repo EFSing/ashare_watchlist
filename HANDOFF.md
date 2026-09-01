@@ -588,3 +588,35 @@ Final OOS、不 merge。
   `data/validation/continuous_speed_probe/` 未读取、未修改、未删除。该 closure 只
   新增 governance evidence，后续交接前需重新核对 branch/HEAD/origin/master/PR/CI
   和 final checks。
+
+## 25. 2026-09-01 continuation — frozen B spec text conflict
+
+- classification：`correctness blocker` + `product blocker`；任务分类未改变。
+- live intake：本地 branch 为 `codex/sector-provenance-closure-20260901`，rebase 后
+  HEAD=`3d5f3b185f95a8215eed3eb0a88a54e568333acc`，`origin/master`=
+  `fc0698c20fb3e7909090cf5073c59d1a2dd710f3`；tracked working tree clean，既有未跟踪
+  `data/validation/continuous_speed_probe/` 未触碰。GitHub open PR 为 0；PR #18 已以
+  `17371fde39a6b24241532b131caf5927cb9b8933` 合并，merge exact-head correctness run
+  `33476256589` success。
+- closure branch protection：本地 closure evidence 已保留并 rebase；推送到 origin
+  被安全审查拒绝，故 remote branch 未创建，状态为 `REMOTE_PROTECTION_NOT_ESTABLISHED`。
+  不通过其他路径外发内部治理/诊断证据。
+- exact V0 finding：指定 commit 的 `get_sectors()` 按 spot `label` 顺序逐一读取
+  `stock_sector_detail()`，按返回 member 行顺序执行 `mapping[symbol] = name`；主流程
+  对缺失映射使用 `sec_name="-"`、`sec_rank=50`、`sec_chg=0.0`，继续调用
+  `analyze()`。因此 multi-sector 是 provider traversal order 下
+  `LEGACY_PROVIDER_ORDER_LAST_WRITE_WINS_V1`。
+- blocking conflict：当前 `scripts/b_breakout_retest.py` 继承的 executable
+  `LEGACY_SPEC["input_contract"]["sector_evidence"]` 明确写有
+  `silent_fallback=False`、`missing_status=INSUFFICIENT_DATA`。该 frozen spec text
+  与 exact V0 不一致，当前 stop state 为 `B_FROZEN_SPEC_TEXT_CONFLICT`；没有修改
+  evaluator、contract、strategy/spec SHA 或旧 eligibility bytes，也没有继续 T-close。
+- independent identity note：从指定 V0 commit 读取的 Git blob
+  `ashare_watchlist/scripts/screen_system.py` SHA-256 为
+  `843935d9b86ec05af848ee8cc54812334475e3d17807cb93349a02c84896417a`，而现有 frozen
+  declaration 为 `6cac746123e315199cbeeb1a612868ef77b50af6c7c64b0d80eb387ae1d19f9`；
+  原 declaration 未覆盖，状态为 `PROJECT_GOVERNANCE_STATE_CONFLICT` / identity
+  unresolved，需 Sol review。
+- eligibility audit：按 mandated stop condition 尚未审计 17,714-event artifact，故
+  `EXISTING_B_ELIGIBILITY_ARTIFACT_AFFECTED=UNRESOLVED`；未标记旧 artifact superseded，
+  未生成 corrected artifact，未运行 `T=2026-09-01` capture。
