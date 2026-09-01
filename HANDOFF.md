@@ -552,3 +552,39 @@ Final OOS、不 merge。
   correctness runs `33407668273` and `33407662674` were `success` at that snapshot.
   This is persisted pre-change provenance; final live head/CI must be re-queried after
   the governance commit/push.
+
+## 24. 2026-09-01 sector-provenance closure
+
+- classification：`correctness blocker` + `product blocker`；不启动新的 strategy、
+  Phase 2F、C、Final OOS、tuning、promotion 或 formal T-close acquisition。
+- live Git/GitHub：PR #18 已针对 actual head
+  `0bfe7d1e012ad5213b82b5bbfe42776e5f3a0652` 完成 exact-head review，并 squash merge
+  到 `master`，merge SHA=`17371fde39a6b24241532b131caf5927cb9b8933`。merge 后 push
+  correctness run `33476256589` 在 exact merge SHA 成功。当前 closure branch 是从该
+  merged `origin/master` 创建的 `codex/sector-provenance-closure-20260901`；当前
+  HEAD 为该 local unpublished governance commit，`origin/master`=
+  `17371fde39a6b24241532b131caf5927cb9b8933`。该治理 commit 尚未 push，没有新 PR，
+  因为本轮没有发现可安全合并的 code correction；最终 live SHA 以交接时 Git
+  snapshot 为准。
+- source semantics：精确读取 V0
+  `EFSing/ashare_watchlist-V0@c8406c393c0b135eafb0aec763576ae869fddcff` 后确认，
+  missing sector 在 V0 是 `("-", 50, 0.0)` 默认并继续 B；multi-sector 是 provider
+  sector iteration 下 last-write-wins。当前 B evaluator 对 missing evidence 返回
+  `INSUFFICIENT_DATA`，因此不是仅有 package-level hardening，而是 evaluator-level
+  exact reconstruction difference。
+- exact-source parity：AkShare `1.18.94` 与 Sina raw endpoint 对 49/49 definitions
+  完成逐 sector 审计；raw/wrapper rows 都为 2,983，unique symbols 为 2,978，49 个
+  row-count/边界均一致，parse/call/duplicate error 为 0。count endpoint 的低报只
+  形成 provider consistency diagnostic，当前没有可安全合并的 wrapper 修复。
+- coverage diagnostic：current `SH_SZ_A_SHARE_ONLY` 为 5,221；sector common 2,539；
+  missing 2,682；outside-scope 439；distinct multi-sector 五个为
+  `000587`,`000602`,`002217`,`002617`,`600714`。listing date/status 不在当前
+  HiThink response，未推断 cohort、delisting 或 code reuse。
+- final decision：`B_RECONSTRUCTION_SEMANTIC_MISMATCH`。Model S/V3 不采用；不修改
+  B/spec/threshold、sector taxonomy、universe scope、name policy 或 provider wrapper。
+  formal `T=2026-09-01` capture=`NOT_RUN`；没有 READY manifest、package、watchlist 或
+  prospective result。详见 [`docs/sector_provenance_closure_20260901.md`](docs/sector_provenance_closure_20260901.md)。
+- worktree boundary：既有未跟踪 user directory
+  `data/validation/continuous_speed_probe/` 未读取、未修改、未删除。该 closure 只
+  新增 governance evidence，后续交接前需重新核对 branch/HEAD/origin/master/PR/CI
+  和 final checks。

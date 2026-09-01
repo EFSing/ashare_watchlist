@@ -384,10 +384,34 @@ provenance; distinct sector memberships remain fail closed. No partial formal pa
 is persisted. The source audit confirms B consumes sector evidence/rank/change, so the
 sector requirement remains executable and cannot be relaxed or substituted.
 
-The current decision is
+At the pre-merge snapshot, the decision was
 `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_SECTOR_MEMBERSHIP_AMBIGUITY`, with independent
 exact-Sina coverage failure. The active contract is
 `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V2`; V1 remains historical.
-PR #18 has not been merged, so no T=`2026-08-31` or T=`2026-09-01` package may be
-constructed in this task. The full source matrix and current snapshot audit are in
+At that snapshot, PR #18 had not been merged, so no T=`2026-08-31` or T=`2026-09-01`
+package had been constructed. The full source matrix and current snapshot audit are in
 [`b_dependency_audit_20260901.md`](b_dependency_audit_20260901.md).
+
+## 2026-09-01 sector-provenance closure — current status
+
+Formal Delivery Ladder remains `development candidate`. PR #18 is now merged at
+`17371fde39a6b24241532b131caf5927cb9b8933`; exact merge push correctness run
+`33476256589` succeeded. The current closure branch was created from that clean
+merged master.
+
+The current blocker is `B_RECONSTRUCTION_SEMANTIC_MISMATCH`: exact V0 missing-sector
+behavior defaults to `("-", 50, 0.0)` and continues evaluation, while the current B
+evaluator returns per-symbol `INSUFFICIENT_DATA`. The current V2 live adapter also
+has package-level full-coverage and distinct-multi-sector fail-close rules; these
+are recorded separately and are not treated as proof that Model S/V3 is adopted.
+
+Current exact-Sina diagnostics remain non-prospective: 49/49 definitions audited,
+2,983 raw and wrapper rows, 2,978 raw unique symbols, 2,682 scoped-universe symbols
+without membership, 439 outside-scope symbols, and five distinct multi-sector
+symbols. No safe wrapper correction was found. No formal `LIVE_OBSERVED` T-close
+capture, READY manifest, package, canonical watchlist, prospective result, C,
+Phase 2F, promotion, or Final OOS read was performed. Final OOS remains
+`SEALED / UNREAD`.
+
+Closure evidence and the machine-readable decision are in
+[`sector_provenance_closure_20260901.md`](sector_provenance_closure_20260901.md).

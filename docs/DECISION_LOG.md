@@ -553,3 +553,42 @@
   backfill and no T=`2026-09-01` acquisition/package is created in this task. Formal
   Delivery Ladder remains `development candidate`; B eligibility remains
   `CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`; Final OOS remains `SEALED / UNREAD`。
+
+## 2026-09-01 — Sector provenance closure and exact B semantic stop
+
+- classification：`correctness blocker` + `product blocker`。这是对现有 candidate-bound
+  input gate 的 closure，不是新的 strategy research、Phase、参数选择、C、Final OOS
+  或 promotion。
+- research question / materiality：V0 的 missing-sector 与 multi-sector 行为是否被
+  当前 B evaluator 和 V2 live contract 精确保留；AkShare `1.18.94` 是否相对 exact
+  Sina raw endpoint 造成当前 2,682 missing symbols；以及当前 package-level fail-close
+  能否直接解释为 per-symbol Model S。结果会决定是否允许进入合法 T-close capture，
+  因而属于 correctness/product gate，而非可忽略的分组研究。
+- inputs：V0 exact source
+  `EFSing/ashare_watchlist-V0@c8406c393c0b135eafb0aec763576ae869fddcff`，当前
+  `scripts/b_breakout_retest.py`、`scripts/a_platform_breakout.py`、generation/live
+  contract，AkShare `1.18.94` installed source，以及 2026-09-01 current HiThink/Sina
+  in-memory responses。未读取 Final OOS，未使用 2026-08-31 partial attempt 回填。
+- stop condition：只在 source semantics、provider parity、coverage decomposition、
+  five multi-sector identities、package/per-symbol distinction 都明确后停止；若
+  evaluator 偏离 exact frozen B，则不得修 B 或继续 T-close capture。
+- finding：V0 missing sector 使用 `("-",50,0.0)` 继续 B，multi-sector 为 provider
+  order 下 last-write-wins；current B missing evidence 返回 `INSUFFICIENT_DATA`，
+  且绕过 adapter 的 ambiguous manifest 会取第一条有效记录。V2 adapter 的完整覆盖
+  与 distinct multi-sector package fail-close 是额外的 input-integrity hardening。
+- provider decision：`EXACT_SINA_CURRENT_SOURCE_INTRINSICALLY_INCOMPLETE`；同时
+  `REJECT` `EXACT_SINA_AKSHARE_WRAPPER_INCOMPLETE`。49/49 exact definitions 的
+  raw/wrapper member rows、per-sector counts/boundaries 均一致；当前 source coverage
+  shortfall 不是已证实的 wrapper parsing/pagination 漏抓。count endpoint
+  under-reporting 保留为 future provider-consistency diagnostic，当前不改 wrapper。
+- final decision：`B_RECONSTRUCTION_SEMANTIC_MISMATCH`。不采用 Model S/V3，不改变
+  B/spec/threshold/taxonomy/scope/name policy，不生成 partial package。formal
+  `LIVE_OBSERVED` capture=`NOT_RUN`；Delivery Ladder 仍为 `development candidate`。
+  详细 evidence、5-symbol table、2,682 decomposition 和 machine-readable record 见
+  [`sector_provenance_closure_20260901.md`](sector_provenance_closure_20260901.md)。
+- invariants：PR #18 merge SHA 为
+  `17371fde39a6b24241532b131caf5927cb9b8933`，exact merge correctness run
+  `33476256589` success；B spec SHA
+  `5bbeb345ebd8883149138d2f29f8606f919949ae285aa2839fa337921dfc7112`、Final OOS
+  `SEALED / UNREAD`、no-backfill/no-future、C/Phase 2F/promotion exclusions remain
+  unchanged。
