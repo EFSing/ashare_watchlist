@@ -629,3 +629,41 @@
   `17371fde39a6b24241532b131caf5927cb9b8933`，merge exact-head run `33476256589`
   success。closure branch push 被安全审查拒绝，故 remote branch protection remains
   `REMOTE_PROTECTION_NOT_ESTABLISHED`；没有使用替代路径外发内部治理/诊断证据。
+
+## 2026-09-01 — B candidate identity/provenance closure
+
+- classification：`correctness blocker` + `product blocker`；本条 closure 不启动新的
+  strategy、Phase、参数选择、C、Final OOS、T-close acquisition 或 eligibility replay。
+- research question：指定 V0 source identity 是否可在不混淆 Git object、raw file 和
+  Windows line-ending hash 的前提下验证；以及 PR #14 的 B spec sector semantics 是否是
+  exact V0 reconstruction，还是未授权的 generic hardening inheritance。
+- materiality：这两个结论直接决定是否可以使用当前 `B_BREAKOUT_RETEST_LEGACY_V1`
+  identity 进入后续 frozen-candidate decision；hash/provenance 或 missing-sector 语义
+  错误会污染候选身份，因此是 P0/P1 correctness gate，不是普通 research improvement。
+- inputs / stop：只用 V0 commit/path/raw bytes、current repository history、PR #14 tree,
+  source tests、nomination/spec/eligibility docs 和已冻结 development manifest/event
+  evidence；不读取 Final OOS、不获取新数据、不运行 replay。完成 raw-vs-CRLF identity、
+  spec creation lineage、V0-vs-spec matrix、Case A/B/C 判定和 artifact call-path audit
+  后停止。
+- identity finding / decision：remote `EFSing/ashare_watchlist-V0@c8406c…` 的 exact raw
+  file SHA-256 为 `843935d9…`。测试过的 LF-to-CRLF 变体为合法 64 字符值
+  `6cac7461…d19f9`，但历史声明值为 63 字符 `6cac7461…d19f9`，二者不相等；
+  Git blob OID=`ede1ee…`、object format=`sha1` 是独立 identity。决定：
+  `NEEDS_MORE_EVIDENCE`；不改 declared SHA，不修改 B spec hash。
+- lineage finding：PR #14 squash commit `4e685ba28668ada29f78e6fa4a56be1cacc259ea` 创建
+  `scripts/b_breakout_retest.py:LEGACY_SPEC`，先 `copy.deepcopy(A_LEGACY_SPEC)`，只覆盖
+  identity/legacy-source/B-match/B-score/status fields；sector evidence block 来自 A
+  generic hardened spec。exact V0 path 明确使用 `("-",50,0.0)` 缺失 fallback 继续评估，
+  multi-sector 为 provider-order last-write-wins。没有找到 pre-returns 的 B-specific
+  stricter adoption evidence。语义证据指向 Case A，但因 source identity 未解决，最终
+  classification 必须保持 `B_CANDIDATE_IDENTITY_UNRESOLVED`，不能宣布 Case A。
+- eligibility impact：既有 generator 走不接收 sector 的
+  `evaluate_numeric_projection`；parity fixture 只使用 neutral sentinel，score 未输出。
+  这些只是待身份解决后的结构性审计输入；按 mandated stop condition，本轮不形成
+  impact 结论。因此 `EXISTING_B_ELIGIBILITY_ARTIFACT_AFFECTED=UNRESOLVED`，
+  `ELIGIBILITY_ARTIFACT_SEMANTICALLY_INVARIANT=UNRESOLVED`，
+  `ELIGIBILITY_ARTIFACT_REGENERATION_REQUIRED=UNRESOLVED`。未把旧 artifact 标记为
+  superseded/overwrite，真实 historical sector missing/multi counters 也未填猜测。
+- consequence：current B spec SHA、evaluator、live contract、threshold、old artifact、
+  Final OOS 和 formal T-close 状态全部保持不变。下一节点是 Sol/user review 决定是否
+  授权另一个 versioned semantic repair；在该决策前不得恢复 exact candidate gate。

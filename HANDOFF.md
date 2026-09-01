@@ -4,39 +4,40 @@
 
 ## 1. Current Objective
 
-- 当前工作对象：继续现有 PR #18（base `91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b`），
-  完成 display-name policy correction、B dependency source audit 和 fresh-machine
-  bootstrap，并保持该 PR OPEN 等待 Sol/user decision。
+- 当前工作对象：B candidate identity / reconstruction provenance closure；closure
+  branch 为 `codex/sector-provenance-closure-20260901`，治理 evidence 进入 review
+  PR 后停在 Sol/user decision。
 - PR #12 已 merge；正式 Delivery Ladder 为 `development candidate`。
 - 该晋级只承认 deterministic daily generation → canonical watchlist → explicit
   fail-closed → provenance / versioning → monitoring / rollback 的受控产品路径，
   不承认 strategy promotion。
-- Scope：保留既有 Phase 2B input/timing contract 和 legacy evaluator semantics；不改变
-  生产策略、数据、冻结 artifact 或 Phase 2F 研究结果。
-- 本次任务边界：只修改 candidate-bound contract/policy、adapter diagnostics、exact
-  duplicate handling、bootstrap、tests 和治理记录；不启动真实 T-close acquisition，
-  不启动新的 strategy、phase 或 promotion 工作。
+- Scope：保留既有 Phase 2B input/timing contract 和现有 candidate artifacts；不改变
+  B evaluator、B spec、live contract、threshold、生产策略、数据、冻结 artifact 或
+  Phase 2F 研究结果。
+- 本次任务边界：只做 V0 source identity、B spec creation lineage、V0-vs-spec semantic
+  matrix 和既有 eligibility call-path provenance audit；不启动真实 T-close acquisition、
+  不重跑 eligibility、不启动新的 strategy、phase 或 promotion 工作。
 - 禁止事项：不启动 Phase 2F；不读取 Final OOS；不 promotion；不调参；不把当前数据回填历史；不替换新浪历史行业 membership；不重跑已完成 CORE replay；不以“差不多”的新文件替代 frozen bytes。
 - 本轮历史结果：正式 master-baseline acquisition 在 exact Sina sector/member 阶段
   因 `INPUT_CONFLICT` fail closed；该 blocker 是 input/provider-data consistency
   conflict，不是 provider connectivity failure。没有形成 `LIVE_OBSERVED` package，
   正式状态仍停在 `development candidate`，不据此 promotion 或进入 Final OOS。
-- 本轮 source audit 结果：B 不消费 display name；exact symbol 是 security identity，
-  因而采用 `DISPLAY_NAME_CONSISTENCY_POLICY_V2_SYMBOL_AUTHORITATIVE`。B 确实消费
-  sector membership/rank/change；当前 exact Sina snapshot 存在全 universe coverage
-  缺口和同一 symbol 多 sector 歧义，故当前 decision 为
-  `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_SECTOR_MEMBERSHIP_AMBIGUITY`。
+- 本轮 source audit 结果：V0 repository/commit/path 与 raw/CRLF/Git object 层级均已核对，
+  但历史声明值为 63 字符且不等于 raw 或测试过的合法 CRLF SHA；因此 source identity
+  仍为 `V0_SOURCE_FILE_IDENTITY_UNVERIFIED_DECLARED_SHA_MISMATCH`。PR #14 的 B spec
+  机械继承 A generic sector hardening，与 exact V0 missing-sector semantics 的证据
+  冲突，但在 source identity 未解决前不得宣布 Case A/B。既有 eligibility impact
+  仍为 `UNRESOLVED`，当前 stop 仍在 Sol/user review。
 - 停止条件：出现 `PROJECT_GOVERNANCE_STATE_CONFLICT`、任一 required hash 不匹配、外部 raw artifact 无法证明为同一 bytes、或任务要求越过 research / OOS / promotion 边界。
 - CI provenance 规则：本文件只保存 `last verified CI provenance`，不要求也不允许把当前 commit 自己产生的 CI run 回写到同一 commit；每个新会话必须实时查询当前 branch、HEAD、`origin/master`、PR state、exact-head CI 和 working tree。
 
 ## 2. Current Repository State
 
 - repo：`EFSing/ashare_watchlist`；origin：`https://github.com/EFSing/ashare_watchlist.git`。
-- active product PR：PR #17 已合并到正式 master
-  `91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b`；当前 active governance follow-up 为
-  PR #18，base=`master`/`91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b`，具体 head/CI
-  仍按每次 intake 实时核对。PR #17 merge master correctness run `33399324692`
-  success，head 精确匹配 merge SHA。
+- active product PR：PR #18 已合并到正式 master
+  `17371fde39a6b24241532b131caf5927cb9b8933`；当前治理 follow-up 为本 closure branch
+  的 review PR，具体 PR number/head/CI 仍按每次 intake 实时核对。PR #18 merge master
+  correctness run `33476256589` success，head 精确匹配 merge SHA。
 - HISTORICAL_MILESTONE_IDENTITY：PR #9 产品章程与代理开发契约 squash merge `7a27484293cbcb791c6b8407949e9e71257e016b`；Phase 2E research baseline 仍为 `74ccf86…`。
 - HISTORICAL_MILESTONE_IDENTITY：PR #10 handoff consistency repair squash merge `11db387cc51a645c4491b39cbfa3e03e1228b6c4`。
 - HISTORICAL_MILESTONE_IDENTITY：PR #12 development-candidate gate squash merge
@@ -620,3 +621,47 @@ Final OOS、不 merge。
 - eligibility audit：按 mandated stop condition 尚未审计 17,714-event artifact，故
   `EXISTING_B_ELIGIBILITY_ARTIFACT_AFFECTED=UNRESOLVED`；未标记旧 artifact superseded，
   未生成 corrected artifact，未运行 `T=2026-09-01` capture。
+
+## 26. 2026-09-01 B candidate identity/provenance closure
+
+- classification：`correctness blocker` + `product blocker`；本轮没有启动新的
+  strategy、Phase 2F、C、Final OOS、tuning、promotion、T-close acquisition 或
+  eligibility replay。
+- V0 identity：remote repository `EFSing/ashare_watchlist-V0` 的 `main` ref 实时指向
+  `c8406c393c0b135eafb0aec763576ae869fddcff`；exact path 为
+  `ashare_watchlist/scripts/screen_system.py`。Git object format=`sha1`，blob OID=
+  `ede1ee62451fa9b817bf390ab75e963115a678dc`，raw blob bytes=21,770，raw/LF SHA-256=
+  `843935d9b86ec05af848ee8cc54812334475e3d17807cb93349a02c84896417a`。CRLF 转换后的
+  64-char SHA 为 `6cac746123e3151999cbeeb1a612868ef77b50af6c7c64b0d80eb387ae1d19f9`，
+  但声明的 candidate value 只有 63 chars：
+  `6cac746123e315199cbeeb1a612868ef77b50af6c7c64b0d80eb387ae1d19f9`，二者不相等。
+  这是 unresolved declared SHA mismatch，不是 Git blob SHA 混淆。声明值未修改，canonical raw tuple 见
+  [`b_candidate_identity_provenance_20260901.md`](docs/b_candidate_identity_provenance_20260901.md)。
+- V0 source identity remains `V0_SOURCE_FILE_IDENTITY_UNVERIFIED_DECLARED_SHA_MISMATCH`;
+  repository/commit/path are established, but the required source-file declaration is not
+  verified. The semantic B Case A/B decision and eligibility impact audit remain blocked.
+- B spec lineage：machine-readable object 是
+  `scripts/b_breakout_retest.py:LEGACY_SPEC`，由 PR #14 squash commit
+  `4e685ba28668ada29f78e6fa4a56be1cacc259ea` 创建；其
+  `copy.deepcopy(A_LEGACY_SPEC)` 机械继承 A 的 `silent_fallback=False` /
+  `missing_status=INSUFFICIENT_DATA`，B-specific overrides 没有重写 sector block。
+- semantic evidence：V0 实际路径为缺失 sector 使用 `("-",50,0.0)` 继续评估、multi-sector
+  provider-order last-write-wins；PR #14 B spec 机械继承 generic hardening，且未找到
+  pre-returns 的 B-specific stricter adoption evidence。由于 V0 declared source SHA 仍未
+  验证，最终 classification 必须 fail closed 为 `B_CANDIDATE_IDENTITY_UNRESOLVED`；
+  不能提前宣布 Case A/B。
+- eligibility impact：按 mandated stop condition 未作影响结论；既有 artifact 未
+  supersede/overwrite，`EXISTING_B_ELIGIBILITY_ARTIFACT_AFFECTED=UNRESOLVED`。B
+  eligibility 使用不接收 sector 的 `evaluate_numeric_projection`、parity fixture 只用
+  neutral sentinel、score 不进入 projection/event，但这些结构性事实要在 source/candidate
+  identity 解决后才可形成正式 impact decision；真实 missing/multi-sector 数量不填猜测。
+- current live snapshot before final governance commit：origin/master=
+  `fc0698c20fb3e7909090cf5073c59d1a2dd710f3`；closure branch 已推送到 origin，remote
+  head=`3ef6c4643f11256e4f8518adf353322eef6a2c51`；该 head 的 exact push correctness
+  run=`33486257291` success。GitHub API 对 branch protection 返回 HTTP 403，故 remote
+  branch protection 未独立验证；不能把 403 推断为已配置或未配置。该分支尚无 open PR，
+  final head/CI/PR state 需在交接时重新核对。
+- next decision：停在 Sol/user review；先解决 declared SHA 的正确 64-char identity 或
+  historical source/canonicalization 证据，之后才能重开 Case A/B 与 eligibility audit，
+  再另行授权 versioned semantic repair。当前 B spec、evaluator、contract、threshold、旧
+  artifact 和 Final OOS 均保持不变。

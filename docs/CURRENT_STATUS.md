@@ -440,3 +440,42 @@ spec SHA，也不继续 T-close acquisition。
 `EXISTING_B_ELIGIBILITY_ARTIFACT_AFFECTED=UNRESOLVED`；没有 supersede 标记、corrected
 artifact、contract 修改或 `T=2026-09-01` capture。Formal Delivery Ladder 仍为
 `development candidate`，B eligibility decision 和旧 frozen bytes 均未改写。
+
+## 2026-09-01 — B candidate identity/provenance closure
+
+本轮完成了停止状态要求的 provenance 与 candidate identity 审计，没有修改
+evaluator、live contract、spec、threshold、旧 frozen artifact 或任何 live input。
+
+V0 repository identity 已确认为 `EFSing/ashare_watchlist-V0`、`main` ref、commit
+`c8406c393c0b135eafb0aec763576ae869fddcff`、path
+`ashare_watchlist/scripts/screen_system.py`。其 Git object format 为 `sha1`，Git blob
+OID 为 `ede1ee62451fa9b817bf390ab75e963115a678dc`，raw/LF file SHA-256 为
+`843935d9b86ec05af848ee8cc54812334475e3d17807cb93349a02c84896417a`。CRLF 转换后的
+64-char SHA 为 `6cac746123e3151999cbeeb1a612868ef77b50af6c7c64b0d80eb387ae1d19f9`，
+而历史声明 `6cac746123e315199cbeeb1a612868ef77b50af6c7c64b0d80eb387ae1d19f9` 只有
+63 chars，二者不相等。因此 repository/commit/path 已建立，但 required source-file
+declaration 仍未验证；声明值未覆盖，完整 audit 见
+[`b_candidate_identity_provenance_20260901.md`](b_candidate_identity_provenance_20260901.md)。
+
+PR #14 创建的 `scripts/b_breakout_retest.py:LEGACY_SPEC` 由
+`copy.deepcopy(A_LEGACY_SPEC)` 产生；A 的 generic sector block 已有
+`silent_fallback=False` / `missing_status=INSUFFICIENT_DATA`，B-specific overrides 未
+重写它。exact V0 的实际 B path 则是缺失 sector 使用 `("-",50,0.0)` 继续评估、
+multi-sector 按 provider traversal last-write-wins；nomination/history/tests 没有发现
+pre-returns 的 B-specific stricter adoption evidence。因此当前 candidate identity
+classification 已从未决审计推进为：
+
+`B_CANDIDATE_IDENTITY_UNRESOLVED`
+
+按 mandated stop condition，本轮没有形成 eligibility artifact impact 结论：
+`EXISTING_B_ELIGIBILITY_ARTIFACT_AFFECTED=UNRESOLVED`。旧 17,714-event bytes 未
+supersede/overwrite，未重跑 eligibility。虽然现有 generator 的结构性 call path 使用
+不接收 sector 的 `evaluate_numeric_projection`、fixed parity sample 仅使用 neutral
+sentinel、score 不在 projection/event，但这些事实要在 source/candidate identity 解决后
+才能形成正式 impact decision；真实 missing/multi-sector symbol-date 数量不填猜测。
+Formal Delivery Ladder 仍为 `development candidate`，B spec/evaluator/contract/old
+artifact 不变，Final OOS 仍 `SEALED / UNREAD`，formal T-close capture 仍 `NOT_RUN`。
+
+当前停止点是 Sol/user 解决 declared SHA 的正确 64-char identity 或 historical
+source/canonicalization 证据；在此之前不宣布 Case A/B，不创建新的 spec/version，不修
+evaluator，不重跑 eligibility，不继续 T-close acquisition。
