@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
+from tencent_quotes import is_no_trade_snapshot
 from trading_calendar import CalendarUnavailable, TradingCalendar, default_calendar
 
 
@@ -637,20 +638,25 @@ def _validate_kline_coverage(
         )
 
 
-def _validate_stock_kline(item: KlineManifest, as_of_date: str) -> None:
+def _validate_stock_kline(
+    item: KlineManifest,
+    as_of_date: str,
+    *,
+    no_trade_snapshot: bool,
+) -> None:
     if item.adjustment_mode != PROVIDER_QFQ_SNAPSHOT:
         _fail(
             UNSUPPORTED_MODE,
             f"stock kline {item.symbol} adjustment_mode must be {PROVIDER_QFQ_SNAPSHOT}",
         )
-    # A listed suspended security can have a legal, non-empty history whose
-    # latest observed trading bar predates T. Future bars remain forbidden;
-    # B owns the separate 120-bar evaluation minimum.
+    # Ordinary traded securities remain T-date strict. Only a complete T-date
+    # no-trade quote can authorize an as-of history whose latest real bar
+    # predates T; B owns the separate 120-bar evaluation minimum.
     _validate_kline_coverage(
         item,
         as_of_date,
         "stock kline",
-        require_last_bar_date=False,
+        require_last_bar_date=not no_trade_snapshot,
     )
 
 
@@ -786,7 +792,11 @@ def freeze_generation_inputs(
         _fail(INCOMPLETE_COVERAGE, f"stock klines outside universe: {', '.join(extra_klines)}")
     for item in sorted(kline_by_symbol.values(), key=lambda value: value.symbol):
         _ensure_same_date(item.as_of_date, as_of_date, f"stock kline {item.symbol}")
-        _validate_stock_kline(item, as_of_date)
+        _validate_stock_kline(
+            item,
+            as_of_date,
+            no_trade_snapshot=is_no_trade_snapshot(quote_snapshot.quotes[item.symbol]),
+        )
 
     _ensure_same_date(index.as_of_date, as_of_date, "index")
     _validate_index_kline(index, as_of_date)

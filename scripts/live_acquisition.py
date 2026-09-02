@@ -65,6 +65,7 @@ from tencent_quotes import (
     QuoteParseError,
     StaleQuoteError,
     fetch_quotes,
+    is_no_trade_snapshot,
     to_symbol,
 )
 from trading_calendar import CalendarUnavailable, TradingCalendar, default_calendar
@@ -1405,6 +1406,7 @@ def _resolve_market_bars(
     retries: int,
     index: bool,
     allow_tencent_fallback: bool,
+    allow_stale_as_of: bool = False,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     if requested_count <= 0 or minimum_acceptable_history <= 0:
         _fail(INCOMPLETE_COVERAGE, "historical retrieval target and minimum history must be positive")
@@ -1458,7 +1460,7 @@ def _resolve_market_bars(
         future_dates = [bar["date"] for bar in normalized if bar["date"] > as_of_date]
         if future_dates:
             _fail(FUTURE_DATA_DETECTED, f"HiThink historical bar {thscode} is after {as_of_date}: {future_dates[0]}")
-        if index and normalized[-1].get("date") != as_of_date:
+        if (index or not allow_stale_as_of) and normalized[-1].get("date") != as_of_date:
             _fail(
                 INPUT_DATE_MISMATCH,
                 f"HiThink historical latest bar for {thscode} is {normalized[-1].get('date')} != {as_of_date}",
@@ -1486,7 +1488,7 @@ def _resolve_market_bars(
             requested_count=requested_count,
             minimum_acceptable_history=minimum_acceptable_history,
             as_of_date=as_of_date,
-            require_last_bar_date=index,
+            require_last_bar_date=index or not allow_stale_as_of,
             timeout=timeout,
             retries=retries,
             request_get=request_get,
@@ -2058,6 +2060,7 @@ def acquire_live_generation_inputs(
             request_get=get,
             index=False,
             allow_tencent_fallback=allow_tencent_fallback,
+            allow_stale_as_of=is_no_trade_snapshot(quotes[symbol]),
         )
         stock_resolutions[symbol] = resolution
         stock_klines.append(

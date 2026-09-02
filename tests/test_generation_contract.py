@@ -48,6 +48,7 @@ def _inputs(
     as_of_date: str = AS_OF,
     symbols: tuple[str, ...] = ("600000",),
     quote_date: str | None = None,
+    no_trade_quote: bool = False,
     stock_last_date: str | None = None,
     index_last_date: str | None = None,
     retrieved_at: str = RETRIEVED_AT,
@@ -69,18 +70,33 @@ def _inputs(
         symbols=symbols,
         temporal_semantics=universe_semantics,
     )
+    quote_records = {
+        symbol: {
+            "code": symbol,
+            "quote_date": quote_date,
+            "price": 10.0 if symbol == "600000" else 11.0,
+        }
+        for symbol in symbols
+    }
+    if no_trade_quote:
+        quote_records[symbols[0]].update(
+            {
+                "price": 0.77,
+                "prev_close": 0.77,
+                "open": 0.0,
+                "chg_pct": 0.0,
+                "high": 0.0,
+                "low": 0.0,
+                "volume": 0.0,
+                "turnover": 0.0,
+                "vol_ratio": 0.0,
+            }
+        )
     quotes = QuoteSnapshotManifest(
         as_of_date=as_of_date,
         retrieved_at_bjt=retrieved_at,
         source="qt.gtimg.cn",
-        quotes={
-            symbol: {
-                "code": symbol,
-                "quote_date": quote_date,
-                "price": 10.0 if symbol == "600000" else 11.0,
-            }
-            for symbol in symbols
-        },
+        quotes=quote_records,
     )
     stock_klines = tuple(
         KlineManifest(
@@ -178,11 +194,18 @@ def test_stock_kline_future_bar_fails_fast():
     assert caught.value.status == FUTURE_DATA_DETECTED
 
 
-def test_non_empty_stock_kline_may_end_before_t():
-    manifest = _freeze(stock_last_date="2026-08-26")
+def test_non_empty_stock_kline_may_end_before_t_when_quote_proves_no_trade():
+    manifest = _freeze(stock_last_date="2026-08-26", no_trade_quote=True)
 
     assert manifest.stock_klines[0].bar_count == 2
     assert manifest.stock_klines[0].last_bar_date == "2026-08-26"
+
+
+def test_ordinary_traded_stock_kline_must_end_on_t():
+    with pytest.raises(GenerationContractError) as caught:
+        _freeze(stock_last_date="2026-08-26")
+
+    assert caught.value.status == INPUT_DATE_MISMATCH
 
 
 def test_raw_stock_kline_is_rejected():
