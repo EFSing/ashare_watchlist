@@ -175,8 +175,24 @@ def validate_quote(quote: dict[str, Any]) -> None:
         raise QuoteFieldError(f"{code}: invalid quote_date {quote['quote_date']!r}") from exc
     if parsed_date.isoformat() != quote["quote_date"]:
         raise QuoteFieldError(f"{code}: non-canonical quote_date {quote['quote_date']!r}")
-    if quote["price"] <= 0 or quote["prev_close"] <= 0 or quote["open"] <= 0:
+    no_trade_snapshot = (
+        quote["price"] > 0
+        and quote["prev_close"] > 0
+        and quote["price"] == quote["prev_close"]
+        and quote["chg_pct"] == 0
+        and quote["open"] == 0
+        and quote["high"] == 0
+        and quote["low"] == 0
+        and quote["volume"] == 0
+        and quote["turnover"] == 0
+        and quote["vol_ratio"] == 0
+    )
+    if not no_trade_snapshot and (
+        quote["price"] <= 0 or quote["prev_close"] <= 0 or quote["open"] <= 0
+    ):
         raise QuoteFieldError(f"{code}: price/prev_close/open must be positive")
+    if no_trade_snapshot:
+        return
     if quote["high"] <= 0 or quote["low"] <= 0 or quote["high"] < quote["low"]:
         raise QuoteFieldError(f"{code}: high/low fields are inconsistent")
     if quote["turnover"] < 0 or quote["vol_ratio"] < 0:
