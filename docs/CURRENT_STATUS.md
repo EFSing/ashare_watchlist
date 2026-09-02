@@ -541,3 +541,49 @@ evidence。当前 formal state 为 `development candidate`；corrected candidate
 - last-verified master snapshot：`614934e7ea98bbe94099e9bf57971cf8454c9713`；exact-head
   master correctness run `33584844019` 为 `success`。该 snapshot 是本治理 branch 前的
   provenance，不是未来 PR CI 的 self-referential invariant。
+
+## Superseding current state — 2026-09-02 corrected-B prospective attempt
+
+- formal Delivery Ladder：仍为 `development candidate`；corrected candidate 仍为
+  `B_BREAKOUT_RETEST_LEGACY_V1_1`，spec SHA 为
+  `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`，V3 contract
+  仍为 `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V3`。
+- timing gate：`2026-09-02T16:10:17.291775+08:00` BJT 已晚于 XSHG close；T=`2026-09-02`，
+  T+1=`2026-09-03`。本次不是 pre-close、historical replay 或 current-data backfill。
+- concrete decision：`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`。
+  underlying P1 仍为 `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`，本次真实
+  blocker 是 Tencent quote snapshot 的 `QuoteFieldError`；分类为 provider data
+  validation failure，不是 connectivity failure。
+- acquisition boundary：HiThink universe 与 exact Sina `新浪行业` sector traversal
+  已完成，但异常 runner 未暴露其 counts/diagnostics，故不填猜测；Tencent quotes
+  fail closed，后续 stock/index Kline、market_env、GenerationInputManifest、B
+  evaluation 和 output 均未执行。
+- artifact/output state：证据记录于
+  [`data/governance/prospective_input_attempt_evidence_20260902.json`](../data/governance/prospective_input_attempt_evidence_20260902.json)，
+  明确不是 frozen artifact。没有 READY manifest、immutable package、canonical
+  watchlist、Drive backup、recovery identity 或 candidate list；本次 candidate count
+  是 `NOT_EVALUATED`，不是合法的 zero-candidate result。
+- boundaries：Final OOS、prospective returns、MFE/MAE/P&L、C、Phase 2F、调参、promotion、
+  automatic freeze 和 `2026-09-01` backfill 均未读取/执行。Formal status 不晋级，不自动
+  重试；未来重试必须重新取得 fresh T-close inputs。
+
+## Superseding current state — 2026-09-02 Tencent QuoteFieldError audit
+
+- formal Delivery Ladder：仍为 `development candidate`；corrected B/V3 identity、
+  strategy、threshold、sector taxonomy、universe semantics 和 Final OOS sealed/unread
+  状态均不变。
+- current audit decision：`NEEDS_MORE_EVIDENCE`；root-cause classification 为
+  `UNRESOLVED`，尚不能在 A/B/C 中选择。第一次 attempt 的
+  `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE` 保留为 historical
+  operational result，但本审计不把它视为最终关闭。
+- missing evidence：第一次 formal detail 被压缩为
+  `Tencent quote acquisition failed: QuoteFieldError`，diagnostics 为空；exact symbol、
+  Tencent symbol、field/index、underlying validation message、raw line 和 failure batch
+  没有记录。不得用 0 值或异常类型推断停牌，也不得据此宣布 parser mapping bug。
+- current-only boundary：没有合法 target symbol/batch，故未运行窄 Tencent probe；不请求
+  猜测股票，不注册 probe，不复用 payload，不运行 B、不生成 package。
+- local code state：已追加最小 diagnostic-only fix，使后续 `QuoteFieldError` 保留原
+  detail、six-digit/Tencent failure batch 和 formal diagnostics；字段规则仍 fail closed。
+- historical evidence：commit `138b44dd3b3481b8c8a5ef648b10e67363178229` 与
+  `data/governance/prospective_input_attempt_evidence_20260902.json` 未修改。详见
+  [`tencent_quote_field_error_root_cause_audit_20260902.md`](tencent_quote_field_error_root_cause_audit_20260902.md)。

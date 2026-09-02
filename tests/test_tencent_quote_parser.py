@@ -1,9 +1,11 @@
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from tencent_quotes import (
     QuoteFieldError,
+    fetch_quotes,
     parse_quote_response,
 )
 from preopen_review import review_one
@@ -31,6 +33,22 @@ def test_tencent_parser_reports_bad_numeric_fields_instead_of_skipping():
 
     with pytest.raises(QuoteFieldError):
         parse_quote_response(raw)
+
+
+def test_tencent_field_failure_keeps_requested_and_provider_batches():
+    raw = FIXTURE.read_text(encoding="utf-8").replace("~2.88~125.00", "~not-a-number~125.00")
+
+    def request_get(url, timeout):
+        del url, timeout
+        return SimpleNamespace(text=raw, encoding=None)
+
+    with pytest.raises(QuoteFieldError) as caught:
+        fetch_quotes(["600519", "600520"], request_get=request_get)
+
+    assert str(caught.value) == (
+        "600519: invalid Tencent field p[32] (chg_pct)='not-a-number'; "
+        "failure_batch=600519,600520; tencent_batch=sh600519,sh600520"
+    )
 
 
 def test_preopen_review_consumes_canonical_prev_close_and_volume_ratio():

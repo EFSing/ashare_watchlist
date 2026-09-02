@@ -1,0 +1,173 @@
+{
+  "schema_version": "PROSPECTIVE_INPUT_ATTEMPT_EVIDENCE_V1",
+  "not_a_frozen_artifact": true,
+  "artifact_registry_action": "NO_NEW_FROZEN_ARTIFACT_REGISTERED_BECAUSE_NO_READY_PACKAGE_EXISTED",
+  "attempt_id": "20260902T161017+0800",
+  "as_of_date": "2026-09-02",
+  "next_execution_date": "2026-09-03",
+  "observed_at_bjt": "2026-09-02T16:10:17.291775+08:00",
+  "timing": {
+    "mode": "close",
+    "timezone": "Asia/Shanghai",
+    "calendar": "XSHG",
+    "session_close_bjt": "2026-09-02T15:00:00+08:00",
+    "observed_after_session_close": true,
+    "no_future_bar_verified": false,
+    "known_at_rule": "NOT_ESTABLISHED_BECAUSE_ACQUISITION_FAILED_BEFORE_COMPLETE_PACKAGE"
+  },
+  "observation_status": "LIVE_OBSERVED",
+  "candidate": {
+    "strategy_version": "B_BREAKOUT_RETEST_LEGACY_V1_1",
+    "role": "CORRECTED_EXACT_V0_RECONSTRUCTION",
+    "spec_sha256": "f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd",
+    "eligibility": "CORRECTED_B_CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES"
+  },
+  "active_contract": "CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V3",
+  "universe_scope": {
+    "name": "SH_SZ_A_SHARE_ONLY",
+    "version": "TRADABLE_UNIVERSE_SCOPE_V1",
+    "included_exchanges": ["SH", "SZ"],
+    "excluded_exchanges": ["BJ"]
+  },
+  "provider_identities": {
+    "universe": {
+      "provider": "HiThink Financial-API",
+      "api_version": "FINANCIAL_API_REST_V1",
+      "api": "/api/meta/tickers/list",
+      "selection": "PRIMARY",
+      "status": "COMPLETED"
+    },
+    "sector": {
+      "provider": "AkShare",
+      "api_version": "1.18.94",
+      "taxonomy": "新浪行业",
+      "indicator": "新浪行业",
+      "spot_api": "stock_sector_spot",
+      "detail_api": "stock_sector_detail",
+      "selection": "EXACT_REQUIRED_SOURCE",
+      "status": "COMPLETED_BUT_DIAGNOSTICS_NOT_EXPOSED_BY_RUNNER"
+    },
+    "quotes": {
+      "provider": "Tencent",
+      "source": "qt.gtimg.cn",
+      "selection": "REQUIRED_QUOTE_SOURCE",
+      "status": "FAILED"
+    },
+    "stock_klines": {
+      "primary": {
+        "provider": "HiThink Financial-API",
+        "api_version": "FINANCIAL_API_REST_V1",
+        "api": "/api/a-share/prices/historical",
+        "adjustment": "forward",
+        "required_manifest_mode": "PROVIDER_QFQ_SNAPSHOT",
+        "status": "NOT_REACHED"
+      },
+      "fallback": {
+        "provider": "Tencent",
+        "source": "web.ifzq.gtimg.cn/appstock/app/fqkline/get",
+        "adjustment": "qfq",
+        "version": "TENCENT_QFQ_FALLBACK_V1",
+        "status": "NOT_REACHED"
+      }
+    },
+    "index": {
+      "primary": {
+        "provider": "HiThink Financial-API",
+        "api_version": "FINANCIAL_API_REST_V1",
+        "api": "/api/a-share-index/prices/historical",
+        "manifest_mode": "PROVIDER_RAW_SNAPSHOT",
+        "status": "NOT_REACHED"
+      },
+      "fallback": {
+        "provider": "Tencent",
+        "adjustment": "qfq",
+        "manifest_mode": "PROVIDER_QFQ_SNAPSHOT",
+        "status": "NOT_REACHED"
+      }
+    }
+  },
+  "acquisition_stages": {
+    "universe": "COMPLETED_BUT_COUNT_NOT_EXPOSED_BY_RUNNER",
+    "exact_sina_sector": "COMPLETED_BUT_DIAGNOSTICS_NOT_EXPOSED_BY_RUNNER",
+    "tencent_quotes": "FAILED_QUOTE_FIELD_ERROR",
+    "stock_klines": "NOT_REACHED",
+    "index_kline": "NOT_REACHED",
+    "market_env": "NOT_REACHED",
+    "generation_manifest": "NOT_REACHED",
+    "package_serialization": "NOT_REACHED",
+    "local_persistence": "NOT_REACHED",
+    "drive_upload": "NOT_REACHED",
+    "recovery_readback": "NOT_REACHED",
+    "candidate_evaluation": "NOT_REACHED"
+  },
+  "failure": {
+    "final_decision": "FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE",
+    "classification": "PROVIDER_DATA_VALIDATION_FAILURE",
+    "provider_connectivity_failure": false,
+    "code": "PROVIDER_FAILURE",
+    "stage": "tencent_quote_snapshot",
+    "provider": "Tencent",
+    "exception_type": "QuoteFieldError",
+    "detail": "Tencent quote acquisition failed: QuoteFieldError",
+    "diagnostics": {
+      "universe_symbol_count": "NOT_RECORDED_BY_RUNNER",
+      "sector_definition_count": "NOT_RECORDED_BY_RUNNER",
+      "completed_sector_member_calls": "NOT_RECORDED_BY_RUNNER",
+      "quote_count": "NOT_AVAILABLE_AFTER_QUOTE_FIELD_ERROR"
+    },
+    "fail_closed": true
+  },
+  "counts": {
+    "universe_symbol_count": "NOT_AVAILABLE_AFTER_PROVIDER_FAILURE",
+    "sector_count": "NOT_AVAILABLE_AFTER_PROVIDER_FAILURE",
+    "quote_count": "NOT_AVAILABLE_AFTER_QUOTE_FIELD_ERROR",
+    "hithink_stock_primary_count": "NOT_REACHED",
+    "tencent_stock_fallback_count": "NOT_REACHED",
+    "index_provider": "NOT_REACHED",
+    "index_adjustment_mode": "NOT_REACHED"
+  },
+  "package": {
+    "status": null,
+    "input_fingerprint": null,
+    "generation_fingerprint": null,
+    "content_sha256": null,
+    "file_sha256": null,
+    "byte_length": null,
+    "local_logical_path": null
+  },
+  "recovery": {
+    "local_present": false,
+    "hash_verified": false,
+    "persistent_backup_present": false,
+    "recovery_verified": false,
+    "fully_recoverable": false,
+    "blocker": "NO_READY_PACKAGE_EXISTED; GOOGLE_DRIVE_UPLOAD_AND_RECOVERY_NOT_APPLICABLE"
+  },
+  "outputs": {
+    "canonical_watchlist_created": false,
+    "prospective_returns_evaluated": false,
+    "final_oos_read": false,
+    "c_evaluated": false,
+    "phase_2f_started": false,
+    "parameter_tuning": false,
+    "production_promotion": false,
+    "automatic_freeze": false
+  },
+  "merge_provenance": {
+    "pr_number": 22,
+    "final_pr_head": "3cd858be49dcf9437d6082a555efb6b1dba38ed9",
+    "merge_sha": "a0a0fedeeb38735d661fcaf5d33b114c071b8568",
+    "master_exact_head_ci": {
+      "run_id": 33588544687,
+      "conclusion": "success",
+      "head_sha": "a0a0fedeeb38735d661fcaf5d33b114c071b8568"
+    }
+  },
+  "validation": {
+    "full_pytest": "225 passed in 108.75s",
+    "focused_pytest": "COVERED_BY_FULL_PYTEST",
+    "compileall": "PASS",
+    "json_hash_registry": "PASS",
+    "final_oos": "SEALED_UNREAD"
+  }
+}

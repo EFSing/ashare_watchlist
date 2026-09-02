@@ -742,3 +742,64 @@
   decision 未改写；last-verified master snapshot 使用上述 master 与 correctness run
   `33584844019` success，不构造 self-referential CI invariant；北京时间 15:00 前不运行
   formal `2026-09-02` acquisition。
+
+## 2026-09-02 — corrected-B/V3 prospective capture provider validation failure
+
+- classification：`correctness blocker` + `product blocker`；任务分类未改变。本次只执行
+  首个合法 corrected-B/V3 prospective capture，不进入 C、Phase 2F、Final OOS、调参、
+  promotion 或自动 freeze。
+- research/product question：在合法 T-close 后，能否形成一个 candidate-bound
+  `LIVE_OBSERVED`、`known_at <= T`、可恢复的 corrected-B/V3 input instance。
+- materiality：这是从 `development candidate` 进入 frozen-candidate prerequisites 的
+  唯一 P1；quote 字段错误若被静默接受会污染 input manifest、B signal 和后续 artifact
+  identity，因此必须 fail closed。
+- inputs：clean master `a0a0fedeeb38735d661fcaf5d33b114c071b8568`、corrected B/V3
+  identity、XSHG calendar、HiThink universe、exact Sina `新浪行业` APIs、Tencent
+  quote source；runtime versions 为 Python `3.12.13`、AkShare `1.18.94`、
+  exchange-calendars `4.13.2`、pandas `2.2.3`、requests `2.32.3`。
+- timing evidence：capture start `2026-09-02T16:10:17.291775+08:00` BJT，session close
+  `15:00:00+08:00`，T+1=`2026-09-03`；未使用 `2026-09-01` backfill、future bars 或
+  same-bar execution。
+- finding：HiThink universe 与 exact Sina sector acquisition 完成；Tencent quote
+  snapshot 抛出 `QuoteFieldError`，adapter 以 `PROVIDER_FAILURE` 停止。该错误分类为
+  `PROVIDER_DATA_VALIDATION_FAILURE`，`provider_connectivity_failure=false`。异常路径
+  未暴露 counts/sector diagnostics，全部保留为 `NOT_RECORDED`/`NOT_AVAILABLE`，不由旧
+  snapshot 推断。
+- decision：`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`。证据见
+  [`data/governance/prospective_input_attempt_evidence_20260902.json`](../data/governance/prospective_input_attempt_evidence_20260902.json)，
+  `not_a_frozen_artifact=true`。不创建 partial package，不生成 canonical watchlist，
+  不执行 Drive upload/recovery，不返回候选表；这是 `NOT_EVALUATED`，不是 zero-candidate。
+- consequence：candidate eligibility、strategy/spec、threshold、sector taxonomy、V3
+  semantics、Final OOS sealed/unread 状态均不变；未创建任何新 frozen registry record。
+  不自动重试；下一次必须重新满足 fresh legitimate T-close capture contract。
+
+## 2026-09-02 — TENCENT_QUOTE_FIELD_ERROR_ROOT_CAUSE_AUDIT
+
+- classification：`correctness blocker` + `product blocker`；这是既定 first prospective
+  input gate 的最小 root-cause audit，不是新的 Phase、策略研究、B evaluation、C、
+  Final OOS、prospective returns、tuning、promotion 或 package generation。
+- research question：第一次 formal Tencent `QuoteFieldError` 是否属于合法无成交/停牌
+  representation（A）、malformed/inconsistent provider data（B），或 implementation
+  field mapping bug（C）。materiality 是避免把真实 provider failure 当成可交易 quote，
+  或为了通过 capture 而错误放宽字段规则。
+- inputs / stop：审计了 immutable attempt evidence、task output、当前 Tencent parser、
+  `GenerationInputManifest` quote gate 和 corrected B quote consumer；未读取或修改
+  `data/validation/continuous_speed_probe/`。停止条件是缺失 exact symbol/batch/raw
+  line，不能以猜测补齐。
+- finding：formal detail 只有
+  `Tencent quote acquisition failed: QuoteFieldError`，历史 diagnostics=`{}`；exact
+  symbol、Tencent symbol、field/index、underlying validation message、raw Tencent line
+  和 failure batch 都未记录。当前 parser index mapping 仅有 synthetic fixture regression
+  证据，不能用来宣布 C；B executable path 实际消费 quote 的数值字段只有 `turnover`，
+  但这不构成对缺失/无成交 raw 状态的安全解释。
+- probe decision：`CURRENT_ONLY_DIAGNOSTIC_NOT_PROSPECTIVE_EVIDENCE`=`NOT_RUN`。没有
+  可合法限定的失败 symbol/batch；不请求猜测股票，不注册 current response，不复用
+  payload，不运行 B、不生成 package。
+- decision：`NEEDS_MORE_EVIDENCE`。需要 exact six-digit/Tencent symbol、原失败 batch、
+  raw line、field/index 和完整 validator message，才可在 A/B/C 中分类；在证据到位前
+  保持 parser fail closed，不缩 universe、不跳过股票、不增加 provider/fallback。
+- local fix：仅追加 diagnostics improvement：`QuoteFieldError` 保留原 detail，并带上
+  six-digit/Tencent batch；`live_acquisition.py` 将 detail 写入 formal message/diagnostics。
+  第一次失败 commit/evidence 未改写，`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`
+  未被宣布最终关闭；未 push、未建 PR、未执行第二次 formal capture。
+- full audit record：[`docs/tencent_quote_field_error_root_cause_audit_20260902.md`](../docs/tencent_quote_field_error_root_cause_audit_20260902.md)。

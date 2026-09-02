@@ -273,6 +273,12 @@ def fetch_quotes(
                 )
                 last_error = None
                 break
+            except QuoteFieldError as exc:
+                requested_batch = ",".join(batch)
+                tencent_batch = ",".join(to_symbol(code) for code in batch)
+                raise QuoteFieldError(
+                    f"{exc}; failure_batch={requested_batch}; tencent_batch={tencent_batch}"
+                ) from exc
             except QuoteDataError:
                 raise
             except Exception as exc:  # request transport errors only
