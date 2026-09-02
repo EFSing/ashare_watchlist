@@ -2,6 +2,24 @@
 
 职责：长期记录重要项目决策为什么形成。当前操作接手规则不在此重复，见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-02 — Workstation-to-home seamless handoff checkpoint
+
+- classification：`correctness blocker` follow-up / operational handoff；不新增研究问题，
+  不改变既有 `ADOPT — EXCHANGE_OFFICIAL_CURRENT_LISTED_ROSTER_V1` decision。
+- current task：`TRADABLE_UNIVERSE_LISTING_ELIGIBILITY`。当前停止点是官方 SSE/SZSE
+  roster correction 已实现、验证、推送至 PR #25，等待 user merge decision；formal
+  capture=`NOT_RERUN`，candidate list=`NOT_EVALUATED`，正式 Delivery Ladder 仍为
+  `development candidate`。
+- preserved boundary：`301686` 的 T 日上市资格只能由 official roster deterministic
+  evidence 决定；`002731` 已上市停牌仍保留；ST/*ST 仍仅在 B 后处理；Tencent
+  `p[38]=""`、B evaluator/spec/threshold/score 和 frozen artifacts 不变。
+- handoff result：工作站必须把 branch、PR、治理文档及合法代码变更推送到 GitHub；家用
+  电脑接手时重新核对 live branch/HEAD/base/PR/exact-head CI/worktree。未上传 secrets；
+  `data/validation/continuous_speed_probe/` 保持本机未跟踪，交接过程中不读取、不修改、
+  不删除、不上传。
+- final objective：`WORKSTATION_STATE_DURABLY_PUSHED_AND_HOME_RESUME_READY`；不 merge，
+  不启动 Phase 2F/C、Final OOS、promotion、调参或 formal capture。
+
 ## 2026-08-27 — Phase 2A provenance labels
 
 - context：V0 `screen_system.py` 的历史输入、as-of snapshots、raw responses 和 adjustment factors 不完整。

@@ -8,6 +8,33 @@ provenance snapshot；PR #20 merge SHA `106bfbd00502db56a2e544f1c804a52372c1fa3e
 Phase 2E research baseline：PR #6 / `74ccf86dfdea3b9d4b0124fb54346aa429735508`
 职责：记录项目正式处于什么状态，以及哪些研究结论已经成立。长期产品目标和 usable gate 见 [`PRODUCT_CHARTER.md`](PRODUCT_CHARTER.md)，接手动作见 [`HANDOFF.md`](../HANDOFF.md)，决策理由见 [`DECISION_LOG.md`](DECISION_LOG.md)。
 
+## Current live checkpoint — WORKSTATION_TO_HOME_SEAMLESS_HANDOFF
+
+本段是本次最终交接文档提交前的 last-verified live snapshot；文档提交会使 HEAD 前进，
+因此下一台电脑必须重新实时核对 Git/GitHub/CI，而不是把本段静态 SHA 当成不变量。
+
+- branch：`codex/tradable-universe-prelisting-fix-20260902`；last-verified HEAD：
+  `e0059ba27dcb92093161200e840d85874504ae8`；`origin/master` / PR base：
+  `05232677055c67b8b87c8d8c3c3b4139df8c477d`。
+- PR #25：[`https://github.com/EFSing/ashare_watchlist/pull/25`](https://github.com/EFSing/ashare_watchlist/pull/25)，
+  `open`、`mergeable_state=clean`；last-verified exact-head correctness run
+  `33624545483`=`success`。
+- 当前任务：`TRADABLE_UNIVERSE_LISTING_ELIGIBILITY`；Sol decision：
+  `USE_EXCHANGE_OFFICIAL_LISTED_ROSTER_VIA_EXISTING_AKSHARE`。SSE/SZSE adapter、listing
+  parse、exact symbol intersection 和 provenance 已完成。
+- 当前验证：focused tests `70 passed`，full pytest `240 passed`，compileall、JSON/hash/
+  governance validation、`git diff --check` 均 PASS。formal 2026-09-02 fresh capture
+  `NOT_RERUN`；candidate list=`NOT_EVALUATED`，不是 0。
+- 当前正式状态仍为 `development candidate`；Tencent quote/P1 blocker 仍未解除，
+  Final OOS 仍 `SEALED / UNREAD`，不读取、不启动 formal capture。工作树 tracked 内容
+  clean；`data/validation/continuous_speed_probe/` 作为本机未跟踪目录保留，不读取、不修改、
+  不删除、不上传。
+- 接手后的第一条命令级动作：`git fetch origin`，然后实时核对 branch、HEAD、
+  `origin/master`、PR #25、exact-head CI 和 working tree；完成后停在 user merge decision。
+
+本次 handoff 的最终目标是 `WORKSTATION_STATE_DURABLY_PUSHED_AND_HOME_RESUME_READY`，
+不是 merge 或 candidate-list 生成。
+
 ## Formal project status
 
 PR #12 已 squash merge，项目正式处于 `development candidate` 层。该晋级只表示
