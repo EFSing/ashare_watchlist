@@ -767,3 +767,26 @@ coverage/ambiguity current gate 和 provider counts 不代表本文当前 live g
 - next action：本次停止，不自动重试；任何后续尝试必须重新满足合法 T-close、fresh
   acquisition 和 candidate-bound V3 contract，不得回填 `2026-09-01` 或使用本次失败
   前已取数据。
+
+## 2026-09-02 — Tencent QuoteFieldError root-cause audit stopped at missing evidence
+
+- classification：`correctness blocker` + `product blocker`；research decision 为
+  `NEEDS_MORE_EVIDENCE`。第一次 formal attempt 的 blocker 没有被宣布最终关闭。
+- immutable history：commit `138b44dd3b3481b8c8a5ef648b10e67363178229` 与
+  `data/governance/prospective_input_attempt_evidence_20260902.json` 保持原样，仍是
+  第一次失败 attempt 的 historical evidence；其 `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`
+  未改写成成功。
+- audit finding：formal detail 仍只有
+  `Tencent quote acquisition failed: QuoteFieldError`，历史 diagnostics=`{}`；exact
+  symbol、Tencent symbol、field/index、underlying validation message、raw line 和
+  failure batch 均 `UNRESOLVED`/`NOT_RECORDED`。既有 task output 也没有更深 traceback。
+- probe boundary：由于没有可合法限定的失败 symbol/batch，本轮未运行
+  `CURRENT_ONLY_DIAGNOSTIC_NOT_PROSPECTIVE_EVIDENCE`；没有访问任意猜测 symbol，没有
+  注册 current response，没有复用 payload，不运行 B、不生成 package。
+- local-only diagnostic fix：`fetch_quotes()` 现在给 `QuoteFieldError` 追加
+  six-digit/Tencent batch；`live_acquisition.py` 将完整 detail 写入 formal message 和
+  diagnostics。没有放宽字段规则、修改 B/strategy/universe/provider、恢复 fallback，
+  也没有修改第一次 evidence。
+- detailed audit：[`docs/tencent_quote_field_error_root_cause_audit_20260902.md`](docs/tencent_quote_field_error_root_cause_audit_20260902.md)。当前 stop 是
+  `TENCENT_QUOTE_FIELD_ROOT_CAUSE_UNRESOLVED_NEEDS_MORE_EVIDENCE`；在 exact raw evidence
+  到位前不做第二次 formal capture、push 或 PR。

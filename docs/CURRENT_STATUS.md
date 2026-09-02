@@ -566,3 +566,24 @@ evidence。当前 formal state 为 `development candidate`；corrected candidate
 - boundaries：Final OOS、prospective returns、MFE/MAE/P&L、C、Phase 2F、调参、promotion、
   automatic freeze 和 `2026-09-01` backfill 均未读取/执行。Formal status 不晋级，不自动
   重试；未来重试必须重新取得 fresh T-close inputs。
+
+## Superseding current state — 2026-09-02 Tencent QuoteFieldError audit
+
+- formal Delivery Ladder：仍为 `development candidate`；corrected B/V3 identity、
+  strategy、threshold、sector taxonomy、universe semantics 和 Final OOS sealed/unread
+  状态均不变。
+- current audit decision：`NEEDS_MORE_EVIDENCE`；root-cause classification 为
+  `UNRESOLVED`，尚不能在 A/B/C 中选择。第一次 attempt 的
+  `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE` 保留为 historical
+  operational result，但本审计不把它视为最终关闭。
+- missing evidence：第一次 formal detail 被压缩为
+  `Tencent quote acquisition failed: QuoteFieldError`，diagnostics 为空；exact symbol、
+  Tencent symbol、field/index、underlying validation message、raw line 和 failure batch
+  没有记录。不得用 0 值或异常类型推断停牌，也不得据此宣布 parser mapping bug。
+- current-only boundary：没有合法 target symbol/batch，故未运行窄 Tencent probe；不请求
+  猜测股票，不注册 probe，不复用 payload，不运行 B、不生成 package。
+- local code state：已追加最小 diagnostic-only fix，使后续 `QuoteFieldError` 保留原
+  detail、six-digit/Tencent failure batch 和 formal diagnostics；字段规则仍 fail closed。
+- historical evidence：commit `138b44dd3b3481b8c8a5ef648b10e67363178229` 与
+  `data/governance/prospective_input_attempt_evidence_20260902.json` 未修改。详见
+  [`tencent_quote_field_error_root_cause_audit_20260902.md`](tencent_quote_field_error_root_cause_audit_20260902.md)。

@@ -772,3 +772,34 @@
 - consequence：candidate eligibility、strategy/spec、threshold、sector taxonomy、V3
   semantics、Final OOS sealed/unread 状态均不变；未创建任何新 frozen registry record。
   不自动重试；下一次必须重新满足 fresh legitimate T-close capture contract。
+
+## 2026-09-02 — TENCENT_QUOTE_FIELD_ERROR_ROOT_CAUSE_AUDIT
+
+- classification：`correctness blocker` + `product blocker`；这是既定 first prospective
+  input gate 的最小 root-cause audit，不是新的 Phase、策略研究、B evaluation、C、
+  Final OOS、prospective returns、tuning、promotion 或 package generation。
+- research question：第一次 formal Tencent `QuoteFieldError` 是否属于合法无成交/停牌
+  representation（A）、malformed/inconsistent provider data（B），或 implementation
+  field mapping bug（C）。materiality 是避免把真实 provider failure 当成可交易 quote，
+  或为了通过 capture 而错误放宽字段规则。
+- inputs / stop：审计了 immutable attempt evidence、task output、当前 Tencent parser、
+  `GenerationInputManifest` quote gate 和 corrected B quote consumer；未读取或修改
+  `data/validation/continuous_speed_probe/`。停止条件是缺失 exact symbol/batch/raw
+  line，不能以猜测补齐。
+- finding：formal detail 只有
+  `Tencent quote acquisition failed: QuoteFieldError`，历史 diagnostics=`{}`；exact
+  symbol、Tencent symbol、field/index、underlying validation message、raw Tencent line
+  和 failure batch 都未记录。当前 parser index mapping 仅有 synthetic fixture regression
+  证据，不能用来宣布 C；B executable path 实际消费 quote 的数值字段只有 `turnover`，
+  但这不构成对缺失/无成交 raw 状态的安全解释。
+- probe decision：`CURRENT_ONLY_DIAGNOSTIC_NOT_PROSPECTIVE_EVIDENCE`=`NOT_RUN`。没有
+  可合法限定的失败 symbol/batch；不请求猜测股票，不注册 current response，不复用
+  payload，不运行 B、不生成 package。
+- decision：`NEEDS_MORE_EVIDENCE`。需要 exact six-digit/Tencent symbol、原失败 batch、
+  raw line、field/index 和完整 validator message，才可在 A/B/C 中分类；在证据到位前
+  保持 parser fail closed，不缩 universe、不跳过股票、不增加 provider/fallback。
+- local fix：仅追加 diagnostics improvement：`QuoteFieldError` 保留原 detail，并带上
+  six-digit/Tencent batch；`live_acquisition.py` 将 detail 写入 formal message/diagnostics。
+  第一次失败 commit/evidence 未改写，`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`
+  未被宣布最终关闭；未 push、未建 PR、未执行第二次 formal capture。
+- full audit record：[`docs/tencent_quote_field_error_root_cause_audit_20260902.md`](../docs/tencent_quote_field_error_root_cause_audit_20260902.md)。

@@ -638,6 +638,32 @@ def test_stale_t_quote_fails_closed():
     assert caught.value.status == INPUT_DATE_MISMATCH
 
 
+def test_tencent_quote_field_failure_preserves_exact_detail_and_batch():
+    def request_get(url, timeout):
+        del timeout
+        if url.startswith("https://qt.gtimg.cn"):
+            return FakeResponse(text=_quote_line().replace("~2.88~125.00", "~not-a-number~125.00"))
+        provider_symbol = url.split("param=", 1)[1].split(",", 1)[0]
+        return FakeResponse({"data": {provider_symbol: {"qfqday": _bars()}}})
+
+    with pytest.raises(live.LiveAcquisitionError) as caught:
+        _acquire(request_get=request_get)
+
+    assert caught.value.status == live.PROVIDER_FAILURE
+    assert "600519: invalid Tencent field p[32] (chg_pct)='not-a-number'" in str(caught.value)
+    assert "failure_batch=600519" in str(caught.value)
+    assert "tencent_batch=sh600519" in str(caught.value)
+    assert caught.value.diagnostics == {
+        "provider": "Tencent",
+        "stage": "tencent_quote_snapshot",
+        "exception_type": "QuoteFieldError",
+        "exception_detail": (
+            "600519: invalid Tencent field p[32] (chg_pct)='not-a-number'; "
+            "failure_batch=600519; tencent_batch=sh600519"
+        ),
+    }
+
+
 def test_missing_t_quote_fails_closed():
     def request_get(url, timeout):
         del timeout

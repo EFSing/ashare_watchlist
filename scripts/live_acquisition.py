@@ -1669,7 +1669,18 @@ def acquire_live_generation_inputs(
         _fail(PROVIDER_FAILURE, "Tencent quote response is malformed")
         raise AssertionError from exc
     except QuoteDataError as exc:
-        _fail(PROVIDER_FAILURE, f"Tencent quote acquisition failed: {type(exc).__name__}")
+        detail = str(exc)
+        diagnostics = {
+            "provider": "Tencent",
+            "stage": "tencent_quote_snapshot",
+            "exception_type": type(exc).__name__,
+            "exception_detail": detail,
+        }
+        _fail(
+            PROVIDER_FAILURE,
+            f"Tencent quote acquisition failed: {detail or type(exc).__name__}",
+            diagnostics,
+        )
         raise AssertionError from exc
     expected_symbols = set(universe.symbols)
     actual_symbols = set(quotes)
