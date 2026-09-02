@@ -742,3 +742,33 @@
   decision 未改写；last-verified master snapshot 使用上述 master 与 correctness run
   `33584844019` success，不构造 self-referential CI invariant；北京时间 15:00 前不运行
   formal `2026-09-02` acquisition。
+
+## 2026-09-02 — corrected-B/V3 prospective capture provider validation failure
+
+- classification：`correctness blocker` + `product blocker`；任务分类未改变。本次只执行
+  首个合法 corrected-B/V3 prospective capture，不进入 C、Phase 2F、Final OOS、调参、
+  promotion 或自动 freeze。
+- research/product question：在合法 T-close 后，能否形成一个 candidate-bound
+  `LIVE_OBSERVED`、`known_at <= T`、可恢复的 corrected-B/V3 input instance。
+- materiality：这是从 `development candidate` 进入 frozen-candidate prerequisites 的
+  唯一 P1；quote 字段错误若被静默接受会污染 input manifest、B signal 和后续 artifact
+  identity，因此必须 fail closed。
+- inputs：clean master `a0a0fedeeb38735d661fcaf5d33b114c071b8568`、corrected B/V3
+  identity、XSHG calendar、HiThink universe、exact Sina `新浪行业` APIs、Tencent
+  quote source；runtime versions 为 Python `3.12.13`、AkShare `1.18.94`、
+  exchange-calendars `4.13.2`、pandas `2.2.3`、requests `2.32.3`。
+- timing evidence：capture start `2026-09-02T16:10:17.291775+08:00` BJT，session close
+  `15:00:00+08:00`，T+1=`2026-09-03`；未使用 `2026-09-01` backfill、future bars 或
+  same-bar execution。
+- finding：HiThink universe 与 exact Sina sector acquisition 完成；Tencent quote
+  snapshot 抛出 `QuoteFieldError`，adapter 以 `PROVIDER_FAILURE` 停止。该错误分类为
+  `PROVIDER_DATA_VALIDATION_FAILURE`，`provider_connectivity_failure=false`。异常路径
+  未暴露 counts/sector diagnostics，全部保留为 `NOT_RECORDED`/`NOT_AVAILABLE`，不由旧
+  snapshot 推断。
+- decision：`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`。证据见
+  [`data/governance/prospective_input_attempt_evidence_20260902.json`](../data/governance/prospective_input_attempt_evidence_20260902.json)，
+  `not_a_frozen_artifact=true`。不创建 partial package，不生成 canonical watchlist，
+  不执行 Drive upload/recovery，不返回候选表；这是 `NOT_EVALUATED`，不是 zero-candidate。
+- consequence：candidate eligibility、strategy/spec、threshold、sector taxonomy、V3
+  semantics、Final OOS sealed/unread 状态均不变；未创建任何新 frozen registry record。
+  不自动重试；下一次必须重新满足 fresh legitimate T-close capture contract。

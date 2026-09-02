@@ -729,3 +729,41 @@ coverage/ambiguity current gate 和 provider counts 不代表本文当前 live g
   master exact-head run `100101351273` 为 `success`，GitHub open PR 为 0。当前
   corrected candidate 已进入等待 `T=2026-09-02` 合法 T-close prospective capture
   的状态。
+
+## 2026-09-02 — corrected-B prospective capture stopped at Tencent quote validation
+
+- classification：`correctness blocker` + `product blocker`；本次执行是首个合法
+  corrected-B/V3 prospective capture，不启动新的 strategy、Phase 2F、C、Final OOS、
+  调参、promotion 或自动 freeze。
+- live Git/GitHub：本地工作分支为
+  `codex/prospective-capture-20260902`，HEAD=`a0a0fedeeb38735d661fcaf5d33b114c071b8568`；
+  local `master` 与 `origin/master` 同 SHA。PR #22 已合并到该 SHA，merge exact-head
+  correctness run `33588544687` 为 `success`，当前 open PR 为 0。tracked working tree
+  clean；既有未跟踪 `data/validation/continuous_speed_probe/` 未读取、未修改、未删除。
+- timing：capture start=`2026-09-02T16:10:17.291775+08:00`，已晚于 XSHG
+  session close=`2026-09-02T15:00:00+08:00`；T=`2026-09-02`，T+1=`2026-09-03`，
+  `LIVE_OBSERVED`/`close`/`Asia/Shanghai`/`XSHG` 前置条件满足。
+- acquisition result：HiThink universe 阶段完成；exact Sina `新浪行业` definitions/member
+  阶段完成；Tencent quote snapshot 阶段因 `QuoteFieldError` 返回真实
+  `PROVIDER_FAILURE` 并 fail closed。该错误是 provider data validation failure，
+  不是 connectivity failure。stock Kline、index、market_env、READY manifest、B 评估、
+  package serialization/persistence 均未到达。
+- counts/diagnostics：本次轻量 runner 未在异常路径暴露 universe count、sector definition
+  count、completed sector-call count 或 quote count，均保持
+  `NOT_RECORDED_BY_RUNNER` / `NOT_AVAILABLE_AFTER_QUOTE_FIELD_ERROR`，不从旧 current
+  diagnostic 回填。
+- final decision：`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`。机器可读
+  证据为 [`data/governance/prospective_input_attempt_evidence_20260902.json`](data/governance/prospective_input_attempt_evidence_20260902.json)，
+  明确 `not_a_frozen_artifact=true`；未创建 READY manifest、prospective package、
+  canonical watchlist、Drive backup 或 candidate list。没有 partial output。
+- provider/runtime provenance：HiThink `FINANCIAL_API_REST_V1`、AkShare `1.18.94` exact
+  Sina APIs、Tencent `qt.gtimg.cn`；runtime 为 Python `3.12.13`、
+  `exchange-calendars==4.13.2`、pandas `2.2.3`、requests `2.32.3`。API key 只确认
+  presence，未记录值。
+- recovery/output boundary：package identities、byte length、file SHA、Drive roundtrip
+  均为 `NOT_CREATED`/`NOT_REACHED`；`PERSISTENT_BACKUP_PRESENT`、`RECOVERY_VERIFIED`、
+  `FULLY_RECOVERABLE` 均为 false。Final OOS、prospective forward returns、C、Phase 2F、
+  tuning、promotion 和 automatic freeze 均未读取/执行。
+- next action：本次停止，不自动重试；任何后续尝试必须重新满足合法 T-close、fresh
+  acquisition 和 candidate-bound V3 contract，不得回填 `2026-09-01` 或使用本次失败
+  前已取数据。

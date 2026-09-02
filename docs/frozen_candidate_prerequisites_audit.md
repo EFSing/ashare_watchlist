@@ -249,3 +249,25 @@ spec、旧 sector coverage/ambiguity diagnostic、失败 attempt 或旧 decision
 - last-verified master snapshot：`614934e7ea98bbe94099e9bf57971cf8454c9713`；master
   exact-head correctness run `33584844019` 为 `success`。这是本治理 branch 创建前的
   provenance，不是未来 PR CI 的 self-referential invariant。
+
+## 10. Superseding current attempt — 2026-09-02
+
+本节只 supersede 当前 prerequisite decision，不删除 V1/V2、old spec、历史 diagnostic、
+失败 attempt 或旧 decision。
+
+| prerequisite / stage | result | evidence / boundary |
+| --- | --- | --- |
+| corrected B/V3 identity | `PASS unchanged` | `B_BREAKOUT_RETEST_LEGACY_V1_1`，spec SHA `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`，active contract V3 |
+| legitimate T-close | `PASS precondition` | observed `2026-09-02T16:10:17.291775+08:00`，XSHG close `15:00:00+08:00`，T+1=`2026-09-03` |
+| HiThink SH/SZ universe | `COMPLETED` | current fresh call completed；count 未由异常路径暴露，不从旧 snapshot 回填 |
+| exact Sina sector definitions/members | `COMPLETED` | exact `新浪行业` spot/detail traversal completed；counts/diagnostics 未由异常路径暴露，不猜测 |
+| Tencent quote snapshot | `BLOCKED` | `PROVIDER_FAILURE` / `QuoteFieldError`，data validation failure，非 connectivity failure |
+| GenerationInputManifest / B evaluation | `NOT REACHED` | no READY manifest；no threshold/filter change，`score_cutoff=None` / `top_n=None` 未被执行 |
+| immutable package / Drive backup / recovery | `NOT APPLICABLE` | no READY package；no bytes eligible for persistence/upload/readback |
+| candidate list | `NOT EVALUATED` | 不把未运行误报为 zero candidates |
+
+Final decision：`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`。机器可读证据为
+[`data/governance/prospective_input_attempt_evidence_20260902.json`](../data/governance/prospective_input_attempt_evidence_20260902.json)，
+并明确 `not_a_frozen_artifact=true`。本次不产生 partial canonical watchlist，不创建新的
+registry artifact，不自动 retry/freeze/promotion；Final OOS、prospective returns、C、
+Phase 2F 和 `2026-09-01` backfill 均未读取/执行。
