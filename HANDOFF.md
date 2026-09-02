@@ -865,5 +865,6 @@ coverage/ambiguity current gate 和 provider counts 不代表本文当前 live g
   ST 仍只在 B evaluator 后由 `USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` 过滤。Tencent
   parser、B/spec/threshold/sector semantics 和 frozen registry 均未改变；正式 capture
   未重跑。
-- local commit：`2798d0e` 已固化上述 evidence、audit、governance 和 ST eligibility
-  工作；本 section 的最终 handoff snapshot 会在本地治理 commit 后更新。
+- local commits：`2798d0e` 已固化上述 evidence、audit、governance 和 ST eligibility
+  工作；`1be63b1` 已固化本 section 的 handoff snapshot。两者均为本地分支提交，未
+  push、未创建 PR。
