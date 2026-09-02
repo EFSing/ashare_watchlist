@@ -385,3 +385,16 @@ success and `CLEAN`/`MERGEABLE`, at
 user decision.
 
 Final decision: `ADOPT` — `EXCHANGE_OFFICIAL_CURRENT_LISTED_ROSTER_V1`.
+
+## 14. PR #25 ready for user merge decision — 2026-09-02
+
+The bounded correction is now in PR #25 at the pre-reconciliation head
+`105acc9d9772539a3f799faf90bef14a83f83152`, based on
+`05232677055c67b8b87c8d8c3c3b4139df8c477d`. Its pull_request exact-head correctness run
+`33624209979` succeeded; the PR was verified `open`, `mergeable=true`, and
+`mergeable_state=clean` before this governance-only snapshot. The snapshot itself does not
+change the adopted source, any failed attempt, or any frozen identity. After pushing this
+snapshot, the new head must be checked live again; no merge is authorized by this audit.
+
+The final stop remains
+`TRADABLE_UNIVERSE_EXCHANGE_ROSTER_FIX_PR_READY_FOR_USER_MERGE_DECISION`.

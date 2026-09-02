@@ -685,3 +685,22 @@ OOS、prospective returns、调参、promotion 或 formal capture。
   和旧治理记录保持 immutable；未跟踪的本地 validation probe 保留但不纳入本次 PR。
 - stop state：实现、全量验证、push 和单个 PR 的 exact-head CI 完成后，停在
   `TRADABLE_UNIVERSE_EXCHANGE_ROSTER_FIX_PR_READY_FOR_USER_MERGE_DECISION`；不 merge。
+
+## Superseding current state — PR #25 ready for user merge decision — 2026-09-02
+
+官方 exchange-roster correction 已完成本地验证并推送到 PR #25；本段只更新 live
+governance snapshot，不改变 formal product/research state。
+
+- PR #25：`https://github.com/EFSing/ashare_watchlist/pull/25`，pre-reconciliation
+  head=`105acc9d9772539a3f799faf90bef14a83f83152`，base=
+  `05232677055c67b8b87c8d8c3c3b4139df8c477d`。
+- 已核验 pull_request exact-head correctness run `33624209979`=`success`；PR 状态为
+  `open`、`mergeable=true`、`mergeable_state=clean`。随后只追加 governance-only
+  snapshot；新 head 的 CI 需以实时 GitHub 状态核验，不能把 self-referential run 写回同一
+  commit。
+- local validation：full pytest `240 passed`，compileall PASS，JSON/hash/governance
+  validation PASS，`git diff --check` PASS；frozen registry、strategy、B/spec/threshold/
+  score、Tencent parser 未改变；formal capture 未重跑。
+- final stop：保持 PR #25 open，不 merge，等待 user merge decision；Formal Delivery Ladder
+  仍为 `development candidate`，当前 P1 prospective input blocker、Final OOS
+  `SEALED / UNREAD` 和所有既有 deferred 状态不变。

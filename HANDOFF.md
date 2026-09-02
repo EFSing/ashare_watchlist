@@ -900,3 +900,17 @@ coverage/ambiguity current gate 和 provider counts 不代表本文当前 live g
   `data/validation/continuous_speed_probe/` 保留在工作区，不纳入本次 PR、不删除。
 - stop condition：实现验证通过后 push、创建一个 PR 并等待 exact-head CI；不 merge，最终
   停在 `TRADABLE_UNIVERSE_EXCHANGE_ROSTER_FIX_PR_READY_FOR_USER_MERGE_DECISION`。
+
+## 2026-09-02 — PR #25 ready; governance-only post-PR reconciliation
+
+- current live PR snapshot：PR #25 已创建，当前已核验的 pre-reconciliation head 为
+  `105acc9d9772539a3f799faf90bef14a83f83152`，base 为
+  `05232677055c67b8b87c8d8c3c3b4139df8c477d`；pull_request exact-head correctness run
+  `33624209979` 为 `success`，PR 为 `open`、`mergeable=true`、`mergeable_state=clean`。
+- PR URL：`https://github.com/EFSing/ashare_watchlist/pull/25`。本次 governance-only
+  reconciliation 会使 PR head 前进；该新 commit 的 self-referential CI 不回写到本文件，
+  push 后须实时重新核验 exact-head CI。不要 merge。
+- final stop：完成新 head 的 CI 后，保持 PR #25 open，停在
+  `TRADABLE_UNIVERSE_EXCHANGE_ROSTER_FIX_PR_READY_FOR_USER_MERGE_DECISION`，等待 user
+  merge decision。Formal Delivery Ladder 仍为 `development candidate`，Tencent quote
+  blocker/P1、Final OOS sealed/unread、策略与 frozen artifacts 均不变。

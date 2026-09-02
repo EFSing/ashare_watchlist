@@ -922,3 +922,19 @@
   After full validation, push one PR, wait for exact-head CI, verify `CLEAN`/`MERGEABLE`, and
   stop at `TRADABLE_UNIVERSE_EXCHANGE_ROSTER_FIX_PR_READY_FOR_USER_MERGE_DECISION` without
   merge。Deferred items remain unchanged。
+
+## 2026-09-02 — Official-roster correction PR ready; stop before merge
+
+- classification：`correctness blocker` follow-up；本次仅同步 post-PR governance state，
+  不改变前一条 `ADOPT` decision，也不启动 Phase 2F、C、Final OOS、prospective returns、
+  调参、promotion 或 formal capture。
+- live result：PR #25 已创建，pre-reconciliation head 为
+  `105acc9d9772539a3f799faf90bef14a83f83152`，base 为
+  `05232677055c67b8b87c8d8c3c3b4139df8c477d`，pull_request exact-head correctness run
+  `33624209979` 为 `success`；PR 为 `open`、`mergeable=true`、`mergeable_state=clean`。
+- governance action：追加本 post-PR reconciliation 后，PR head 会变为新的 governance-only
+  commit；遵守不把当前 commit 自己产生的 CI 回写到同一 commit 的规则。新 head push 后
+  重新实时核验 exact-head CI 和 `CLEAN`/`MERGEABLE`。
+- final decision：`TRADABLE_UNIVERSE_EXCHANGE_ROSTER_FIX_PR_READY_FOR_USER_MERGE_DECISION`。
+  保持 PR open，merge 由 user 决定；formal Delivery Ladder、当前 Tencent quote/P1
+  blocker、Final OOS `SEALED / UNREAD` 和 frozen artifacts 均不变。
