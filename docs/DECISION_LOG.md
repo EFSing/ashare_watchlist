@@ -990,3 +990,23 @@
   correctness fix 当前分支为 `codex/stock-kline-suspension-asof-20260902`，后续 stop
   condition 为 `NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION`。未读取、修改或
   上传 `data/validation/continuous_speed_probe/`。
+
+## 2026-09-02 — PR #27 exact-head correctness fix ready
+
+- PR #27 (`https://github.com/EFSing/ashare_watchlist/pull/27`) targets
+  `master@7bd620e72daac1c8239daa982e958edab94fd236` with pre-governance head
+  `028d6e33b1411b6d0d52188427aaccf988882e07`; it is open/mergeable, reviews are empty,
+  and no self-approval was performed.
+- pull_request correctness run `33649816076` and push correctness run `33649783681` both
+  succeeded at that exact head. This governance-only update advances the PR head, so the
+  resulting exact-head CI must be re-verified live and is not claimed by this commit.
+- Decision remains `ADOPT_MINIMAL_STOCK_KLINE_SUSPENSION_AS_OF_FIX`: legal non-empty stock
+  history may end at `T` or earlier on both primary and explicit Tencent fallback paths;
+  future bars and malformed/duplicate/insufficient data still fail closed; index remains
+  T-date strict with market-env minimum `21`. No B/spec/threshold/universe/ST rule changed.
+- Evidence boundary: full pytest `250 passed`, focused `95 passed`, compileall,
+  `git diff --check`, JSON/hash/governance validation PASS. The fresh capture stopped before
+  B evaluation/package persistence at the `002731.SZ` blocker; no formal candidate, Drive
+  backup/readback, Final OOS, C, Phase 2F, returns, tuning, auto-freeze, or promotion ran.
+- Stop after live verification of the new head at
+  `NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION`; user decides whether to merge.

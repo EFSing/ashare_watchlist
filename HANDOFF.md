@@ -984,3 +984,26 @@ coverage/ambiguity current gate 和 provider counts 不代表本文当前 live g
 - unchanged boundary：`data/validation/continuous_speed_probe/` 未读取、未修改、未删除；
   没有生成 `data/prospective_inputs/`、canonical watchlist、Drive backup 或 frozen
   candidate artifact。Final OOS 仍 `SEALED / UNREAD`。
+
+## Superseding live state — PR #27 stock-Kline correctness fix — 2026-09-02
+
+- PR #27：[`https://github.com/EFSing/ashare_watchlist/pull/27`](https://github.com/EFSing/ashare_watchlist/pull/27)，
+  base=`master@7bd620e72daac1c8239daa982e958edab94fd236`，pre-governance head=
+  `028d6e33b1411b6d0d52188427aaccf988882e07`；PR 保持 `OPEN`、`MERGEABLE`，reviews
+  为空，未进行 self-approval。
+- exact-head correctness：pull_request run `33649816076` 与 push run `33649783681`
+  均为 `success`，且均精确对应上述 head。随后本治理-only 更新会使 PR head 前进；新
+  head 的 exact-head CI 必须以 live GitHub 状态重新核验，不把 self-referential CI 回写为
+  已验证事实。
+- fix scope：stock Kline 允许非空真实历史的 `last_bar_date <= T`，HiThink/Tencent
+  两条路径均适用；future bar、schema、OHLCV、duplicate、coverage 仍 fail closed；
+  index 仍要求 T 日 bar。B、retrieval target=260、stock `<120` 语义、index minimum=21、
+  roster/ST 边界均未改变。
+- verification：focused tests `95 passed`，full pytest `250 passed`，compileall、
+  `git diff --check` 和 JSON/hash/governance validation PASS；未读取、修改或上传
+  `data/validation/continuous_speed_probe/`。
+- formal boundary：fresh 2026-09-02 capture 在该 blocker 停止，未创建 B evaluation、
+  manifest、watchlist、immutable package、Drive backup/readback 或 frozen audit。Final
+  OOS=`SEALED / UNREAD`；C、Phase 2F、prospective returns、tuning、auto-freeze、
+  promotion 均未运行。完成新 head CI 后停止于
+  `NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION`，不 merge。

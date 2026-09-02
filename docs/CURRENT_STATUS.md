@@ -755,3 +755,23 @@ full pytest `249 passed`，compileall PASS；尚未 push 新 PR。当前 P1
 `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE` 仍未解除，Final OOS 仍
 `SEALED / UNREAD`，formal capture、package、Drive recovery 和 frozen-candidate audit
 均停在该修复 PR 决策前。
+
+## Superseding live state — PR #27 stock-Kline correctness fix — 2026-09-02
+
+- PR #27：`https://github.com/EFSing/ashare_watchlist/pull/27`，base=
+  `master@7bd620e72daac1c8239daa982e958edab94fd236`，pre-governance head=
+  `028d6e33b1411b6d0d52188427aaccf988882e07`；PR 为 `OPEN`/`MERGEABLE`，reviews 为空，
+  未进行 self-approval。
+- pull_request exact-head correctness `33649816076` 与 push run `33649783681` 均为
+  `success`，精确对应上述 head。本节追加的 governance-only commit 会推进 PR head；
+  新 head 的 CI 需由 live GitHub 状态重新核验。
+- fix scope：stock Kline 的合法非空真实历史允许 `last_bar_date <= T`，HiThink 与
+  Tencent fallback 一致；future bar、schema、OHLCV、duplicate、coverage 仍 fail closed；
+  index 仍要求 T 日 bar。B、260 retrieval target、`<120 -> INSUFFICIENT_DATA`、index
+  minimum `21`、official-roster 和 non-ST final boundary 均保持不变。
+- verification：focused `95 passed`，full pytest `250 passed`，compileall、`git diff --check`
+  和 JSON/hash/governance validation PASS。formal capture 在 `002731.SZ` suspension/as-of
+  blocker 停止，未生成 evaluation、manifest、candidate list、package 或 Drive backup。
+  Final OOS=`SEALED / UNREAD`；C、Phase 2F、prospective returns、tuning、auto-freeze、
+  promotion=`NOT_RUN`。新 head CI 成功后停在
+  `NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION`，不 merge。
