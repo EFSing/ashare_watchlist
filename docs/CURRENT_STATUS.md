@@ -587,3 +587,70 @@ evidence。当前 formal state 为 `development candidate`；corrected candidate
 - historical evidence：commit `138b44dd3b3481b8c8a5ef648b10e67363178229` 与
   `data/governance/prospective_input_attempt_evidence_20260902.json` 未修改。详见
   [`tencent_quote_field_error_root_cause_audit_20260902.md`](tencent_quote_field_error_root_cause_audit_20260902.md)。
+
+## Superseding current state — 2026-09-02 PR #24 merge and fresh capture blocker
+
+- live Git/GitHub：PR #24 已按批准 exact head
+  `e97a6a3c525b497f57aac9cfd751b11f86ca9d5c` squash merge；merge SHA、local `master` 和
+  `origin/master` 均为 `05232677055c67b8b87c8d8c3c3b4139df8c477d`；master exact-head
+  correctness run `33616552822` 为 `success`；当前无 active product PR。
+- formal state：仍为 `development candidate`。corrected candidate、V3 contract、
+  B spec SHA、threshold、sector taxonomy 和 `Final OOS=SEALED / UNREAD` 均不变；未
+  创建 frozen candidate。
+- latest fresh attempt：新的 post-merge `T=2026-09-02` / `T+1=2026-09-03`
+  `LIVE_OBSERVED` capture 在 close-window validation 通过后，于 Tencent quote stage
+  对 `301686` / `sz301686` 发现 `p[38] (turnover)` empty，返回
+  `QuoteFieldError` / `PROVIDER_FAILURE`。该 symbol 的 no-trade/suspension semantics
+  未被证明；不与 PR #24 已核验的 `002731` pattern 混同。精确证据为
+  [`data/governance/prospective_input_attempt_evidence_20260902_post_merge.json`](../data/governance/prospective_input_attempt_evidence_20260902_post_merge.json)。
+- no artifact：universe/sector 的 counts 因异常 runner 未记录，不能猜测回填；stock/index
+  Kline、market_env、READY `GenerationInputManifest`、B、package、Drive recovery 和
+  candidate list 均 `NOT_REACHED`/`NOT_CREATED`；`data/prospective_inputs/` 不存在。
+- current decision：`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`；
+  current P1 `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE` 仍未解除。停止于该
+  correctness blocker，不自动重试，不修改 frozen strategy/protocol/registry，不启动
+  Kline 停牌语义 decision，也不执行任何被禁止的 research/production path。
+
+## 2026-09-02 — User tradability eligibility adopted
+
+- 新增产品约束：`USER_TRADABILITY_ELIGIBILITY_NON_ST_V1`。它是 evaluator 完成后的
+  final candidate eligibility，使用 T-close HiThink universe 的 provider `name`；
+  `*ST`/`ST` prefix（trim + case-insensitive）标记为 `INELIGIBLE_ST`，不做 fuzzy
+  matching。
+- ST 不从 acquisition universe 删除，也不跳过 quote/Kline/manifest completeness；
+  B evaluator、spec、threshold、score、strategy identity、历史 development evidence
+  和 universe scope 均未改变。该规则不是 B alpha filter，不改变历史 performance claim。
+- final watchlist 只输出 `final_non_st_qualified`；run manifest/`DevelopmentRunResult`
+  同时报告 `b_raw_qualified_count`、`st_excluded_count`、
+  `final_non_st_qualified_count` 和 symbol/name exclusion audit list。
+- 该产品约束不解除当前 Tencent quote blocker；当前 formal state 仍为
+  `development candidate`，P1 prospective T-close input instance 仍未通过。
+
+## Superseding current state — 2026-09-02 listing eligibility source audit
+
+本轮对第三次 `2026-09-02` capture 暴露的 `301686 / sz301686 / p[38] turnover empty`
+进行了 bounded root-cause audit。任务分类为 `correctness blocker`，研究退出为
+`NEEDS_MORE_EVIDENCE`，最终 stop state 为
+`TRADABLE_UNIVERSE_LISTING_ELIGIBILITY_SOURCE_DECISION_REQUIRED`。
+
+诊断严格限定为 exact `301686` 的 HiThink `/api/meta/tickers/list` current-only
+读取，标记为 `CURRENT_ONLY_DIAGNOSTIC_NOT_PROSPECTIVE_EVIDENCE`；没有复用 response
+构造 formal input、package、watchlist 或 capture，也没有读取或修改
+`data/validation/continuous_speed_probe/`。HiThink provider timestamp 为
+`2026-09-02T16:00:18.945+08:00`，exact row 为
+`{"thscode":"301686.SZ","ticker":"301686","name":"中塑股份","exchange":"SZ","asset_type":"a-share","currency":"CNY"}`。
+
+该 endpoint 实测 raw schema 只有 `thscode`、`ticker`、`name`、`exchange`、
+`asset_type`、`currency`，没有 listing date/status、delisting/trading/market status
+或其他可作 as-of eligibility 的字段。因此 HiThink row 只能证明 `301686` 是 SZ
+A-share metadata record，不能 deterministic 证明其在 `2026-09-02` 已上市。任务输入
+中的外部事实支持 root-cause direction
+`PRE_LISTING_SECURITY_INCORRECTLY_INCLUDED_IN_TRADABLE_UNIVERSE`，但当前 provider
+source 不足以安全实现过滤；不修改 `_build_universe()`，不 hard-code、猜测或建立
+第二套 listing engine。
+
+当前 formal Delivery Ladder 仍为 `development candidate`，现有
+`USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` 仍位于 B evaluator 后的最终 user-facing
+层；ST 不从 acquisition universe 删除。若后续 source decision 通过，已上市停牌
+`002731` 保留，只有被 deterministic 证明为 T 日未上市的 `301686` 才排除。本轮未
+形成 listing fix、未重跑 formal capture、未 push PR、未创建新 frozen registry record。

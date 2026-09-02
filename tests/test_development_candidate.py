@@ -6,6 +6,7 @@ from a_platform_breakout import STRATEGY_VERSION
 from data_paths import DataPaths
 from development_candidate import (
     DevelopmentCandidateStore,
+    INELIGIBLE_ST,
     MONITOR_HEALTHY,
     MONITOR_INVALID_OUTPUT,
     RUN_ALREADY_CURRENT,
@@ -15,6 +16,7 @@ from development_candidate import (
     RUN_OUTPUT_CONFLICT,
     RUN_OUTPUT_WRITE_FAILURE,
     RUN_PUBLISHED,
+    USER_TRADABILITY_ELIGIBILITY_POLICY,
     MONITOR_UNTRACKED_OUTPUT,
 )
 from test_a_platform_breakout import _base_bars, _manifest
@@ -102,6 +104,69 @@ def test_zero_candidate_is_successful_empty_watchlist_and_idempotent(tmp_path):
     assert second.output_sha256 == first.output_sha256
     assert second.output_path.read_bytes() == first_bytes
     assert len(list((tmp_path / "development_candidate" / "versions").rglob("watchlist_*.json"))) == 1
+
+
+def test_user_non_st_eligibility_filters_after_raw_qualification_and_reports_audit(tmp_path):
+    symbols = ("600000", "600001", "600002", "600003")
+    sector_evidence = {
+        symbol: {"sector_name": "银行", "sector_rank": 5, "sector_chg": 1.5}
+        for symbol in symbols
+    }
+    manifest = _manifest(_base_bars(), symbols=symbols, sector_evidence=sector_evidence)
+    names = {
+        "600000": " ST银行 ",
+        "600001": " *st风险 ",
+        "600002": "公司ST",
+        "600003": "S T公司",
+    }
+
+    result = DevelopmentCandidateStore(tmp_path).generate(manifest, names=names, market_env=_market_env())
+
+    assert result.b_raw_qualified_count == 4
+    assert result.st_excluded_count == 2
+    assert result.final_non_st_qualified_count == 2
+    assert result.candidate_count == 2
+    assert result.st_excluded == (
+        {"symbol": "600000", "name": "ST银行", "status": INELIGIBLE_ST},
+        {"symbol": "600001", "name": "*st风险", "status": INELIGIBLE_ST},
+    )
+    payload = load_watchlist(result.output_path)
+    assert [item["code"] for item in payload["candidates"]] == ["600002", "600003"]
+    assert [item["name"] for item in payload["candidates"]] == ["公司ST", "S T公司"]
+
+    record = json.loads(result.run_manifest_path.read_text(encoding="utf-8"))
+    audit = record["user_tradability_eligibility"]
+    assert audit["policy"] == USER_TRADABILITY_ELIGIBILITY_POLICY
+    assert audit["b_raw_qualified_count"] == 4
+    assert audit["st_excluded_count"] == 2
+    assert audit["final_non_st_qualified_count"] == 2
+    assert audit["st_excluded"] == list(result.st_excluded)
+    assert record["b_raw_qualified_count"] == 4
+    assert record["st_excluded_count"] == 2
+    assert record["final_non_st_qualified_count"] == 2
+    assert record["st_excluded"] == list(result.st_excluded)
+    assert record["auxiliary_inputs"]["user_tradability_eligibility"]["identity"] == (
+        USER_TRADABILITY_ELIGIBILITY_POLICY
+    )
+
+
+def test_user_non_st_eligibility_does_not_change_evaluator_status_or_strategy_identity(tmp_path):
+    manifest = _manifest(_base_bars())
+
+    result = DevelopmentCandidateStore(tmp_path).generate(
+        manifest,
+        names={"600000": "*ST测试"},
+        market_env=_market_env(),
+    )
+
+    assert result.status == RUN_PUBLISHED
+    assert result.candidate_count == 0
+    assert result.b_raw_qualified_count == 1
+    assert result.st_excluded_count == 1
+    assert result.final_non_st_qualified_count == 0
+    record = json.loads(result.run_manifest_path.read_text(encoding="utf-8"))
+    assert record["evaluation_counts"] == {"QUALIFIED_LEGACY_BASELINE": 1}
+    assert record["strategy_version"] == STRATEGY_VERSION
 
 
 def test_evaluator_failure_is_distinct_from_zero_candidate_success(tmp_path, monkeypatch):

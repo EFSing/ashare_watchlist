@@ -790,3 +790,51 @@ coverage/ambiguity current gate 和 provider counts 不代表本文当前 live g
 - detailed audit：[`docs/tencent_quote_field_error_root_cause_audit_20260902.md`](docs/tencent_quote_field_error_root_cause_audit_20260902.md)。当前 stop 是
   `TENCENT_QUOTE_FIELD_ROOT_CAUSE_UNRESOLVED_NEEDS_MORE_EVIDENCE`；在 exact raw evidence
   到位前不做第二次 formal capture、push 或 PR。
+
+## 2026-09-02 — PR #24 merged; fresh capture stopped at a new Tencent quote blocker
+
+- classification：`correctness blocker` + `product blocker`；本次分类未改变。PR #24
+  已按批准 exact head squash merge，真实 merge SHA 为
+  `05232677055c67b8b87c8d8c3c3b4139df8c477d`。本地 `master`、`origin/master` 与
+  该 merge SHA 一致；merge 后 master exact-head correctness run
+  `33616552822` 为 `success`；PR #24 已关闭，当前无 active product PR。
+- fresh attempt：在该 merge 后对 `T=2026-09-02`、`T+1=2026-09-03` 运行了新的
+  `FRESH_FORMAL_20260902_POST_MERGE`，close-window validation 已通过，语义为
+  `LIVE_OBSERVED` / `close` / `Asia/Shanghai` / `XSHG`。包装 runner 没有持久化精确
+  `observed_at_bjt`，因此保持 `NOT_RECORDED_BY_RUNNER`，不从工具时间推算。
+- acquisition result：HiThink universe 与 exact Sina `新浪行业` traversal 已完成；
+  Tencent quote snapshot 在 symbol `301686`（Tencent symbol `sz301686`）处因
+  `p[38]` / `turnover` 为空返回 `QuoteFieldError`，`PROVIDER_FAILURE`，分类为
+  `PROVIDER_DATA_VALIDATION_FAILURE`，不是 connectivity failure。完整 failure batch
+  与 Tencent batch、原始可得 detail 见新的
+  [`data/governance/prospective_input_attempt_evidence_20260902_post_merge.json`](data/governance/prospective_input_attempt_evidence_20260902_post_merge.json)。
+- boundary：stock Kline、index Kline、market_env、`GenerationInputManifest`、B
+  evaluation、package serialization/persistence、Drive upload/readback 和 candidate
+  list 均未到达；`data/prospective_inputs/` 不存在。没有把 `301686` 猜测为合法
+  no-trade/suspension pattern；raw Tencent line 未由 parser 保留，语义保持
+  `UNRESOLVED_FOR_301686`。
+- history：第一次与第二次 2026-09-02 failed attempt evidence 保持 immutable；本次
+  不是复用历史 attempt、current-only probe 或 PR regression payload。上一次包装命令
+  的语法失败未调用 provider，也未计入 formal provider attempt。
+- decision：`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`。不自动重试，
+  不放宽字段规则，不缩 universe，不跳过 symbol，不使用 fallback 解释 quote，且不
+  进入 Kline/manifest suspension 语义 decision。Final OOS、prospective returns、C、
+  Phase 2F、调参、promotion 和 automatic freeze 均未读取/执行。
+
+## 2026-09-02 — User non-ST final eligibility constraint adopted
+
+- classification：`product correctness constraint`；新增规则为
+  `USER_TRADABILITY_ELIGIBILITY_NON_ST_V1`。它在既有 evaluator 完成后应用到最终
+  candidate eligibility，不修改 `B_BREAKOUT_RETEST_LEGACY_V1_1` evaluator、spec、
+  threshold、score、历史 development evidence 或 universe scope。
+- implementation：使用 T-close HiThink universe 的 provider `name`，只做 trim 后的
+  case-insensitive `*ST`/`ST` prefix detection；symbol 仍是 security identity，其他
+  名称不因该规则排除，不做 fuzzy matching。ST 不从 acquisition universe 删除，也不
+  跳过 quote/Kline/manifest completeness。
+- output：canonical watchlist 只保留 `final_non_st_qualified`；run manifest 与
+  `DevelopmentRunResult` 报告 `b_raw_qualified_count`、`st_excluded_count`、
+  `final_non_st_qualified_count` 和 symbol/name exclusion list。该规则不是 B alpha
+  filter，不改变 B historical performance claim。
+- verification：相关测试 23 passed，完整 pytest 231 passed，compileall 和
+  `git diff --check` 均 PASS。当前 Tencent quote blocker、formal Delivery Ladder
+  `development candidate` 和 Final OOS `SEALED / UNREAD` 状态均不变。

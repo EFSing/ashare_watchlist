@@ -803,3 +803,82 @@
   第一次失败 commit/evidence 未改写，`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`
   未被宣布最终关闭；未 push、未建 PR、未执行第二次 formal capture。
 - full audit record：[`docs/tencent_quote_field_error_root_cause_audit_20260902.md`](../docs/tencent_quote_field_error_root_cause_audit_20260902.md)。
+
+## 2026-09-02 — PR #24 merge and fresh post-merge capture blocker
+
+- classification：`correctness blocker` + `product blocker`；不是策略研究、参数选择、
+  Phase 2F、C、Final OOS、prospective returns、promotion 或 automatic freeze。
+- merge provenance：在重新断言 PR #24 exact head
+  `e97a6a3c525b497f57aac9cfd751b11f86ca9d5c`、base `master@6705624660c8b0432ad038c76c2fc0f3fd2a7948`、
+  clean mergeability 和 exact-head correctness success `33615315409` 后完成 squash
+  merge；真实 merge SHA 为 `05232677055c67b8b87c8d8c3c3b4139df8c477d`。local
+  `master==origin/master==merge SHA`，merge 后 exact-head correctness run
+  `33616552822` success。
+- input/stop：重新启动唯一的新 `T=2026-09-02` / `T+1=2026-09-03` formal
+  `LIVE_OBSERVED` capture。close-window validation 通过；HiThink universe 与 exact
+  Sina `新浪行业` 已完成。Tencent quote stage 是 stop condition；不读取、猜测或重试
+  后续 inputs，不复用前两次失败 attempt、current-only probe 或 PR regression payload。
+- finding：`301686` / `sz301686` 的 Tencent response 在 `p[38]` (`turnover`) 为空，
+  触发 `QuoteFieldError`；adapter 返回 `PROVIDER_FAILURE`，分类为
+  `PROVIDER_DATA_VALIDATION_FAILURE`，`provider_connectivity_failure=false`。failure
+  batch 与完整可得 detail 登记在
+  [`data/governance/prospective_input_attempt_evidence_20260902_post_merge.json`](../data/governance/prospective_input_attempt_evidence_20260902_post_merge.json)。
+  raw provider line 未被 parser 保留，故不能判断它是否与 `002731` 的已核验合法
+  no-trade representation 相同，状态保持 `UNRESOLVED_FOR_301686`。
+- decision：`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`。不放宽 quote
+  validation、不删除/跳过 symbol、不缩 universe、不将此 error 当作合法 no-trade，
+  不进入 stock Kline/manifest suspension 语义审计。未创建 READY manifest、package、
+  Drive backup/recovery 或 candidate output；Final OOS 保持 sealed/unread。
+- consequence：现有两份 2026-09-02 历史失败 evidence 保持 immutable；新增证据不是
+  frozen artifact，且未新增 registry record。当前 Delivery Ladder 仍为
+  `development candidate`，下一步需等待明确的 correctness/root-cause decision 或
+  未来合法 T-close fresh acquisition；本次不自动重试。
+
+## 2026-09-02 — Adopt user non-ST final eligibility
+
+- classification：`product correctness constraint`；不启动新 strategy、strategy version、
+  research phase、development returns、调参或 universe acquisition。
+- requirement：用户要求最终展示结果不得包含 ST / `*ST` 股票，同时保留完整 live
+  universe 与 provider provenance，且不因 ST 跳过 quote/Kline/manifest completeness。
+- decision：`ADOPT` — `USER_TRADABILITY_ELIGIBILITY_NON_ST_V1`。在既有 evaluator
+  完成后，使用当前 T-close HiThink universe 的 `name` 做 trim + case-insensitive
+  prefix detection；`*ST` 或 `ST` 开头为 `INELIGIBLE_ST`，其他名称保留。symbol 仍是
+  security identity，不做 fuzzy matching。
+- output contract：run manifest 与 `DevelopmentRunResult` 记录
+  `b_raw_qualified_count`、`st_excluded_count`、`final_non_st_qualified_count` 和
+  symbol/name exclusion list；canonical watchlist 只写 final non-ST candidates，
+  不扩充现有 schema。
+- boundary：该资格层不是 B alpha filter，不改
+  `B_BREAKOUT_RETEST_LEGACY_V1_1` evaluator/spec/threshold/score、历史 development
+  evidence 或 performance claim；不影响当前独立 Tencent quote blocker。
+
+## 2026-09-02 — Tradable-universe listing eligibility source decision required
+
+- classification：`correctness blocker`；不是策略研究、参数选择、Phase 2F、C、Final
+  OOS、prospective returns、调参、promotion 或正式 capture。
+- research question：HiThink `/api/meta/tickers/list` 是否已有 listing date/status
+  或等价字段，能够 deterministic 判断 `301686` 在 `as_of_date=2026-09-02` 是否已上市。
+  materiality 是避免 pre-listing security 污染 `TRADABLE_UNIVERSE_SCOPE_V1`，同时不
+  引入 hard-code、look-ahead、current-data backfill 或第二套 listing engine。
+- input / boundary：只对 exact `301686` 做一次 current-only read-only diagnostic，
+  标记 `CURRENT_ONLY_DIAGNOSTIC_NOT_PROSPECTIVE_EVIDENCE`；没有写入 formal input、
+  package、registry 或 output，也没有读取/修改
+  `data/validation/continuous_speed_probe/`。完整 evidence 见
+  `docs/tradable_universe_listing_eligibility_audit_20260902.md`。
+- finding：HiThink response `code=0`，provider timestamp 为
+  `2026-09-02T16:00:18.945+08:00`；exact row 为
+  `301686.SZ / 301686 / 中塑股份 / SZ / a-share / CNY`。raw schema 只有
+  `thscode`、`ticker`、`name`、`exchange`、`asset_type`、`currency`，没有
+  `listing_date/list_date`、listing/security status、`delisting_date`、
+  `trading_status`、`market_status` 或等价 as-of eligibility field。
+- decision：`NEEDS_MORE_EVIDENCE`，最终 stop 为
+  `TRADABLE_UNIVERSE_LISTING_ELIGIBILITY_SOURCE_DECISION_REQUIRED`。任务输入中已确认
+  的外部事实支持 root-cause direction
+  `PRE_LISTING_SECURITY_INCORRECTLY_INCLUDED_IN_TRADABLE_UNIVERSE`，但 HiThink row
+  自身不能 deterministic 证明 `NOT_YET_LISTED`，因此不修改 `_build_universe()`，不
+  hard-code `301686`，不按代码新旧/历史 Kline 猜上市状态，不缩 universe、不跳过
+  symbol、不放宽 Tencent turnover parser。
+- semantic boundary：若后续获得可靠且获批准的 source，已上市停牌 `002731` 必须保留
+  在 acquisition universe，而被 deterministic 证明为 T 日未上市的 `301686` 才排除；
+  ST 仍只由 B 后的 `USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` final layer 排除。该
+  filter 本轮未批准、未实现；正式 capture 未重跑。

@@ -38,6 +38,24 @@ Final OOS 入口。
 `market_env`、`sectors`、`candidates` 和 `strategy_version`。输入 manifest、
 策略 identity 和 hash 保存在 sidecar run manifest，不混入 canonical schema。
 
+## User tradability eligibility
+
+最终 user-facing qualified list 采用独立的
+`USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` 资格规则。它只在既有 evaluator 完成后
+执行，不修改 `B_BREAKOUT_RETEST_LEGACY_V1_1` evaluator、spec、threshold、score、
+历史 development evidence 或 universe scope，也不从 live acquisition universe 删除
+ST 股票；ST 仍必须完成 quote/Kline/manifest completeness 和 provenance。
+
+资格判断使用当前 T-close HiThink universe 已提供的 `name`，symbol 仍是 security
+identity。名称只做 trim 后的 case-insensitive marker detection：以 `*ST` 或 `ST`
+开头的 qualified result 标记为 `INELIGIBLE_ST`，其他名称不因本规则排除；不做 fuzzy
+matching。该规则不是 Strategy B alpha filter，也不改变 B historical performance claim。
+
+run manifest 与 `DevelopmentRunResult` 必须同时记录
+`b_raw_qualified_count`、`st_excluded_count`、`final_non_st_qualified_count` 和被
+排除的 symbol/name 列表。canonical watchlist 的既有 schema 不扩展，`candidates`
+只写入 `final_non_st_qualified` 结果。
+
 ## Fail-closed and publish rule
 
 以下情况不产生或覆盖 canonical watchlist，并写入显式机器可读状态的 run manifest：
