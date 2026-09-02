@@ -838,3 +838,32 @@ coverage/ambiguity current gate 和 provider counts 不代表本文当前 live g
 - verification：相关测试 23 passed，完整 pytest 231 passed，compileall 和
   `git diff --check` 均 PASS。当前 Tencent quote blocker、formal Delivery Ladder
   `development candidate` 和 Final OOS `SEALED / UNREAD` 状态均不变。
+
+## 2026-09-02 — Tradable-universe listing eligibility source audit
+
+- classification：`correctness blocker`；本轮没有启动 strategy、Phase 2F、C、Final
+  OOS、prospective returns、调参、promotion 或 formal capture。
+- branch preservation：已从 live `master@05232677055c67b8b87c8d8c3c3b4139df8c477d`
+  创建本地分支 `codex/tradable-universe-prelisting-fix-20260902`，保留第三次失败
+  evidence、治理同步和 `USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` 实现/测试。该分支
+  未 push、未创建 PR；existing `data/validation/continuous_speed_probe/` 未读取、未
+  修改、未删除。
+- provider audit：HiThink `/api/meta/tickers/list` current-only response 的 exact
+  `301686` row 是 `301686.SZ / 301686 / 中塑股份 / SZ / a-share / CNY`；raw schema
+  只有 `thscode`、`ticker`、`name`、`exchange`、`asset_type`、`currency`。provider
+  timestamp 为 `2026-09-02T16:00:18.945+08:00`，没有 listing/date/status、
+  delisting/trading/market status 或等价 as-of eligibility field。完整记录见
+  [`docs/tradable_universe_listing_eligibility_audit_20260902.md`](docs/tradable_universe_listing_eligibility_audit_20260902.md)，明确标记
+  `CURRENT_ONLY_DIAGNOSTIC_NOT_PROSPECTIVE_EVIDENCE`。
+- decision：`NEEDS_MORE_EVIDENCE`；stop state 为
+  `TRADABLE_UNIVERSE_LISTING_ELIGIBILITY_SOURCE_DECISION_REQUIRED`。任务输入中的
+  外部事实支持 `PRE_LISTING_SECURITY_INCORRECTLY_INCLUDED_IN_TRADABLE_UNIVERSE`
+  方向，但 HiThink row 不能 deterministic 证明 `NOT_YET_LISTED`；未修改
+  `_build_universe()`，未 hard-code `301686`，未创建第二套 listing engine。
+- semantic boundary：若后续有批准的可靠 source，已上市停牌 `002731` 保留在
+  acquisition universe，只有被 deterministic 证明为 T 日未上市的 `301686` 才排除；
+  ST 仍只在 B evaluator 后由 `USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` 过滤。Tencent
+  parser、B/spec/threshold/sector semantics 和 frozen registry 均未改变；正式 capture
+  未重跑。
+- local commit：`2798d0e` 已固化上述 evidence、audit、governance 和 ST eligibility
+  工作；本 section 的最终 handoff snapshot 会在本地治理 commit 后更新。
