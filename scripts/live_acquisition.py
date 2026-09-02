@@ -1329,6 +1329,7 @@ def _fetch_qfq_bars(
     requested_count: int,
     minimum_acceptable_history: int,
     as_of_date: str,
+    require_last_bar_date: bool = True,
     timeout: float,
     retries: int,
     request_get: Callable[..., Any],
@@ -1375,7 +1376,7 @@ def _fetch_qfq_bars(
             f"Tencent qfq coverage for {provider_symbol} is {len(bars)} < "
             f"{minimum_acceptable_history}",
         )
-    if bars[-1]["date"] != as_of_date:
+    if require_last_bar_date and bars[-1]["date"] != as_of_date:
         _fail(INPUT_DATE_MISMATCH, f"Tencent qfq latest bar for {provider_symbol} is {bars[-1]['date']} != {as_of_date}")
     return bars
 
@@ -1457,7 +1458,7 @@ def _resolve_market_bars(
         future_dates = [bar["date"] for bar in normalized if bar["date"] > as_of_date]
         if future_dates:
             _fail(FUTURE_DATA_DETECTED, f"HiThink historical bar {thscode} is after {as_of_date}: {future_dates[0]}")
-        if normalized[-1].get("date") != as_of_date:
+        if index and normalized[-1].get("date") != as_of_date:
             _fail(
                 INPUT_DATE_MISMATCH,
                 f"HiThink historical latest bar for {thscode} is {normalized[-1].get('date')} != {as_of_date}",
@@ -1485,6 +1486,7 @@ def _resolve_market_bars(
             requested_count=requested_count,
             minimum_acceptable_history=minimum_acceptable_history,
             as_of_date=as_of_date,
+            require_last_bar_date=index,
             timeout=timeout,
             retries=retries,
             request_get=request_get,
@@ -1803,7 +1805,7 @@ class LiveInputPackage:
             "sector_membership_resolved_exact_v0",
             "display_name_coverage_and_symbol_identity",
             "quote_t_date_and_coverage",
-            "stock_kline_t_date_no_future_bar",
+            "stock_kline_as_of_t_no_future_bar",
             "index_kline_t_date_no_future_bar",
         )
         if any(checks.get(name) != "PASS" for name in required_checks):
@@ -2237,7 +2239,7 @@ def acquire_live_generation_inputs(
             "sector_membership_resolved_exact_v0": "PASS",
             "display_name_coverage_and_symbol_identity": "PASS",
             "quote_t_date_and_coverage": "PASS",
-            "stock_kline_t_date_no_future_bar": "PASS",
+            "stock_kline_as_of_t_no_future_bar": "PASS",
             "index_kline_t_date_no_future_bar": "PASS",
             "generation_manifest": manifest.status,
         },

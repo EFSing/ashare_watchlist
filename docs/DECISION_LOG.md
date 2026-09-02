@@ -956,3 +956,37 @@
 - final decision：`TRADABLE_UNIVERSE_EXCHANGE_ROSTER_FIX_PR_READY_FOR_USER_MERGE_DECISION`。
   保持 PR open，merge 由 user 决定；formal Delivery Ladder、当前 Tencent quote/P1
   blocker、Final OOS `SEALED / UNREAD` 和 frozen artifacts 均不变。
+
+## 2026-09-02 — PR #26 merged; stock-Kline suspension semantics correctness fix
+
+- classification：`correctness blocker` follow-up；本轮不新增策略研究，不读取 Final OOS，
+  不启动 C、Phase 2F、prospective returns、tuning、promotion 或 auto-freeze。
+- governance reconciliation：旧 tracked snapshot 将 PR #25 保留为 open，但实时 PR #25
+  已以 squash merge SHA `f0c1fe56972fe1d1d3db99dd51f75ae9b75e1b74` 合并；这是
+  `PROJECT_GOVERNANCE_STATE_CONFLICT_RESOLVED`，不改变 formal candidate 或 frozen
+  identities。
+- merge result：PR #26 的批准 exact head
+  `1e736979f394401f5fab2e38caa39408cdc1377b` 未移动，base 为
+  `f0c1fe56972fe1d1d3db99dd51f75ae9b75e1b74`，reviews/unresolved threads 为 0，
+  exact-head correctness `33645366992` success；真实 squash merge SHA 为
+  `7bd620e72daac1c8239daa982e958edab94fd236`，merge-after master correctness
+  `33646931153` success。
+- formal attempt：在实时 BJT `2026-09-02T23:13:30.5358588+08:00` 后启动 fresh
+  `LIVE_OBSERVED` capture，目标 `T=2026-09-02`、`T+1=2026-09-03`；没有复用旧
+  attempt/probe/payload/object。失败路径未生成 package、watchlist 或 partial evidence。
+- first exact blocker：`INPUT_DATE_MISMATCH`；HiThink 对已上市停牌 `002731.SZ` 返回
+  合法非空 330 根历史，最新为 `2026-08-31`；bounded Tencent diagnostic 返回 T 日
+  合法 no-trade quote（price/prev_close=`0.77`，open/volume/turnover=`0`）。因此
+  root cause 是 stock Kline history/as-of semantics，不是 malformed provider data、
+  quote mapping、listing/universe、manifest contract identity 或 B input semantics。
+- decision：`ADOPT_MINIMAL_STOCK_KLINE_SUSPENSION_AS_OF_FIX`。stock Kline 允许非空真实
+  history 的 `last_bar_date <= T`，仍 fail closed 于空数据、future bar、OHLCV/schema/
+  duplicate/coverage failure；index 保持 `last_bar_date == T` 与 market-env minimum
+  `21`；B 保持 strategy `B_BREAKOUT_RETEST_LEGACY_V1_1`、role
+  `CORRECTED_EXACT_V0_RECONSTRUCTION`、spec SHA
+  `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`、
+  `score_cutoff=None`、`top_n=None`，并自己处理 `<120 -> INSUFFICIENT_DATA`。
+- verification：focused tests `94 passed`，full pytest `249 passed`，compileall PASS；
+  correctness fix 当前分支为 `codex/stock-kline-suspension-asof-20260902`，后续 stop
+  condition 为 `NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION`。未读取、修改或
+  上传 `data/validation/continuous_speed_probe/`。

@@ -731,3 +731,27 @@ governance snapshot，不改变 formal product/research state。
 - final stop：保持 PR #25 open，不 merge，等待 user merge decision；Formal Delivery Ladder
   仍为 `development candidate`，当前 P1 prospective input blocker、Final OOS
   `SEALED / UNREAD` 和所有既有 deferred 状态不变。
+
+## Superseding current state — PR #26 merge and stock-Kline suspension blocker — 2026-09-02
+
+Formal Delivery Ladder 仍为 `development candidate`。PR #25 的旧 open 快照已由 live
+Git/GitHub 状态纠正：PR #25 已 squash merge 到
+`f0c1fe56972fe1d1d3db99dd51f75ae9b75e1b74`。随后批准的 PR #26 exact head
+`1e736979f394401f5fab2e38caa39408cdc1377b` 已 squash merge，真实 merge SHA 为
+`7bd620e72daac1c8239daa982e958edab94fd236`；merge-after master correctness run
+`33646931153` 为 `success`，local master 与 origin/master 一致。
+
+实时 BJT 仍为 2026-09-02，fresh `T=2026-09-02` / `T+1=2026-09-03` formal
+`LIVE_OBSERVED` capture 已启动，但在首个 exact stock-Kline blocker 停止，没有创建
+partial package/output。`002731.SZ` 的 HiThink 非空历史为 330 根、最后交易 bar 为
+`2026-08-31`；Tencent T 日 quote 是合法 no-trade snapshot。当前分类为
+`correctness blocker`，根因为 stock-Kline suspension/as-of semantics，非 provider
+malformation、quote parser、listing/universe、manifest identity 或 B bug。
+
+当前 correctness fix 分支为 `codex/stock-kline-suspension-asof-20260902`，实现并测试：
+股票 Kline 非空且允许 `last_bar_date <= T`、拒绝 future bar；index 仍必须最后一根为
+T，minimum 仍为 21；B 仍保持 `<120 -> INSUFFICIENT_DATA`。focused tests `94 passed`，
+full pytest `249 passed`，compileall PASS；尚未 push 新 PR。当前 P1
+`P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE` 仍未解除，Final OOS 仍
+`SEALED / UNREAD`，formal capture、package、Drive recovery 和 frozen-candidate audit
+均停在该修复 PR 决策前。

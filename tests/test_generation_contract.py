@@ -178,6 +178,13 @@ def test_stock_kline_future_bar_fails_fast():
     assert caught.value.status == FUTURE_DATA_DETECTED
 
 
+def test_non_empty_stock_kline_may_end_before_t():
+    manifest = _freeze(stock_last_date="2026-08-26")
+
+    assert manifest.stock_klines[0].bar_count == 2
+    assert manifest.stock_klines[0].last_bar_date == "2026-08-26"
+
+
 def test_raw_stock_kline_is_rejected():
     with pytest.raises(GenerationContractError) as caught:
         _freeze(stock_adjustment_mode=PROVIDER_RAW_SNAPSHOT)

@@ -948,3 +948,39 @@ coverage/ambiguity current gate 和 provider counts 不代表本文当前 live g
   `TRADABLE_UNIVERSE_EXCHANGE_ROSTER_FIX_PR_READY_FOR_USER_MERGE_DECISION`，等待 user
   merge decision。Formal Delivery Ladder 仍为 `development candidate`，Tencent quote
   blocker/P1、Final OOS sealed/unread、策略与 frozen artifacts 均不变。
+
+## Superseding current state — PR #25/#26 merge and stock-Kline suspension blocker — 2026-09-02
+
+- classification：`correctness blocker`；本轮先完成已批准的 PR #26 merge，随后执行
+  一次完全 fresh formal capture；不启动 Phase 2F、C、Final OOS、prospective returns、
+  tuning 或 promotion。
+- governance reconciliation：旧快照把 PR #25 记录为 open，但 live PR #25 已于
+  `2026-09-02T14:21:58Z` squash merge，真实 merge SHA 为
+  `f0c1fe56972fe1d1d3db99dd51f75ae9b75e1b74`。该冲突已由 live Git/GitHub 证据显式
+  解决；不是新的 product/strategy decision。
+- PR #26：approved exact head `1e736979f394401f5fab2e38caa39408cdc1377b`，base
+  `f0c1fe56972fe1d1d3db99dd51f75ae9b75e1b74`，真实 squash merge SHA
+  `7bd620e72daac1c8239daa982e958edab94fd236`；merge-after master correctness run
+  `33646931153` 为 `success`。local `master == origin/master == 7bd620e…`，工作树
+  在转入本 correctness fix 前保持 clean。
+- window：实时 `Asia/Shanghai=2026-09-02T23:13:30.5358588+08:00`，因此 9/2 formal
+  window 仍有效；本次 capture 使用 `T=2026-09-02`、`T+1=2026-09-03`、
+  `LIVE_OBSERVED`，未复用任何旧 attempt/probe/payload/in-memory object。失败 runner
+  未持久化 package/output，精确 `observed_at_bjt` 不由失败路径记录，保持
+  `NOT_RECORDED_BY_RUNNER`。
+- first exact blocker：`INPUT_DATE_MISMATCH`，HiThink
+  `002731.SZ` 返回合法非空 330 根真实历史，最后一根为 `2026-08-31`；同一 bounded
+  current-only diagnostic 的 Tencent T 日 snapshot 为合法 no-trade（price/prev_close
+  `0.77`，open/volume/turnover `0`）。这是 stock-Kline history semantics blocker，
+  不是 malformed provider data、quote parser、listing/universe、manifest identity 或
+  B strategy bug。
+- minimal fix：stock Kline 改为要求非空真实历史且 `last_bar_date <= T`，继续拒绝
+  future bar；index Kline 仍要求 `last_bar_date == T` 和 market-env minimum `21`；
+  B 仍独立负责 `<120 -> INSUFFICIENT_DATA`，不补历史、不伪造 bars、不 skip/shrink。
+- current branch：`codex/stock-kline-suspension-asof-20260902`，基于 merge SHA
+  `7bd620e72daac1c8239daa982e958edab94fd236`；focused tests `94 passed`，full pytest
+  `249 passed`，compileall PASS。新 correctness PR 尚未 push；其 exact-head CI 完成
+  后停止于 `NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION`。
+- unchanged boundary：`data/validation/continuous_speed_probe/` 未读取、未修改、未删除；
+  没有生成 `data/prospective_inputs/`、canonical watchlist、Drive backup 或 frozen
+  candidate artifact。Final OOS 仍 `SEALED / UNREAD`。

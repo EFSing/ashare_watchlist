@@ -99,9 +99,10 @@ class FakeAkShare:
 
 
 class FakeHiThink:
-    def __init__(self, *, universe=None, bars=None, failures=None):
+    def __init__(self, *, universe=None, bars=None, index_bars=None, failures=None):
         self._universe = universe
         self._bars = bars
+        self._index_bars = index_bars
         self._failures = {key: list(values) for key, values in (failures or {}).items()}
         self.universe_calls = 0
         self.kline_calls = []
@@ -149,7 +150,11 @@ class FakeHiThink:
         del start, end, timeout
         self.kline_calls.append((thscode, index))
         self._maybe_fail("index" if index else "stock")
-        bars = self._bars if self._bars is not None else _bars()
+        bars = (
+            self._index_bars
+            if index and self._index_bars is not None
+            else (self._bars if self._bars is not None else _bars())
+        )
         result = []
         for row in bars:
             result.append(
@@ -617,6 +622,19 @@ def test_hithink_stock_failure_uses_only_explicitly_versioned_tencent_fallback()
     assert policy["fallback_symbols"] == [SYMBOL]
 
 
+def test_tencent_stock_fallback_accepts_stale_non_empty_history_for_listed_suspension():
+    hithink = FakeHiThink(failures={"stock": [ConnectionError("down")]})
+    package = _acquire(
+        hithink_client=hithink,
+        request_get=_request_get(bars=_bars(last_date="2026-08-26", count=141)),
+    )
+
+    stock = package.generation_input_manifest.stock_klines[0]
+    assert stock.provider == "Tencent"
+    assert stock.bar_count == 141
+    assert stock.last_bar_date == "2026-08-26"
+
+
 def test_hithink_stock_failure_is_fail_closed_when_fallback_is_disabled():
     with pytest.raises(live.LiveAcquisitionError) as caught:
         _acquire(
@@ -885,11 +903,25 @@ def test_missing_t_quote_fails_closed():
     assert caught.value.status == INCOMPLETE_COVERAGE
 
 
-def test_missing_or_stale_t_kline_fails_closed():
+def test_stale_index_kline_fails_closed():
     with pytest.raises(live.LiveAcquisitionError) as caught:
-        _acquire(hithink_client=FakeHiThink(bars=_bars(last_date="2026-08-26")))
+        _acquire(hithink_client=FakeHiThink(index_bars=_bars(last_date="2026-08-26")))
 
     assert caught.value.status == INPUT_DATE_MISMATCH
+
+
+def test_stale_non_empty_stock_kline_is_accepted_for_listed_suspension():
+    package = _acquire(
+        hithink_client=FakeHiThink(
+            bars=_bars(last_date="2026-08-26", count=141),
+            index_bars=_bars(),
+        ),
+    )
+
+    stock = package.generation_input_manifest.stock_klines[0]
+    assert stock.bar_count == 141
+    assert stock.last_bar_date == "2026-08-26"
+    assert package.generation_input_manifest.status == "READY_FOR_STRATEGY_EVALUATION"
 
 
 @pytest.mark.parametrize("available_bars", [260, 141, 120])

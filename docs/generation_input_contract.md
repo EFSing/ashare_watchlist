@@ -78,12 +78,13 @@ assert manifest.status == "READY_FOR_STRATEGY_EVALUATION"
 入口先验证 T 是 XSHG session，然后进行全量日期检查：
 
 - 每个 quote 的 `quote_date` 必须等于 T；
-- 每个个股 K 线的 `last_bar_date` 必须等于 T，任何 `date > T` 的 bar 都是
-  `FUTURE_DATA_DETECTED`；
+- 每个个股 K 线必须是非空真实历史，`last_bar_date` 可以早于或等于 T（例如
+  T 日停牌），但任何 `date > T` 的 bar 都是 `FUTURE_DATA_DETECTED`；B evaluator
+  自己负责 `<120 -> INSUFFICIENT_DATA`；
 - 指数 K 线的 `last_bar_date` 必须等于 T，不能包含未来 bar；
 - 股票池中的每个 symbol 都必须有 quote 和个股 K 线；
-- 任一 manifest 的 as-of 日期不一致、K 线最后日期早于 T 或指数缺失，均不
-  会静默继续生成。
+- 任一 manifest 的 as-of 日期不一致、股票 K 线为空/含 future bar、指数最后日期
+  不是 T 或指数缺失，均不会静默继续生成。
 
 日期不一致为 `INPUT_DATE_MISMATCH`，缺输入或空覆盖为
 `INCOMPLETE_COVERAGE`。所有失败都抛出 `GenerationContractError`，并在

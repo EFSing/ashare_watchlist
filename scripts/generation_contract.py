@@ -615,7 +615,13 @@ def _validate_calendar(as_of_date: str, calendar: TradingCalendar) -> None:
         _fail(CALENDAR_ERROR, f"XSHG calendar failed: {exc}")
 
 
-def _validate_kline_coverage(item: KlineManifest, as_of_date: str, label: str) -> None:
+def _validate_kline_coverage(
+    item: KlineManifest,
+    as_of_date: str,
+    label: str,
+    *,
+    require_last_bar_date: bool = True,
+) -> None:
     if item.bar_count == 0 or item.first_bar_date is None or item.last_bar_date is None:
         _fail(INCOMPLETE_COVERAGE, f"{label} {item.symbol} has no bars")
     future_dates = [bar["date"] for bar in item.bars if bar["date"] > as_of_date]
@@ -624,7 +630,7 @@ def _validate_kline_coverage(item: KlineManifest, as_of_date: str, label: str) -
             FUTURE_DATA_DETECTED,
             f"{label} {item.symbol} contains bar after {as_of_date}: {future_dates[0]}",
         )
-    if item.last_bar_date != as_of_date:
+    if require_last_bar_date and item.last_bar_date != as_of_date:
         _fail(
             INPUT_DATE_MISMATCH,
             f"{label} {item.symbol} last_bar_date {item.last_bar_date} != {as_of_date}",
@@ -637,7 +643,15 @@ def _validate_stock_kline(item: KlineManifest, as_of_date: str) -> None:
             UNSUPPORTED_MODE,
             f"stock kline {item.symbol} adjustment_mode must be {PROVIDER_QFQ_SNAPSHOT}",
         )
-    _validate_kline_coverage(item, as_of_date, "stock kline")
+    # A listed suspended security can have a legal, non-empty history whose
+    # latest observed trading bar predates T. Future bars remain forbidden;
+    # B owns the separate 120-bar evaluation minimum.
+    _validate_kline_coverage(
+        item,
+        as_of_date,
+        "stock kline",
+        require_last_bar_date=False,
+    )
 
 
 def _validate_index_kline(item: IndexManifest, as_of_date: str) -> None:
