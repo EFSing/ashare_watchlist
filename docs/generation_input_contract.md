@@ -78,9 +78,10 @@ assert manifest.status == "READY_FOR_STRATEGY_EVALUATION"
 入口先验证 T 是 XSHG session，然后进行全量日期检查：
 
 - 每个 quote 的 `quote_date` 必须等于 T；
-- 每个个股 K 线必须是非空真实历史，`last_bar_date` 可以早于或等于 T（例如
-  T 日停牌），但任何 `date > T` 的 bar 都是 `FUTURE_DATA_DETECTED`；B evaluator
-  自己负责 `<120 -> INSUFFICIENT_DATA`；
+- 每个个股 K 线必须是非空真实历史；普通交易证券的 `last_bar_date` 必须等于 T，
+  只有完整 T 日 quote 明确证明 no-trade/suspended 时，才允许最后真实 bar 早于 T；
+  任何 `date > T` 的 bar 都是 `FUTURE_DATA_DETECTED`；B evaluator 自己负责
+  `<120 -> INSUFFICIENT_DATA`；
 - 指数 K 线的 `last_bar_date` 必须等于 T，不能包含未来 bar；
 - 股票池中的每个 symbol 都必须有 quote 和个股 K 线；
 - 任一 manifest 的 as-of 日期不一致、股票 K 线为空/含 future bar、指数最后日期
@@ -100,7 +101,9 @@ PROVIDER_QFQ_SNAPSHOT
 ```
 
 它表示 provider 当次返回的 qfq snapshot，不是 point-in-time historical
-adjustment。HiThink 的指数历史 K 线没有复权概念，必须写作：
+adjustment。对允许停牌语义的股票，no-trade quote 必须与同一 T 日
+`QuoteSnapshotManifest` 绑定；不能把普通交易证券的 stale Kline 当作该例外。
+HiThink 的指数历史 K 线没有复权概念，必须写作：
 
 ```text
 PROVIDER_RAW_SNAPSHOT

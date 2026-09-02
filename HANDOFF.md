@@ -1007,3 +1007,35 @@ coverage/ambiguity current gate 和 provider counts 不代表本文当前 live g
   OOS=`SEALED / UNREAD`；C、Phase 2F、prospective returns、tuning、auto-freeze、
   promotion 均未运行。完成新 head CI 后停止于
   `NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION`，不 merge。
+
+## Superseding execution state — PR #27 narrow no-trade gate and downstream diagnostic — 2026-09-03
+
+- override execution window：grace window 至 `2026-09-03T08:00:00+08:00`；T 固定为
+  `2026-09-02`、T+1=`2026-09-03`，跨午夜不改变 trading-state anchor。第一条全链
+  diagnostic-only run 的诚实 `observed_at_bjt` 为 `2026-09-02T23:59:52.143765+08:00`；
+  不作为 formal package 或 prospective evidence。
+- PR #27 当前 technical head=`474f1e78f9db856f5cd6813f78479bbe5bb5e317`，base=
+  `master@7bd620e72daac1c8239daa982e958edab94fd236`；push correctness
+  `33651616418` 与 pull_request correctness `33651627289` 均 success。该 section 的
+  final governance-only commit 会推进 head；推进后的 exact-head CI 需再次 live 核验，
+  不把当前 head 的 CI 自引用为新 head 结论。
+- narrow fix：普通交易证券仍要求 stock `last_bar_date == T`；只有同一 T 日、完整且
+  canonical 的 Tencent no-trade quote（price=prev_close>0、open/high/low/volume/
+  turnover/vol_ratio=0、chg_pct=0）才允许最后真实 stock bar `< T`。不合格 quote、
+  future bar、schema/OHLCV/duplicate/coverage failure 继续 fail closed；index 仍 T 日严格。
+- downstream diagnostic：修复后全 universe diagnostic-only chain 在 `603356.SH` 返回
+  `PROVIDER_FAILURE / HiThink historical acquisition failed ... ValueError`，未创建或
+  持久化 package/output。针对该单一标的的 current-only bounded audit 随后取得 3/3
+  HiThink 成功响应，每次 376 根完整历史、最后 bar=`2026-09-02`，字段为完整的
+  `date_ms/open_price/high_price/low_price/close_price/volume/turnover`；Tencent quote
+  为 T 日正常交易快照，`no_trade=false`。原始失败响应未被保存，因此当前证据只支持
+  `DOWNSTREAM_PROVIDER_FAILURE_NOT_REPRODUCED`，不能安全添加 fallback/放宽规则，且不
+  与本 PR 捆绑架构修复；后续 fresh merged-master capture 需重新验证。
+- validation：narrow-fix focused=`104 passed`，full pytest=`253 passed`，compileall、
+  `git diff --check`、JSON/hash/governance validation PASS；未读取、修改或上传
+  `data/validation/continuous_speed_probe/`。不运行 C、Phase 2F、returns、tuning、
+  promotion 或 auto-freeze。
+- final stop after new-head CI：`NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION`；
+  PR #27 保持 open，不 self-approve、不自动 merge。formal package、B/ST counts、final
+  list、manifest/package SHA、Drive backup/readback 和 frozen prerequisite audit 仍为
+  `NOT_REACHED`。

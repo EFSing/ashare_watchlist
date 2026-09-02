@@ -1010,3 +1010,33 @@
   backup/readback, Final OOS, C, Phase 2F, returns, tuning, auto-freeze, or promotion ran.
 - Stop after live verification of the new head at
   `NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION`; user decides whether to merge.
+
+## 2026-09-03 — PR #27 narrow no-trade gate and downstream provider audit
+
+- Execution override adopted for the remaining grace window through
+  `2026-09-03T08:00:00+08:00`; T remains `2026-09-02`, T+1=`2026-09-03`, and post-midnight
+  retrieval timestamps must be recorded honestly. The diagnostic-only chain began with
+  `observed_at_bjt=2026-09-02T23:59:52.143765+08:00`; it is not formal evidence.
+- PR #27 technical head before this governance-only update was
+  `474f1e78f9db856f5cd6813f78479bbe5bb5e317`, based on merged master
+  `7bd620e72daac1c8239daa982e958edab94fd236`; push/pull_request correctness runs
+  `33651616418`/`33651627289` both succeeded. The governance update advances the head and
+  requires new live exact-head verification.
+- Decision refinement: ordinary traded securities remain T-date strict. A listed security may
+  use its latest real stock bar before T only when its complete canonical Tencent T-date quote
+  proves the exact no-trade pattern already defined by `validate_quote`; no synthetic bar,
+  forward fill, global stale acceptance, or B change is permitted. Index remains T-date strict
+  with market-env minimum `21`.
+- Downstream audit: corrected diagnostic-only full chain stopped at `603356.SH` with
+  `PROVIDER_FAILURE / ValueError` from HiThink historical acquisition. Three fresh single-symbol
+  current-only HiThink reads then succeeded with identical 376-bar complete schemas ending on
+  `2026-09-02`; Tencent returned a normal T-date quote with `no_trade=false`. The failed raw
+  response was not captured, so the classification is
+  `DOWNSTREAM_PROVIDER_FAILURE_NOT_REPRODUCED`; no safe correctness fix is supported and no
+  independent provider architecture is bundled into PR #27.
+- Verification: focused `104 passed`, full `253 passed`, compileall, diff check, JSON/hash and
+  governance validation PASS. No formal package/output, B/ST result, Drive backup/readback or
+  frozen-candidate prerequisite result exists; Final OOS remains unread/sealed, and C,
+  Phase2F, returns, tuning, auto-freeze and promotion remain not run.
+- Stop condition after the new exact-head CI is live success and clean/mergeable:
+  `NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION`; user must decide whether to merge.

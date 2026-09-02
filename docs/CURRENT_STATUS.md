@@ -775,3 +775,31 @@ full pytest `249 passed`，compileall PASS；尚未 push 新 PR。当前 P1
   Final OOS=`SEALED / UNREAD`；C、Phase 2F、prospective returns、tuning、auto-freeze、
   promotion=`NOT_RUN`。新 head CI 成功后停在
   `NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION`，不 merge。
+
+## Superseding execution state — PR #27 narrow no-trade gate and downstream diagnostic — 2026-09-03
+
+- grace window：至 `2026-09-03T08:00:00+08:00`；T=`2026-09-02`、T+1=`2026-09-03`，
+  all trading-state data remains anchored to T. Diagnostic-only chain requested
+  `observed_at_bjt=2026-09-02T23:59:52.143765+08:00` and is not formal evidence.
+- PR #27 technical head before this governance update=`474f1e78f9db856f5cd6813f78479bbe5bb5e317`，
+  base master=`7bd620e72daac1c8239daa982e958edab94fd236`；push CI `33651616418` and
+  pull_request CI `33651627289` both success. This governance-only update advances the
+  head and requires a fresh live exact-head CI check.
+- contract correction：ordinary traded stock requires `last_bar_date == T`; only a complete
+  canonical T-date Tencent no-trade quote can authorize a non-empty real stock history whose
+  last bar is `< T`. No synthetic/forward-filled bars; future/schema/OHLCV/duplicate/coverage
+  failures remain fail-closed; index remains T-date strict. B and all retrieval/universe/ST
+  semantics remain unchanged.
+- downstream diagnostic：the corrected full diagnostic-only chain reached `603356.SH` and
+  returned `PROVIDER_FAILURE` with a HiThink `ValueError`. A single-symbol current-only audit
+  then succeeded 3/3 times with 376 normalized bars ending `2026-09-02`; its Tencent quote was
+  a normal T-date traded quote (`no_trade=false`). Because the failed response was not captured,
+  the evidence is `DOWNSTREAM_PROVIDER_FAILURE_NOT_REPRODUCED`; no safe fallback or freshness
+  relaxation is justified, and no unrelated fix is bundled into PR #27.
+- validation：focused `104 passed`，full pytest `253 passed`，compileall、diff check、
+  JSON/hash/governance validation PASS。No formal package, manifest, B/ST evaluation, final
+  list, Drive backup/readback or frozen-candidate audit was created; forbidden probe directory
+  was not read or changed. Final OOS remains `SEALED / UNREAD`；C、Phase 2F、returns、tuning、
+  auto-freeze、promotion=`NOT_RUN`。
+- stop after live verification of the new head：
+  `NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION`，PR #27 remains open for user merge.

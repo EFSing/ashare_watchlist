@@ -38,9 +38,10 @@ diagnostic policy。它不改变 formal Delivery Ladder，首个真实 T-close i
    K，以 `/api/a-share-index/prices/historical` 获取 `000001.SH` 指数 K。股票只接受
    `PROVIDER_QFQ_SNAPSHOT`；HiThink 指数诚实标记为 `PROVIDER_RAW_SNAPSHOT`，Tencent
    explicit fallback index 才标记为 `PROVIDER_QFQ_SNAPSHOT`。stock raw、HiThink qfq
-   index 和其他 provider/adjustment 配对均 fail closed。股票允许非空真实历史的最后
-   一根早于或等于 T（停牌语义），但禁止 future bar；指数最后一根必须为 T。
-   重复日期、不完整 OHLCV 或覆盖不足均失败。只有 `LIVE_MARKET_DATA_FAILOVER_POLICY_V1`
+   index 和其他 provider/adjustment 配对均 fail closed。普通交易股票的最后一根必须为
+   T；只有完整 T 日 Tencent quote 明确证明 no-trade/suspended 时，才允许非空真实历史的
+   最后一根早于 T，但禁止 future bar；指数最后一根必须为 T。重复日期、不完整 OHLCV
+   或覆盖不足均失败。只有 `LIVE_MARKET_DATA_FAILOVER_POLICY_V1`
    明确允许时，单只 HiThink transport failure 才可解析为版本化 Tencent `qfqday`
    fallback；语义/日期/schema failure 不触发 fallback。
 6. 从 T 日 provider index K 派生带 T、provider、adjustment 和 index hash 的 canonical
