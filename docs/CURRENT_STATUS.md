@@ -2,9 +2,9 @@
 
 更新时间：2026-09-02（Asia/Shanghai）
 Formal Delivery Ladder：`development candidate`
-Latest correctness/governance merge：PR #20 squash merge
-`106bfbd00502db56a2e544f1c804a52372c1fa3e`；post-merge master exact-head correctness
-run `100101351273` success（current verified provenance snapshot）
+Latest correctness/governance snapshot：`master@614934e7ea98bbe94099e9bf57971cf8454c9713`；
+post-merge master exact-head correctness run `33584844019` success（last-verified
+provenance snapshot；PR #20 merge SHA `106bfbd00502db56a2e544f1c804a52372c1fa3e` remains historical）
 Phase 2E research baseline：PR #6 / `74ccf86dfdea3b9d4b0124fb54346aa429735508`
 职责：记录项目正式处于什么状态，以及哪些研究结论已经成立。长期产品目标和 usable gate 见 [`PRODUCT_CHARTER.md`](PRODUCT_CHARTER.md)，接手动作见 [`HANDOFF.md`](../HANDOFF.md)，决策理由见 [`DECISION_LOG.md`](DECISION_LOG.md)。
 
@@ -51,11 +51,12 @@ T-close/T+1 semantics are unchanged. No prospective package was run by this corr
 - PR #12 的 development-candidate path 已在受控输入上证明端到端 deterministic
   generation → canonical watchlist output → explicit failure → monitoring/rollback/
   versioning；该产品里程碑现已写入 master 的正式 Ladder。
-- PR #17 已将 HiThink/exact-Sina/Tencent live acquisition adapter 合并到 master；
-  首个正式 master-baseline T-close acquisition 在 exact Sina display-name consistency
-  阶段以 `INPUT_CONFLICT` fail closed，未形成 live package。当前 source audit 已将
-  display-name 从 security hard gate 改为 V2 symbol-authoritative diagnostic；sector
-  coverage/ambiguity 仍保持 required fail-closed。
+- PR #17 的 HiThink/exact-Sina/Tencent live acquisition adapter、以及其后 PR #20 的
+  corrected B governance state 均已进入 master；2026-08-31 的正式 acquisition 失败
+  事实仍保留为 historical `INPUT_CONFLICT`，未形成 live package。当前 candidate-bound
+  path 绑定 `B_BREAKOUT_RETEST_LEGACY_V1_1`、spec SHA
+  `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd` 和 V3 contract；
+  exact V0 sector semantics 为 missing fallback continue 与 provider-order last-write-wins。
 - 当前已达到 `development candidate`，仍未达到 frozen candidate、prospective/paper
   observation 或 production strategy promotion；下一层须通过
   [`frozen_candidate_prerequisites_audit.md`](frozen_candidate_prerequisites_audit.md)。
@@ -76,11 +77,14 @@ T-close/T+1 semantics are unchanged. No prospective package was run by this corr
 - retrospective official dump 没有 per-bar historical vintage timestamp；该 known-at 限制仍需在后续 validation decision 中单独接受或解决。
 - `A_PLATFORM_BREAKOUT_LEGACY_V1` 没有 production promotion；没有参数有效性证明，
   未做参数选择、调参或 Final OOS read。
-- B `BREAKOUT_RETEST_LEGACY_V1` 已通过冻结的 development eligibility gate；这只是
-  candidate eligibility，不是 frozen strategy、production promotion 或 Final OOS。
-- candidate-bound prospective input/provenance contract 已定义，但尚无首个真实
-  `LIVE_OBSERVED` T-close input instance；在该实例出现并完成 fail-closed audit 前，
-  不进入 frozen candidate。
+- historical `B_BREAKOUT_RETEST_LEGACY_V1` 及其 old spec/eligibility evidence 保留为
+  superseded reconstruction history，不是当前 candidate-bound identity。
+- corrected `B_BREAKOUT_RETEST_LEGACY_V1_1` 已获得
+  `CORRECTED_B_CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`；这只是 candidate
+  eligibility，不是 frozen strategy、production promotion 或 Final OOS。
+- active candidate-bound contract 为 V3，状态为 `CONTRACT_DEFINED_NO_LIVE_INSTANCE`；
+  尚无首个真实 `LIVE_OBSERVED` T-close input instance，在该实例出现并完成
+  fail-closed audit 前不进入 frozen candidate。
 - 本机 Phase 2F diagnostic commit `3eeb5df9f7cf4ef5c30b3380b323f26f2491f873` 尚未 push、无 PR、无 CI；它是 local candidate work，不改变 formal master status。
 - Phase 2F local diagnostic 的研究边界保持不变：它没有修改 legacy strategy、冻结阈值或 Final OOS；其退出 decision 为 `NEEDS_MORE_EVIDENCE`，不能直接形成 production threshold 或 promotion。
 
@@ -90,22 +94,20 @@ T-close/T+1 semantics are unchanged. No prospective package was run by this corr
 
 ## Current blockers and deferred items
 
-1. **P0 live sector taxonomy mismatch**：已由 PR #17 修复并合并到 master；merge
-   master correctness run `33399324692` 对 merge SHA 精确成功。
-2. **P1 first prospective input blocker**：source audit 已证明 B 不消费 display name，
-   exact symbol 是 security identity；PR #18 采用
-   `DISPLAY_NAME_CONSISTENCY_POLICY_V2_SYMBOL_AUTHORITATIVE`，保留 raw/normalized
-   mismatch diagnostics，不改变 B executable semantics。
-3. **P1 candidate-bound prospective input**：B 确实消费 sector membership/rank/change，
-   且 missing sector evidence 为 `INSUFFICIENT_DATA`；当前 exact Sina snapshot 有
-   coverage failure 与同一 symbol 多 sector 歧义，具体 decision 为
-   `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_SECTOR_MEMBERSHIP_AMBIGUITY`。在完整、无歧义
-   的 future T-close READY package 前，不得进入 frozen candidate。
-4. **Scope-local correctness blocker — FULL legacy only**：历史新浪行业 membership /
+1. **唯一当前 blocker：`P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`**。corrected
+   B candidate 已 eligible，V3 已定义，但尚无首个真实 candidate-bound、
+   `LIVE_OBSERVED`、`known_at <= T` 的 T-close input instance。
+2. **Current V3 sector boundary**：missing sector 解析为 `("-", 50, 0.0)` 并继续
+   B evaluation；multiple memberships 使用
+   `LEGACY_PROVIDER_ORDER_LAST_WRITE_WINS_V1`。2026-09-01 coverage/ambiguity counts
+   仅为 current-only diagnostic，不是当前 blocker；future package 仍须保留 raw rows、
+   traversal order、resolved mapping 和 provenance，并对 provider/invalid/unresolved
+   package identity failure fail closed。
+3. **Scope-local correctness blocker — FULL legacy only**：历史新浪行业 membership /
    effective-date evidence 缺失，阻止 `FULL_LEGACY_OUTPUT_VALIDATION`、完整 85-score
    parity 和 legacy sector report；它不阻止 development-candidate product path 或当前
    candidate-bound gate，不能写成整个系统 blocker。
-5. **Scope-local provenance limitation**：retrospective official dump 没有 per-bar
+4. **Scope-local provenance limitation**：retrospective official dump 没有 per-bar
    historical vintage timestamp，限制历史 known-at 结论的强度；live prospective
    inputs 仍必须按 T 的 observed-at contract 处理。
 
@@ -113,7 +115,11 @@ T-close/T+1 semantics are unchanged. No prospective package was run by this corr
 
 Deferred（当前不阻止 usable milestone）：Phase 2F 后续 Research V2、历史新浪 membership acquisition 的完整研究、完整 legacy 85-score parity、任何参数选择/调参、performance-based rule change，以及 later production hardening 中不影响 P0/P1 的运营增强。
 
-## Current continuation audit — 2026-09-01
+## Current continuation audit — 2026-09-01 historical snapshot
+
+本节记录 2026-09-01 当时的 current-only provider audit；其中的旧 blocker、V2
+contract 和 sector coverage/ambiguity 结论均为 historical evidence，不代表本文当前
+live governance state。当前 corrected B/V3 状态见本文末的 superseding section。
 
 本机已从 repository declaration 重建 workspace-local `.venv`，并以
 `.[test,research]` 安装验证 Python 3.12.13、pandas 2.2.3、requests 2.32.3、
@@ -132,19 +138,18 @@ raw-name mismatch（registered normalization 解决 0 个），并发现 000587�
 002217、002617、600714 五个同一 symbol 多 sector membership。完整 source/dependency
 matrix 与当前计数见 [`b_dependency_audit_20260901.md`](b_dependency_audit_20260901.md)。
 
-本次 decision：`ADOPT` symbol-authoritative display-name policy；`NEEDS_MORE_EVIDENCE`
-for complete and unambiguous exact-Sina sector evidence at a legitimate future T-close。
-当前 formal blocker 为
+本次 historical snapshot 的 decision：`ADOPT` symbol-authoritative display-name policy；
+`NEEDS_MORE_EVIDENCE` for complete and unambiguous exact-Sina sector evidence at a
+legitimate future T-close。当时 formal blocker 为
 `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_SECTOR_MEMBERSHIP_AMBIGUITY`，并伴随 exact
 coverage failure。PR #18 尚未合并，故没有构造 T=`2026-08-31` 或 T=`2026-09-01` package，
 没有 canonical output、promotion、Phase 2F、C evaluation 或 Final OOS access；Formal
 Delivery Ladder 仍为 `development candidate`。
-   `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`；2026-08-31 正式
-   master-baseline acquisition 在 AkShare sector membership 阶段发生
-   `ConnectionError`，未形成 package。后续需要一个 candidate-bound、
-   `LIVE_OBSERVED`、`known_at <= T` 的真实 T-close package，并证明
-   universe/sector/names/market_env、provider/version、calendar、availability/recovery
-   和 output identity。
+当时的 P1 为 `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`；2026-08-31 正式
+master-baseline acquisition 在 AkShare sector membership 阶段发生 `ConnectionError`，
+未形成 package。后续需要一个 candidate-bound、`LIVE_OBSERVED`、`known_at <= T` 的
+真实 T-close package，并证明 universe/sector/names/market_env、provider/version、
+calendar、availability/recovery 和 output identity。
 3. **Scope-local correctness blocker — FULL legacy only**：历史新浪行业 membership /
    effective-date evidence 缺失，阻止 `FULL_LEGACY_OUTPUT_VALIDATION`、完整 85-score
    parity 和 legacy sector report；它不阻止 development-candidate product path 或当前
@@ -235,7 +240,7 @@ PR #17 的 review-branch snapshot 已结束；该 PR 已从 final head
 `91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b`，merge master exact-head correctness run
 `33399324692` succeeded。后续 acquisition 结果见本文末的 post-merge decision。
 
-## Strategy Candidate Nomination V1 — 2026-08-30 — final eligibility update
+## Strategy Candidate Nomination V1 — 2026-08-30 — historical final eligibility update
 
 唯一 nomination 仍为
 `NOMINATE_B_BREAKOUT_RETEST_LEGACY_V1_FOR_DEVELOPMENT_ELIGIBILITY`；A 仍为
@@ -357,6 +362,9 @@ boundaries are unchanged.
 
 ## PR #18 continuation — display-name blocker diagnosis and minimal fix
 
+本节为 PR #18 时点的 historical pre-correction snapshot；其 V1/V2 identity、coverage /
+ambiguity gate 和 provider diagnostic 不代表本文当前 live governance state。
+
 The 2026-08-31 formal attempt remains a failed `LIVE_OBSERVED` attempt; it is not
 rewritten as success. Its `INPUT_CONFLICT` is classified as
 `INPUT_PROVIDER_DATA_CONSISTENCY_CONFLICT`, with final decision
@@ -394,7 +402,7 @@ At that snapshot, PR #18 had not been merged, so no T=`2026-08-31` or T=`2026-09
 package had been constructed. The full source matrix and current snapshot audit are in
 [`b_dependency_audit_20260901.md`](b_dependency_audit_20260901.md).
 
-## 2026-09-01 sector-provenance closure — current status
+## 2026-09-01 sector-provenance closure — historical pre-correction status
 
 Formal Delivery Ladder remains `development candidate`. PR #18 is now merged at
 `17371fde39a6b24241532b131caf5927cb9b8933`; exact merge push correctness run
@@ -482,7 +490,7 @@ artifact 不变，Final OOS 仍 `SEALED / UNREAD`，formal T-close capture 仍 `
 source/canonicalization 证据；在此之前不宣布 Case A/B，不创建新的 spec/version，不修
 evaluator，不重跑 eligibility，不继续 T-close acquisition。
 
-## 2026-09-01 corrected B reconstruction — current status
+## 2026-09-01 corrected B reconstruction — historical post-merge snapshot
 
 PR #19 已按授权以 squash merge 合并；final head 为
 `f99c33993fed00e38e87785a88155034ceaf57c3`，merge SHA 为
@@ -512,3 +520,24 @@ Future binding 已切换到 `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRA
 但尚无新的 `LIVE_OBSERVED` package；在 correctness PR 合并且其 master exact-head
 CI 成功前不运行 T=`2026-09-01` capture。Final OOS 仍 `SEALED / UNREAD`，C、Phase 2F、
 调参、promotion、自动 freeze 和 current-data backfill 均未执行。
+
+## Current governance state — 2026-09-02
+
+本节 supersede 旧段落对 current/active/next 的解释，不删除或改写其 historical
+evidence。当前 formal state 为 `development candidate`；corrected candidate 为
+`B_BREAKOUT_RETEST_LEGACY_V1_1`，spec SHA 为
+`f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`，decision 为
+`CORRECTED_B_CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`。
+
+- active contract：`CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V3`，状态为
+  `CONTRACT_DEFINED_NO_LIVE_INSTANCE`。
+- exact V0 sector semantics：missing sector=`("-",50,0.0)` continue；multi-sector=
+  `LEGACY_PROVIDER_ORDER_LAST_WRITE_WINS_V1`。旧 V1/V2、old spec、旧 sector
+  coverage/ambiguity diagnostic 和 failed attempts 仅作为 historical evidence。
+- current blocker：`P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`。
+- current next gate：`T=2026-09-02` legitimate XSHG T-close 后的首个真实
+  `LIVE_OBSERVED` package；北京时间 15:00 前绝不运行 formal acquisition，不把任何
+  probe 注册为 prospective evidence，不回填 `2026-09-01`。
+- last-verified master snapshot：`614934e7ea98bbe94099e9bf57971cf8454c9713`；exact-head
+  master correctness run `33584844019` 为 `success`。该 snapshot 是本治理 branch 前的
+  provenance，不是未来 PR CI 的 self-referential invariant。

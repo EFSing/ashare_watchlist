@@ -547,7 +547,7 @@
   that is complete and unambiguous for the full scope. Exact duplicate same-sector rows
   may be deterministically deduplicated only with raw row/count provenance; distinct
   sector memberships remain fail closed, with no silent drop/substitution/backfill。
-- current gate：
+- current gate at that historical snapshot：
   `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_SECTOR_MEMBERSHIP_AMBIGUITY`, with an
   independent exact-Sina coverage failure. PR #18 remains unmerged; no T=`2026-08-31`
   backfill and no T=`2026-09-01` acquisition/package is created in this task. Formal
@@ -726,3 +726,19 @@
   current-data backfill、promotion、调参或 Phase 2F。
 - decision：`PROJECT_GOVERNANCE_STATE_RECONCILED`。本次 follow-up 的变更文件严格
   限定为 `HANDOFF.md`、`docs/CURRENT_STATUS.md` 和 `docs/DECISION_LOG.md`。
+
+## 2026-09-02 — Corrected B/V3 current-state governance reconciliation
+
+- context：`master@614934e7ea98bbe94099e9bf57971cf8454c9713` 后，HANDOFF、CURRENT_STATUS
+  和 prerequisite audit 仍有 stale current/active/next-gate wording。
+- decision：`PROJECT_GOVERNANCE_STATE_CONFLICT_RESOLVED`；当前统一为 corrected
+  `B_BREAKOUT_RETEST_LEGACY_V1_1`、spec SHA
+  `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`、
+  `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V3`、missing-sector fallback
+  continue、provider-order last-write-wins，以及唯一当前 blocker
+  `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`。current next gate 是
+  `2026-09-02` legitimate T-close capture。
+- boundary：V1/V2、old spec、历史 coverage/ambiguity diagnostic、失败 attempt 和旧
+  decision 未改写；last-verified master snapshot 使用上述 master 与 correctness run
+  `33584844019` success，不构造 self-referential CI invariant；北京时间 15:00 前不运行
+  formal `2026-09-02` acquisition。
