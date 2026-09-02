@@ -654,3 +654,34 @@ source 不足以安全实现过滤；不修改 `_build_universe()`，不 hard-co
 层；ST 不从 acquisition universe 删除。若后续 source decision 通过，已上市停牌
 `002731` 保留，只有被 deterministic 证明为 T 日未上市的 `301686` 才排除。本轮未
 形成 listing fix、未重跑 formal capture、未 push PR、未创建新 frozen registry record。
+
+## Superseding current state — Official exchange listed-roster correction — 2026-09-02
+
+本轮 Sol 已批准 source decision：`USE_EXCHANGE_OFFICIAL_LISTED_ROSTER_VIA_EXISTING_AKSHARE`。
+任务分类为 `correctness blocker`；任务分类未改变，不启动策略研究、Phase 2F、C、Final
+OOS、prospective returns、调参、promotion 或 formal capture。
+
+- HiThink `/api/meta/tickers/list` 继续作为 broad SH/SZ A-share metadata source；
+  `EXCHANGE_OFFICIAL_CURRENT_LISTED_ROSTER_V1` 使用现有 AkShare 的
+  `stock_info_sh_name_code("主板A股")`、`stock_info_sh_name_code("科创板")` 和
+  `stock_info_sz_name_code("A股列表")`。SSE source URL 为
+  `https://www.sse.com.cn/assortment/stock/list/share/`；SZSE source URL 为
+  `https://www.szse.cn/market/product/stock/list/index.html`。
+- canonical universe：两路 source 的 exact six-digit symbol intersection，listing
+  date 必须 canonical parse 且 `listing_date <= as_of_date`。官方 roster unavailable、
+  missing/invalid required field、duplicate/conflicting symbol 均 fail closed；不回退到
+  HiThink-only，不做 fuzzy name reconciliation。
+- manifest/provenance：保存 AkShare package version、exact API/argument/URL、SSE main /
+  STAR / SZSE row counts、canonical combined/eligible counts、content/semantic SHA-256、
+  HiThink-only/roster-only mismatch counts/lists；roster identity进入现有 provider
+  metadata、input fingerprint 和 candidate-bound generation identity。
+- semantic result：被官方 evidence 证明为 T 日未上市或不在 roster 的 301686 在 quote/Kline
+  前排除；已上市停牌 `002731` 保留在 acquisition universe。ST/*ST 仍只由既有
+  `USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` 在 B evaluator 后排除。
+- current formal product state：仍为 `development candidate`；当前 Tencent quote
+  blocker 和 P1 `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE` 不因本 fix 自动解除；
+  formal capture 未重跑，Final OOS 仍 `SEALED / UNREAD`，没有新 frozen artifact。
+- implementation state：listing fix 与 focused tests 已加入当前本地分支；三次失败 evidence
+  和旧治理记录保持 immutable；未跟踪的本地 validation probe 保留但不纳入本次 PR。
+- stop state：实现、全量验证、push 和单个 PR 的 exact-head CI 完成后，停在
+  `TRADABLE_UNIVERSE_EXCHANGE_ROSTER_FIX_PR_READY_FOR_USER_MERGE_DECISION`；不 merge。

@@ -342,3 +342,46 @@ ST 排除仍只发生在 B evaluator 后的
 实现该 filter。
 
 最终 decision：`TRADABLE_UNIVERSE_LISTING_ELIGIBILITY_SOURCE_DECISION_REQUIRED`。
+
+## 13. 2026-09-02 official exchange listed-roster source decision and correction
+
+Sol approved `USE_EXCHANGE_OFFICIAL_LISTED_ROSTER_VIA_EXISTING_AKSHARE` for the bounded
+correctness fix. This section supersedes only the preceding listing-source stop state; it
+does not rewrite the failed 2026-09-02 capture evidence, Tencent parser semantics, candidate
+eligibility, strategy/spec/threshold/score, frozen artifacts, or the sealed Final OOS boundary.
+
+The formal prospective universe remains SH/SZ A-share scope, but is now defined as:
+
+`HiThink /api/meta/tickers/list broad metadata ∩ EXCHANGE_OFFICIAL_CURRENT_LISTED_ROSTER_V1`
+
+The official roster uses existing AkShare APIs and their exact arguments:
+
+| exchange | AkShare call | required fields | underlying official URL |
+| --- | --- | --- | --- |
+| SSE main board | `stock_info_sh_name_code(symbol="主板A股")` | `证券代码`, `上市日期` | `https://www.sse.com.cn/assortment/stock/list/share/` |
+| SSE STAR | `stock_info_sh_name_code(symbol="科创板")` | `证券代码`, `上市日期` | `https://www.sse.com.cn/assortment/stock/list/share/` |
+| SZSE A-share | `stock_info_sz_name_code(symbol="A股列表")` | `A股代码`, `A股上市日期` | `https://www.szse.cn/market/product/stock/list/index.html` |
+
+The adapter canonicalizes listing dates and requires `listing_date <= as_of_date`. It
+joins only exact six-digit symbols; display names are not identity keys. Missing/invalid
+required fields, unavailable official rosters, and duplicate/conflicting official symbols
+fail closed before sector, quote, or Kline acquisition. There is no HiThink-only fallback,
+fuzzy reconciliation, hard-coded symbol exception, or second listing engine.
+
+Existing manifest/provenance metadata now records the AkShare version, exact API/source
+identity, all three source row counts, canonical combined and eligible counts, deterministic
+content and semantic SHA-256 values, and HiThink-only/roster-only mismatch counts/lists.
+The official roster identity is included in the existing input and candidate-bound generation
+identity. This source is same-day `LIVE_OBSERVED` prospective evidence only and cannot
+backfill historical T dates.
+
+The semantic boundary is explicit: `301686` is excluded before formal Tencent quote/Kline
+when the official roster evidence excludes it or its listing date is after T; already-listed
+suspended `002731` remains in the acquisition universe. ST/*ST remains exclusively the
+post-B `USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` final user-facing layer. Formal capture was
+not rerun. The bounded implementation/test work stops after one PR reaches exact-head CI
+success and `CLEAN`/`MERGEABLE`, at
+`TRADABLE_UNIVERSE_EXCHANGE_ROSTER_FIX_PR_READY_FOR_USER_MERGE_DECISION`; merge remains a
+user decision.
+
+Final decision: `ADOPT` — `EXCHANGE_OFFICIAL_CURRENT_LISTED_ROSTER_V1`.

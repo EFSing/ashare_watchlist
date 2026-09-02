@@ -868,3 +868,35 @@ coverage/ambiguity current gate 和 provider counts 不代表本文当前 live g
 - local commits：`2798d0e` 已固化上述 evidence、audit、governance 和 ST eligibility
   工作；`1be63b1` 已固化本 section 的 handoff snapshot。两者均为本地分支提交，未
   push、未创建 PR。
+
+## 2026-09-02 — Official exchange listed-roster correction ready for review
+
+- classification：`correctness blocker`；本轮只修复
+  `TRADABLE_UNIVERSE_LISTING_ELIGIBILITY_SOURCE_DECISION`，不启动 Phase 2F、C、Final
+  OOS、prospective returns、调参、promotion 或 formal capture。
+- source decision：`USE_EXCHANGE_OFFICIAL_LISTED_ROSTER_VIA_EXISTING_AKSHARE`；HiThink
+  `/api/meta/tickers/list` 继续作为 broad SH/SZ A-share metadata source，正式
+  `EXCHANGE_OFFICIAL_CURRENT_LISTED_ROSTER_V1` 由现有 AkShare 的 SSE
+  `stock_info_sh_name_code(symbol="主板A股")`、`stock_info_sh_name_code(symbol="科创板")`
+  和 SZSE `stock_info_sz_name_code(symbol="A股列表")` 定义。SSE underlying URL 是
+  `https://www.sse.com.cn/assortment/stock/list/share/`；SZSE underlying URL 是
+  `https://www.szse.cn/market/product/stock/list/index.html`。
+- universe semantics：exact six-digit symbol join，canonical `listing_date <= T`；
+  roster schema/date/duplicate/conflict/unavailability 全部 fail closed。manifest 与
+  provenance 保存 AkShare version、exact APIs/URLs、三路 row counts、combined/eligible
+  counts、content/semantic SHA-256 和 HiThink-only/roster-only mismatch audit。
+- boundary：301686 只有在 official roster evidence 表明其 `listing_date > T` 或不在
+  roster 时才被 deterministic 排除，并在 quote/Kline 前停止进入 acquisition universe；
+  已上市停牌 `002731` 保留。ST/*ST 仍只在 B 后由
+  `USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` 排除；Tencent parser、B/spec/threshold/score
+  未修改。
+- verification：新增 focused official-roster tests；full pytest、compileall、JSON/hash/
+  governance validation、`git diff --check` 和 frozen artifact SHA check 必须在 push
+  前完成。formal capture 没有重跑。
+- branch/PR snapshot：当前本地分支仍为
+  `codex/tradable-universe-prelisting-fix-20260902`，本节变更尚未 push、尚未创建 PR；
+  远端目标仍为 `master=origin/master=05232677055c67b8b87c8d8c3c3b4139df8c477d`，merge-
+  after correctness run `33616552822` success。现有未跟踪
+  `data/validation/continuous_speed_probe/` 保留在工作区，不纳入本次 PR、不删除。
+- stop condition：实现验证通过后 push、创建一个 PR 并等待 exact-head CI；不 merge，最终
+  停在 `TRADABLE_UNIVERSE_EXCHANGE_ROSTER_FIX_PR_READY_FOR_USER_MERGE_DECISION`。

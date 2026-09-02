@@ -105,6 +105,14 @@ SINA_SOURCE_URL = "http://finance.sina.com.cn/stock/sl/"
 SINA_SPOT_SOURCE_URL = "http://vip.stock.finance.sina.com.cn/q/view/newSinaHy.php"
 SINA_DETAIL_COUNT_SOURCE_URL = "http://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/Market_Center.getHQNodeStockCount"
 SINA_DETAIL_SOURCE_URL = "http://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/Market_Center.getHQNodeData"
+AKSHARE_SSE_LISTED_ROSTER_API = "stock_info_sh_name_code"
+AKSHARE_SSE_MAIN_BOARD_SYMBOL = "主板A股"
+AKSHARE_SSE_STAR_SYMBOL = "科创板"
+AKSHARE_SZSE_LISTED_ROSTER_API = "stock_info_sz_name_code"
+AKSHARE_SZSE_A_SHARE_SYMBOL = "A股列表"
+SSE_OFFICIAL_LISTED_ROSTER_URL = "https://www.sse.com.cn/assortment/stock/list/share/"
+SZSE_OFFICIAL_LISTED_ROSTER_URL = "https://www.szse.cn/market/product/stock/list/index.html"
+EXCHANGE_OFFICIAL_LISTED_ROSTER_VERSION = "EXCHANGE_OFFICIAL_CURRENT_LISTED_ROSTER_V1"
 HITHINK_LIVE_PRIMARY = "SUPPORTED"
 EXACT_SINA_SECTOR_SOURCE = "AVAILABLE"
 MARKET_DATA_FAILOVER_POLICY_VERSION = "LIVE_MARKET_DATA_FAILOVER_POLICY_V1"
@@ -716,25 +724,12 @@ class SinaSectorClient:
         )
 
     def _read(self, api_name: str, reader: Callable[[], Any]) -> Any:
-        for attempt in range(1, AKSHARE_MAX_ATTEMPTS + 1):
-            try:
-                value = reader()
-            except Exception as exc:
-                transient = self._is_transient_read_error(exc)
-                if not transient or attempt == AKSHARE_MAX_ATTEMPTS:
-                    self.read_attempts.append(
-                        {"api": api_name, "attempts": attempt, "result": "FAILURE"}
-                    )
-                    if transient:
-                        raise _AkShareReadFailure(api_name, attempt, exc) from exc
-                    raise
-                time.sleep(min(AKSHARE_RETRY_BACKOFF_SECONDS * attempt, 1.0))
-            else:
-                self.read_attempts.append(
-                    {"api": api_name, "attempts": attempt, "result": "SUCCESS"}
-                )
-                return value
-        raise AssertionError("unreachable AkShare retry loop")
+        return _read_akshare(
+            api_name,
+            reader,
+            read_attempts=self.read_attempts,
+            is_transient=self._is_transient_read_error,
+        )
 
     def sector_definitions(self) -> Any:
         return self._read(
@@ -750,6 +745,107 @@ class SinaSectorClient:
         )
         self.completed_sector_member_reads += 1
         return result
+
+
+def _read_akshare(
+    api_name: str,
+    reader: Callable[[], Any],
+    *,
+    read_attempts: list[dict[str, Any]],
+    is_transient: Callable[[Exception], bool],
+) -> Any:
+    for attempt in range(1, AKSHARE_MAX_ATTEMPTS + 1):
+        try:
+            value = reader()
+        except Exception as exc:
+            transient = is_transient(exc)
+            if not transient or attempt == AKSHARE_MAX_ATTEMPTS:
+                read_attempts.append({"api": api_name, "attempts": attempt, "result": "FAILURE"})
+                if transient:
+                    raise _AkShareReadFailure(api_name, attempt, exc) from exc
+                raise
+            time.sleep(min(AKSHARE_RETRY_BACKOFF_SECONDS * attempt, 1.0))
+        else:
+            read_attempts.append({"api": api_name, "attempts": attempt, "result": "SUCCESS"})
+            return value
+    raise AssertionError("unreachable AkShare retry loop")
+
+
+class ExchangeListedRosterClient:
+    """AkShare wrapper for the two official exchange listed-stock rosters."""
+
+    def __init__(self, module: ModuleType | Any | None = None, package_version: str | None = None) -> None:
+        self.module, actual_version = _load_akshare(module)
+        self.package_version = package_version or actual_version
+        if not isinstance(self.package_version, str) or not self.package_version.strip():
+            _fail(PROVIDER_UNAVAILABLE, "AkShare package version is empty")
+        self.package_version = self.package_version.strip()
+        self.read_attempts: list[dict[str, Any]] = []
+        missing = [
+            name
+            for name in (AKSHARE_SSE_LISTED_ROSTER_API, AKSHARE_SZSE_LISTED_ROSTER_API)
+            if not callable(getattr(self.module, name, None))
+        ]
+        if missing:
+            _fail(PROVIDER_UNAVAILABLE, f"AkShare API capability missing: {', '.join(missing)}")
+
+    @staticmethod
+    def _is_transient_read_error(exc: Exception) -> bool:
+        return isinstance(
+            exc,
+            (
+                ConnectionError,
+                TimeoutError,
+                requests.exceptions.ConnectionError,
+                requests.exceptions.Timeout,
+            ),
+        )
+
+    def _read(self, api_name: str, reader: Callable[[], Any]) -> Any:
+        return _read_akshare(
+            api_name,
+            reader,
+            read_attempts=self.read_attempts,
+            is_transient=self._is_transient_read_error,
+        )
+
+    def sse_main_board(self) -> Any:
+        return self._read(
+            f"{AKSHARE_SSE_LISTED_ROSTER_API}(symbol={AKSHARE_SSE_MAIN_BOARD_SYMBOL})",
+            lambda: self.module.stock_info_sh_name_code(symbol=AKSHARE_SSE_MAIN_BOARD_SYMBOL),
+        )
+
+    def sse_star(self) -> Any:
+        return self._read(
+            f"{AKSHARE_SSE_LISTED_ROSTER_API}(symbol={AKSHARE_SSE_STAR_SYMBOL})",
+            lambda: self.module.stock_info_sh_name_code(symbol=AKSHARE_SSE_STAR_SYMBOL),
+        )
+
+    def szse_a_share(self) -> Any:
+        return self._read(
+            f"{AKSHARE_SZSE_LISTED_ROSTER_API}(symbol={AKSHARE_SZSE_A_SHARE_SYMBOL})",
+            lambda: self.module.stock_info_sz_name_code(symbol=AKSHARE_SZSE_A_SHARE_SYMBOL),
+        )
+
+    def capability_report(self) -> dict[str, Any]:
+        return {
+            "provider": "AkShare",
+            "package": "akshare",
+            "version": self.package_version,
+            "identity": EXCHANGE_OFFICIAL_LISTED_ROSTER_VERSION,
+            "sources": {
+                "sse": {
+                    "url": SSE_OFFICIAL_LISTED_ROSTER_URL,
+                    "api": AKSHARE_SSE_LISTED_ROSTER_API,
+                    "symbols": [AKSHARE_SSE_MAIN_BOARD_SYMBOL, AKSHARE_SSE_STAR_SYMBOL],
+                },
+                "szse": {
+                    "url": SZSE_OFFICIAL_LISTED_ROSTER_URL,
+                    "api": AKSHARE_SZSE_LISTED_ROSTER_API,
+                    "symbol": AKSHARE_SZSE_A_SHARE_SYMBOL,
+                },
+            },
+        }
 
 
 def akshare_runtime_capability() -> dict[str, Any]:
@@ -806,11 +902,118 @@ def _validate_close_window(as_of_date: str, now_bjt: datetime, calendar: Trading
     return session_close
 
 
+def _build_official_listed_roster(
+    client: ExchangeListedRosterClient,
+    as_of_date: str,
+) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
+    source_specs = (
+        (
+            "sse_main_board",
+            client.sse_main_board,
+            AKSHARE_SSE_LISTED_ROSTER_API,
+            ("证券代码",),
+            ("上市日期",),
+            ("60",),
+        ),
+        (
+            "sse_star",
+            client.sse_star,
+            AKSHARE_SSE_LISTED_ROSTER_API,
+            ("证券代码",),
+            ("上市日期",),
+            ("68",),
+        ),
+        (
+            "szse_a_share",
+            client.szse_a_share,
+            AKSHARE_SZSE_LISTED_ROSTER_API,
+            ("A股代码",),
+            ("A股上市日期",),
+            ("00", "30"),
+        ),
+    )
+    all_rows: list[dict[str, Any]] = []
+    source_row_counts: dict[str, int] = {}
+    seen: dict[str, dict[str, Any]] = {}
+    pre_listing: list[dict[str, Any]] = []
+    for source_name, reader, api_name, code_aliases, listing_aliases, code_prefixes in source_specs:
+        rows = _records(
+            reader(),
+            api_name,
+            {"symbol": code_aliases, "listing_date": listing_aliases},
+        )
+        source_row_counts[source_name] = len(rows)
+        for index, row in enumerate(rows):
+            symbol = _code(
+                _field(row, code_aliases, f"{source_name}[{index}].symbol"),
+                f"{source_name}[{index}].symbol",
+            )
+            if not symbol.startswith(code_prefixes):
+                _fail(INPUT_CONFLICT, f"{source_name}[{index}] has an unexpected exchange code: {symbol}")
+            listing_value = _field(
+                row,
+                listing_aliases,
+                f"{source_name}[{index}].listing_date",
+            )
+            try:
+                listing_date = _canonical_date(listing_value)
+            except (TypeError, ValueError, OverflowError) as exc:
+                _fail(
+                    PROVIDER_FAILURE,
+                    f"{source_name}[{index}].listing_date is not a canonical date: {exc}",
+                )
+            record = {
+                "source": source_name,
+                "symbol": symbol,
+                "listing_date": listing_date,
+            }
+            if symbol in seen:
+                _fail(
+                    INPUT_CONFLICT,
+                    f"duplicate official listed-roster symbol {symbol}: "
+                    f"{seen[symbol]['source']} and {source_name}",
+                )
+            seen[symbol] = record
+            all_rows.append(record)
+            if listing_date > as_of_date:
+                pre_listing.append(copy.deepcopy(record))
+
+    if not all_rows:
+        _fail(INCOMPLETE_COVERAGE, "official exchange listed roster is empty")
+    eligible = {
+        symbol: copy.deepcopy(record)
+        for symbol, record in seen.items()
+        if record["listing_date"] <= as_of_date
+    }
+    if not eligible:
+        _fail(INCOMPLETE_COVERAGE, f"official exchange roster has no symbols listed by {as_of_date}")
+    canonical_rows = sorted(all_rows, key=lambda item: item["symbol"])
+    semantic_rows = [
+        {"symbol": item["symbol"], "listing_date": item["listing_date"]}
+        for item in canonical_rows
+    ]
+    audit = {
+        "identity": EXCHANGE_OFFICIAL_LISTED_ROSTER_VERSION,
+        "as_of_date": as_of_date,
+        "listing_date_rule": "listing_date <= as_of_date",
+        "source_row_counts": source_row_counts,
+        "canonical_combined_symbol_count": len(canonical_rows),
+        "official_listed_count": len(eligible),
+        "pre_listing_count": len(pre_listing),
+        "pre_listing_symbols": sorted(item["symbol"] for item in pre_listing),
+        "content_sha256": _sha256_json({"as_of_date": as_of_date, "rows": canonical_rows}),
+        "semantic_sha256": _sha256_json({"as_of_date": as_of_date, "rows": semantic_rows}),
+    }
+    return dict(sorted(eligible.items())), audit
+
+
 def _build_universe(
     frame: Any,
     as_of_date: str,
     retrieved_at_bjt: str,
-) -> tuple[UniverseManifest, dict[str, str]]:
+    official_roster: Mapping[str, Mapping[str, Any]],
+    roster_audit: Mapping[str, Any],
+) -> tuple[UniverseManifest, dict[str, str], dict[str, Any]]:
     rows = _records(
         frame,
         HITHINK_UNIVERSE_API,
@@ -849,17 +1052,42 @@ def _build_universe(
         names[symbol] = name
     if not names:
         _fail(INCOMPLETE_COVERAGE, "universe has no symbols")
+    hithink_symbols = set(names)
+    official_symbols = set(official_roster)
+    retained_names = {
+        symbol: name
+        for symbol, name in names.items()
+        if symbol in official_symbols
+    }
+    universe_quality = copy.deepcopy(dict(roster_audit))
+    universe_quality.update(
+        {
+            "hithink_broad_count": len(names),
+            "hithink_broad_symbols": sorted(hithink_symbols),
+            "hithink_only_count": len(hithink_symbols - official_symbols),
+            "hithink_only_symbols": sorted(hithink_symbols - official_symbols),
+            "roster_only_count": len(official_symbols - hithink_symbols),
+            "roster_only_symbols": sorted(official_symbols - hithink_symbols),
+            "retained_count": len(retained_names),
+        }
+    )
+    if not retained_names:
+        _fail(INCOMPLETE_COVERAGE, "HiThink universe and official exchange roster do not intersect")
     return (
         UniverseManifest(
             as_of_date=as_of_date,
             retrieved_at_bjt=retrieved_at_bjt,
-            source=f"HiThink Financial-API {HITHINK_UNIVERSE_API}",
-            symbols=tuple(names),
+            source=(
+                f"HiThink Financial-API {HITHINK_UNIVERSE_API} ∩ "
+                f"{EXCHANGE_OFFICIAL_LISTED_ROSTER_VERSION}"
+            ),
+            symbols=tuple(retained_names),
             temporal_semantics=LIVE_OBSERVED,
             universe_scope=TRADABLE_UNIVERSE_SCOPE_V1,
             universe_scope_version=TRADABLE_UNIVERSE_SCOPE_VERSION,
         ),
-        dict(sorted(names.items())),
+        dict(sorted(retained_names.items())),
+        universe_quality,
     )
 
 
@@ -1042,25 +1270,26 @@ def _hithink_failure_message(
 
 
 def _akshare_failure_message(
-    client: SinaSectorClient,
+    client: SinaSectorClient | ExchangeListedRosterClient,
     exc: Exception,
     *,
     elapsed_seconds: float,
     universe_symbol_count: int,
     unexecuted_stage: str,
 ) -> str:
-    latest = client.read_attempts[-1] if client.read_attempts else {}
+    read_attempts = getattr(client, "read_attempts", [])
+    latest = read_attempts[-1] if read_attempts else {}
     api_name = getattr(exc, "api_name", latest.get("api", "UNKNOWN"))
     attempts = getattr(exc, "attempts", latest.get("attempts", 1))
     cause = getattr(exc, "cause", exc)
-    sector_code = client.current_sector_code or "N/A"
-    sector_name = client.current_sector_name or "N/A"
+    sector_code = getattr(client, "current_sector_code", None) or "N/A"
+    sector_name = getattr(client, "current_sector_name", None) or "N/A"
     return (
         "AkShare provider failure; "
         f"api={api_name}; sector_code={sector_code}; sector_name={sector_name}; "
         f"attempts={attempts}; elapsed_acquisition_seconds={elapsed_seconds:.3f}; "
-        f"completed_sector_calls={client.completed_sector_member_reads}; "
-        f"sector_definition_count={client.sector_definition_count if client.sector_definition_count is not None else 'NOT_REACHED'}; "
+        f"completed_sector_calls={getattr(client, 'completed_sector_member_reads', 'NOT_APPLICABLE')}; "
+        f"sector_definition_count={getattr(client, 'sector_definition_count', 'NOT_APPLICABLE') if getattr(client, 'sector_definition_count', None) is not None else 'NOT_REACHED'}; "
         f"universe_symbol_count={universe_symbol_count}; "
         f"unexecuted_stage={unexecuted_stage}; cause={type(cause).__name__}"
     )
@@ -1266,6 +1495,49 @@ def _market_env(index: IndexManifest) -> dict[str, Any]:
     }
 
 
+def _validate_universe_roster_quality(value: Any, as_of_date: str) -> None:
+    if not isinstance(value, Mapping):
+        _fail(PROVIDER_FAILURE, "manifest official-roster quality is missing")
+    if value.get("identity") != EXCHANGE_OFFICIAL_LISTED_ROSTER_VERSION:
+        _fail(PROVIDER_FAILURE, "manifest official-roster identity is unsupported")
+    if value.get("as_of_date") != as_of_date:
+        _fail(INPUT_DATE_MISMATCH, "official-roster as_of_date does not match the generation date")
+    if value.get("listing_date_rule") != "listing_date <= as_of_date":
+        _fail(PROVIDER_FAILURE, "official-roster listing-date rule is missing or unsupported")
+    counts = value.get("source_row_counts")
+    if not isinstance(counts, Mapping) or set(counts) != {"sse_main_board", "sse_star", "szse_a_share"}:
+        _fail(PROVIDER_FAILURE, "official-roster source row counts are invalid")
+    if any(isinstance(count, bool) or not isinstance(count, int) or count <= 0 for count in counts.values()):
+        _fail(PROVIDER_FAILURE, "official-roster source row counts are incomplete")
+    for field_name in (
+        "hithink_broad_symbols",
+        "hithink_only_symbols",
+        "roster_only_symbols",
+        "pre_listing_symbols",
+    ):
+        symbols = value.get(field_name)
+        if not isinstance(symbols, list) or symbols != sorted(set(symbols)):
+            _fail(PROVIDER_FAILURE, f"official-roster diagnostic list is invalid: {field_name}")
+    count_fields = (
+        ("hithink_broad_count", "hithink_broad_symbols"),
+        ("hithink_only_count", "hithink_only_symbols"),
+        ("roster_only_count", "roster_only_symbols"),
+        ("pre_listing_count", "pre_listing_symbols"),
+    )
+    for count_field, list_field in count_fields:
+        count = value.get(count_field)
+        if isinstance(count, bool) or not isinstance(count, int) or count != len(value[list_field]):
+            _fail(PROVIDER_FAILURE, f"official-roster diagnostic count is invalid: {count_field}")
+    for field_name in ("canonical_combined_symbol_count", "official_listed_count", "retained_count"):
+        count = value.get(field_name)
+        if isinstance(count, bool) or not isinstance(count, int) or count <= 0:
+            _fail(PROVIDER_FAILURE, f"official-roster count is invalid: {field_name}")
+    for field_name in ("content_sha256", "semantic_sha256"):
+        digest = value.get(field_name)
+        if not isinstance(digest, str) or len(digest) != 64 or any(character not in "0123456789abcdef" for character in digest):
+            _fail(PROVIDER_FAILURE, f"official-roster {field_name} is not a SHA-256 digest")
+
+
 def _generation_identity_payload(
     manifest: GenerationInputManifest,
     display_names: Mapping[str, str],
@@ -1296,6 +1568,8 @@ def _generation_identity_payload(
         != _sha256_json(dict(sorted(resolved_memberships.items())))
     ):
         _fail(PROVIDER_FAILURE, "manifest resolved sector membership identity is invalid")
+    roster_quality = manifest.provider_version_metadata.get("universe_roster_quality")
+    _validate_universe_roster_quality(roster_quality, manifest.signal_date)
     return {
         "schema_version": GENERATION_IDENTITY_SCHEMA,
         "input_package_schema": LIVE_INPUT_PACKAGE_SCHEMA,
@@ -1320,6 +1594,7 @@ def _generation_identity_payload(
             "rule": DISPLAY_NAME_NORMALIZATION_RULE,
         },
         "display_name_consistency_policy": _display_name_policy_metadata(),
+        "universe_roster_quality": copy.deepcopy(dict(roster_quality)),
         "display_name_diagnostics": {
             "mismatch_count": mismatch_count,
             "mismatches": copy.deepcopy(mismatches),
@@ -1432,6 +1707,13 @@ class LiveInputPackage:
             != _sha256_json(dict(sorted(resolved_memberships.items())))
         ):
             _fail(PROVIDER_FAILURE, "provenance resolved sector membership identity is invalid")
+        roster_quality = provenance.get("universe_roster_quality")
+        _validate_universe_roster_quality(roster_quality, self.generation_input_manifest.signal_date)
+        manifest_roster_quality = self.generation_input_manifest.provider_version_metadata.get(
+            "universe_roster_quality"
+        )
+        if manifest_roster_quality != roster_quality:
+            _fail(INPUT_CONFLICT, "provenance official-roster quality does not match the generation manifest")
         if provenance.get("observation_status") != LIVE_OBSERVED:
             _fail("UNSUPPORTED_MODE", "live input provenance must be LIVE_OBSERVED")
         retrieved_at = provenance.get("retrieved_at_bjt")
@@ -1476,6 +1758,7 @@ class LiveInputPackage:
             "observation_date",
             "freshness_and_session_close",
             "universe_non_empty_and_unique",
+            "universe_listing_eligibility",
             "sector_definitions_membership_rank",
             "sector_membership_resolved_exact_v0",
             "display_name_coverage_and_symbol_identity",
@@ -1616,6 +1899,7 @@ def acquire_live_generation_inputs(
     if not all(callable(getattr(hithink, name, None)) for name in ("universe", "historical_bars", "capability_report")):
         _fail(PROVIDER_UNAVAILABLE, "HiThink client capability is incomplete")
     sina = SinaSectorClient(sina_module if sina_module is not None else akshare_module, akshare_version)
+    roster_client = ExchangeListedRosterClient(sina.module, sina.package_version)
     acquisition_started = time.monotonic()
     retrieved_at_bjt = _timestamp_text(observed_at)
     try:
@@ -1631,7 +1915,28 @@ def acquire_live_generation_inputs(
                 unexecuted_stage="exact Sina sector, Tencent quotes, stock/index Kline, market_env, manifest, persistence",
             ),
         )
-    universe, display_names = _build_universe(universe_frame, target_date, retrieved_at_bjt)
+    try:
+        official_roster, roster_audit = _build_official_listed_roster(roster_client, target_date)
+        universe, display_names, universe_quality = _build_universe(
+            universe_frame,
+            target_date,
+            retrieved_at_bjt,
+            official_roster,
+            roster_audit,
+        )
+    except LiveAcquisitionError:
+        raise
+    except Exception as exc:
+        _fail(
+            PROVIDER_FAILURE,
+            _akshare_failure_message(
+                roster_client,
+                exc,
+                elapsed_seconds=time.monotonic() - acquisition_started,
+                universe_symbol_count=0,
+                unexecuted_stage="exact Sina sector, Tencent quotes, stock/index Kline, market_env, manifest, persistence",
+            ),
+        )
     try:
         sector = _build_sector(sina, target_date, retrieved_at_bjt, display_names)
     except LiveAcquisitionError:
@@ -1766,6 +2071,7 @@ def acquire_live_generation_inputs(
     provider_metadata = {
         "runtime": runtime_versions,
         "display_name_consistency_policy": _display_name_policy_metadata(),
+        "universe_roster_quality": copy.deepcopy(universe_quality),
         "display_name_diagnostics": {
             "mismatch_count": len(sina.display_name_mismatches),
             "mismatches": copy.deepcopy(sina.display_name_mismatches),
@@ -1788,6 +2094,9 @@ def acquire_live_generation_inputs(
                 "api": HITHINK_UNIVERSE_API,
                 "selection": "PRIMARY",
                 "scope": _tradable_universe_scope_metadata(),
+                "broad_source": "HiThink Financial-API",
+                "official_listed_roster": roster_client.capability_report(),
+                "selection_rule": "HITHINK_BROAD_INTERSECT_OFFICIAL_ROSTER_EXCHANGE_LISTED_AS_OF_T",
             },
             "sector": {
                 "provider": "AkShare",
@@ -1861,6 +2170,7 @@ def acquire_live_generation_inputs(
             ],
             "rule": DISPLAY_NAME_NORMALIZATION_RULE,
         },
+        "universe_roster_quality": copy.deepcopy(universe_quality),
         "display_name_diagnostics": {
             "mismatch_count": len(sina.display_name_mismatches),
             "mismatches": copy.deepcopy(sina.display_name_mismatches),
@@ -1880,6 +2190,7 @@ def acquire_live_generation_inputs(
             "observation_date": "PASS",
             "freshness_and_session_close": "PASS",
             "universe_non_empty_and_unique": "PASS",
+            "universe_listing_eligibility": "PASS",
             "sector_definitions_membership_rank": "PASS",
             "sector_membership_resolved_exact_v0": "PASS",
             "display_name_coverage_and_symbol_identity": "PASS",
@@ -1902,6 +2213,11 @@ __all__ = [
     "AKSHARE_RETRY_BACKOFF_SECONDS",
     "AKSHARE_SINA_DETAIL_API",
     "AKSHARE_SINA_SPOT_API",
+    "AKSHARE_SSE_LISTED_ROSTER_API",
+    "AKSHARE_SSE_MAIN_BOARD_SYMBOL",
+    "AKSHARE_SSE_STAR_SYMBOL",
+    "AKSHARE_SZSE_A_SHARE_SYMBOL",
+    "AKSHARE_SZSE_LISTED_ROSTER_API",
     "ALLOW_TENCENT_KLINE_FALLBACK",
     "DEFAULT_INDEX_BAR_COUNT",
     "DEFAULT_STOCK_BAR_COUNT",
@@ -1909,6 +2225,8 @@ __all__ = [
     "DISPLAY_NAME_NORMALIZATION_VERSION",
     "DISPLAY_NAME_NORMALIZATION_ZERO_WIDTH_CODEPOINTS",
     "DISPLAY_NAME_NORMALIZATION_RULE",
+    "EXCHANGE_OFFICIAL_LISTED_ROSTER_VERSION",
+    "ExchangeListedRosterClient",
     "EXACT_SINA_SECTOR_SOURCE",
     "GENERATION_IDENTITY_SCHEMA",
     "HITHINK_API_KEY_ENV",
@@ -1935,6 +2253,8 @@ __all__ = [
     "SINA_DETAIL_COUNT_SOURCE_URL",
     "SINA_DETAIL_SOURCE_URL",
     "SINA_SPOT_SOURCE_URL",
+    "SSE_OFFICIAL_LISTED_ROSTER_URL",
+    "SZSE_OFFICIAL_LISTED_ROSTER_URL",
     "SinaSectorClient",
     "TENCENT_KLINE_SOURCE",
     "TRADABLE_UNIVERSE_SCOPE_V1",

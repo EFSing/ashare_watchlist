@@ -219,3 +219,34 @@ An exact duplicate sector row retains its raw row/count diagnostic without chang
 semantic membership set. A symbol in multiple distinct sectors remains fail-closed.
 Historical 2026-08-31 evidence is not rewritten with current raw values or counts, and
 no partial formal package is persisted.
+
+## Current official exchange-roster correction — 2026-09-02
+
+The current prospective universe path supersedes the earlier HiThink-only universe step.
+HiThink `/api/meta/tickers/list` remains the broad SH/SZ A-share metadata source and keeps
+the raw provider name for final user eligibility, but it does not provide listing-date or
+listing-status evidence. Before sector, quote, or Kline acquisition, the adapter now reads
+the official exchange-listed rosters through AkShare `1.18.94` and performs an exact
+six-digit-symbol intersection:
+
+- SSE: `stock_info_sh_name_code(symbol="主板A股")` and
+  `stock_info_sh_name_code(symbol="科创板")`, required fields `证券代码` and `上市日期`,
+  underlying source `https://www.sse.com.cn/assortment/stock/list/share/`;
+- SZSE: `stock_info_sz_name_code(symbol="A股列表")`, required fields `A股代码` and
+  `A股上市日期`, underlying source
+  `https://www.szse.cn/market/product/stock/list/index.html`.
+
+These sources and their API arguments define
+`EXCHANGE_OFFICIAL_CURRENT_LISTED_ROSTER_V1`. Listing dates are canonically parsed and
+must satisfy `listing_date <= as_of_date`; missing/invalid fields, unavailable rosters,
+and duplicate/conflicting official symbols fail closed. The manifest/provenance records
+package version, exact APIs and URLs, per-source row counts, combined/eligible counts,
+content and semantic SHA-256 values, and the HiThink-only/roster-only mismatch lists.
+Names are never used as identity or join keys. A pre-listing symbol such as `301686` is
+excluded before Tencent quote/Kline calls only when the official roster evidence excludes
+it; an already-listed suspended `002731` remains in the acquisition universe. The existing
+`USER_TRADABILITY_ELIGIBILITY_NON_ST` filter remains after B evaluation and does not remove
+ST securities from acquisition.
+
+This is a same-day `LIVE_OBSERVED` source for prospective T-close acquisition only. It is
+not a historical security master and must not be used to backfill any earlier T date.

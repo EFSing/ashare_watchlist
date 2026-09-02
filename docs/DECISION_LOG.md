@@ -882,3 +882,43 @@
   在 acquisition universe，而被 deterministic 证明为 T 日未上市的 `301686` 才排除；
   ST 仍只由 B 后的 `USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` final layer 排除。该
   filter 本轮未批准、未实现；正式 capture 未重跑。
+
+## 2026-09-02 — Adopt official exchange listed-roster universe source
+
+- classification：`correctness blocker`；任务分类未改变。本轮仅处理既定
+  `TRADABLE_UNIVERSE_LISTING_ELIGIBILITY_SOURCE_DECISION`，不启动策略研究、Phase 2F、
+  C、Final OOS、prospective returns、调参、promotion 或 formal capture。
+- research question：能否使用一个已批准、可复核且不依赖 hard-code/current-data
+  backfill 的 listing source，修复 HiThink broad metadata 把 T 日未上市证券带入
+  `TRADABLE_UNIVERSE_SCOPE_V1` 的 correctness 风险？materiality 是在请求 Tencent
+  quote/Kline 前确定 acquisition universe 的边界，避免把 pre-listing security 的
+  provider failure 当作停牌/无成交语义。
+- inputs：Sol source decision
+  `USE_EXCHANGE_OFFICIAL_LISTED_ROSTER_VIA_EXISTING_AKSHARE`；当前 AkShare `1.18.94`
+  APIs `stock_info_sh_name_code`（`主板A股`、`科创板`）与
+  `stock_info_sz_name_code`（`A股列表`）；SSE underlying URL
+  `https://www.sse.com.cn/assortment/stock/list/share/`；SZSE underlying URL
+  `https://www.szse.cn/market/product/stock/list/index.html`。
+- decision：`ADOPT` — `EXCHANGE_OFFICIAL_CURRENT_LISTED_ROSTER_V1`。HiThink
+  `/api/meta/tickers/list` remains the broad SH/SZ A-share metadata source; the formal
+  prospective universe is its exact six-digit-symbol intersection with the fresh official
+  roster. Roster listing dates are canonicalized and must satisfy
+  `listing_date <= as_of_date`。
+- fail-closed rules：required code/listing-date fields missing or invalid, official roster
+  unavailable, or duplicate/conflicting official symbol causes acquisition to stop before
+  sector/quote/Kline. There is no HiThink-only fallback, fuzzy name join, hard-coded
+  `301686` exception, or second listing engine。
+- provenance/output：AkShare version, exact API arguments/URLs, three source row counts,
+  canonical combined and eligible counts, deterministic content/semantic SHA-256 values,
+  and HiThink-only/roster-only mismatch counts/lists are included in existing provider
+  metadata and package provenance；roster identity is included in input and candidate-bound
+  generation identity。
+- semantic boundary：`301686` is excluded before formal Tencent quote/Kline only when the
+  official roster evidence shows it is not eligible by T；already-listed suspended
+  `002731` remains in acquisition universe。ST/*ST remains exclusively the post-B
+  `USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` final user-facing filter。
+- stop condition/result：implementation and focused tests are in the current local branch；
+  formal capture was not rerun；Tencent parser and B/spec/threshold/score were not modified。
+  After full validation, push one PR, wait for exact-head CI, verify `CLEAN`/`MERGEABLE`, and
+  stop at `TRADABLE_UNIVERSE_EXCHANGE_ROSTER_FIX_PR_READY_FOR_USER_MERGE_DECISION` without
+  merge。Deferred items remain unchanged。

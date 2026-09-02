@@ -115,3 +115,32 @@ No such source or filter was approved or implemented in this audit.
 - formal capture: not rerun; no formal input or output artifact was created.
 - registry: no new frozen artifact record; this document is a current-only diagnostic.
 - final decision: `TRADABLE_UNIVERSE_LISTING_ELIGIBILITY_SOURCE_DECISION_REQUIRED`.
+
+## Superseding source decision — 2026-09-02
+
+Sol approved `USE_EXCHANGE_OFFICIAL_LISTED_ROSTER_VIA_EXISTING_AKSHARE`. The HiThink
+metadata finding above remains immutable current-only evidence and is not being promoted to
+listing evidence. The correction uses the existing AkShare official exchange wrappers only:
+
+| exchange | exact API call | required fields | official source |
+| --- | --- | --- | --- |
+| SSE main board | `stock_info_sh_name_code(symbol="主板A股")` | `证券代码`, `上市日期` | `https://www.sse.com.cn/assortment/stock/list/share/` |
+| SSE STAR | `stock_info_sh_name_code(symbol="科创板")` | `证券代码`, `上市日期` | `https://www.sse.com.cn/assortment/stock/list/share/` |
+| SZSE A-share | `stock_info_sz_name_code(symbol="A股列表")` | `A股代码`, `A股上市日期` | `https://www.szse.cn/market/product/stock/list/index.html` |
+
+The adopted identity is `EXCHANGE_OFFICIAL_CURRENT_LISTED_ROSTER_V1`. For prospective T,
+listing dates are canonically parsed and the eligible roster is the exact six-digit symbol
+set satisfying `listing_date <= as_of_date`; the acquisition universe is the exact
+intersection with HiThink's broad SH/SZ A-share metadata. Missing/invalid fields,
+unavailable rosters, or duplicate/conflicting official symbols fail closed before sector,
+quote, and Kline calls. This same-day source is not a historical security master and cannot
+backfill earlier T dates.
+
+The implementation records package version, API/source identity, per-source row counts,
+combined/eligible counts, content/semantic SHA-256 values, and HiThink-only/roster-only
+mismatch diagnostics. It retains listed suspended `002731` in acquisition and excludes
+`301686` before quote/Kline when official evidence excludes it or has `listing_date > T`.
+ST/*ST remains the post-B `USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` filter. Formal capture
+was not rerun.
+
+Final decision: `ADOPT` — `EXCHANGE_OFFICIAL_CURRENT_LISTED_ROSTER_V1`.

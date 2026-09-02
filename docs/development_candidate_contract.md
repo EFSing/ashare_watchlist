@@ -20,6 +20,30 @@ Final OOS 入口。
 - `input_fingerprint`、`generation_fingerprint`、辅助输入 hash/identity、strategy
   identity、完整 input manifest 和 output SHA 都写入 immutable run manifest。
 
+## Prospective tradable-universe eligibility
+
+For a real prospective T-close acquisition, `TRADABLE_UNIVERSE_SCOPE_V1` is the exact
+intersection of the broad HiThink SH/SZ A-share metadata response and the same-day
+official exchange-listed roster identity
+`EXCHANGE_OFFICIAL_CURRENT_LISTED_ROSTER_V1`. The roster is obtained through the existing
+AkShare package only:
+
+- SSE `stock_info_sh_name_code("主板A股")` and `stock_info_sh_name_code("科创板")`, using
+  `证券代码` / `上市日期` from
+  `https://www.sse.com.cn/assortment/stock/list/share/`;
+- SZSE `stock_info_sz_name_code("A股列表")`, using `A股代码` / `A股上市日期` from
+  `https://www.szse.cn/market/product/stock/list/index.html`.
+
+The join key is the exact six-digit symbol; display names are not used for joining. Dates
+must parse canonically and satisfy `listing_date <= as_of_date`. Missing/invalid roster
+fields, unavailable rosters, and duplicate/conflicting official symbols fail closed before
+sector, quote, or Kline acquisition. The input manifest/provenance records source row
+counts, combined and eligible counts, content/semantic SHA-256 values, and deterministic
+HiThink-only/roster-only mismatch diagnostics. This same-day roster is prospective-only and
+must not backfill historical universes. Listed suspended/ST securities remain in the
+acquisition universe; `USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` is applied only after B
+evaluation to the final user-facing qualified list.
+
 ## Deterministic generation
 
 调用 `DevelopmentCandidateStore.generate(manifest, names, market_env)`：
