@@ -38,14 +38,16 @@ class FakeFrame:
 
 
 class FakeAkShare:
-    def __init__(self, *, universe=None, definitions=None, members=None, failures=None):
+    def __init__(self, *, universe=None, definitions=None, members=None, official_roster=None, failures=None):
         self._universe = universe
         self._definitions = definitions
         self._members = members
+        self._official_roster = official_roster or {}
         self._failures = {key: list(values) for key, values in (failures or {}).items()}
         self.universe_calls = 0
         self.definition_calls = 0
         self.member_calls = []
+        self.roster_calls = []
 
     def _maybe_fail(self, api_name):
         failures = self._failures.get(api_name, [])
@@ -72,6 +74,26 @@ class FakeAkShare:
             self._members
             if self._members is not None
             else [{"代码": SYMBOL, "名称": "测试股份"}]
+        )
+
+    def stock_info_sh_name_code(self, symbol):
+        self.roster_calls.append(("sse", symbol))
+        self._maybe_fail({"主板A股": "sse_main", "科创板": "sse_star"}[symbol])
+        if symbol == "主板A股":
+            default = [{"证券代码": SYMBOL, "上市日期": "2001-08-23"}]
+        else:
+            default = [{"证券代码": "688001", "上市日期": "2020-07-22"}]
+        return FakeFrame(self._official_roster.get(symbol, default))
+
+    def stock_info_sz_name_code(self, symbol):
+        assert symbol == "A股列表"
+        self.roster_calls.append(("szse", symbol))
+        self._maybe_fail("szse_a_share")
+        return FakeFrame(
+            self._official_roster.get(
+                symbol,
+                [{"A股代码": "000001", "A股上市日期": "1991-04-03"}],
+            )
         )
 
 
@@ -250,6 +272,50 @@ def test_hithink_provider_unavailable_fails_closed():
     assert caught.value.status == live.PROVIDER_UNAVAILABLE
 
 
+def test_official_roster_provider_unavailable_fails_closed_before_sector_or_quote():
+    ak = FakeAkShare(failures={"sse_main": [ConnectionError("down")] * live.AKSHARE_MAX_ATTEMPTS})
+    calls = []
+
+    with pytest.raises(live.LiveAcquisitionError) as caught:
+        _acquire(akshare_module=ak, request_get=_request_get(calls=calls))
+
+    assert caught.value.status == live.PROVIDER_FAILURE
+    assert ak.roster_calls == [("sse", "主板A股")] * live.AKSHARE_MAX_ATTEMPTS
+    assert ak.member_calls == []
+    assert calls == []
+
+
+def test_official_roster_missing_listing_date_fails_closed():
+    ak = FakeAkShare(
+        official_roster={
+            "主板A股": [{"证券代码": SYMBOL}],
+        }
+    )
+
+    with pytest.raises(live.LiveAcquisitionError) as caught:
+        _acquire(akshare_module=ak)
+
+    assert caught.value.status == live.PROVIDER_FAILURE
+    assert ak.member_calls == []
+
+
+def test_official_roster_duplicate_symbol_fails_closed():
+    ak = FakeAkShare(
+        official_roster={
+            "主板A股": [
+                {"证券代码": SYMBOL, "上市日期": "2001-08-23"},
+                {"证券代码": SYMBOL, "上市日期": "2001-08-23"},
+            ],
+        }
+    )
+
+    with pytest.raises(live.LiveAcquisitionError) as caught:
+        _acquire(akshare_module=ak)
+
+    assert caught.value.status == live.INPUT_CONFLICT
+    assert ak.member_calls == []
+
+
 def test_empty_universe_fails_closed():
     with pytest.raises(live.LiveAcquisitionError) as caught:
         _acquire(hithink_client=FakeHiThink(universe=[]))
@@ -296,6 +362,134 @@ def test_bj_is_excluded_by_explicit_sh_sz_scope_without_coverage_failure():
     assert package.provenance["provider_version_metadata"]["providers"]["universe"]["scope"] == package.provenance[
         "universe_scope"
     ]
+    quality = package.provenance["universe_roster_quality"]
+    assert quality["hithink_broad_count"] == 1
+    assert quality["retained_count"] == 1
+    assert quality["hithink_only_symbols"] == []
+    assert quality["roster_only_count"] == 2
+
+
+def test_prelisting_symbol_is_excluded_before_quote_and_kline():
+    calls = []
+    hithink = FakeHiThink(
+        universe=[
+            {
+                "thscode": "600519.SH",
+                "ticker": "600519",
+                "name": "测试股份",
+                "exchange": "SH",
+                "asset_type": "a-share",
+            },
+            {
+                "thscode": "301686.SZ",
+                "ticker": "301686",
+                "name": "中塑股份",
+                "exchange": "SZ",
+                "asset_type": "a-share",
+            },
+        ]
+    )
+    ak = FakeAkShare(
+        official_roster={
+            "主板A股": [{"证券代码": "600519", "上市日期": "2001-08-23"}],
+            "科创板": [{"证券代码": "688001", "上市日期": "2020-07-22"}],
+            "A股列表": [
+                {"A股代码": "000001", "A股上市日期": "1991-04-03"},
+                {"A股代码": "301686", "A股上市日期": "2026-08-28"},
+            ],
+        }
+    )
+
+    package = _acquire(
+        hithink_client=hithink,
+        akshare_module=ak,
+        request_get=_request_get(calls=calls),
+    )
+
+    assert package.generation_input_manifest.universe.symbols == ("600519",)
+    assert "sz301686" not in " ".join(calls)
+    assert all(call[0] != "301686.SZ" for call in hithink.kline_calls)
+    quality = package.provenance["universe_roster_quality"]
+    assert quality["hithink_only_symbols"] == ["301686"]
+    assert quality["pre_listing_symbols"] == ["301686"]
+
+
+def test_listed_suspended_st_symbol_is_retained_before_final_user_eligibility():
+    frame = FakeFrame(
+        [
+            {
+                "thscode": "600519.SH",
+                "ticker": "600519",
+                "name": "测试股份",
+                "exchange": "SH",
+                "asset_type": "a-share",
+            },
+            {
+                "thscode": "002731.SZ",
+                "ticker": "002731",
+                "name": "*ST萃华",
+                "exchange": "SZ",
+                "asset_type": "a-share",
+            },
+        ]
+    )
+    roster = {
+        "600519": {"source": "sse_main_board", "symbol": "600519", "listing_date": "2001-08-23"},
+        "002731": {"source": "szse_a_share", "symbol": "002731", "listing_date": "2011-12-16"},
+    }
+    universe, names, _ = live._build_universe(
+        frame,
+        AS_OF,
+        NOW,
+        roster,
+        {
+            "identity": live.EXCHANGE_OFFICIAL_LISTED_ROSTER_VERSION,
+            "as_of_date": AS_OF,
+            "listing_date_rule": "listing_date <= as_of_date",
+        },
+    )
+
+    assert universe.symbols == ("002731", "600519")
+    assert names["002731"] == "*ST萃华"
+
+
+def test_ordinary_sh_sz_and_star_listed_symbols_are_retained_by_exact_symbol_join():
+    frame = FakeFrame(
+        [
+            {"thscode": "600519.SH", "ticker": "600519", "name": "沪市", "exchange": "SH", "asset_type": "a-share"},
+            {"thscode": "688001.SH", "ticker": "688001", "name": "科创", "exchange": "SH", "asset_type": "a-share"},
+            {"thscode": "000001.SZ", "ticker": "000001", "name": "深市", "exchange": "SZ", "asset_type": "a-share"},
+        ]
+    )
+    roster = {
+        "600519": {"source": "sse_main_board", "symbol": "600519", "listing_date": "2001-08-23"},
+        "688001": {"source": "sse_star", "symbol": "688001", "listing_date": "2020-07-22"},
+        "000001": {"source": "szse_a_share", "symbol": "000001", "listing_date": "1991-04-03"},
+    }
+
+    universe, _, _ = live._build_universe(
+        frame,
+        AS_OF,
+        NOW,
+        roster,
+        {"identity": live.EXCHANGE_OFFICIAL_LISTED_ROSTER_VERSION, "as_of_date": AS_OF},
+    )
+
+    assert universe.symbols == ("000001", "600519", "688001")
+
+
+def test_official_roster_invalid_listing_date_fails_closed():
+    ak = FakeAkShare(
+        official_roster={
+            "主板A股": [{"证券代码": SYMBOL, "上市日期": "not-a-date"}],
+        }
+    )
+
+    with pytest.raises(live.LiveAcquisitionError) as caught:
+        _acquire(akshare_module=ak)
+
+    assert caught.value.status == live.PROVIDER_FAILURE
+    assert ak.member_calls == []
 
 
 def test_missing_universe_name_fails_closed():
@@ -706,7 +900,10 @@ def test_complete_package_has_t_plus_one_market_env_and_provenance():
     assert package.provenance["observation_status"] == "LIVE_OBSERVED"
     assert package.provenance["quality_checks"]["generation_manifest"] == "READY_FOR_STRATEGY_EVALUATION"
     assert package.provenance["provider_version_metadata"]["runtime"]["packages"]["akshare"] == "1.18.94"
-    assert package.generation_input_manifest.universe.source == "HiThink Financial-API /api/meta/tickers/list"
+    assert package.generation_input_manifest.universe.source == (
+        "HiThink Financial-API /api/meta/tickers/list ∩ "
+        "EXCHANGE_OFFICIAL_CURRENT_LISTED_ROSTER_V1"
+    )
     assert package.generation_input_manifest.universe.universe_scope == "SH_SZ_A_SHARE_ONLY"
     assert package.generation_input_manifest.universe.universe_scope_version == "TRADABLE_UNIVERSE_SCOPE_V1"
     assert package.generation_input_manifest.index.provider == "HiThink Financial-API"
@@ -731,6 +928,26 @@ def test_exact_sina_provider_is_accepted_and_identified():
     assert report["apis"] == {
         "stock_sector_spot": True,
         "stock_sector_detail": True,
+    }
+
+
+def test_official_exchange_roster_source_is_explicitly_identified():
+    client = live.ExchangeListedRosterClient(FakeAkShare(), "1.18.94")
+
+    report = client.capability_report()
+
+    assert report["identity"] == "EXCHANGE_OFFICIAL_CURRENT_LISTED_ROSTER_V1"
+    assert report["sources"] == {
+        "sse": {
+            "url": live.SSE_OFFICIAL_LISTED_ROSTER_URL,
+            "api": "stock_info_sh_name_code",
+            "symbols": ["主板A股", "科创板"],
+        },
+        "szse": {
+            "url": live.SZSE_OFFICIAL_LISTED_ROSTER_URL,
+            "api": "stock_info_sz_name_code",
+            "symbol": "A股列表",
+        },
     }
 
 
@@ -802,6 +1019,24 @@ def test_same_complete_input_has_deterministic_fingerprint_and_bytes():
     assert first.generation_fingerprint == second.generation_fingerprint
     assert first.to_bytes() == second.to_bytes()
     assert json.loads(first.to_bytes()) == json.loads(second.to_bytes())
+
+
+def test_official_roster_evidence_is_part_of_input_identity():
+    first = _acquire()
+    changed_roster = FakeAkShare(
+        official_roster={
+            "主板A股": [{"证券代码": SYMBOL, "上市日期": "2001-08-24"}],
+            "科创板": [{"证券代码": "688001", "上市日期": "2020-07-22"}],
+            "A股列表": [{"A股代码": "000001", "A股上市日期": "1991-04-03"}],
+        }
+    )
+    changed = _acquire(akshare_module=changed_roster)
+
+    assert first.provenance["universe_roster_quality"]["content_sha256"] != changed.provenance[
+        "universe_roster_quality"
+    ]["content_sha256"]
+    assert first.generation_input_manifest.input_fingerprint != changed.generation_input_manifest.input_fingerprint
+    assert first.generation_fingerprint != changed.generation_fingerprint
 
 
 def test_package_rejects_provenance_that_cannot_support_formal_audit():

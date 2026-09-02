@@ -271,3 +271,130 @@ Final decision：`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`。机
 并明确 `not_a_frozen_artifact=true`。本次不产生 partial canonical watchlist，不创建新的
 registry artifact，不自动 retry/freeze/promotion；Final OOS、prospective returns、C、
 Phase 2F 和 `2026-09-01` backfill 均未读取/执行。
+
+## 11. Superseding current attempt — 2026-09-02 post-merge fresh capture
+
+PR #24 已按批准 exact head `e97a6a3c525b497f57aac9cfd751b11f86ca9d5c` squash merge，真实
+merge SHA 为 `05232677055c67b8b87c8d8c3c3b4139df8c477d`；local `master`、`origin/master`
+和该 merge SHA 一致；merge 后 master exact-head correctness run `33616552822` 为
+`success`。随后运行了新的 `T=2026-09-02` / `T+1=2026-09-03` formal
+`LIVE_OBSERVED` capture，未复用历史 attempt、current-only probe 或 PR regression
+payload。
+
+| stage | result | evidence / boundary |
+| --- | --- | --- |
+| close-window / timing | `PASS` | `close` / `Asia/Shanghai` / `XSHG` validation passed；runner 未记录精确 `observed_at_bjt`，保持 `NOT_RECORDED_BY_RUNNER` |
+| HiThink universe | `COMPLETED` | 当前 SH/SZ scope provider call 完成；异常 runner 未保存 count，不猜测回填 |
+| exact Sina sector | `COMPLETED` | exact `新浪行业` spot/detail traversal 完成；异常 runner 未保存 diagnostics，不猜测回填 |
+| Tencent quote snapshot | `BLOCKED` | `301686` / `sz301686` 的 `p[38]` (`turnover`) 为空，`QuoteFieldError` → `PROVIDER_FAILURE`; raw line 未保留，no-trade semantics=`UNRESOLVED_FOR_301686` |
+| stock/index Kline, market_env | `NOT_REACHED` | 不触发停牌无 T bar 的 contract decision |
+| GenerationInputManifest / B | `NOT_REACHED` | 没有 READY manifest；strategy/threshold/score/top-N 未改变 |
+| package / local persistence / Drive recovery | `NOT_APPLICABLE` | 没有 package bytes；`data/prospective_inputs/` 不存在 |
+| candidate list / Final OOS / prohibited paths | `NOT_EVALUATED` / `SEALED_UNREAD` | 不得把失败误报为 zero-candidate；C、Phase 2F、prospective returns、调参、promotion 未执行 |
+
+机器可读 evidence：
+[`data/governance/prospective_input_attempt_evidence_20260902_post_merge.json`](../data/governance/prospective_input_attempt_evidence_20260902_post_merge.json)，明确
+`not_a_frozen_artifact=true`。当前 decision 仍为
+`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`；current P1
+`P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE` 未解除。本次停止，不自动重试，不放宽
+Tencent parser，不缩 universe，不跳过 symbol，不创建新的 frozen registry record。
+
+## 12. 2026-09-02 tradable-universe listing eligibility root-cause audit
+
+本轮分类为 `correctness blocker`。研究问题是 HiThink
+`/api/meta/tickers/list` 是否提供足够可靠的 listing-eligibility metadata，能够
+对 `301686` 在 `as_of_date=2026-09-02` 是否已经上市作 deterministic 判断。该问题
+直接决定能否修复 acquisition universe 的 correctness，而不引入 hard-code、
+current-data backfill 或第二套 listing engine。
+
+本轮只做 exact `301686` 的 current-only read-only diagnostic，明确标记为
+`CURRENT_ONLY_DIAGNOSTIC_NOT_PROSPECTIVE_EVIDENCE`；没有把 response 写入 formal
+input、UniverseManifest、package 或 output，也没有读取或修改
+`data/validation/continuous_speed_probe/`。完整记录见
+[`tradable_universe_listing_eligibility_audit_20260902.md`](tradable_universe_listing_eligibility_audit_20260902.md)。
+
+HiThink `/api/meta/tickers/list?exchange=SZ&asset_type=a-share&limit=10000&offset=0`
+返回 `code=0`、`data.timestamp=1788336018945`（`2026-09-02T16:00:18.945+08:00`），
+target row 为：
+
+```json
+{"thscode":"301686.SZ","ticker":"301686","name":"中塑股份","exchange":"SZ","asset_type":"a-share","currency":"CNY"}
+```
+
+实测 raw schema 只有 `thscode`、`ticker`、`name`、`exchange`、`asset_type`、
+`currency`；没有 `listing_date/list_date`、listing/security status、
+`delisting_date`、`trading_status`、`market_status` 或等价 as-of 字段。因而 provider
+row 只能证明它是 SZ A-share metadata record，不能证明它在 2026-09-02 已上市。
+
+research decision：`NEEDS_MORE_EVIDENCE`；stop state：
+`TRADABLE_UNIVERSE_LISTING_ELIGIBILITY_SOURCE_DECISION_REQUIRED`。任务输入中已确认
+的外部事实支持 root-cause direction
+`PRE_LISTING_SECURITY_INCORRECTLY_INCLUDED_IN_TRADABLE_UNIVERSE`，但不能被提升为
+HiThink prospective metadata evidence。当前不修改 `_build_universe()`，不 hard-code
+`301686`，不按代码新旧或历史 Kline 推断上市状态，不缩 universe，不跳过 Tencent
+symbol，不删除 suspended/ST securities，不放宽 turnover parser，也不重跑 formal
+capture。
+
+如果后续获得并批准可靠 source，目标语义仍是：已上市但停牌的 `002731` 保留在
+acquisition universe，已被 deterministic 证明为 T 日未上市的 `301686` 才排除；
+ST 排除仍只发生在 B evaluator 后的
+`USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` final user-facing layer。本轮没有批准或
+实现该 filter。
+
+最终 decision：`TRADABLE_UNIVERSE_LISTING_ELIGIBILITY_SOURCE_DECISION_REQUIRED`。
+
+## 13. 2026-09-02 official exchange listed-roster source decision and correction
+
+Sol approved `USE_EXCHANGE_OFFICIAL_LISTED_ROSTER_VIA_EXISTING_AKSHARE` for the bounded
+correctness fix. This section supersedes only the preceding listing-source stop state; it
+does not rewrite the failed 2026-09-02 capture evidence, Tencent parser semantics, candidate
+eligibility, strategy/spec/threshold/score, frozen artifacts, or the sealed Final OOS boundary.
+
+The formal prospective universe remains SH/SZ A-share scope, but is now defined as:
+
+`HiThink /api/meta/tickers/list broad metadata ∩ EXCHANGE_OFFICIAL_CURRENT_LISTED_ROSTER_V1`
+
+The official roster uses existing AkShare APIs and their exact arguments:
+
+| exchange | AkShare call | required fields | underlying official URL |
+| --- | --- | --- | --- |
+| SSE main board | `stock_info_sh_name_code(symbol="主板A股")` | `证券代码`, `上市日期` | `https://www.sse.com.cn/assortment/stock/list/share/` |
+| SSE STAR | `stock_info_sh_name_code(symbol="科创板")` | `证券代码`, `上市日期` | `https://www.sse.com.cn/assortment/stock/list/share/` |
+| SZSE A-share | `stock_info_sz_name_code(symbol="A股列表")` | `A股代码`, `A股上市日期` | `https://www.szse.cn/market/product/stock/list/index.html` |
+
+The adapter canonicalizes listing dates and requires `listing_date <= as_of_date`. It
+joins only exact six-digit symbols; display names are not identity keys. Missing/invalid
+required fields, unavailable official rosters, and duplicate/conflicting official symbols
+fail closed before sector, quote, or Kline acquisition. There is no HiThink-only fallback,
+fuzzy reconciliation, hard-coded symbol exception, or second listing engine.
+
+Existing manifest/provenance metadata now records the AkShare version, exact API/source
+identity, all three source row counts, canonical combined and eligible counts, deterministic
+content and semantic SHA-256 values, and HiThink-only/roster-only mismatch counts/lists.
+The official roster identity is included in the existing input and candidate-bound generation
+identity. This source is same-day `LIVE_OBSERVED` prospective evidence only and cannot
+backfill historical T dates.
+
+The semantic boundary is explicit: `301686` is excluded before formal Tencent quote/Kline
+when the official roster evidence excludes it or its listing date is after T; already-listed
+suspended `002731` remains in the acquisition universe. ST/*ST remains exclusively the
+post-B `USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` final user-facing layer. Formal capture was
+not rerun. The bounded implementation/test work stops after one PR reaches exact-head CI
+success and `CLEAN`/`MERGEABLE`, at
+`TRADABLE_UNIVERSE_EXCHANGE_ROSTER_FIX_PR_READY_FOR_USER_MERGE_DECISION`; merge remains a
+user decision.
+
+Final decision: `ADOPT` — `EXCHANGE_OFFICIAL_CURRENT_LISTED_ROSTER_V1`.
+
+## 14. PR #25 ready for user merge decision — 2026-09-02
+
+The bounded correction is now in PR #25 at the pre-reconciliation head
+`105acc9d9772539a3f799faf90bef14a83f83152`, based on
+`05232677055c67b8b87c8d8c3c3b4139df8c477d`. Its pull_request exact-head correctness run
+`33624209979` succeeded; the PR was verified `open`, `mergeable=true`, and
+`mergeable_state=clean` before this governance-only snapshot. The snapshot itself does not
+change the adopted source, any failed attempt, or any frozen identity. After pushing this
+snapshot, the new head must be checked live again; no merge is authorized by this audit.
+
+The final stop remains
+`TRADABLE_UNIVERSE_EXCHANGE_ROSTER_FIX_PR_READY_FOR_USER_MERGE_DECISION`.

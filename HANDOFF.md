@@ -2,6 +2,40 @@
 
 > 本文件是下一台电脑、一次新 clone 或一个新 Codex 会话的接手入口；它不是完整 Git 历史。
 
+## LATEST LIVE CHECKPOINT — WORKSTATION_TO_HOME_SEAMLESS_HANDOFF
+
+以下是本次最终交接文档提交前刚核验的 live snapshot；文档提交和推送会产生新的
+governance-only HEAD，因此家用电脑接手时仍必须以实时 Git/GitHub/CI 查询结果为准。
+
+- repository：`EFSing/ashare_watchlist`；branch：
+  `codex/tradable-universe-prelisting-fix-20260902`。
+- last-verified exact HEAD：`e0059ba27dcb92093161200e840d85874504ae8`；
+  `origin/master` / base：`05232677055c67b8b87c8d8c3c3b4139df8c477d`。
+- PR：[#25](https://github.com/EFSing/ashare_watchlist/pull/25)，open，
+  `mergeable=true` / `mergeable_state=clean`；last-verified exact-head correctness CI：
+  run `33624545483`，`success`，head=`e0059ba27dcb92093161200e840d85874504ae8`。
+- tracked working tree：clean；仅保留未跟踪的本机目录
+  `data/validation/continuous_speed_probe/`。本次交接不读取、不修改、不删除、不上传该目录，
+  也不将其纳入提交。
+- current task：`TRADABLE_UNIVERSE_LISTING_ELIGIBILITY`。Sol decision：
+  `USE_EXCHANGE_OFFICIAL_LISTED_ROSTER_VIA_EXISTING_AKSHARE`；architecture 为
+  HiThink broad SH/SZ A-share metadata → official SSE/SZSE current listed roster →
+  Tencent quote/Kline → B → `USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` → final watchlist。
+- exact stop state：SSE adapter、SZSE adapter、listing-date parse、exact six-digit
+  symbol intersection 和 provenance 已完成；focused tests `70 passed`，full pytest
+  `240 passed`，compileall、JSON/hash/governance validation、`git diff --check` 均通过；
+  formal 2026-09-02 fresh capture=`NOT_RERUN`，candidate list=`NOT_EVALUATED`（不是 0）。
+- preserved semantics：`301686` 在官方 roster 证明 T 日未上市/不在 roster 时，必须在
+  acquisition universe 进入 quote/Kline 前排除；已上市但停牌的 `002731` 保留；ST/*ST
+  仍只在 B 后由现有 `USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` 处理；Tencent `p[38]=""`
+  不放宽；B evaluator/spec/threshold/score 不变。
+- home resume first action：先实时执行 `git fetch origin`，再核对当前 branch、exact
+  HEAD、`origin/master`、PR #25、exact-head CI 和 working tree；随后停在 PR #25 的
+  user merge decision，不运行 formal capture，不读取 Final OOS，不启动 Phase 2F/C、
+  promotion 或调参。
+- handoff objective：`WORKSTATION_STATE_DURABLY_PUSHED_AND_HOME_RESUME_READY`。
+- secrets：本次未上传 secrets 或凭据。
+
 ## 1. Current Objective
 
 - 当前工作对象：PR #20 merge 后的 governance state reconciliation，以及
@@ -790,3 +824,127 @@ coverage/ambiguity current gate 和 provider counts 不代表本文当前 live g
 - detailed audit：[`docs/tencent_quote_field_error_root_cause_audit_20260902.md`](docs/tencent_quote_field_error_root_cause_audit_20260902.md)。当前 stop 是
   `TENCENT_QUOTE_FIELD_ROOT_CAUSE_UNRESOLVED_NEEDS_MORE_EVIDENCE`；在 exact raw evidence
   到位前不做第二次 formal capture、push 或 PR。
+
+## 2026-09-02 — PR #24 merged; fresh capture stopped at a new Tencent quote blocker
+
+- classification：`correctness blocker` + `product blocker`；本次分类未改变。PR #24
+  已按批准 exact head squash merge，真实 merge SHA 为
+  `05232677055c67b8b87c8d8c3c3b4139df8c477d`。本地 `master`、`origin/master` 与
+  该 merge SHA 一致；merge 后 master exact-head correctness run
+  `33616552822` 为 `success`；PR #24 已关闭，当前无 active product PR。
+- fresh attempt：在该 merge 后对 `T=2026-09-02`、`T+1=2026-09-03` 运行了新的
+  `FRESH_FORMAL_20260902_POST_MERGE`，close-window validation 已通过，语义为
+  `LIVE_OBSERVED` / `close` / `Asia/Shanghai` / `XSHG`。包装 runner 没有持久化精确
+  `observed_at_bjt`，因此保持 `NOT_RECORDED_BY_RUNNER`，不从工具时间推算。
+- acquisition result：HiThink universe 与 exact Sina `新浪行业` traversal 已完成；
+  Tencent quote snapshot 在 symbol `301686`（Tencent symbol `sz301686`）处因
+  `p[38]` / `turnover` 为空返回 `QuoteFieldError`，`PROVIDER_FAILURE`，分类为
+  `PROVIDER_DATA_VALIDATION_FAILURE`，不是 connectivity failure。完整 failure batch
+  与 Tencent batch、原始可得 detail 见新的
+  [`data/governance/prospective_input_attempt_evidence_20260902_post_merge.json`](data/governance/prospective_input_attempt_evidence_20260902_post_merge.json)。
+- boundary：stock Kline、index Kline、market_env、`GenerationInputManifest`、B
+  evaluation、package serialization/persistence、Drive upload/readback 和 candidate
+  list 均未到达；`data/prospective_inputs/` 不存在。没有把 `301686` 猜测为合法
+  no-trade/suspension pattern；raw Tencent line 未由 parser 保留，语义保持
+  `UNRESOLVED_FOR_301686`。
+- history：第一次与第二次 2026-09-02 failed attempt evidence 保持 immutable；本次
+  不是复用历史 attempt、current-only probe 或 PR regression payload。上一次包装命令
+  的语法失败未调用 provider，也未计入 formal provider attempt。
+- decision：`FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE`。不自动重试，
+  不放宽字段规则，不缩 universe，不跳过 symbol，不使用 fallback 解释 quote，且不
+  进入 Kline/manifest suspension 语义 decision。Final OOS、prospective returns、C、
+  Phase 2F、调参、promotion 和 automatic freeze 均未读取/执行。
+
+## 2026-09-02 — User non-ST final eligibility constraint adopted
+
+- classification：`product correctness constraint`；新增规则为
+  `USER_TRADABILITY_ELIGIBILITY_NON_ST_V1`。它在既有 evaluator 完成后应用到最终
+  candidate eligibility，不修改 `B_BREAKOUT_RETEST_LEGACY_V1_1` evaluator、spec、
+  threshold、score、历史 development evidence 或 universe scope。
+- implementation：使用 T-close HiThink universe 的 provider `name`，只做 trim 后的
+  case-insensitive `*ST`/`ST` prefix detection；symbol 仍是 security identity，其他
+  名称不因该规则排除，不做 fuzzy matching。ST 不从 acquisition universe 删除，也不
+  跳过 quote/Kline/manifest completeness。
+- output：canonical watchlist 只保留 `final_non_st_qualified`；run manifest 与
+  `DevelopmentRunResult` 报告 `b_raw_qualified_count`、`st_excluded_count`、
+  `final_non_st_qualified_count` 和 symbol/name exclusion list。该规则不是 B alpha
+  filter，不改变 B historical performance claim。
+- verification：相关测试 23 passed，完整 pytest 231 passed，compileall 和
+  `git diff --check` 均 PASS。当前 Tencent quote blocker、formal Delivery Ladder
+  `development candidate` 和 Final OOS `SEALED / UNREAD` 状态均不变。
+
+## 2026-09-02 — Tradable-universe listing eligibility source audit
+
+- classification：`correctness blocker`；本轮没有启动 strategy、Phase 2F、C、Final
+  OOS、prospective returns、调参、promotion 或 formal capture。
+- branch preservation：已从 live `master@05232677055c67b8b87c8d8c3c3b4139df8c477d`
+  创建本地分支 `codex/tradable-universe-prelisting-fix-20260902`，保留第三次失败
+  evidence、治理同步和 `USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` 实现/测试。该分支
+  未 push、未创建 PR；existing `data/validation/continuous_speed_probe/` 未读取、未
+  修改、未删除。
+- provider audit：HiThink `/api/meta/tickers/list` current-only response 的 exact
+  `301686` row 是 `301686.SZ / 301686 / 中塑股份 / SZ / a-share / CNY`；raw schema
+  只有 `thscode`、`ticker`、`name`、`exchange`、`asset_type`、`currency`。provider
+  timestamp 为 `2026-09-02T16:00:18.945+08:00`，没有 listing/date/status、
+  delisting/trading/market status 或等价 as-of eligibility field。完整记录见
+  [`docs/tradable_universe_listing_eligibility_audit_20260902.md`](docs/tradable_universe_listing_eligibility_audit_20260902.md)，明确标记
+  `CURRENT_ONLY_DIAGNOSTIC_NOT_PROSPECTIVE_EVIDENCE`。
+- decision：`NEEDS_MORE_EVIDENCE`；stop state 为
+  `TRADABLE_UNIVERSE_LISTING_ELIGIBILITY_SOURCE_DECISION_REQUIRED`。任务输入中的
+  外部事实支持 `PRE_LISTING_SECURITY_INCORRECTLY_INCLUDED_IN_TRADABLE_UNIVERSE`
+  方向，但 HiThink row 不能 deterministic 证明 `NOT_YET_LISTED`；未修改
+  `_build_universe()`，未 hard-code `301686`，未创建第二套 listing engine。
+- semantic boundary：若后续有批准的可靠 source，已上市停牌 `002731` 保留在
+  acquisition universe，只有被 deterministic 证明为 T 日未上市的 `301686` 才排除；
+  ST 仍只在 B evaluator 后由 `USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` 过滤。Tencent
+  parser、B/spec/threshold/sector semantics 和 frozen registry 均未改变；正式 capture
+  未重跑。
+- local commits：`2798d0e` 已固化上述 evidence、audit、governance 和 ST eligibility
+  工作；`1be63b1` 已固化本 section 的 handoff snapshot。两者均为本地分支提交，未
+  push、未创建 PR。
+
+## 2026-09-02 — Official exchange listed-roster correction ready for review
+
+- classification：`correctness blocker`；本轮只修复
+  `TRADABLE_UNIVERSE_LISTING_ELIGIBILITY_SOURCE_DECISION`，不启动 Phase 2F、C、Final
+  OOS、prospective returns、调参、promotion 或 formal capture。
+- source decision：`USE_EXCHANGE_OFFICIAL_LISTED_ROSTER_VIA_EXISTING_AKSHARE`；HiThink
+  `/api/meta/tickers/list` 继续作为 broad SH/SZ A-share metadata source，正式
+  `EXCHANGE_OFFICIAL_CURRENT_LISTED_ROSTER_V1` 由现有 AkShare 的 SSE
+  `stock_info_sh_name_code(symbol="主板A股")`、`stock_info_sh_name_code(symbol="科创板")`
+  和 SZSE `stock_info_sz_name_code(symbol="A股列表")` 定义。SSE underlying URL 是
+  `https://www.sse.com.cn/assortment/stock/list/share/`；SZSE underlying URL 是
+  `https://www.szse.cn/market/product/stock/list/index.html`。
+- universe semantics：exact six-digit symbol join，canonical `listing_date <= T`；
+  roster schema/date/duplicate/conflict/unavailability 全部 fail closed。manifest 与
+  provenance 保存 AkShare version、exact APIs/URLs、三路 row counts、combined/eligible
+  counts、content/semantic SHA-256 和 HiThink-only/roster-only mismatch audit。
+- boundary：301686 只有在 official roster evidence 表明其 `listing_date > T` 或不在
+  roster 时才被 deterministic 排除，并在 quote/Kline 前停止进入 acquisition universe；
+  已上市停牌 `002731` 保留。ST/*ST 仍只在 B 后由
+  `USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` 排除；Tencent parser、B/spec/threshold/score
+  未修改。
+- verification：新增 focused official-roster tests；full pytest、compileall、JSON/hash/
+  governance validation、`git diff --check` 和 frozen artifact SHA check 必须在 push
+  前完成。formal capture 没有重跑。
+- branch/PR snapshot：当前本地分支仍为
+  `codex/tradable-universe-prelisting-fix-20260902`，本节变更尚未 push、尚未创建 PR；
+  远端目标仍为 `master=origin/master=05232677055c67b8b87c8d8c3c3b4139df8c477d`，merge-
+  after correctness run `33616552822` success。现有未跟踪
+  `data/validation/continuous_speed_probe/` 保留在工作区，不纳入本次 PR、不删除。
+- stop condition：实现验证通过后 push、创建一个 PR 并等待 exact-head CI；不 merge，最终
+  停在 `TRADABLE_UNIVERSE_EXCHANGE_ROSTER_FIX_PR_READY_FOR_USER_MERGE_DECISION`。
+
+## 2026-09-02 — PR #25 ready; governance-only post-PR reconciliation
+
+- current live PR snapshot：PR #25 已创建，当前已核验的 pre-reconciliation head 为
+  `105acc9d9772539a3f799faf90bef14a83f83152`，base 为
+  `05232677055c67b8b87c8d8c3c3b4139df8c477d`；pull_request exact-head correctness run
+  `33624209979` 为 `success`，PR 为 `open`、`mergeable=true`、`mergeable_state=clean`。
+- PR URL：`https://github.com/EFSing/ashare_watchlist/pull/25`。本次 governance-only
+  reconciliation 会使 PR head 前进；该新 commit 的 self-referential CI 不回写到本文件，
+  push 后须实时重新核验 exact-head CI。不要 merge。
+- final stop：完成新 head 的 CI 后，保持 PR #25 open，停在
+  `TRADABLE_UNIVERSE_EXCHANGE_ROSTER_FIX_PR_READY_FOR_USER_MERGE_DECISION`，等待 user
+  merge decision。Formal Delivery Ladder 仍为 `development candidate`，Tencent quote
+  blocker/P1、Final OOS sealed/unread、策略与 frozen artifacts 均不变。

@@ -1,0 +1,185 @@
+{
+  "schema_version": "PROSPECTIVE_INPUT_ATTEMPT_EVIDENCE_V1",
+  "not_a_frozen_artifact": true,
+  "artifact_registry_action": "NO_NEW_FROZEN_ARTIFACT_REGISTERED_BECAUSE_NO_READY_PACKAGE_EXISTED",
+  "attempt_id": "20260902_POST_MERGE_TENCENT_QUOTE_FIELD_ERROR_301686",
+  "as_of_date": "2026-09-02",
+  "next_execution_date": "2026-09-03",
+  "observed_at_bjt": "NOT_RECORDED_BY_RUNNER",
+  "timing": {
+    "mode": "close",
+    "timezone": "Asia/Shanghai",
+    "calendar": "XSHG",
+    "session_close_bjt": "2026-09-02T15:00:00+08:00",
+    "close_window_validation": "PASSED",
+    "observed_after_session_close": true,
+    "known_at_rule": "NOT_ESTABLISHED_BECAUSE_ACQUISITION_FAILED_BEFORE_COMPLETE_PACKAGE",
+    "timestamp_note": "The wrapper emitted ACQUISITION_STARTED but did not persist the exact wall-clock timestamp; no timestamp is inferred."
+  },
+  "observation_status": "LIVE_OBSERVED",
+  "candidate": {
+    "strategy_version": "B_BREAKOUT_RETEST_LEGACY_V1_1",
+    "role": "CORRECTED_EXACT_V0_RECONSTRUCTION",
+    "spec_sha256": "f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd",
+    "eligibility": "CORRECTED_B_CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES"
+  },
+  "active_contract": "CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V3",
+  "universe_scope": {
+    "name": "SH_SZ_A_SHARE_ONLY",
+    "version": "TRADABLE_UNIVERSE_SCOPE_V1",
+    "included_exchanges": ["SH", "SZ"],
+    "excluded_exchanges": ["BJ"]
+  },
+  "provider_identities": {
+    "universe": {
+      "provider": "HiThink Financial-API",
+      "api_version": "FINANCIAL_API_REST_V1",
+      "api": "/api/meta/tickers/list",
+      "selection": "PRIMARY",
+      "status": "COMPLETED_BUT_COUNT_NOT_RECORDED_BY_WRAPPER"
+    },
+    "sector": {
+      "provider": "AkShare",
+      "api_version": "1.18.94",
+      "taxonomy": "新浪行业",
+      "indicator": "新浪行业",
+      "spot_api": "stock_sector_spot",
+      "detail_api": "stock_sector_detail",
+      "selection": "EXACT_REQUIRED_SOURCE",
+      "status": "COMPLETED_BUT_DIAGNOSTICS_NOT_RECORDED_BY_WRAPPER"
+    },
+    "quotes": {
+      "provider": "Tencent",
+      "source": "qt.gtimg.cn",
+      "selection": "REQUIRED_QUOTE_SOURCE",
+      "status": "FAILED"
+    },
+    "stock_klines": {
+      "primary": {
+        "provider": "HiThink Financial-API",
+        "api_version": "FINANCIAL_API_REST_V1",
+        "api": "/api/a-share/prices/historical",
+        "adjustment": "forward",
+        "required_manifest_mode": "PROVIDER_QFQ_SNAPSHOT",
+        "status": "NOT_REACHED"
+      },
+      "fallback": {
+        "provider": "Tencent",
+        "source": "web.ifzq.gtimg.cn/appstock/app/fqkline/get",
+        "adjustment": "qfq",
+        "version": "TENCENT_QFQ_FALLBACK_V1",
+        "status": "NOT_REACHED"
+      }
+    },
+    "index": {
+      "primary": {
+        "provider": "HiThink Financial-API",
+        "api": "/api/a-share-index/prices/historical",
+        "manifest_mode": "PROVIDER_RAW_SNAPSHOT",
+        "status": "NOT_REACHED"
+      },
+      "fallback": {
+        "provider": "Tencent",
+        "adjustment": "qfq",
+        "manifest_mode": "PROVIDER_QFQ_SNAPSHOT",
+        "status": "NOT_REACHED"
+      }
+    }
+  },
+  "acquisition_stages": {
+    "universe": "COMPLETED_BUT_COUNT_NOT_RECORDED_BY_WRAPPER",
+    "exact_sina_sector": "COMPLETED_BUT_DIAGNOSTICS_NOT_RECORDED_BY_WRAPPER",
+    "tencent_quotes": "FAILED_QUOTE_FIELD_ERROR",
+    "stock_klines": "NOT_REACHED",
+    "index_kline": "NOT_REACHED",
+    "market_env": "NOT_REACHED",
+    "generation_manifest": "NOT_REACHED",
+    "package_serialization": "NOT_REACHED",
+    "local_persistence": "NOT_REACHED",
+    "drive_upload": "NOT_REACHED",
+    "recovery_readback": "NOT_REACHED",
+    "candidate_evaluation": "NOT_REACHED"
+  },
+  "failure": {
+    "final_decision": "FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_PROVIDER_FAILURE",
+    "classification": "PROVIDER_DATA_VALIDATION_FAILURE",
+    "provider_connectivity_failure": false,
+    "code": "PROVIDER_FAILURE",
+    "stage": "tencent_quote_snapshot",
+    "provider": "Tencent",
+    "exception_type": "QuoteFieldError",
+    "symbol": "301686",
+    "tencent_symbol": "sz301686",
+    "field_index": "p[38]",
+    "field_name": "turnover",
+    "field_semantics": "EMPTY_TENCENT_FIELD",
+    "raw_provider_line": "NOT_RECORDED_BY_PARSER",
+    "valid_no_trade_or_suspension_representation": "UNRESOLVED_FOR_301686",
+    "detail": "Tencent quote acquisition failed: 301686: empty Tencent field p[38] (turnover); failure_batch=301592,301595,301596,301598,301599,301600,301601,301602,301603,301606,301607,301608,301609,301611,301613,301616,301617,301618,301622,301626,301628,301629,301630,301631,301632,301636,301638,301655,301656,301658,301662,301665,301666,301667,301668,301669,301677,301678,301680,301682,301683,301686,301687,301688,301689,301696,301697,301699,301707; tencent_batch=sz301592,sz301595,sz301596,sz301598,sz301599,sz301600,sz301601,sz301602,sz301603,sz301606,sz301607,sz301608,sz301609,sz301611,sz301613,sz301616,sz301617,sz301618,sz301622,sz301626,sz301628,sz301629,sz301630,sz301631,sz301632,sz301636,sz301638,sz301655,sz301656,sz301658,sz301662,sz301665,sz301666,sz301667,sz301668,sz301669,sz301677,sz301678,sz301680,sz301682,sz301683,sz301686,sz301687,sz301688,sz301689,sz301696,sz301697,sz301699,sz301707",
+    "diagnostics": {
+      "universe_symbol_count": "NOT_RECORDED_BY_WRAPPER",
+      "sector_definition_count": "NOT_RECORDED_BY_WRAPPER",
+      "completed_sector_member_calls": "NOT_RECORDED_BY_WRAPPER",
+      "quote_count": "NOT_AVAILABLE_AFTER_QUOTE_FIELD_ERROR",
+      "failure_batch_count": 50,
+      "failure_batch_symbols": ["301592", "301595", "301596", "301598", "301599", "301600", "301601", "301602", "301603", "301606", "301607", "301608", "301609", "301611", "301613", "301616", "301617", "301618", "301622", "301626", "301628", "301629", "301630", "301631", "301632", "301636", "301638", "301655", "301656", "301658", "301662", "301665", "301666", "301667", "301668", "301669", "301677", "301678", "301680", "301682", "301683", "301686", "301687", "301688", "301689", "301696", "301697", "301699", "301707"],
+      "tencent_batch_symbols": ["sz301592", "sz301595", "sz301596", "sz301598", "sz301599", "sz301600", "sz301601", "sz301602", "sz301603", "sz301606", "sz301607", "sz301608", "sz301609", "sz301611", "sz301613", "sz301616", "sz301617", "sz301618", "sz301622", "sz301626", "sz301628", "sz301629", "sz301630", "sz301631", "sz301632", "sz301636", "sz301638", "sz301655", "sz301656", "sz301658", "sz301662", "sz301665", "sz301666", "sz301667", "sz301668", "sz301669", "sz301677", "sz301678", "sz301680", "sz301682", "sz301683", "sz301686", "sz301687", "sz301688", "sz301689", "sz301696", "sz301697", "sz301699", "sz301707"]
+    },
+    "fail_closed": true
+  },
+  "counts": {
+    "universe_symbol_count": "NOT_AVAILABLE_AFTER_PROVIDER_FAILURE",
+    "sector_count": "NOT_AVAILABLE_AFTER_PROVIDER_FAILURE",
+    "quote_count": "NOT_AVAILABLE_AFTER_QUOTE_FIELD_ERROR",
+    "hithink_stock_primary_count": "NOT_REACHED",
+    "tencent_stock_fallback_count": "NOT_REACHED",
+    "index_provider": "NOT_REACHED",
+    "index_adjustment_mode": "NOT_REACHED"
+  },
+  "package": {
+    "status": null,
+    "input_fingerprint": null,
+    "generation_fingerprint": null,
+    "content_sha256": null,
+    "file_sha256": null,
+    "byte_length": null,
+    "local_logical_path": null
+  },
+  "recovery": {
+    "local_present": false,
+    "hash_verified": false,
+    "persistent_backup_present": false,
+    "recovery_verified": false,
+    "fully_recoverable": false,
+    "blocker": "NO_READY_PACKAGE_EXISTED; GOOGLE_DRIVE_UPLOAD_AND_RECOVERY_NOT_APPLICABLE"
+  },
+  "outputs": {
+    "canonical_watchlist_created": false,
+    "prospective_returns_evaluated": false,
+    "final_oos_read": false,
+    "c_evaluated": false,
+    "phase_2f_started": false,
+    "parameter_tuning": false,
+    "production_promotion": false,
+    "automatic_freeze": false
+  },
+  "merge_provenance": {
+    "pr_number": 24,
+    "approved_pr_head": "e97a6a3c525b497f57aac9cfd751b11f86ca9d5c",
+    "merge_sha": "05232677055c67b8b87c8d8c3c3b4139df8c477d",
+    "master": "05232677055c67b8b87c8d8c3c3b4139df8c477d",
+    "origin_master": "05232677055c67b8b87c8d8c3c3b4139df8c477d",
+    "master_exact_head_ci": {
+      "run_id": 33616552822,
+      "conclusion": "success",
+      "head_sha": "05232677055c67b8b87c8d8c3c3b4139df8c477d"
+    }
+  },
+  "validation": {
+    "full_pytest": "NOT_RUN_AFTER_CAPTURE_STOP",
+    "focused_pytest": "PR_24_EXACT_HEAD_RUN_33615315409_SUCCESS",
+    "compileall": "PR_24_EXACT_HEAD_RUN_33615315409_SUCCESS",
+    "json_hash_registry": "NOT_APPLICABLE_NO_FROZEN_ARTIFACT_CHANGED",
+    "final_oos": "SEALED_UNREAD"
+  }
+}

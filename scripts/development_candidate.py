@@ -15,8 +15,8 @@ import math
 import os
 import tempfile
 from collections import Counter
-from collections.abc import Mapping
-from dataclasses import dataclass
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -52,6 +52,8 @@ MONITOR_INVALID_OUTPUT = "INVALID_CANONICAL_OUTPUT"
 MONITOR_UNTRACKED_OUTPUT = "UNTRACKED_CANONICAL_OUTPUT"
 BUY_TYPE = "A 平台突破"
 SELECTION_QUALIFIED = "QUALIFIED_CANDIDATES"
+USER_TRADABILITY_ELIGIBILITY_POLICY = "USER_TRADABILITY_ELIGIBILITY_NON_ST_V1"
+INELIGIBLE_ST = "INELIGIBLE_ST"
 
 
 class DevelopmentCandidateError(ValueError):
@@ -74,6 +76,10 @@ class DevelopmentRunResult:
     output_sha256: str | None
     output_path: Path | None
     run_manifest_path: Path
+    b_raw_qualified_count: int | None = None
+    st_excluded_count: int | None = None
+    final_non_st_qualified_count: int | None = None
+    st_excluded: tuple[dict[str, str], ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True)
@@ -137,6 +143,48 @@ def _normalized_names(names: Mapping[str, str]) -> dict[str, str]:
             raise DevelopmentCandidateError(RUN_MISSING_DISPLAY_NAME, f"display name is empty for {symbol!r}")
         normalized[key] = name.strip()
     return normalized
+
+
+def _has_st_marker(name: str) -> bool:
+    """Apply the exact user rule: trim, then case-insensitive prefix detection."""
+
+    normalized = name.strip().casefold()
+    return normalized.startswith("*st") or normalized.startswith("st")
+
+
+def apply_user_tradability_eligibility(
+    qualified: Sequence[CandidateEvaluation],
+    names: Mapping[str, str],
+) -> tuple[tuple[CandidateEvaluation, ...], dict[str, Any]]:
+    """Filter only final user eligibility after evaluator qualification.
+
+    The evaluator results are not changed. The returned report is the audit
+    boundary between raw strategy qualification and the user-facing list.
+    """
+
+    normalized_names = _normalized_names(names)
+    final_non_st: list[CandidateEvaluation] = []
+    excluded: list[dict[str, str]] = []
+    for evaluation in qualified:
+        code = _code(evaluation.symbol)
+        name = normalized_names.get(code)
+        if name is None:
+            raise DevelopmentCandidateError(RUN_MISSING_DISPLAY_NAME, f"no display name for {evaluation.symbol}")
+        if _has_st_marker(name):
+            excluded.append({"symbol": code, "name": name, "status": INELIGIBLE_ST})
+        else:
+            final_non_st.append(evaluation)
+    excluded.sort(key=lambda item: item["symbol"])
+    report = {
+        "policy": USER_TRADABILITY_ELIGIBILITY_POLICY,
+        "normalization": "trim + case-insensitive ST marker detection",
+        "markers": ["*ST", "ST"],
+        "b_raw_qualified_count": len(qualified),
+        "st_excluded_count": len(excluded),
+        "final_non_st_qualified_count": len(final_non_st),
+        "st_excluded": excluded,
+    }
+    return tuple(final_non_st), report
 
 
 def _candidate_payload(evaluation: CandidateEvaluation, names: Mapping[str, str]) -> dict[str, Any]:
@@ -233,6 +281,7 @@ def _generation_identity(
     normalized_names: Mapping[str, str],
     symbols: Any,
     market_env: Mapping[str, Any],
+    user_tradability_eligibility: Mapping[str, Any] | None = None,
 ) -> tuple[str, dict[str, Any], dict[str, Any]]:
     """Return the full output identity and its auditable auxiliary inputs."""
 
@@ -254,6 +303,14 @@ def _generation_identity(
             "values": canonical_market_env,
         },
     }
+    if user_tradability_eligibility is not None:
+        eligibility = copy.deepcopy(dict(user_tradability_eligibility))
+        auxiliary_values["user_tradability_eligibility"] = eligibility
+        auxiliary_inputs["user_tradability_eligibility"] = {
+            "identity": USER_TRADABILITY_ELIGIBILITY_POLICY,
+            "sha256": _sha256_bytes(_canonical_json(eligibility)),
+            "values": eligibility,
+        }
     payload: dict[str, Any] = {
         "fingerprint_schema": GENERATION_FINGERPRINT_SCHEMA,
         "development_candidate_schema": DEVELOPMENT_CANDIDATE_SCHEMA,
@@ -365,6 +422,17 @@ class DevelopmentCandidateStore:
             }
         if failure_message is not None:
             record["failure_message"] = failure_message
+        eligibility = auxiliary_inputs.get("user_tradability_eligibility")
+        if isinstance(eligibility, Mapping) and isinstance(eligibility.get("values"), Mapping):
+            audit = copy.deepcopy(dict(eligibility["values"]))
+            record["user_tradability_eligibility"] = audit
+            for field_name in (
+                "b_raw_qualified_count",
+                "st_excluded_count",
+                "final_non_st_qualified_count",
+                "st_excluded",
+            ):
+                record[field_name] = copy.deepcopy(audit.get(field_name))
         self._write_run_manifest(path, record)
         return path
 
@@ -377,7 +445,10 @@ class DevelopmentCandidateStore:
         output_sha256: str | None,
         output_path: Path | None,
         run_path: Path,
+        eligibility_report: Mapping[str, Any] | None = None,
     ) -> DevelopmentRunResult:
+        report = eligibility_report if isinstance(eligibility_report, Mapping) else {}
+        excluded = report.get("st_excluded", ())
         return DevelopmentRunResult(
             status=status,
             as_of_date=manifest.signal_date,
@@ -389,6 +460,12 @@ class DevelopmentCandidateStore:
             output_sha256=output_sha256,
             output_path=output_path,
             run_manifest_path=run_path,
+            b_raw_qualified_count=report.get("b_raw_qualified_count"),
+            st_excluded_count=report.get("st_excluded_count"),
+            final_non_st_qualified_count=report.get("final_non_st_qualified_count"),
+            st_excluded=tuple(copy.deepcopy(item) for item in excluded)
+            if isinstance(excluded, (list, tuple))
+            else (),
         )
 
     def _records(self, as_of_date: str, strategy_version: str) -> list[dict[str, Any]]:
@@ -445,6 +522,16 @@ class DevelopmentCandidateStore:
         for auxiliary_name in ("display_names", "market_env"):
             payload_values = payload_auxiliary.get(auxiliary_name)
             record_values = record_auxiliary.get(auxiliary_name)
+            if not isinstance(record_values, Mapping) or record_values.get("values") != payload_values:
+                return False
+            try:
+                if record_values.get("sha256") != _sha256_bytes(_canonical_json(payload_values)):
+                    return False
+            except (TypeError, ValueError):
+                return False
+        if "user_tradability_eligibility" in payload_auxiliary:
+            payload_values = payload_auxiliary.get("user_tradability_eligibility")
+            record_values = record_auxiliary.get("user_tradability_eligibility")
             if not isinstance(record_values, Mapping) or record_values.get("values") != payload_values:
                 return False
             try:
@@ -518,13 +605,15 @@ class DevelopmentCandidateStore:
 
         try:
             normalized_names = _normalized_names(names)
+            final_qualified, eligibility_report = apply_user_tradability_eligibility(qualified, normalized_names)
             generation_fingerprint, generation_payload, auxiliary_inputs = _generation_identity(
                 manifest,
                 normalized_names=normalized_names,
-                symbols=[item.symbol for item in qualified],
+                symbols=[item.symbol for item in final_qualified],
                 market_env=market_env,
+                user_tradability_eligibility=eligibility_report,
             )
-            candidates = [_candidate_payload(item, normalized_names) for item in qualified]
+            candidates = [_candidate_payload(item, normalized_names) for item in final_qualified]
             candidates.sort(key=lambda item: item["code"])
             if len({item["code"] for item in candidates}) != len(candidates):
                 raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, "multiple symbols collapse to one A-share code")
@@ -533,7 +622,7 @@ class DevelopmentCandidateStore:
                     "date": manifest.signal_date,
                     "mode": manifest.run_context.mode,
                     "market_env": copy.deepcopy(dict(market_env)),
-                    "sectors": _sector_payload(qualified),
+                    "sectors": _sector_payload(list(final_qualified)),
                     "candidates": candidates,
                     "strategy_version": STRATEGY_VERSION,
                 }
@@ -685,6 +774,7 @@ class DevelopmentCandidateStore:
             output_sha256,
             canonical_path,
             run_path,
+            eligibility_report,
         )
 
     def monitor(self, as_of_date: str, strategy_version: str = STRATEGY_VERSION) -> MonitoringResult:
@@ -752,6 +842,7 @@ __all__ = [
     "CANONICAL_WATCHLIST_SCHEMA",
     "DEVELOPMENT_CANDIDATE_SCHEMA",
     "GENERATION_FINGERPRINT_SCHEMA",
+    "INELIGIBLE_ST",
     "DevelopmentCandidateError",
     "DevelopmentCandidateStore",
     "DevelopmentRunResult",
@@ -769,5 +860,7 @@ __all__ = [
     "RUN_OUTPUT_WRITE_FAILURE",
     "RUN_PUBLISHED",
     "RUN_SUCCESS",
+    "USER_TRADABILITY_ELIGIBILITY_POLICY",
+    "apply_user_tradability_eligibility",
     "MonitoringResult",
 ]
