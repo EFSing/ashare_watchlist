@@ -2,6 +2,9 @@
 
 更新时间：2026-08-30（Asia/Shanghai）
 
+> 本文件的 V1 审计、V1/V2 contract、old spec、旧 blocker、失败 attempt 和旧 decision
+> 均保留为 historical evidence；当前治理解释以末尾的 superseding current section 为准。
+
 ## 1. 研究问题、范围与停止条件
 
 研究问题：在 development eligibility 已完成后，当前项目是否已经具备一个可以
@@ -189,7 +192,7 @@ read-only name diagnostic is
 [`current_capability_name_diagnostic_20260831.md`](current_capability_name_diagnostic_20260831.md)
 and is not prospective evidence. No `FROZEN_CANDIDATE_CONTRACT_V1` is created.
 
-## 2026-09-01 continuation audit — current provider dependency boundary
+## 2026-09-01 continuation audit — historical provider dependency snapshot
 
 > `LOCAL_CURRENT_SNAPSHOT_DIAGNOSTIC_NOT_PROSPECTIVE_EVIDENCE`
 
@@ -214,7 +217,7 @@ symbols outside the universe, and five distinct multi-sector symbols:
 that snapshot. These counts are not historical T=`2026-08-31` evidence and do not create
 a live package.
 
-Current decision is
+Decision in this historical snapshot was
 `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_SECTOR_MEMBERSHIP_AMBIGUITY`, with independent
 exact-Sina coverage failure. `NEEDS_MORE_EVIDENCE` remains the research decision for a
 future legitimate T-close response that is complete and unambiguous. No T=`2026-09-01`
@@ -222,3 +225,27 @@ acquisition is run because PR #18 is not merged to clean master and the sector g
 unresolved. The detailed matrix is in
 [`b_dependency_audit_20260901.md`](b_dependency_audit_20260901.md); V1 audit/evidence is
 preserved unchanged.
+
+## 9. Superseding current state — 2026-09-02
+
+本节只 supersede 前文对 current / active / next gate 的解释，不删除或改写 V1/V2、旧
+spec、旧 sector coverage/ambiguity diagnostic、失败 attempt 或旧 decision 的历史事实。
+
+- formal Delivery Ladder：`development candidate`。
+- corrected candidate：`B_BREAKOUT_RETEST_LEGACY_V1_1`；spec SHA-256：
+  `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`；decision：
+  `CORRECTED_B_CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`。
+- active contract：`CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V3`，状态为
+  `CONTRACT_DEFINED_NO_LIVE_INSTANCE`。
+- exact V0 sector semantics：missing sector=`("-",50,0.0)` continue；multi-sector=
+  `LEGACY_PROVIDER_ORDER_LAST_WRITE_WINS_V1`。complete sector coverage 不是额外 hard
+  gate；provider failure、invalid observed fields 和 unresolved package identity 仍
+  fail closed。
+- current blocker：`P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`，即首个真实、
+  candidate-bound、`LIVE_OBSERVED`、`known_at <= T` 的 T-close input instance 尚未形成。
+- current next gate：`T=2026-09-02` legitimate XSHG T-close 后的首个真实 package；北京
+  时间 15:00 前不运行 formal acquisition，不把 probe 注册为 prospective evidence，
+  不回填 `2026-09-01`。
+- last-verified master snapshot：`614934e7ea98bbe94099e9bf57971cf8454c9713`；master
+  exact-head correctness run `33584844019` 为 `success`。这是本治理 branch 创建前的
+  provenance，不是未来 PR CI 的 self-referential invariant。
