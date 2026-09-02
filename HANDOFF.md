@@ -4,50 +4,50 @@
 
 ## 1. Current Objective
 
-- 当前工作对象：B candidate identity / reconstruction provenance closure；closure
-  branch 为 `codex/sector-provenance-closure-20260901`，治理 evidence 进入 review
-  PR 后停在 Sol/user decision。
+- 当前工作对象：PR #20 merge 后的 governance state reconciliation，以及
+  `T=2026-09-02` 合法 T-close prospective capture 前置状态确认；当前 master 为
+  `106bfbd00502db56a2e544f1c804a52372c1fa3e`。
 - PR #12 已 merge；正式 Delivery Ladder 为 `development candidate`。
 - 该晋级只承认 deterministic daily generation → canonical watchlist → explicit
   fail-closed → provenance / versioning → monitoring / rollback 的受控产品路径，
   不承认 strategy promotion。
-- Scope：保留既有 Phase 2B input/timing contract 和现有 candidate artifacts；不改变
-  B evaluator、B spec、live contract、threshold、生产策略、数据、冻结 artifact 或
-  Phase 2F 研究结果。
-- 本次任务边界：只做 V0 source identity、B spec creation lineage、V0-vs-spec semantic
-  matrix 和既有 eligibility call-path provenance audit；不启动真实 T-close acquisition、
-  不重跑 eligibility、不启动新的 strategy、phase 或 promotion 工作。
+- Scope：本次 follow-up 仅更新 `HANDOFF.md`、`docs/CURRENT_STATUS.md` 和
+  `docs/DECISION_LOG.md` 的 live governance snapshot；不改变 B evaluator、B spec、
+  live contract、threshold、生产策略、数据、冻结 artifact 或 Phase 2F 研究结果。
+- PR #20 已 squash merge，merge SHA 为
+  `106bfbd00502db56a2e544f1c804a52372c1fa3e`；corrected candidate 为
+  `B_BREAKOUT_RETEST_LEGACY_V1_1`，eligibility decision 为
+  `CORRECTED_B_CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`。
+- 当前下一 gate：等待 `2026-09-02` XSHG 合法收盘窗口；北京时间 15:00 前不运行
+  formal `LIVE_OBSERVED` capture，不把 current diagnostic 当作 prospective evidence。
 - 禁止事项：不启动 Phase 2F；不读取 Final OOS；不 promotion；不调参；不把当前数据回填历史；不替换新浪历史行业 membership；不重跑已完成 CORE replay；不以“差不多”的新文件替代 frozen bytes。
 - 本轮历史结果：正式 master-baseline acquisition 在 exact Sina sector/member 阶段
   因 `INPUT_CONFLICT` fail closed；该 blocker 是 input/provider-data consistency
   conflict，不是 provider connectivity failure。没有形成 `LIVE_OBSERVED` package，
   正式状态仍停在 `development candidate`，不据此 promotion 或进入 Final OOS。
-- 本轮 source audit 结果：V0 repository/commit/path 与 raw/CRLF/Git object 层级均已核对，
-  但历史声明值为 63 字符且不等于 raw 或测试过的合法 CRLF SHA；因此 source identity
-  仍为 `V0_SOURCE_FILE_IDENTITY_UNVERIFIED_DECLARED_SHA_MISMATCH`。PR #14 的 B spec
-  机械继承 A generic sector hardening，与 exact V0 missing-sector semantics 的证据
-  冲突，但在 source identity 未解决前不得宣布 Case A/B。既有 eligibility impact
-  仍为 `UNRESOLVED`，当前 stop 仍在 Sol/user review。
+- 上述 source audit、旧 reconstruction 和 pre-merge review 状态均保留为历史证据；
+  当前 authoritative source identity、corrected B semantics 和 eligibility impact
+  以 2026-09-01 corrected reconstruction decision 及本文件末尾的 post-merge snapshot
+  为准。
 - 停止条件：出现 `PROJECT_GOVERNANCE_STATE_CONFLICT`、任一 required hash 不匹配、外部 raw artifact 无法证明为同一 bytes、或任务要求越过 research / OOS / promotion 边界。
 - CI provenance 规则：本文件只保存 `last verified CI provenance`，不要求也不允许把当前 commit 自己产生的 CI run 回写到同一 commit；每个新会话必须实时查询当前 branch、HEAD、`origin/master`、PR state、exact-head CI 和 working tree。
 
 ## 2. Current Repository State
 
 - repo：`EFSing/ashare_watchlist`；origin：`https://github.com/EFSing/ashare_watchlist.git`。
-- active product PR：PR #18 已合并到正式 master
-  `17371fde39a6b24241532b131caf5927cb9b8933`；当前治理 follow-up 为本 closure branch
-  的 review PR，具体 PR number/head/CI 仍按每次 intake 实时核对。PR #18 merge master
-  correctness run `33476256589` success，head 精确匹配 merge SHA。
+- active product PR：无；PR #20 已合并到正式 master
+  `106bfbd00502db56a2e544f1c804a52372c1fa3e`。PR #20 merge 后 master exact-head
+  correctness run `100101351273` success，当前 open PR 为 0。
 - HISTORICAL_MILESTONE_IDENTITY：PR #9 产品章程与代理开发契约 squash merge `7a27484293cbcb791c6b8407949e9e71257e016b`；Phase 2E research baseline 仍为 `74ccf86…`。
 - HISTORICAL_MILESTONE_IDENTITY：PR #10 handoff consistency repair squash merge `11db387cc51a645c4491b39cbfa3e03e1228b6c4`。
 - HISTORICAL_MILESTONE_IDENTITY：PR #12 development-candidate gate squash merge
   `7dfb59b9f379c7d74f95c3e522fde55bcdf49ba1`；merge 后 master correctness run
   `33268086906` success，headSha 精确匹配该 merge commit。
-- last_verified_master_snapshot：`91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b`；这是
-  PR #17 合并后的静态 provenance snapshot，不要求等于后续新会话 intake 时的 live HEAD。
+- last_verified_master_snapshot：`106bfbd00502db56a2e544f1c804a52372c1fa3e`；这是
+  PR #20 合并后的静态 provenance snapshot，不要求等于后续新会话 intake 时的 live HEAD。
 - last_verified_branch：`master`；仅表示上述 snapshot 的来源，不是 current branch invariant。
-- last_verified_ci_provenance：master correctness run `33399324692`，
-  headSha=`91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b`，success；仅是最近一次 CI
+- last_verified_ci_provenance：master correctness run `100101351273`，
+  headSha=`106bfbd00502db56a2e544f1c804a52372c1fa3e`，success；仅是最近一次 CI
   证据，不是未来 live CI invariant。
 - live state gate：新会话必须实时执行 Git / GitHub 核验；current branch、HEAD、`origin/master`、active PR、exact-head CI 和 working tree 以实时结果为准。
 - expected working tree state：tracked working tree clean；`.pytest_cache/`、`__pycache__/` 和本机 `daily_k.parquet` 可被 `.gitignore` 忽略，但 `daily_k.parquet` 的 recovery identity 现在由 registry 记录的 Google Drive private archive member evidence 独立确认。Windows text checkout 的 CRLF SHA 若存在，以 registry 的 Git-blob `file_sha256` 为恢复身份。
@@ -88,14 +88,13 @@
    provider gate 是 `FROZEN_CANDIDATE_PREREQUISITES_BLOCKED_SECTOR_MEMBERSHIP_AMBIGUITY`
    并伴随 exact-Sina coverage failure；不得缩 universe、丢弃 symbol、猜 sector、
    用 EM/THS/SW 替代或 current-data backfill。
-3. 已定义 active `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V2`；V1
-   保持历史 evidence。V2 仅落实已完成 source audit 的 symbol-authoritative name
-   policy，保留 B required sector evidence/coverage/ambiguity/fail-closed 语义；不把
-   contract 写成 live evidence，也不创建 `FROZEN_CANDIDATE_CONTRACT_V1`。
-4. fresh `.venv` 和 current read-only provider audit 已完成；Google Drive current
-   app connector probe 已完成 streamed-reference/upload-readback 验证，但 formal
-   `daily_k.parquet` recovery 未重新物化 hash。当前不运行 T=`2026-09-01` acquisition；
-   不启动 Phase 2F、不调参、不读 Final OOS、不 promotion、不测试 C。
+3. 当前 active contract 为 `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V3`；
+   V1/V2 保持历史 evidence。V3 绑定 corrected
+   `B_BREAKOUT_RETEST_LEGACY_V1_1`，不把 contract 写成 live evidence，也不创建
+   `FROZEN_CANDIDATE_CONTRACT_V1`。
+4. fresh environment、current read-only provider audit 和 Google Drive probe 已完成；
+   当前等待 `T=2026-09-02` 合法 T-close。北京时间 15:00 前不运行 acquisition；不启动
+   Phase 2F、不调参、不读 Final OOS、不 promotion、不测试 C。
 
 ### Deferred
 
@@ -702,11 +701,12 @@ Final OOS、不 merge。
   HEAD=`28e871552da0813fd51b510a9ef0980976556d29`，`origin/master` 同 SHA，尚无新
   open PR；working tree 的 corrected implementation/audit/docs 为本任务改动，既有
   未跟踪 user directory `data/validation/continuous_speed_probe/` 未读取、未修改、未删除。
-- current live snapshot after correctness PR creation：PR #20 open，head=
-  `c81df8623318d1a37f47345e1bdbc461ec9a4e14`，base/
-  `origin/master`=`28e871552da0813fd51b510a9ef0980976556d29`，changed-file scope
-  remains the single correctness set above；exact-head runs `33496711659` and
-  `33496611236` are both `success`，GitHub state=`CLEAN / MERGEABLE`。PR #20 尚未
-  merge：当前用户授权明确覆盖 PR #19 的 merge，不自动扩展为 PR #20 的外部 merge；
-  等待用户对该具体 merge 的 direction。correctness PR merge 和其 master exact-head
-  CI 成功前，不运行 T-close acquisition。
+- pre-merge persisted snapshot after correctness PR creation：PR #20 当时为 open，head=
+  `078bc3c083c1b3d309505a10715745b8acd6ef4e`，base/
+  `origin/master`=`28e871552da0813fd51b510a9ef0980976556d29`；该段仅保留当时的
+  review/CI provenance，不代表当前 live state。
+- current post-merge snapshot：PR #20 已 squash merge，merge SHA、当前
+  `master`/`origin/master` 均为 `106bfbd00502db56a2e544f1c804a52372c1fa3e`；
+  master exact-head run `100101351273` 为 `success`，GitHub open PR 为 0。当前
+  corrected candidate 已进入等待 `T=2026-09-02` 合法 T-close prospective capture
+  的状态。
