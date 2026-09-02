@@ -479,3 +479,34 @@ artifact 不变，Final OOS 仍 `SEALED / UNREAD`，formal T-close capture 仍 `
 当前停止点是 Sol/user 解决 declared SHA 的正确 64-char identity 或 historical
 source/canonicalization 证据；在此之前不宣布 Case A/B，不创建新的 spec/version，不修
 evaluator，不重跑 eligibility，不继续 T-close acquisition。
+
+## 2026-09-01 corrected B reconstruction — current status
+
+PR #19 已按授权以 squash merge 合并；final head 为
+`f99c33993fed00e38e87785a88155034ceaf57c3`，merge SHA 为
+`28e871552da0813fd51b510a9ef0980976556d29`，post-merge master exact-head
+correctness run `33491720346` 成功。PR #19 的 unresolved identity 结论保留为历史
+审计时点，不被删除或改写。
+
+本轮正式关闭 source identity conflict，decision 为
+`V0_SOURCE_IDENTITY_RESOLVED_AUTHORITATIVE_RAW_GIT_BYTES`；旧 63-character SHA
+分类为 `HISTORICAL_SOURCE_SHA_TRANSCRIPTION_ERROR`。旧
+`B_BREAKOUT_RETEST_LEGACY_V1` / spec SHA 保留为历史 reconstruction，分类为
+`SUPERSEDED_RECONSTRUCTION_WITH_PROVENANCE_AND_SECTOR_SEMANTIC_DEFECT`。新的
+`B_BREAKOUT_RETEST_LEGACY_V1_1` / spec SHA
+`f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd` 是唯一用于
+future candidate-bound work 的 corrected exact-V0 identity。
+
+corrected semantic parity decision 为 `B_CORRECTED_RECONSTRUCTION_SEMANTICS_ADOPTED`。
+Structural impact audit decision 为 `ELIGIBILITY_ARTIFACT_EVENT_SET_INVARIANT`：
+769 sessions、4,041,140 evaluated symbol-dates、old/corrected event count 都为
+17,714，projection/status/event membership differences 都为 0，故
+`EXISTING_B_ELIGIBILITY_ARTIFACT_AFFECTED=FALSE`，不需要 returns regeneration，旧
+artifact 不覆盖。corrected candidate decision 为
+`CORRECTED_B_CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`。
+
+Formal Delivery Ladder 仍为 `development candidate`，尚未达到 frozen candidate。
+Future binding 已切换到 `CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V3`，
+但尚无新的 `LIVE_OBSERVED` package；在 correctness PR 合并且其 master exact-head
+CI 成功前不运行 T=`2026-09-01` capture。Final OOS 仍 `SEALED / UNREAD`，C、Phase 2F、
+调参、promotion、自动 freeze 和 current-data backfill 均未执行。

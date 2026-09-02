@@ -34,7 +34,7 @@ from typing import Any
 
 import requests
 
-from b_breakout_retest import STRATEGY_SPEC_SHA256, STRATEGY_VERSION
+from b_breakout_retest_v1_1 import STRATEGY_SPEC_SHA256, STRATEGY_VERSION
 from generation_contract import (
     ASIA_SHANGHAI,
     EXCHANGE_CALENDARS_VERSION,
@@ -70,10 +70,11 @@ from tencent_quotes import (
 from trading_calendar import CalendarUnavailable, TradingCalendar, default_calendar
 
 
-LIVE_INPUT_PACKAGE_SCHEMA = "CANDIDATE_BOUND_LIVE_INPUT_PACKAGE_V3"
-GENERATION_IDENTITY_SCHEMA = "CANDIDATE_BOUND_GENERATION_IDENTITY_V3"
+LIVE_INPUT_PACKAGE_SCHEMA = "CANDIDATE_BOUND_LIVE_INPUT_PACKAGE_V4"
+GENERATION_IDENTITY_SCHEMA = "CANDIDATE_BOUND_GENERATION_IDENTITY_V4"
 MARKET_ENV_SCHEMA = "MARKET_ENV_FROM_PROVIDER_INDEX_V2"
-PROSPECTIVE_PROVENANCE_CONTRACT = "CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V2"
+PROSPECTIVE_PROVENANCE_CONTRACT = "CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V3"
+SECTOR_RESOLUTION_POLICY = "LEGACY_PROVIDER_ORDER_LAST_WRITE_WINS_V1"
 DISPLAY_NAME_CONSISTENCY_POLICY = "DISPLAY_NAME_CONSISTENCY_POLICY_V2_SYMBOL_AUTHORITATIVE"
 DISPLAY_NAME_NORMALIZATION_VERSION = "DISPLAY_NAME_NORMALIZATION_NFKC_TRIM_EXPLICIT_ZERO_WIDTH_V1"
 DISPLAY_NAME_NORMALIZATION_ZERO_WIDTH_CODEPOINTS = (0x200B, 0x200C, 0x200D, 0x2060, 0xFEFF)
@@ -400,11 +401,19 @@ def _sector_membership_diagnostics(
     }
 
 
-def _records(frame: Any, field_name: str, required_columns: Mapping[str, Sequence[str]]) -> list[dict[str, Any]]:
+def _records(
+    frame: Any,
+    field_name: str,
+    required_columns: Mapping[str, Sequence[str]],
+    *,
+    allow_empty: bool = False,
+) -> list[dict[str, Any]]:
     if frame is None:
         _fail(INCOMPLETE_COVERAGE, f"{field_name} returned no frame")
     try:
         if bool(getattr(frame, "empty")):
+            if allow_empty:
+                return []
             _fail(INCOMPLETE_COVERAGE, f"{field_name} returned an empty frame")
     except AttributeError:
         pass
@@ -417,6 +426,8 @@ def _records(frame: Any, field_name: str, required_columns: Mapping[str, Sequenc
     else:
         _fail(PROVIDER_FAILURE, f"{field_name} returned an unsupported frame type")
     if not rows:
+        if allow_empty:
+            return []
         _fail(INCOMPLETE_COVERAGE, f"{field_name} returned no rows")
     for canonical, aliases in required_columns.items():
         if not any(alias in columns for alias in aliases):
@@ -669,6 +680,11 @@ class SinaSectorClient:
         self.current_sector_name: str | None = None
         self.display_name_mismatches: list[dict[str, Any]] = []
         self.duplicate_sector_rows: list[dict[str, Any]] = []
+        self.sector_member_traversal: list[dict[str, Any]] = []
+        self.resolved_sector_memberships: dict[str, dict[str, Any]] = {}
+        self.multi_sector_symbols: set[str] = set()
+        self.outside_universe_memberships: list[dict[str, Any]] = []
+        self.missing_universe_symbols: list[str] = []
 
     def capability_report(self) -> dict[str, Any]:
         return {
@@ -888,13 +904,16 @@ def _build_sector(
 
     members: dict[str, list[dict[str, Any]]] = {}
     by_symbol: dict[str, dict[str, Any]] = {}
-    for sector_code, definition in sorted(definitions.items()):
+    for raw_definition in raw_definitions:
+        sector_code = raw_definition["sector_code"]
+        definition = definitions[sector_code]
         client.current_sector_code = sector_code
         client.current_sector_name = definition["sector_name"]
         rows = _records(
             client.sector_members(sector_code),
             f"{AKSHARE_SINA_DETAIL_API}[{sector_code}]",
             {"code": ("代码", "code"), "name": ("名称", "name")},
+            allow_empty=True,
         )
         sector_members: list[dict[str, Any]] = []
         for index, row in enumerate(rows):
@@ -906,19 +925,23 @@ def _build_sector(
                 _field(row, ("名称", "name"), f"{sector_code}[{index}].name"),
                 f"{sector_code}[{index}].name",
             )
-            if symbol not in names:
-                _fail(INPUT_CONFLICT, f"sector member {symbol} is outside the T-date universe")
+            universe_name = names.get(symbol)
             record = {
                 "symbol": symbol,
                 "display_name": member_name,
                 "display_name_normalized": normalize_display_name(member_name),
-                "universe_display_name": names[symbol],
-                "universe_display_name_normalized": normalize_display_name(names[symbol]),
+                "universe_display_name": universe_name,
+                "universe_display_name_normalized": (
+                    normalize_display_name(universe_name) if universe_name is not None else None
+                ),
                 "sector_code": sector_code,
                 "sector_name": definition["sector_name"],
                 "sector_rank": definition["sector_rank"],
                 "sector_chg": definition["sector_chg"],
             }
+            client.sector_member_traversal.append(copy.deepcopy(record))
+            if symbol not in names:
+                client.outside_universe_memberships.append(copy.deepcopy(record))
             if symbol in by_symbol:
                 previous = by_symbol[symbol]
                 semantic_fields = (
@@ -939,13 +962,12 @@ def _build_sector(
                             "raw_row": copy.deepcopy(row),
                         }
                     )
-                    continue
-                _fail(
-                    INPUT_CONFLICT,
-                    f"symbol belongs to multiple sector memberships: {symbol}",
-                    _sector_membership_diagnostics(client, symbol, previous, record),
-                )
-            if record["display_name_normalized"] != record["universe_display_name_normalized"]:
+                else:
+                    client.multi_sector_symbols.add(symbol)
+            if (
+                symbol in names
+                and record["display_name_normalized"] != record["universe_display_name_normalized"]
+            ):
                 client.display_name_mismatches.append(
                     _display_name_mismatch_diagnostics(
                         client,
@@ -957,15 +979,25 @@ def _build_sector(
                     )
                 )
             by_symbol[symbol] = record
+            client.resolved_sector_memberships[symbol] = copy.deepcopy(record)
             sector_members.append(record)
-        if not sector_members:
-            _fail(INCOMPLETE_COVERAGE, f"sector {sector_code} has no members")
-        members[sector_code] = sorted(sector_members, key=lambda item: item["symbol"])
+        members[sector_code] = sector_members
 
-    missing = sorted(set(names) - set(by_symbol))
-    if missing:
-        _fail(INCOMPLETE_COVERAGE, f"universe symbols missing sector membership: {', '.join(missing)}")
-    rank_input = [by_symbol[symbol] for symbol in sorted(by_symbol)]
+    client.missing_universe_symbols = sorted(set(names) - set(by_symbol))
+    for symbol in client.missing_universe_symbols:
+        client.resolved_sector_memberships[symbol] = {
+            "symbol": symbol,
+            "display_name": None,
+            "display_name_normalized": None,
+            "universe_display_name": names[symbol],
+            "universe_display_name_normalized": normalize_display_name(names[symbol]),
+            "sector_code": None,
+            "sector_name": "-",
+            "sector_rank": 50,
+            "sector_chg": 0.0,
+            "resolution": "V0_MISSING_DEFAULT",
+        }
+    rank_input = copy.deepcopy(client.sector_member_traversal)
     return SectorManifest(
         as_of_date=as_of_date,
         retrieved_at_bjt=retrieved_at_bjt,
@@ -1251,6 +1283,19 @@ def _generation_identity_payload(
         or mismatch_count != len(mismatches)
     ):
         _fail(PROVIDER_FAILURE, "manifest display-name diagnostics are invalid")
+    sector_quality = manifest.provider_version_metadata.get("sector_membership_quality")
+    if not isinstance(sector_quality, Mapping):
+        _fail(PROVIDER_FAILURE, "manifest sector membership quality is missing")
+    resolved_memberships = sector_quality.get("resolved_memberships")
+    resolved_memberships_sha256 = sector_quality.get("resolved_memberships_sha256")
+    if (
+        not isinstance(resolved_memberships, Mapping)
+        or any(not isinstance(key, str) for key in resolved_memberships)
+        or not isinstance(resolved_memberships_sha256, str)
+        or resolved_memberships_sha256
+        != _sha256_json(dict(sorted(resolved_memberships.items())))
+    ):
+        _fail(PROVIDER_FAILURE, "manifest resolved sector membership identity is invalid")
     return {
         "schema_version": GENERATION_IDENTITY_SCHEMA,
         "input_package_schema": LIVE_INPUT_PACKAGE_SCHEMA,
@@ -1278,6 +1323,11 @@ def _generation_identity_payload(
         "display_name_diagnostics": {
             "mismatch_count": mismatch_count,
             "mismatches": copy.deepcopy(mismatches),
+        },
+        "sector_membership_resolution": {
+            "policy": sector_quality.get("resolution_policy"),
+            "resolved_memberships_sha256": resolved_memberships_sha256,
+            "raw_membership_row_count": sector_quality.get("raw_membership_row_count"),
         },
         "display_names": dict(sorted(display_names.items())),
         "market_env": _copy_json(dict(market_env), "market_env"),
@@ -1359,7 +1409,29 @@ class LiveInputPackage:
             or not isinstance(ambiguous_count, int)
             or ambiguous_count != 0
         ):
-            _fail(INPUT_CONFLICT, "provenance contains ambiguous sector memberships")
+            _fail(INPUT_CONFLICT, "provenance contains unresolved sector memberships")
+        multi_sector_symbols = sector_quality.get("multi_sector_symbols")
+        multi_sector_count = sector_quality.get("multi_sector_symbol_count")
+        if (
+            not isinstance(multi_sector_symbols, list)
+            or isinstance(multi_sector_count, bool)
+            or not isinstance(multi_sector_count, int)
+            or multi_sector_count != len(multi_sector_symbols)
+            or multi_sector_symbols != sorted(set(multi_sector_symbols))
+        ):
+            _fail(PROVIDER_FAILURE, "provenance multi-sector diagnostics are invalid")
+        if sector_quality.get("resolution_policy") != SECTOR_RESOLUTION_POLICY:
+            _fail(PROVIDER_FAILURE, "provenance sector resolution policy is missing or unsupported")
+        resolved_memberships = sector_quality.get("resolved_memberships")
+        resolved_memberships_sha256 = sector_quality.get("resolved_memberships_sha256")
+        if (
+            not isinstance(resolved_memberships, Mapping)
+            or any(not isinstance(key, str) for key in resolved_memberships)
+            or not isinstance(resolved_memberships_sha256, str)
+            or resolved_memberships_sha256
+            != _sha256_json(dict(sorted(resolved_memberships.items())))
+        ):
+            _fail(PROVIDER_FAILURE, "provenance resolved sector membership identity is invalid")
         if provenance.get("observation_status") != LIVE_OBSERVED:
             _fail("UNSUPPORTED_MODE", "live input provenance must be LIVE_OBSERVED")
         retrieved_at = provenance.get("retrieved_at_bjt")
@@ -1405,7 +1477,7 @@ class LiveInputPackage:
             "freshness_and_session_close",
             "universe_non_empty_and_unique",
             "sector_definitions_membership_rank",
-            "sector_membership_unambiguous",
+            "sector_membership_resolved_exact_v0",
             "display_name_coverage_and_symbol_identity",
             "quote_t_date_and_coverage",
             "stock_kline_t_date_no_future_bar",
@@ -1664,6 +1736,22 @@ def acquire_live_generation_inputs(
     )
     market_env = _market_env(index)
     runtime_versions = _runtime_versions(sina.package_version)
+    sector_quality = {
+        "duplicate_row_count": len(sina.duplicate_sector_rows),
+        "duplicate_rows": copy.deepcopy(sina.duplicate_sector_rows),
+        "ambiguous_membership_count": 0,
+        "multi_sector_symbol_count": len(sina.multi_sector_symbols),
+        "multi_sector_symbols": sorted(sina.multi_sector_symbols),
+        "resolution_policy": SECTOR_RESOLUTION_POLICY,
+        "raw_membership_row_count": len(sina.sector_member_traversal),
+        "resolved_memberships": dict(sorted(sina.resolved_sector_memberships.items())),
+        "resolved_memberships_sha256": _sha256_json(
+            dict(sorted(sina.resolved_sector_memberships.items()))
+        ),
+        "outside_universe_membership_count": len(sina.outside_universe_memberships),
+        "missing_universe_symbol_count": len(sina.missing_universe_symbols),
+        "missing_universe_symbols": copy.deepcopy(sina.missing_universe_symbols),
+    }
     provider_metadata = {
         "runtime": runtime_versions,
         "display_name_consistency_policy": _display_name_policy_metadata(),
@@ -1671,11 +1759,7 @@ def acquire_live_generation_inputs(
             "mismatch_count": len(sina.display_name_mismatches),
             "mismatches": copy.deepcopy(sina.display_name_mismatches),
         },
-        "sector_membership_quality": {
-            "duplicate_row_count": len(sina.duplicate_sector_rows),
-            "duplicate_rows": copy.deepcopy(sina.duplicate_sector_rows),
-            "ambiguous_membership_count": 0,
-        },
+        "sector_membership_quality": copy.deepcopy(sector_quality),
         "market_data_failover": {
             "policy_version": MARKET_DATA_FAILOVER_POLICY_VERSION,
             "tencent_fallback_allowed": bool(allow_tencent_fallback),
@@ -1770,11 +1854,7 @@ def acquire_live_generation_inputs(
             "mismatch_count": len(sina.display_name_mismatches),
             "mismatches": copy.deepcopy(sina.display_name_mismatches),
         },
-        "sector_membership_quality": {
-            "duplicate_row_count": len(sina.duplicate_sector_rows),
-            "duplicate_rows": copy.deepcopy(sina.duplicate_sector_rows),
-            "ambiguous_membership_count": 0,
-        },
+        "sector_membership_quality": copy.deepcopy(sector_quality),
         "universe_scope": _tradable_universe_scope_metadata(),
         "known_at_rule": "acquisition occurs only when retrieved_at_bjt >= XSHG session close on T",
         "candidate": {"strategy_version": STRATEGY_VERSION, "spec_sha256": STRATEGY_SPEC_SHA256},
@@ -1790,7 +1870,7 @@ def acquire_live_generation_inputs(
             "freshness_and_session_close": "PASS",
             "universe_non_empty_and_unique": "PASS",
             "sector_definitions_membership_rank": "PASS",
-            "sector_membership_unambiguous": "PASS",
+            "sector_membership_resolved_exact_v0": "PASS",
             "display_name_coverage_and_symbol_identity": "PASS",
             "quote_t_date_and_coverage": "PASS",
             "stock_kline_t_date_no_future_bar": "PASS",

@@ -665,3 +665,48 @@ Final OOS、不 merge。
   historical source/canonicalization 证据，之后才能重开 Case A/B 与 eligibility audit，
   再另行授权 versioned semantic repair。当前 B spec、evaluator、contract、threshold、旧
   artifact 和 Final OOS 均保持不变。
+
+## 27. 2026-09-01 continuation — corrected B reconstruction and impact closure
+
+- classification：`correctness blocker` + `product blocker`；任务仍不启动 C、Phase 2F、
+  调参、promotion、Final OOS、自动 freeze 或历史 T-close backfill。
+- PR #19 immutable audit history：已在授权条件下以 squash merge 合并。final head=
+  `f99c33993fed00e38e87785a88155034ceaf57c3`，merge SHA=
+  `28e871552da0813fd51b510a9ef0980976556d29`；post-merge master exact-head
+  correctness run `33491720346` 对该 merge SHA 为 `success`。PR #19 早先的
+  `B_CANDIDATE_IDENTITY_UNRESOLVED` 保留为历史时点事实。
+- source decision：`V0_SOURCE_IDENTITY_RESOLVED_AUTHORITATIVE_RAW_GIT_BYTES`。canonical
+  tuple 是 `EFSing/ashare_watchlist-V0@c8406c393c0b135eafb0aec763576ae869fddcff`、
+  `ashare_watchlist/scripts/screen_system.py`、raw/LF SHA
+  `843935d9b86ec05af848ee8cc54812334475e3d17807cb93349a02c84896417a`。合法的历史
+  CRLF witness 是 `6cac746123e3151999cbeeb1a612868ef77b50af6c7c64b0d80eb387ae1d19f9`；
+  旧 63-character declaration 分类为 `HISTORICAL_SOURCE_SHA_TRANSCRIPTION_ERROR`。
+- old B disposition：`B_BREAKOUT_RETEST_LEGACY_V1` / old spec SHA
+  `5bbeb345ebd8883149138d2f29f8606f919949ae285aa2839fa337921dfc7112` 保留 bytes、
+  artifact 和 history，分类为 `SUPERSEDED_RECONSTRUCTION_WITH_PROVENANCE_AND_SECTOR_SEMANTIC_DEFECT`。
+- corrected identity：`B_BREAKOUT_RETEST_LEGACY_V1_1`，role
+  `CORRECTED_EXACT_V0_RECONSTRUCTION`，spec SHA
+  `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`。明确恢复
+  missing-sector `(-,50,0.0)` continue、provider-order last-write-wins、raw
+  membership retention、无 score cutoff/TOP-N；shared numeric path 保持已审计实现。
+- impact decision：`EXISTING_B_ELIGIBILITY_ARTIFACT_AFFECTED=FALSE`，
+  `ELIGIBILITY_ARTIFACT_EVENT_SET_INVARIANT`。769 sessions / 4,041,140 evaluated
+  symbol-dates，旧/校正 event count 均 17,714，projection/status/event membership
+  differences 均为 0；historical sector missing/multi counts 仍是
+  `NOT_AVAILABLE_IN_FROZEN_DEVELOPMENT_INPUT`。不重算 returns，不覆盖旧 artifact。
+- corrected candidate：`CORRECTED_B_CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`。
+  future live binding 已切换至 V3 contract；尚无 live instance。V3 见
+  [`docs/candidate_bound_prospective_input_contract_v3.md`](docs/candidate_bound_prospective_input_contract_v3.md)，
+  evidence 见 [`docs/b_corrected_reconstruction_20260901.md`](docs/b_corrected_reconstruction_20260901.md)。
+- live snapshot before correctness PR creation：branch=`codex/b-corrected-reconstruction-20260901`，
+  HEAD=`28e871552da0813fd51b510a9ef0980976556d29`，`origin/master` 同 SHA，尚无新
+  open PR；working tree 的 corrected implementation/audit/docs 为本任务改动，既有
+  未跟踪 user directory `data/validation/continuous_speed_probe/` 未读取、未修改、未删除。
+- current live snapshot after correctness PR creation：PR #20 open，head=
+  `c81df8623318d1a37f47345e1bdbc461ec9a4e14`，base/
+  `origin/master`=`28e871552da0813fd51b510a9ef0980976556d29`，changed-file scope
+  remains the single correctness set above；exact-head runs `33496711659` and
+  `33496611236` are both `success`，GitHub state=`CLEAN / MERGEABLE`。PR #20 尚未
+  merge：当前用户授权明确覆盖 PR #19 的 merge，不自动扩展为 PR #20 的外部 merge；
+  等待用户对该具体 merge 的 direction。correctness PR merge 和其 master exact-head
+  CI 成功前，不运行 T-close acquisition。
