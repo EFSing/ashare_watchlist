@@ -144,10 +144,12 @@ def _display_name_policy_metadata() -> dict[str, Any]:
         "status_suffixes_removed": False,
     }
 
-# B's fixed evaluator reads the last 250 stock bars.  The index market-env
-# calculation reads a 20-session moving average and therefore needs 21 bars.
+# B's fixed evaluator reads the last 250 stock bars.  The retrieval target is
+# deliberately buffered, while GenerationInputManifest accepts any non-empty
+# stock history and B owns the separate 120-bar evaluation minimum.
 DEFAULT_STOCK_BAR_COUNT = 260
 DEFAULT_INDEX_BAR_COUNT = 60
+MIN_STOCK_BARS_FOR_GENERATION_INPUT = 1
 MIN_INDEX_BARS_FOR_MARKET_ENV = 21
 
 _BJT = timezone(timedelta(hours=8))
@@ -1244,8 +1246,8 @@ def _utc_midnight_ms(value: str) -> int:
     return int(datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp() * 1000)
 
 
-def _historical_window(as_of_date: str, count: int) -> tuple[int, int]:
-    start_date = date.fromisoformat(as_of_date) - timedelta(days=max(count * 2 + 40, 120))
+def _historical_window(as_of_date: str, requested_count: int) -> tuple[int, int]:
+    start_date = date.fromisoformat(as_of_date) - timedelta(days=max(requested_count * 2 + 40, 120))
     return _utc_midnight_ms(start_date.isoformat()), _utc_midnight_ms(as_of_date)
 
 
@@ -1324,14 +1326,15 @@ def _request_json(
 def _fetch_qfq_bars(
     symbol: str,
     *,
-    count: int,
+    requested_count: int,
+    minimum_acceptable_history: int,
     as_of_date: str,
     timeout: float,
     retries: int,
     request_get: Callable[..., Any],
 ) -> list[dict[str, Any]]:
     provider_symbol = to_symbol(symbol)
-    url = f"https://{TENCENT_KLINE_SOURCE}?param={provider_symbol},day,,,{count},qfq"
+    url = f"https://{TENCENT_KLINE_SOURCE}?param={provider_symbol},day,,,{requested_count},qfq"
     payload = _request_json(url, timeout=timeout, retries=retries, request_get=request_get)
     data = payload.get("data")
     if not isinstance(data, Mapping):
@@ -1366,8 +1369,12 @@ def _fetch_qfq_bars(
             _fail(INPUT_CONFLICT, f"Tencent qfq OHLC conflict for {provider_symbol} on {bar_date}")
         bars.append({"date": bar_date, "open": opening, "high": high, "low": low, "close": closing, "volume": volume})
     bars.sort(key=lambda item: item["date"])
-    if len(bars) < count:
-        _fail(INCOMPLETE_COVERAGE, f"Tencent qfq coverage for {provider_symbol} is {len(bars)} < {count}")
+    if len(bars) < minimum_acceptable_history:
+        _fail(
+            INCOMPLETE_COVERAGE,
+            f"Tencent qfq coverage for {provider_symbol} is {len(bars)} < "
+            f"{minimum_acceptable_history}",
+        )
     if bars[-1]["date"] != as_of_date:
         _fail(INPUT_DATE_MISMATCH, f"Tencent qfq latest bar for {provider_symbol} is {bars[-1]['date']} != {as_of_date}")
     return bars
@@ -1389,7 +1396,8 @@ def _resolve_market_bars(
     client: HiThinkClient | Any,
     symbol: str,
     *,
-    count: int,
+    requested_count: int,
+    minimum_acceptable_history: int,
     as_of_date: str,
     timeout: float,
     request_get: Callable[..., Any],
@@ -1397,7 +1405,9 @@ def _resolve_market_bars(
     index: bool,
     allow_tencent_fallback: bool,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    start_ms, end_ms = _historical_window(as_of_date, count)
+    if requested_count <= 0 or minimum_acceptable_history <= 0:
+        _fail(INCOMPLETE_COVERAGE, "historical retrieval target and minimum history must be positive")
+    start_ms, end_ms = _historical_window(as_of_date, requested_count)
     thscode = HITHINK_INDEX_SYMBOL if index else _hithink_thscode(symbol)
     try:
         bars = client.historical_bars(
@@ -1409,12 +1419,41 @@ def _resolve_market_bars(
         )
         if not isinstance(bars, Sequence) or isinstance(bars, (str, bytes)):
             _fail(PROVIDER_FAILURE, f"HiThink historical bars are not a sequence for {thscode}")
-        if len(bars) < count:
-            _fail(INCOMPLETE_COVERAGE, f"HiThink historical coverage for {thscode} is {len(bars)} < {count}")
+        if len(bars) < minimum_acceptable_history:
+            _fail(
+                INCOMPLETE_COVERAGE,
+                f"HiThink historical coverage for {thscode} is {len(bars)} < "
+                f"{minimum_acceptable_history}",
+            )
         normalized = list(bars)
+        seen_dates: set[str] = set()
         for bar_index, bar in enumerate(normalized):
             if not isinstance(bar, Mapping) or not isinstance(bar.get("date"), str):
                 _fail(PROVIDER_FAILURE, f"HiThink historical bar {thscode}[{bar_index}] has no canonical date")
+            try:
+                canonical_bar_date = _canonical_date(bar["date"])
+            except (TypeError, ValueError, OverflowError) as exc:
+                _fail(
+                    PROVIDER_FAILURE,
+                    f"HiThink historical bar {thscode}[{bar_index}] has no canonical date",
+                )
+                raise AssertionError from exc
+            if bar["date"] != canonical_bar_date:
+                _fail(
+                    PROVIDER_FAILURE,
+                    f"HiThink historical bar {thscode}[{bar_index}] date is not canonical: {bar['date']}",
+                )
+            if canonical_bar_date in seen_dates:
+                _fail(INPUT_CONFLICT, f"duplicate HiThink historical bar date for {thscode}: {canonical_bar_date}")
+            seen_dates.add(canonical_bar_date)
+            opening = _number(bar.get("open"), f"{thscode}[{bar_index}].open", positive=True)
+            high = _number(bar.get("high"), f"{thscode}[{bar_index}].high", positive=True)
+            low = _number(bar.get("low"), f"{thscode}[{bar_index}].low", positive=True)
+            closing = _number(bar.get("close"), f"{thscode}[{bar_index}].close", positive=True)
+            _number(bar.get("volume"), f"{thscode}[{bar_index}].volume", non_negative=True)
+            if high < low or high < opening or high < closing or low > opening or low > closing:
+                _fail(INPUT_CONFLICT, f"HiThink historical OHLC conflict for {thscode} on {canonical_bar_date}")
+        normalized.sort(key=lambda item: item["date"])
         future_dates = [bar["date"] for bar in normalized if bar["date"] > as_of_date]
         if future_dates:
             _fail(FUTURE_DATA_DETECTED, f"HiThink historical bar {thscode} is after {as_of_date}: {future_dates[0]}")
@@ -1443,7 +1482,8 @@ def _resolve_market_bars(
         tencent_symbol = INDEX_SYMBOL if index else symbol
         fallback = _fetch_qfq_bars(
             tencent_symbol,
-            count=count,
+            requested_count=requested_count,
+            minimum_acceptable_history=minimum_acceptable_history,
             as_of_date=as_of_date,
             timeout=timeout,
             retries=retries,
@@ -2008,7 +2048,8 @@ def acquire_live_generation_inputs(
         bars, resolution = _resolve_market_bars(
             hithink,
             symbol,
-            count=stock_bar_count,
+            requested_count=stock_bar_count,
+            minimum_acceptable_history=MIN_STOCK_BARS_FOR_GENERATION_INPUT,
             as_of_date=target_date,
             timeout=kline_timeout,
             retries=kline_retries,
@@ -2032,7 +2073,8 @@ def acquire_live_generation_inputs(
     index_bars, index_resolution = _resolve_market_bars(
         hithink,
         INDEX_SYMBOL,
-        count=index_bar_count,
+        requested_count=index_bar_count,
+        minimum_acceptable_history=MIN_INDEX_BARS_FOR_MARKET_ENV,
         as_of_date=target_date,
         timeout=kline_timeout,
         retries=kline_retries,
@@ -2221,6 +2263,7 @@ __all__ = [
     "ALLOW_TENCENT_KLINE_FALLBACK",
     "DEFAULT_INDEX_BAR_COUNT",
     "DEFAULT_STOCK_BAR_COUNT",
+    "MIN_STOCK_BARS_FOR_GENERATION_INPUT",
     "DISPLAY_NAME_CONSISTENCY_POLICY",
     "DISPLAY_NAME_NORMALIZATION_VERSION",
     "DISPLAY_NAME_NORMALIZATION_ZERO_WIDTH_CODEPOINTS",

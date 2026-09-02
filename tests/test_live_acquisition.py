@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 import live_acquisition as live
+from b_breakout_retest_v1_1 import evaluate_candidate as evaluate_b_candidate
 from generation_contract import (
     FUTURE_DATA_DETECTED,
     INCOMPLETE_COVERAGE,
@@ -104,6 +105,7 @@ class FakeHiThink:
         self._failures = {key: list(values) for key, values in (failures or {}).items()}
         self.universe_calls = 0
         self.kline_calls = []
+        self.kline_requests = []
 
     def _maybe_fail(self, api_name):
         failures = self._failures.get(api_name, [])
@@ -143,6 +145,7 @@ class FakeHiThink:
         ]
 
     def historical_bars(self, thscode, *, start, end, index, timeout):
+        self.kline_requests.append((thscode, start, end, index))
         del start, end, timeout
         self.kline_calls.append((thscode, index))
         self._maybe_fail("index" if index else "stock")
@@ -219,7 +222,17 @@ def _calendar(holidays=None):
     return TradingCalendar(holidays=set(holidays or ()), session_close_time=time(15, 0))
 
 
-def _acquire(*, now_bjt=NOW, akshare_module=None, hithink_client=None, request_get=None, calendar=None, **kwargs):
+def _acquire(
+    *,
+    now_bjt=NOW,
+    akshare_module=None,
+    hithink_client=None,
+    request_get=None,
+    calendar=None,
+    stock_bar_count=21,
+    index_bar_count=21,
+    **kwargs,
+):
     return live.acquire_live_generation_inputs(
         AS_OF,
         now_bjt=now_bjt,
@@ -230,8 +243,8 @@ def _acquire(*, now_bjt=NOW, akshare_module=None, hithink_client=None, request_g
         request_get=request_get or _request_get(),
         quote_retries=1,
         kline_retries=1,
-        stock_bar_count=21,
-        index_bar_count=21,
+        stock_bar_count=stock_bar_count,
+        index_bar_count=index_bar_count,
         **kwargs,
     )
 
@@ -877,6 +890,84 @@ def test_missing_or_stale_t_kline_fails_closed():
         _acquire(hithink_client=FakeHiThink(bars=_bars(last_date="2026-08-26")))
 
     assert caught.value.status == INPUT_DATE_MISMATCH
+
+
+@pytest.mark.parametrize("available_bars", [260, 141, 120])
+def test_hithink_stock_history_can_be_shorter_than_retrieval_target(available_bars):
+    hithink = FakeHiThink(bars=_bars(count=available_bars))
+
+    package = _acquire(
+        hithink_client=hithink,
+        stock_bar_count=live.DEFAULT_STOCK_BAR_COUNT,
+    )
+
+    stock = package.generation_input_manifest.stock_klines[0]
+    assert live.DEFAULT_STOCK_BAR_COUNT == 260
+    assert hithink.kline_requests[0][1:3] == live._historical_window(AS_OF, live.DEFAULT_STOCK_BAR_COUNT)
+    assert stock.bar_count == available_bars
+    assert stock.provider == "HiThink Financial-API"
+    assert stock.adjustment_mode == "PROVIDER_QFQ_SNAPSHOT"
+
+
+def test_hithink_stock_history_below_b_minimum_remains_manifest_valid_and_b_reports_insufficient_data():
+    package = _acquire(
+        hithink_client=FakeHiThink(bars=_bars(count=119)),
+        stock_bar_count=live.DEFAULT_STOCK_BAR_COUNT,
+    )
+
+    result = evaluate_b_candidate(package.generation_input_manifest, SYMBOL)
+
+    assert package.generation_input_manifest.stock_klines[0].bar_count == 119
+    assert result.status == "INSUFFICIENT_DATA"
+    assert result.failed_conditions == ("MINIMUM_BARS_120",)
+    assert result.reject_reasons == ("INSUFFICIENT_DATA",)
+
+
+def test_hithink_duplicate_stock_bar_date_fails_closed():
+    bars = _bars()
+    bars[-1][0] = bars[-2][0]
+
+    with pytest.raises(live.LiveAcquisitionError) as caught:
+        _acquire(hithink_client=FakeHiThink(bars=bars))
+
+    assert caught.value.status == live.INPUT_CONFLICT
+
+
+@pytest.mark.parametrize("malformed_bar", [None, {"date": "20260827"}])
+def test_hithink_malformed_or_noncanonical_stock_bar_fails_closed(malformed_bar):
+    bars = [
+        {
+            "date": row[0],
+            "open": float(row[1]),
+            "high": float(row[3]),
+            "low": float(row[4]),
+            "close": float(row[2]),
+            "volume": float(row[5]),
+        }
+        for row in _bars()
+    ]
+    bars[0] = malformed_bar
+
+    def historical_bars(thscode, *, start, end, index, timeout):
+        del thscode, start, end, index, timeout
+        return bars
+
+    client = SimpleNamespace(historical_bars=historical_bars)
+    with pytest.raises(live.LiveAcquisitionError) as caught:
+        live._resolve_market_bars(
+            client,
+            SYMBOL,
+            requested_count=21,
+            minimum_acceptable_history=1,
+            as_of_date=AS_OF,
+            timeout=1.0,
+            retries=1,
+            request_get=_request_get(),
+            index=False,
+            allow_tencent_fallback=False,
+        )
+
+    assert caught.value.status == live.PROVIDER_FAILURE
 
 
 def test_future_kline_bar_fails_closed():
