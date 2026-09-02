@@ -705,3 +705,24 @@
   future contract 采用 V3；V3 仍是 `CONTRACT_DEFINED_NO_LIVE_INSTANCE`。下一 gate 是
   correctness PR 的 review/merge/CI，然后才可在合法收盘窗口 fresh acquire；不把当前
   diagnostic 作为 prospective evidence。
+
+## 2026-09-02 — PR #20 post-merge governance reconciliation
+
+- classification：`correctness blocker` + `product blocker` follow-up；本次只修复
+  merge 后治理 snapshot，不改变策略、spec、阈值、代码、数据、artifact 或历史决策。
+- live Git/GitHub state：PR #20 已按 expected head
+  `078bc3c083c1b3d309505a10715745b8acd6ef4e` squash merge；merge SHA 与当前
+  `master` 均为 `106bfbd00502db56a2e544f1c804a52372c1fa3e`，master exact-head
+  correctness run `100101351273` 为 `success`，当前 open PR 为 0。
+- governance decision：将此前 section 27 的 pre-merge
+  `PR #20 open / waiting user direction` 明确限定为历史时点 snapshot；当前
+  authoritative state 为 PR #20 merged，corrected candidate 为
+  `B_BREAKOUT_RETEST_LEGACY_V1_1`，decision 为
+  `CORRECTED_B_CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`。
+- current product state：Formal Delivery Ladder 仍为 `development candidate`，
+  V3 为 `CONTRACT_DEFINED_NO_LIVE_INSTANCE`；当前等待
+  `T=2026-09-02` 的合法 XSHG T-close prospective capture。北京时间 15:00 前不运行
+  formal `LIVE_OBSERVED` capture，不创建 frozen candidate，不读取 Final OOS，不做
+  current-data backfill、promotion、调参或 Phase 2F。
+- decision：`PROJECT_GOVERNANCE_STATE_RECONCILED`。本次 follow-up 的变更文件严格
+  限定为 `HANDOFF.md`、`docs/CURRENT_STATUS.md` 和 `docs/DECISION_LOG.md`。

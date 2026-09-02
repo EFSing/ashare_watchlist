@@ -1,8 +1,10 @@
 # CURRENT STATUS
 
-更新时间：2026-09-01（Asia/Shanghai）
+更新时间：2026-09-02（Asia/Shanghai）
 Formal Delivery Ladder：`development candidate`
-Product-governance milestone：PR #17 squash merge `91e9ec76e3f4ea8ffaa1badeb759c1d2a7f5f73b`；post-merge master correctness run `33399324692` success（last-verified provenance snapshot）
+Latest correctness/governance merge：PR #20 squash merge
+`106bfbd00502db56a2e544f1c804a52372c1fa3e`；post-merge master exact-head correctness
+run `100101351273` success（current verified provenance snapshot）
 Phase 2E research baseline：PR #6 / `74ccf86dfdea3b9d4b0124fb54346aa429735508`
 职责：记录项目正式处于什么状态，以及哪些研究结论已经成立。长期产品目标和 usable gate 见 [`PRODUCT_CHARTER.md`](PRODUCT_CHARTER.md)，接手动作见 [`HANDOFF.md`](../HANDOFF.md)，决策理由见 [`DECISION_LOG.md`](DECISION_LOG.md)。
 
