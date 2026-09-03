@@ -1253,6 +1253,66 @@ def test_hithink_client_auth_and_stock_adjustment_mapping():
     assert "adjust=forward" in calls[0][0]
 
 
+def test_hithink_retry_preserves_prior_response_bytes_on_resume(tmp_path):
+    date_ms = int(datetime(2026, 8, 27, 8, tzinfo=timezone.utc).timestamp() * 1000)
+    payload = {
+        "code": 0,
+        "data": {
+            "thscode": "600519.SH",
+            "item": [
+                {
+                    "date_ms": date_ms,
+                    "open_price": "10",
+                    "high_price": "11",
+                    "low_price": "9",
+                    "close_price": "10.5",
+                    "volume": "100",
+                    "turnover": "1000000",
+                }
+            ],
+        },
+    }
+
+    class ErrorResponse(FakeResponse):
+        def raise_for_status(self):
+            raise RuntimeError("HTTP 503")
+
+    responses = [
+        ErrorResponse(text="first-error"),
+        FakeResponse(payload, text="second-response"),
+    ]
+
+    def request_get(url, timeout, headers):
+        del url, timeout, headers
+        return responses.pop(0)
+
+    store = live.TCloseEvidenceStore(tmp_path, AS_OF, code_git_sha="test-sha")
+    client = live.HiThinkClient(
+        api_key="test-only-key",
+        request_get=request_get,
+        capture_store=store,
+    )
+    with pytest.raises(RuntimeError, match="HTTP 503"):
+        client.historical_bars("600519.SH", start=date_ms, end=date_ms, index=False)
+
+    bars = client.historical_bars("600519.SH", start=date_ms, end=date_ms, index=False)
+
+    assert bars[0]["date"] == AS_OF
+    base_identity = live._hithink_capture_identity(
+        live.HITHINK_STOCK_KLINE_API,
+        {"thscode": "600519.SH", "interval": "1d", "start": date_ms, "end": date_ms, "adjust": "forward"},
+    )
+    response_records = [
+        record for record in store.summary() if record["component"] == "hithink_response"
+    ]
+    assert len(response_records) == 2
+    assert {record["logical_component_identity"] for record in response_records} == {
+        base_identity,
+        f"{base_identity}:response_sha256={live._sha256_bytes(b'second-response')}",
+    }
+    assert store.load_raw("hithink_response", base_identity).payload == b"first-error"
+
+
 def test_hithink_client_requires_authenticated_key(monkeypatch):
     monkeypatch.delenv(live.HITHINK_API_KEY_ENV, raising=False)
 
