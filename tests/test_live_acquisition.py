@@ -927,6 +927,97 @@ def test_missing_t_quote_fails_closed():
     assert caught.value.status == INCOMPLETE_COVERAGE
 
 
+def test_tclose_quote_response_is_captured_before_parse_failure(tmp_path):
+    def request_get(url, timeout):
+        del timeout
+        if url.startswith("https://qt.gtimg.cn"):
+            return FakeResponse(text=_quote_line().replace("~2.88~125.00", "~not-a-number~125.00"))
+        provider_symbol = url.split("param=", 1)[1].split(",", 1)[0]
+        return FakeResponse({"data": {provider_symbol: {"qfqday": _bars()}}})
+
+    with pytest.raises(live.LiveAcquisitionError):
+        _acquire(request_get=request_get, evidence_root=tmp_path)
+
+    provider_raw = []
+    failure_evidence = []
+    for metadata_path in tmp_path.rglob("*.json"):
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        if metadata.get("content_type") == "provider_response":
+            provider_raw.append((metadata, metadata_path.with_suffix(".raw")))
+        if metadata.get("content_type") == "failure_evidence":
+            failure_evidence.append(metadata)
+    assert len(provider_raw) == 1
+    metadata, raw_path = provider_raw[0]
+    assert metadata["completeness_status"] == "COMPLETE"
+    assert metadata["target_date"] == AS_OF
+    assert "not-a-number" in raw_path.read_text(encoding="utf-8")
+    assert failure_evidence[0]["error_classification"] == "PROVIDER_DATA_VALIDATION_FAILURE"
+    assert failure_evidence[0]["response_sha256"] == metadata["file_sha256"]
+
+
+def test_tclose_resume_reuses_frozen_sources_after_stock_failure(tmp_path):
+    evidence_root = tmp_path / "evidence"
+    with pytest.raises(live.LiveAcquisitionError):
+        _acquire(
+            evidence_root=evidence_root,
+            hithink_client=FakeHiThink(failures={"stock": [RuntimeError("stock blocked")]}),
+        )
+
+    ak = FakeAkShare(
+        failures={
+            "definitions": [RuntimeError("must use cached sector")],
+            "members": [RuntimeError("must use cached sector")],
+            "sse_main": [RuntimeError("must use cached roster")],
+            "sse_star": [RuntimeError("must use cached roster")],
+            "szse_a_share": [RuntimeError("must use cached roster")],
+        }
+    )
+    hithink = FakeHiThink()
+    quote_calls = []
+
+    def no_quote_refetch(url, timeout):
+        del timeout
+        quote_calls.append(url)
+        raise AssertionError("successful Tencent quote must be resumed from the checkpoint")
+
+    package = _acquire(
+        evidence_root=evidence_root,
+        akshare_module=ak,
+        hithink_client=hithink,
+        request_get=no_quote_refetch,
+    )
+
+    assert package.provenance["evidence_capture"]["status"] == "T_CLOSE_VOLATILE_EVIDENCE_SECURED"
+    assert quote_calls == []
+    assert ak.definition_calls == 0
+    assert ak.member_calls == []
+    assert ak.roster_calls == []
+    assert hithink.universe_calls == 0
+    assert hithink.kline_calls == [("600519.SH", False), ("000001.SH", True)]
+
+
+def test_tclose_successful_stock_checkpoint_survives_later_index_failure(tmp_path):
+    evidence_root = tmp_path / "evidence"
+    with pytest.raises(live.LiveAcquisitionError) as caught:
+        _acquire(
+            evidence_root=evidence_root,
+            hithink_client=FakeHiThink(failures={"index": [RuntimeError("index blocked")]}),
+        )
+
+    assert caught.value.status == live.PROVIDER_FAILURE
+    kline_checkpoints = []
+    failure_checkpoints = []
+    for metadata_path in tmp_path.rglob("*.json"):
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        if metadata_path.parent.name == "hithink_kline":
+            kline_checkpoints.append(metadata)
+        if metadata_path.parent.name == "index_kline":
+            failure_checkpoints.append(metadata)
+    assert len(kline_checkpoints) == 1
+    assert kline_checkpoints[0]["completeness_status"] == "COMPLETE"
+    assert failure_checkpoints[0]["completeness_status"] == "FAILED"
+
+
 def test_stale_index_kline_fails_closed():
     with pytest.raises(live.LiveAcquisitionError) as caught:
         _acquire(hithink_client=FakeHiThink(index_bars=_bars(last_date="2026-08-26")))

@@ -21,6 +21,7 @@ import json
 import math
 import os
 import platform
+import re
 import tempfile
 import time
 import unicodedata
@@ -61,6 +62,7 @@ from generation_contract import (
 )
 from tencent_quotes import (
     MissingQuoteError,
+    QuoteCaptureError,
     QuoteDataError,
     QuoteParseError,
     StaleQuoteError,
@@ -235,6 +237,310 @@ def _sha256_bytes(value: bytes) -> str:
 
 def _sha256_json(value: Any) -> str:
     return _sha256_bytes(_canonical_json(value))
+
+
+CAPTURE_SCHEMA = "T_CLOSE_SOURCE_CAPTURE_V1"
+
+
+@dataclass(frozen=True)
+class CaptureRecord:
+    """One immutable source capture and its machine-readable provenance."""
+
+    path: Path
+    metadata_path: Path
+    payload: bytes
+    metadata: Mapping[str, Any]
+
+
+class TCloseEvidenceStore:
+    """Small immutable store for source-level T-close evidence."""
+
+    def __init__(
+        self,
+        root: str | Path,
+        as_of_date: date | datetime | str,
+        *,
+        code_git_sha: str | None = None,
+    ) -> None:
+        self.root = Path(root)
+        self.as_of_date = _canonical_date(as_of_date)
+        self.code_git_sha = (
+            code_git_sha or os.environ.get("ASHARE_CODE_GIT_SHA") or "UNKNOWN_ORIGIN"
+        ).strip() or "UNKNOWN_ORIGIN"
+        self._latest: dict[str, CaptureRecord] = {}
+        self._records: dict[tuple[str, str], CaptureRecord] = {}
+
+    @staticmethod
+    def _json_ready(value: Any) -> Any:
+        if isinstance(value, Mapping):
+            return {
+                str(key): TCloseEvidenceStore._json_ready(item)
+                for key, item in value.items()
+            }
+        if isinstance(value, (list, tuple)):
+            return [TCloseEvidenceStore._json_ready(item) for item in value]
+        if isinstance(value, (date, datetime)):
+            return value.isoformat()
+        try:
+            scalar = value.item() if callable(getattr(value, "item", None)) else value
+        except Exception:
+            scalar = value
+        if scalar is not value:
+            return TCloseEvidenceStore._json_ready(scalar)
+        if value is None or isinstance(value, (str, int, float, bool)):
+            return value
+        raise TypeError(f"capture value is not JSON-compatible: {type(value).__name__}")
+
+    @staticmethod
+    def _component_path(root: Path, as_of_date: str, component: str, logical_identity: str) -> tuple[Path, Path]:
+        digest = hashlib.sha256(logical_identity.encode("utf-8")).hexdigest()
+        directory = root / as_of_date.replace("-", "") / component
+        return directory / f"{digest}.raw", directory / f"{digest}.json"
+
+    @staticmethod
+    def _atomic_write(path: Path, payload: bytes) -> None:
+        temporary: Path | None = None
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with tempfile.NamedTemporaryFile(
+                dir=path.parent,
+                prefix=f".{path.name}.",
+                suffix=".tmp",
+                delete=False,
+            ) as handle:
+                temporary = Path(handle.name)
+                handle.write(payload)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary, path)
+        except OSError as exc:
+            if temporary is not None:
+                try:
+                    temporary.unlink(missing_ok=True)
+                except OSError:
+                    pass
+            _fail(PERSISTENCE_FAILURE, f"cannot atomically persist T-close evidence: {type(exc).__name__}")
+
+    def capture_raw(
+        self,
+        component: str,
+        logical_identity: str,
+        payload: bytes,
+        *,
+        provider: str,
+        source_identity: str,
+        provider_version: str,
+        request_identity: str | None = None,
+        record_count: int | None = None,
+        batch_count: int | None = None,
+        effective_trading_date: str | None = None,
+        completeness_status: str = "COMPLETE",
+        content_type: str = "raw_bytes",
+        encoding: str | None = None,
+        metadata_extra: Mapping[str, Any] | None = None,
+    ) -> CaptureRecord:
+        if not isinstance(payload, bytes):
+            _fail(PERSISTENCE_FAILURE, "T-close evidence payload must be bytes")
+        raw_path, metadata_path = self._component_path(
+            self.root, self.as_of_date, component, logical_identity
+        )
+        digest = _sha256_bytes(payload)
+        if raw_path.exists() != metadata_path.exists():
+            _fail(PERSISTENCE_CONFLICT, f"incomplete immutable T-close evidence pair for {logical_identity}")
+        if raw_path.exists():
+            try:
+                existing = raw_path.read_bytes()
+                metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                _fail(PERSISTENCE_FAILURE, f"cannot read existing T-close evidence: {type(exc).__name__}")
+            if not isinstance(metadata, Mapping):
+                _fail(PERSISTENCE_CONFLICT, f"T-close evidence metadata is not an object for {logical_identity}")
+            if existing != payload or metadata.get("file_sha256") != digest:
+                _fail(PERSISTENCE_CONFLICT, f"existing T-close evidence differs at logical identity {logical_identity}")
+            record = CaptureRecord(raw_path, metadata_path, existing, metadata)
+            self._latest[component] = record
+            self._records[(component, logical_identity)] = record
+            return record
+
+        metadata: dict[str, Any] = {
+            "schema_version": CAPTURE_SCHEMA,
+            "target_date": self.as_of_date,
+            "actual_retrieved_at_bjt": _timestamp_text(datetime.now(_BJT)),
+            "provider": provider,
+            "source_identity": source_identity,
+            "provider_version": provider_version,
+            "code_git_sha": self.code_git_sha,
+            "logical_component_identity": logical_identity,
+            "request_identity": request_identity or logical_identity,
+            "byte_length": len(payload),
+            "file_sha256": digest,
+            "record_count": record_count,
+            "batch_count": batch_count,
+            "effective_trading_date": effective_trading_date,
+            "completeness_status": completeness_status,
+            "content_type": content_type,
+        }
+        if encoding is not None:
+            metadata["encoding"] = encoding
+        if metadata_extra:
+            metadata.update(self._json_ready(dict(metadata_extra)))
+        self._atomic_write(raw_path, payload)
+        self._atomic_write(metadata_path, _canonical_json(metadata))
+        record = CaptureRecord(raw_path, metadata_path, payload, metadata)
+        self._latest[component] = record
+        self._records[(component, logical_identity)] = record
+        return record
+
+    def capture_records(
+        self,
+        component: str,
+        logical_identity: str,
+        value: Any,
+        *,
+        provider: str,
+        source_identity: str,
+        provider_version: str,
+        request_identity: str | None = None,
+        effective_trading_date: str | None = None,
+        metadata_extra: Mapping[str, Any] | None = None,
+    ) -> CaptureRecord:
+        if hasattr(value, "to_dict") and callable(getattr(value, "to_dict")):
+            value = value.to_dict(orient="records")
+        canonical = self._json_ready(value)
+        record_count = len(canonical) if isinstance(canonical, list) else None
+        return self.capture_raw(
+            component,
+            logical_identity,
+            _canonical_json(canonical),
+            provider=provider,
+            source_identity=source_identity,
+            provider_version=provider_version,
+            request_identity=request_identity,
+            record_count=record_count,
+            effective_trading_date=effective_trading_date,
+            content_type="canonical_adapter_records",
+            encoding="utf-8",
+            metadata_extra=metadata_extra,
+        )
+
+    def _load(self, component: str, logical_identity: str) -> CaptureRecord | None:
+        raw_path, metadata_path = self._component_path(
+            self.root, self.as_of_date, component, logical_identity
+        )
+        if not raw_path.exists() and not metadata_path.exists():
+            return None
+        if raw_path.exists() != metadata_path.exists():
+            _fail(PERSISTENCE_CONFLICT, f"incomplete immutable T-close evidence pair for {logical_identity}")
+        try:
+            payload = raw_path.read_bytes()
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            _fail(PERSISTENCE_FAILURE, f"cannot load T-close evidence: {type(exc).__name__}")
+        if not isinstance(metadata, Mapping):
+            _fail(PERSISTENCE_CONFLICT, f"T-close evidence metadata is not an object for {logical_identity}")
+        if (
+            metadata.get("schema_version") != CAPTURE_SCHEMA
+            or metadata.get("target_date") != self.as_of_date
+            or metadata.get("logical_component_identity") != logical_identity
+            or metadata.get("byte_length") != len(payload)
+            or metadata.get("file_sha256") != _sha256_bytes(payload)
+        ):
+            _fail(PERSISTENCE_CONFLICT, f"T-close evidence metadata/hash mismatch for {logical_identity}")
+        record = CaptureRecord(raw_path, metadata_path, payload, metadata)
+        self._latest[component] = record
+        self._records[(component, logical_identity)] = record
+        return record
+
+    def load_raw(self, component: str, logical_identity: str) -> CaptureRecord | None:
+        return self._load(component, logical_identity)
+
+    def load_records(self, component: str, logical_identity: str) -> Any | None:
+        record = self._load(component, logical_identity)
+        if record is None:
+            return None
+        try:
+            return json.loads(record.payload.decode(record.metadata.get("encoding", "utf-8")))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            _fail(PERSISTENCE_CONFLICT, f"captured adapter records are not valid JSON: {type(exc).__name__}")
+
+    def latest(self, component: str) -> CaptureRecord | None:
+        return self._latest.get(component)
+
+    def summary(self) -> list[dict[str, Any]]:
+        """Return stable capture identities for package-level provenance."""
+
+        return [
+            {
+                "component": component,
+                "logical_component_identity": logical_identity,
+                "file_sha256": record.metadata["file_sha256"],
+                "byte_length": record.metadata["byte_length"],
+                "content_type": record.metadata["content_type"],
+                "completeness_status": record.metadata["completeness_status"],
+                "provider": record.metadata["provider"],
+                "source_identity": record.metadata["source_identity"],
+                "provider_version": record.metadata["provider_version"],
+                "code_git_sha": record.metadata["code_git_sha"],
+                "request_identity": record.metadata["request_identity"],
+                "effective_trading_date": record.metadata["effective_trading_date"],
+            }
+            for (component, logical_identity), record in sorted(self._records.items())
+        ]
+
+    def record_failure(
+        self,
+        component: str,
+        *,
+        provider: str,
+        source_identity: str,
+        provider_version: str,
+        error_type: str,
+        error_detail: str,
+        request_identity: str | None = None,
+        response_component: str | None = None,
+    ) -> CaptureRecord:
+        response = self.latest(response_component or component)
+        response_sha = response.metadata.get("file_sha256") if response else None
+        safe_detail = re.sub(
+            r"(?i)(api[-_]?key|token|password|secret)=([^&\\s]+)",
+            r"\1=<REDACTED>",
+            str(error_detail),
+        )[:1000]
+        identity = (
+            f"{request_identity or component}:failure:{error_type}:"
+            f"{response_sha or 'NO_RESPONSE'}"
+        )
+        classification = (
+            "PROVIDER_DATA_VALIDATION_FAILURE"
+            if response
+            else "PROVIDER_TRANSPORT_OR_NO_RESPONSE_FAILURE"
+        )
+        detail = {
+            "provider": provider,
+            "source_identity": source_identity,
+            "request_identity": request_identity or component,
+            "error_type": error_type,
+            "error_detail": safe_detail,
+            "response_sha256": response_sha,
+            "error_classification": classification,
+        }
+        return self.capture_raw(
+            component,
+            identity,
+            _canonical_json(detail),
+            provider=provider,
+            source_identity=source_identity,
+            provider_version=provider_version,
+            request_identity=request_identity or component,
+            completeness_status="FAILED",
+            content_type="failure_evidence",
+            encoding="utf-8",
+            metadata_extra={
+                "error_type": error_type,
+                "error_classification": classification,
+                "response_sha256": response_sha,
+            },
+        )
 
 
 def _copy_json(value: Any, field_name: str) -> Any:
@@ -509,6 +815,28 @@ def _normalize_hithink_bars(raw_bars: Sequence[Any], thscode: str) -> list[dict[
     return bars
 
 
+def _response_bytes(response: Any) -> tuple[bytes, str]:
+    content = getattr(response, "content", None)
+    if isinstance(content, bytes):
+        return content, "bytes"
+    text = getattr(response, "text", None)
+    if isinstance(text, str):
+        return text.encode("utf-8"), "utf-8"
+    _fail(PROVIDER_FAILURE, "provider response has neither bytes content nor text")
+
+
+def _installed_version(package: str) -> str:
+    try:
+        return importlib.metadata.version(package)
+    except importlib.metadata.PackageNotFoundError:
+        return "UNKNOWN_ORIGIN"
+
+
+def _hithink_capture_identity(api_name: str, params: Mapping[str, Any]) -> str:
+    query = urllib.parse.urlencode(sorted((str(key), str(value)) for key, value in params.items()))
+    return f"{api_name}?{query}" if query else api_name
+
+
 class _HiThinkReadFailure(RuntimeError):
     """A transient HiThink read exhausted its bounded attempts."""
 
@@ -542,12 +870,14 @@ class HiThinkClient:
         api_key: str | None = None,
         request_get: Callable[..., Any] | None = None,
         max_attempts: int = HITHINK_MAX_ATTEMPTS,
+        capture_store: TCloseEvidenceStore | None = None,
     ) -> None:
         self.api_key = api_key or os.environ.get(HITHINK_API_KEY_ENV)
         if not isinstance(self.api_key, str) or not self.api_key.strip():
             _fail(PROVIDER_UNAVAILABLE, f"{HITHINK_API_KEY_ENV} is missing or empty")
         self.request_get = request_get or requests.get
         self.max_attempts = max_attempts
+        self.capture_store = capture_store
         self.read_attempts: list[dict[str, Any]] = []
 
     def capability_report(self) -> dict[str, Any]:
@@ -595,6 +925,19 @@ class HiThinkClient:
                     timeout=timeout,
                     headers={"X-api-key": self.api_key},
                 )
+                if self.capture_store is not None:
+                    payload, encoding = _response_bytes(response)
+                    self.capture_store.capture_raw(
+                        "hithink_response",
+                        _hithink_capture_identity(api_name, params),
+                        payload,
+                        provider="HiThink Financial-API",
+                        source_identity=path,
+                        provider_version=HITHINK_API_VERSION,
+                        request_identity=url.split("?", 1)[-1] if "?" in url else path,
+                        encoding=encoding,
+                        content_type="provider_response",
+                    )
                 raise_for_status = getattr(response, "raise_for_status", None)
                 if callable(raise_for_status):
                     raise_for_status()
@@ -624,6 +967,11 @@ class HiThinkClient:
         raise AssertionError("unreachable HiThink retry loop")
 
     def universe(self, *, timeout: float = 15.0) -> list[dict[str, Any]]:
+        logical_identity = "hithink_universe"
+        if self.capture_store is not None:
+            cached = self.capture_store.load_records("hithink_universe", logical_identity)
+            if cached is not None:
+                return cached
         limit = 10000
         offset = 0
         rows: list[dict[str, Any]] = []
@@ -641,6 +989,17 @@ class HiThinkClient:
             if len(page) < limit:
                 break
             offset += limit
+        if self.capture_store is not None:
+            self.capture_store.capture_records(
+                "hithink_universe",
+                logical_identity,
+                rows,
+                provider="HiThink Financial-API",
+                source_identity=HITHINK_UNIVERSE_API,
+                provider_version=HITHINK_API_VERSION,
+                request_identity=HITHINK_UNIVERSE_API,
+                effective_trading_date=self.capture_store.as_of_date,
+            )
         return rows
 
     def historical_bars(
@@ -661,6 +1020,11 @@ class HiThinkClient:
         }
         if not index:
             params["adjust"] = "forward"
+        logical_identity = _hithink_capture_identity(path, params)
+        if self.capture_store is not None:
+            cached = self.capture_store.load_records("hithink_kline", logical_identity)
+            if cached is not None:
+                return cached
         data = self._read(path, path, params, timeout=timeout)
         returned_symbol = data.get("thscode")
         if returned_symbol is not None and str(returned_symbol).strip().upper() != thscode.upper():
@@ -668,18 +1032,40 @@ class HiThinkClient:
         raw_bars = data.get("item")
         if not isinstance(raw_bars, list) or not raw_bars:
             raise ValueError(f"HiThink historical bars are empty for {thscode}")
-        return _normalize_hithink_bars(raw_bars, thscode)
+        normalized = _normalize_hithink_bars(raw_bars, thscode)
+        if self.capture_store is not None:
+            self.capture_store.capture_records(
+                "hithink_kline",
+                logical_identity,
+                normalized,
+                provider="HiThink Financial-API",
+                source_identity=path,
+                provider_version=HITHINK_API_VERSION,
+                request_identity=logical_identity,
+                effective_trading_date=self.capture_store.as_of_date,
+                metadata_extra={
+                    "adjustment_mode": PROVIDER_RAW_SNAPSHOT if index else PROVIDER_QFQ_SNAPSHOT,
+                    "selection": "PRIMARY",
+                },
+            )
+        return normalized
 
 
 class SinaSectorClient:
     """Small wrapper around the exact legacy Sina-industry APIs only."""
 
-    def __init__(self, module: ModuleType | Any | None = None, package_version: str | None = None) -> None:
+    def __init__(
+        self,
+        module: ModuleType | Any | None = None,
+        package_version: str | None = None,
+        capture_store: TCloseEvidenceStore | None = None,
+    ) -> None:
         self.module, actual_version = _load_akshare(module)
         self.package_version = package_version or actual_version
         if not isinstance(self.package_version, str) or not self.package_version.strip():
             _fail(PROVIDER_UNAVAILABLE, "AkShare package version is empty")
         self.package_version = self.package_version.strip()
+        self.capture_store = capture_store
         self._apis = (AKSHARE_SINA_SPOT_API, AKSHARE_SINA_DETAIL_API)
         missing = [name for name in self._apis if not callable(getattr(self.module, name, None))]
         if missing:
@@ -735,17 +1121,51 @@ class SinaSectorClient:
         )
 
     def sector_definitions(self) -> Any:
-        return self._read(
+        logical_identity = f"{AKSHARE_SINA_SPOT_API}:indicator={SINA_TAXONOMY}"
+        if self.capture_store is not None:
+            cached = self.capture_store.load_records("sina_sector_spot", logical_identity)
+            if cached is not None:
+                return cached
+        result = self._read(
             AKSHARE_SINA_SPOT_API,
             lambda: self.module.stock_sector_spot(indicator=SINA_TAXONOMY),
         )
+        if self.capture_store is not None:
+            self.capture_store.capture_records(
+                "sina_sector_spot",
+                logical_identity,
+                result,
+                provider="AkShare",
+                source_identity=SINA_SPOT_SOURCE_URL,
+                provider_version=self.package_version,
+                request_identity=logical_identity,
+                effective_trading_date=self.capture_store.as_of_date,
+            )
+        return result
 
     def sector_members(self, sector_code: str) -> Any:
         api_name = f"{AKSHARE_SINA_DETAIL_API}[{sector_code}]"
+        logical_identity = f"{AKSHARE_SINA_DETAIL_API}:sector={sector_code}"
+        if self.capture_store is not None:
+            cached = self.capture_store.load_records("sina_sector_membership", logical_identity)
+            if cached is not None:
+                self.completed_sector_member_reads += 1
+                return cached
         result = self._read(
             api_name,
             lambda: self.module.stock_sector_detail(sector=sector_code),
         )
+        if self.capture_store is not None:
+            self.capture_store.capture_records(
+                "sina_sector_membership",
+                logical_identity,
+                result,
+                provider="AkShare",
+                source_identity=SINA_DETAIL_SOURCE_URL,
+                provider_version=self.package_version,
+                request_identity=logical_identity,
+                effective_trading_date=self.capture_store.as_of_date,
+            )
         self.completed_sector_member_reads += 1
         return result
 
@@ -777,12 +1197,18 @@ def _read_akshare(
 class ExchangeListedRosterClient:
     """AkShare wrapper for the two official exchange listed-stock rosters."""
 
-    def __init__(self, module: ModuleType | Any | None = None, package_version: str | None = None) -> None:
+    def __init__(
+        self,
+        module: ModuleType | Any | None = None,
+        package_version: str | None = None,
+        capture_store: TCloseEvidenceStore | None = None,
+    ) -> None:
         self.module, actual_version = _load_akshare(module)
         self.package_version = package_version or actual_version
         if not isinstance(self.package_version, str) or not self.package_version.strip():
             _fail(PROVIDER_UNAVAILABLE, "AkShare package version is empty")
         self.package_version = self.package_version.strip()
+        self.capture_store = capture_store
         self.read_attempts: list[dict[str, Any]] = []
         missing = [
             name
@@ -813,22 +1239,48 @@ class ExchangeListedRosterClient:
         )
 
     def sse_main_board(self) -> Any:
-        return self._read(
+        return self._roster_frame(
+            "sse_main_board",
             f"{AKSHARE_SSE_LISTED_ROSTER_API}(symbol={AKSHARE_SSE_MAIN_BOARD_SYMBOL})",
             lambda: self.module.stock_info_sh_name_code(symbol=AKSHARE_SSE_MAIN_BOARD_SYMBOL),
         )
 
     def sse_star(self) -> Any:
-        return self._read(
+        return self._roster_frame(
+            "sse_star",
             f"{AKSHARE_SSE_LISTED_ROSTER_API}(symbol={AKSHARE_SSE_STAR_SYMBOL})",
             lambda: self.module.stock_info_sh_name_code(symbol=AKSHARE_SSE_STAR_SYMBOL),
         )
 
     def szse_a_share(self) -> Any:
-        return self._read(
+        return self._roster_frame(
+            "szse_a_share",
             f"{AKSHARE_SZSE_LISTED_ROSTER_API}(symbol={AKSHARE_SZSE_A_SHARE_SYMBOL})",
             lambda: self.module.stock_info_sz_name_code(symbol=AKSHARE_SZSE_A_SHARE_SYMBOL),
         )
+
+    def _roster_frame(self, logical_identity: str, api_name: str, reader: Callable[[], Any]) -> Any:
+        if self.capture_store is not None:
+            cached = self.capture_store.load_records("official_listed_roster", logical_identity)
+            if cached is not None:
+                return cached
+        result = self._read(api_name, reader)
+        if self.capture_store is not None:
+            self.capture_store.capture_records(
+                "official_listed_roster",
+                logical_identity,
+                result,
+                provider="AkShare",
+                source_identity=(
+                    SSE_OFFICIAL_LISTED_ROSTER_URL
+                    if logical_identity.startswith("sse_")
+                    else SZSE_OFFICIAL_LISTED_ROSTER_URL
+                ),
+                provider_version=self.package_version,
+                request_identity=api_name,
+                effective_trading_date=self.capture_store.as_of_date,
+            )
+        return result
 
     def capability_report(self) -> dict[str, Any]:
         return {
@@ -1304,11 +1756,14 @@ def _request_json(
     timeout: float,
     retries: int,
     request_get: Callable[..., Any],
+    raw_response_callback: Callable[[Any], None] | None = None,
 ) -> Mapping[str, Any]:
     last_error: Exception | None = None
     for attempt in range(retries):
         try:
             response = request_get(url, timeout=timeout)
+            if raw_response_callback is not None:
+                raw_response_callback(response)
             raise_for_status = getattr(response, "raise_for_status", None)
             if callable(raise_for_status):
                 raise_for_status()
@@ -1316,6 +1771,8 @@ def _request_json(
             if not isinstance(payload, Mapping):
                 raise ValueError("response JSON is not an object")
             return payload
+        except LiveAcquisitionError:
+            raise
         except Exception as exc:
             last_error = exc
             if attempt + 1 < retries:
@@ -1334,10 +1791,17 @@ def _fetch_qfq_bars(
     timeout: float,
     retries: int,
     request_get: Callable[..., Any],
+    raw_response_callback: Callable[[Any], None] | None = None,
 ) -> list[dict[str, Any]]:
     provider_symbol = to_symbol(symbol)
     url = f"https://{TENCENT_KLINE_SOURCE}?param={provider_symbol},day,,,{requested_count},qfq"
-    payload = _request_json(url, timeout=timeout, retries=retries, request_get=request_get)
+    payload = _request_json(
+        url,
+        timeout=timeout,
+        retries=retries,
+        request_get=request_get,
+        raw_response_callback=raw_response_callback,
+    )
     data = payload.get("data")
     if not isinstance(data, Mapping):
         _fail(PROVIDER_FAILURE, f"Tencent Kline response has no data object for {provider_symbol}")
@@ -1394,6 +1858,62 @@ def _is_hithink_transient(exc: Exception) -> bool:
     )
 
 
+def _validate_historical_bars(
+    bars: Any,
+    thscode: str,
+    *,
+    minimum_acceptable_history: int,
+    as_of_date: str,
+    require_last_bar_date: bool,
+) -> list[dict[str, Any]]:
+    if not isinstance(bars, Sequence) or isinstance(bars, (str, bytes)):
+        _fail(PROVIDER_FAILURE, f"HiThink historical bars are not a sequence for {thscode}")
+    if len(bars) < minimum_acceptable_history:
+        _fail(
+            INCOMPLETE_COVERAGE,
+            f"HiThink historical coverage for {thscode} is {len(bars)} < "
+            f"{minimum_acceptable_history}",
+        )
+    normalized = list(bars)
+    seen_dates: set[str] = set()
+    for bar_index, bar in enumerate(normalized):
+        if not isinstance(bar, Mapping) or not isinstance(bar.get("date"), str):
+            _fail(PROVIDER_FAILURE, f"HiThink historical bar {thscode}[{bar_index}] has no canonical date")
+        try:
+            canonical_bar_date = _canonical_date(bar["date"])
+        except (TypeError, ValueError, OverflowError) as exc:
+            _fail(
+                PROVIDER_FAILURE,
+                f"HiThink historical bar {thscode}[{bar_index}] has no canonical date",
+            )
+            raise AssertionError from exc
+        if bar["date"] != canonical_bar_date:
+            _fail(
+                PROVIDER_FAILURE,
+                f"HiThink historical bar {thscode}[{bar_index}] date is not canonical: {bar['date']}",
+            )
+        if canonical_bar_date in seen_dates:
+            _fail(INPUT_CONFLICT, f"duplicate HiThink historical bar date for {thscode}: {canonical_bar_date}")
+        seen_dates.add(canonical_bar_date)
+        opening = _number(bar.get("open"), f"{thscode}[{bar_index}].open", positive=True)
+        high = _number(bar.get("high"), f"{thscode}[{bar_index}].high", positive=True)
+        low = _number(bar.get("low"), f"{thscode}[{bar_index}].low", positive=True)
+        closing = _number(bar.get("close"), f"{thscode}[{bar_index}].close", positive=True)
+        _number(bar.get("volume"), f"{thscode}[{bar_index}].volume", non_negative=True)
+        if high < low or high < opening or high < closing or low > opening or low > closing:
+            _fail(INPUT_CONFLICT, f"HiThink historical OHLC conflict for {thscode} on {canonical_bar_date}")
+    normalized.sort(key=lambda item: item["date"])
+    future_dates = [bar["date"] for bar in normalized if bar["date"] > as_of_date]
+    if future_dates:
+        _fail(FUTURE_DATA_DETECTED, f"HiThink historical bar {thscode} is after {as_of_date}: {future_dates[0]}")
+    if require_last_bar_date and normalized[-1].get("date") != as_of_date:
+        _fail(
+            INPUT_DATE_MISMATCH,
+            f"HiThink historical latest bar for {thscode} is {normalized[-1].get('date')} != {as_of_date}",
+        )
+    return normalized
+
+
 def _resolve_market_bars(
     client: HiThinkClient | Any,
     symbol: str,
@@ -1407,6 +1927,7 @@ def _resolve_market_bars(
     index: bool,
     allow_tencent_fallback: bool,
     allow_stale_as_of: bool = False,
+    tencent_raw_response_callback: Callable[[Any], None] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     if requested_count <= 0 or minimum_acceptable_history <= 0:
         _fail(INCOMPLETE_COVERAGE, "historical retrieval target and minimum history must be positive")
@@ -1420,51 +1941,13 @@ def _resolve_market_bars(
             index=index,
             timeout=timeout,
         )
-        if not isinstance(bars, Sequence) or isinstance(bars, (str, bytes)):
-            _fail(PROVIDER_FAILURE, f"HiThink historical bars are not a sequence for {thscode}")
-        if len(bars) < minimum_acceptable_history:
-            _fail(
-                INCOMPLETE_COVERAGE,
-                f"HiThink historical coverage for {thscode} is {len(bars)} < "
-                f"{minimum_acceptable_history}",
-            )
-        normalized = list(bars)
-        seen_dates: set[str] = set()
-        for bar_index, bar in enumerate(normalized):
-            if not isinstance(bar, Mapping) or not isinstance(bar.get("date"), str):
-                _fail(PROVIDER_FAILURE, f"HiThink historical bar {thscode}[{bar_index}] has no canonical date")
-            try:
-                canonical_bar_date = _canonical_date(bar["date"])
-            except (TypeError, ValueError, OverflowError) as exc:
-                _fail(
-                    PROVIDER_FAILURE,
-                    f"HiThink historical bar {thscode}[{bar_index}] has no canonical date",
-                )
-                raise AssertionError from exc
-            if bar["date"] != canonical_bar_date:
-                _fail(
-                    PROVIDER_FAILURE,
-                    f"HiThink historical bar {thscode}[{bar_index}] date is not canonical: {bar['date']}",
-                )
-            if canonical_bar_date in seen_dates:
-                _fail(INPUT_CONFLICT, f"duplicate HiThink historical bar date for {thscode}: {canonical_bar_date}")
-            seen_dates.add(canonical_bar_date)
-            opening = _number(bar.get("open"), f"{thscode}[{bar_index}].open", positive=True)
-            high = _number(bar.get("high"), f"{thscode}[{bar_index}].high", positive=True)
-            low = _number(bar.get("low"), f"{thscode}[{bar_index}].low", positive=True)
-            closing = _number(bar.get("close"), f"{thscode}[{bar_index}].close", positive=True)
-            _number(bar.get("volume"), f"{thscode}[{bar_index}].volume", non_negative=True)
-            if high < low or high < opening or high < closing or low > opening or low > closing:
-                _fail(INPUT_CONFLICT, f"HiThink historical OHLC conflict for {thscode} on {canonical_bar_date}")
-        normalized.sort(key=lambda item: item["date"])
-        future_dates = [bar["date"] for bar in normalized if bar["date"] > as_of_date]
-        if future_dates:
-            _fail(FUTURE_DATA_DETECTED, f"HiThink historical bar {thscode} is after {as_of_date}: {future_dates[0]}")
-        if (index or not allow_stale_as_of) and normalized[-1].get("date") != as_of_date:
-            _fail(
-                INPUT_DATE_MISMATCH,
-                f"HiThink historical latest bar for {thscode} is {normalized[-1].get('date')} != {as_of_date}",
-            )
+        normalized = _validate_historical_bars(
+            bars,
+            thscode,
+            minimum_acceptable_history=minimum_acceptable_history,
+            as_of_date=as_of_date,
+            require_last_bar_date=index or not allow_stale_as_of,
+        )
         return normalized, {
             "provider": "HiThink Financial-API",
             "source": (
@@ -1492,6 +1975,7 @@ def _resolve_market_bars(
             timeout=timeout,
             retries=retries,
             request_get=request_get,
+            raw_response_callback=tencent_raw_response_callback,
         )
         return fallback, {
             "provider": "Tencent",
@@ -1499,6 +1983,92 @@ def _resolve_market_bars(
             "adjustment_mode": PROVIDER_QFQ_SNAPSHOT,
             "selection": "EXPLICIT_FALLBACK",
         }
+
+
+def _history_capture_spec(
+    symbol: str,
+    *,
+    requested_count: int,
+    as_of_date: str,
+    index: bool,
+) -> tuple[str, str, int, int]:
+    start_ms, end_ms = _historical_window(as_of_date, requested_count)
+    thscode = HITHINK_INDEX_SYMBOL if index else _hithink_thscode(symbol)
+    path = HITHINK_INDEX_KLINE_API if index else HITHINK_STOCK_KLINE_API
+    params: dict[str, Any] = {
+        "thscode": thscode,
+        "interval": "1d",
+        "start": start_ms,
+        "end": end_ms,
+    }
+    if not index:
+        params["adjust"] = "forward"
+    return _hithink_capture_identity(path, params), thscode, start_ms, end_ms
+
+
+def _load_captured_market_bars(
+    store: TCloseEvidenceStore,
+    logical_identity: str,
+    thscode: str,
+    *,
+    minimum_acceptable_history: int,
+    as_of_date: str,
+    require_last_bar_date: bool,
+) -> tuple[list[dict[str, Any]], dict[str, Any]] | None:
+    record = store.load_raw("hithink_kline", logical_identity)
+    if record is None:
+        return None
+    if record.metadata.get("content_type") != "canonical_adapter_records":
+        _fail(PERSISTENCE_CONFLICT, f"Kline checkpoint is not canonical adapter records for {thscode}")
+    required_metadata = ("provider", "source_identity", "provider_version", "adjustment_mode", "selection")
+    if any(not record.metadata.get(field_name) for field_name in required_metadata):
+        _fail(PERSISTENCE_CONFLICT, f"Kline checkpoint provenance is incomplete for {thscode}")
+    try:
+        bars = json.loads(record.payload.decode(str(record.metadata.get("encoding", "utf-8"))))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        _fail(PERSISTENCE_CONFLICT, f"Kline checkpoint cannot be decoded for {thscode}: {type(exc).__name__}")
+    normalized = _validate_historical_bars(
+        bars,
+        thscode,
+        minimum_acceptable_history=minimum_acceptable_history,
+        as_of_date=as_of_date,
+        require_last_bar_date=require_last_bar_date,
+    )
+    return normalized, {
+        "provider": record.metadata["provider"],
+        "source": record.metadata["source_identity"],
+        "adjustment_mode": record.metadata["adjustment_mode"],
+        "selection": record.metadata["selection"],
+    }
+
+
+def _capture_market_bars(
+    store: TCloseEvidenceStore,
+    logical_identity: str,
+    bars: Sequence[Mapping[str, Any]],
+    resolution: Mapping[str, Any],
+    *,
+    as_of_date: str,
+) -> None:
+    provider = str(resolution["provider"])
+    store.capture_records(
+        "hithink_kline",
+        logical_identity,
+        list(bars),
+        provider=provider,
+        source_identity=str(resolution["source"]),
+        provider_version=(
+            HITHINK_API_VERSION
+            if provider == "HiThink Financial-API"
+            else f"requests/{_installed_version('requests')}"
+        ),
+        request_identity=logical_identity,
+        effective_trading_date=as_of_date,
+        metadata_extra={
+            "adjustment_mode": resolution["adjustment_mode"],
+            "selection": resolution["selection"],
+        },
+    )
 
 
 def _market_env(index: IndexManifest) -> dict[str, Any]:
@@ -1924,6 +2494,8 @@ def acquire_live_generation_inputs(
     kline_retries: int = 3,
     stock_bar_count: int = DEFAULT_STOCK_BAR_COUNT,
     index_bar_count: int = DEFAULT_INDEX_BAR_COUNT,
+    evidence_root: str | Path | None = None,
+    code_git_sha: str | None = None,
 ) -> LiveInputPackage:
     """Acquire one real T-close input package after all preconditions pass.
 
@@ -1939,16 +2511,60 @@ def acquire_live_generation_inputs(
     if stock_bar_count <= 0 or index_bar_count <= 0:
         _fail(INCOMPLETE_COVERAGE, "bar counts must be positive")
 
-    hithink = hithink_client or HiThinkClient(request_get=hithink_request_get)
+    evidence_store = (
+        TCloseEvidenceStore(evidence_root, target_date, code_git_sha=code_git_sha)
+        if evidence_root is not None
+        else None
+    )
+    hithink = hithink_client or HiThinkClient(
+        request_get=hithink_request_get,
+        capture_store=evidence_store,
+    )
     if not all(callable(getattr(hithink, name, None)) for name in ("universe", "historical_bars", "capability_report")):
         _fail(PROVIDER_UNAVAILABLE, "HiThink client capability is incomplete")
-    sina = SinaSectorClient(sina_module if sina_module is not None else akshare_module, akshare_version)
-    roster_client = ExchangeListedRosterClient(sina.module, sina.package_version)
+    sina = SinaSectorClient(
+        sina_module if sina_module is not None else akshare_module,
+        akshare_version,
+        evidence_store,
+    )
+    roster_client = ExchangeListedRosterClient(
+        sina.module,
+        sina.package_version,
+        evidence_store,
+    )
     acquisition_started = time.monotonic()
     retrieved_at_bjt = _timestamp_text(observed_at)
     try:
-        universe_frame = hithink.universe(timeout=kline_timeout)
+        universe_frame = (
+            evidence_store.load_records("hithink_universe", "hithink_universe")
+            if evidence_store is not None
+            else None
+        )
+        if universe_frame is None:
+            universe_frame = hithink.universe(timeout=kline_timeout)
+            if evidence_store is not None:
+                evidence_store.capture_records(
+                    "hithink_universe",
+                    "hithink_universe",
+                    universe_frame,
+                    provider="HiThink Financial-API",
+                    source_identity=HITHINK_UNIVERSE_API,
+                    provider_version=HITHINK_API_VERSION,
+                    request_identity=HITHINK_UNIVERSE_API,
+                    effective_trading_date=target_date,
+                )
     except Exception as exc:
+        if evidence_store is not None:
+            evidence_store.record_failure(
+                "hithink_universe",
+                provider="HiThink Financial-API",
+                source_identity=HITHINK_UNIVERSE_API,
+                provider_version=HITHINK_API_VERSION,
+                error_type=type(exc).__name__,
+                error_detail=str(exc),
+                request_identity=HITHINK_UNIVERSE_API,
+                response_component="hithink_response",
+            )
         _fail(
             PROVIDER_FAILURE,
             _hithink_failure_message(
@@ -1971,6 +2587,16 @@ def acquire_live_generation_inputs(
     except LiveAcquisitionError:
         raise
     except Exception as exc:
+        if evidence_store is not None:
+            evidence_store.record_failure(
+                "official_listed_roster",
+                provider="AkShare",
+                source_identity="EXCHANGE_OFFICIAL_CURRENT_LISTED_ROSTER_V1",
+                provider_version=roster_client.package_version,
+                error_type=type(exc).__name__,
+                error_detail=str(exc),
+                request_identity="official_listed_roster",
+            )
         _fail(
             PROVIDER_FAILURE,
             _akshare_failure_message(
@@ -1986,6 +2612,16 @@ def acquire_live_generation_inputs(
     except LiveAcquisitionError:
         raise
     except Exception as exc:
+        if evidence_store is not None:
+            evidence_store.record_failure(
+                "sina_sector",
+                provider="AkShare",
+                source_identity=SINA_SOURCE_URL,
+                provider_version=sina.package_version,
+                error_type=type(exc).__name__,
+                error_detail=str(exc),
+                request_identity="sina_sector",
+            )
         _fail(
             PROVIDER_FAILURE,
             _akshare_failure_message(
@@ -1998,6 +2634,52 @@ def acquire_live_generation_inputs(
         )
 
     get = request_get or requests.get
+    quote_provider_version = f"requests/{_installed_version('requests')}"
+
+    def quote_identity(batch_index: int, batch: Sequence[str]) -> str:
+        return f"batch={batch_index};codes={','.join(batch)}"
+
+    def capture_quote_response(
+        batch_index: int,
+        batch: list[str],
+        url: str,
+        response: Any,
+    ) -> None:
+        if evidence_store is None:
+            return
+        payload, encoding = _response_bytes(response)
+        evidence_store.capture_raw(
+            "tencent_quote",
+            quote_identity(batch_index, batch),
+            payload,
+            provider="Tencent",
+            source_identity=TENCENT_QUOTE_SOURCE,
+            provider_version=quote_provider_version,
+            request_identity=url,
+            record_count=len(batch),
+            batch_count=1,
+            effective_trading_date=target_date,
+            encoding=encoding,
+            content_type="provider_response",
+            metadata_extra={
+                "decode_encoding": "gbk",
+                "codes": list(batch),
+            },
+        )
+
+    def load_quote_response(batch_index: int, batch: list[str], url: str) -> str | None:
+        if evidence_store is None:
+            return None
+        record = evidence_store.load_raw("tencent_quote", quote_identity(batch_index, batch))
+        if record is None:
+            return None
+        if record.metadata.get("content_type") != "provider_response":
+            _fail(PERSISTENCE_CONFLICT, f"Tencent quote capture is not a provider response for batch {batch_index}")
+        try:
+            return record.payload.decode(str(record.metadata.get("decode_encoding", "gbk")))
+        except UnicodeDecodeError as exc:
+            _fail(PERSISTENCE_CONFLICT, f"Tencent quote capture cannot be decoded for batch {batch_index}: {type(exc).__name__}")
+
     try:
         quotes = fetch_quotes(
             universe.symbols,
@@ -2005,19 +2687,65 @@ def acquire_live_generation_inputs(
             timeout=quote_timeout,
             retries=quote_retries,
             request_get=get,
+            raw_response_callback=capture_quote_response,
+            cached_response_loader=load_quote_response,
         )
     except MissingQuoteError as exc:
+        if evidence_store is not None:
+            evidence_store.record_failure(
+                "tencent_quote",
+                provider="Tencent",
+                source_identity=TENCENT_QUOTE_SOURCE,
+                provider_version=quote_provider_version,
+                error_type=type(exc).__name__,
+                error_detail=str(exc),
+                request_identity="tencent_quote_snapshot",
+                response_component="tencent_quote",
+            )
         _fail(INCOMPLETE_COVERAGE, "Tencent quote coverage is incomplete")
         raise AssertionError from exc
     except StaleQuoteError as exc:
+        if evidence_store is not None:
+            evidence_store.record_failure(
+                "tencent_quote",
+                provider="Tencent",
+                source_identity=TENCENT_QUOTE_SOURCE,
+                provider_version=quote_provider_version,
+                error_type=type(exc).__name__,
+                error_detail=str(exc),
+                request_identity="tencent_quote_snapshot",
+                response_component="tencent_quote",
+            )
         _fail(INPUT_DATE_MISMATCH, "Tencent quote is not a T-date quote")
         raise AssertionError from exc
     except QuoteParseError as exc:
+        if evidence_store is not None:
+            evidence_store.record_failure(
+                "tencent_quote",
+                provider="Tencent",
+                source_identity=TENCENT_QUOTE_SOURCE,
+                provider_version=quote_provider_version,
+                error_type=type(exc).__name__,
+                error_detail=str(exc),
+                request_identity="tencent_quote_snapshot",
+                response_component="tencent_quote",
+            )
         if str(exc) == "empty Tencent quote response":
             _fail(INCOMPLETE_COVERAGE, "Tencent quote response is empty")
         _fail(PROVIDER_FAILURE, "Tencent quote response is malformed")
         raise AssertionError from exc
     except QuoteDataError as exc:
+        if evidence_store is not None:
+            evidence_store.record_failure(
+                "tencent_quote",
+                provider="Tencent",
+                source_identity=TENCENT_QUOTE_SOURCE,
+                provider_version=quote_provider_version,
+                error_type=type(exc).__name__,
+                error_detail=str(exc),
+                request_identity="tencent_quote_snapshot",
+                response_component="tencent_quote",
+            )
         detail = str(exc)
         diagnostics = {
             "provider": "Tencent",
@@ -2046,22 +2774,109 @@ def acquire_live_generation_inputs(
         temporal_semantics=LIVE_OBSERVED,
     )
 
+    def capture_tencent_kline_response(
+        symbol: str,
+        requested_count: int,
+        index: bool,
+        response: Any,
+    ) -> None:
+        if evidence_store is None:
+            return
+        payload, encoding = _response_bytes(response)
+        provider_symbol = to_symbol(symbol)
+        url = f"https://{TENCENT_KLINE_SOURCE}?param={provider_symbol},day,,,{requested_count},qfq"
+        evidence_store.capture_raw(
+            "tencent_kline_response",
+            f"{symbol};index={str(index).lower()};count={requested_count}",
+            payload,
+            provider="Tencent",
+            source_identity=TENCENT_KLINE_SOURCE,
+            provider_version=f"requests/{_installed_version('requests')}",
+            request_identity=url,
+            effective_trading_date=target_date,
+            encoding=encoding,
+            content_type="provider_response",
+            metadata_extra={"decode_encoding": "utf-8", "provider_symbol": provider_symbol},
+        )
+
+    def record_kline_failure(
+        component: str,
+        symbol: str,
+        logical_identity: str,
+        exc: Exception,
+    ) -> None:
+        if evidence_store is None:
+            return
+        evidence_store.record_failure(
+            component,
+            provider="HiThink Financial-API",
+            source_identity=logical_identity,
+            provider_version=HITHINK_API_VERSION,
+            error_type=type(exc).__name__,
+            error_detail=str(exc),
+            request_identity=f"{symbol}:{logical_identity}",
+            response_component=(
+                "tencent_kline_response"
+                if evidence_store.latest("tencent_kline_response") is not None
+                else "hithink_response"
+            ),
+        )
+
     stock_klines: list[KlineManifest] = []
     stock_resolutions: dict[str, dict[str, Any]] = {}
     for symbol in universe.symbols:
-        bars, resolution = _resolve_market_bars(
-            hithink,
+        logical_identity, thscode, _, _ = _history_capture_spec(
             symbol,
             requested_count=stock_bar_count,
-            minimum_acceptable_history=MIN_STOCK_BARS_FOR_GENERATION_INPUT,
             as_of_date=target_date,
-            timeout=kline_timeout,
-            retries=kline_retries,
-            request_get=get,
             index=False,
-            allow_tencent_fallback=allow_tencent_fallback,
-            allow_stale_as_of=is_no_trade_snapshot(quotes[symbol]),
         )
+        try:
+            cached = (
+                _load_captured_market_bars(
+                    evidence_store,
+                    logical_identity,
+                    thscode,
+                    minimum_acceptable_history=MIN_STOCK_BARS_FOR_GENERATION_INPUT,
+                    as_of_date=target_date,
+                    require_last_bar_date=not is_no_trade_snapshot(quotes[symbol]),
+                )
+                if evidence_store is not None
+                else None
+            )
+            if cached is None:
+                bars, resolution = _resolve_market_bars(
+                    hithink,
+                    symbol,
+                    requested_count=stock_bar_count,
+                    minimum_acceptable_history=MIN_STOCK_BARS_FOR_GENERATION_INPUT,
+                    as_of_date=target_date,
+                    timeout=kline_timeout,
+                    retries=kline_retries,
+                    request_get=get,
+                    index=False,
+                    allow_tencent_fallback=allow_tencent_fallback,
+                    allow_stale_as_of=is_no_trade_snapshot(quotes[symbol]),
+                    tencent_raw_response_callback=lambda response, symbol=symbol: capture_tencent_kline_response(
+                        symbol, stock_bar_count, False, response
+                    ),
+                )
+                if evidence_store is not None:
+                    _capture_market_bars(
+                        evidence_store,
+                        logical_identity,
+                        bars,
+                        resolution,
+                        as_of_date=target_date,
+                    )
+            else:
+                bars, resolution = cached
+        except LiveAcquisitionError as exc:
+            record_kline_failure("stock_kline", symbol, logical_identity, exc)
+            raise
+        except Exception as exc:
+            record_kline_failure("stock_kline", symbol, logical_identity, exc)
+            _fail(PROVIDER_FAILURE, f"Kline acquisition failed for {symbol}: {type(exc).__name__}")
         stock_resolutions[symbol] = resolution
         stock_klines.append(
             KlineManifest(
@@ -2075,18 +2890,57 @@ def acquire_live_generation_inputs(
                 temporal_semantics=LIVE_OBSERVED,
             )
         )
-    index_bars, index_resolution = _resolve_market_bars(
-        hithink,
+    index_logical_identity, index_thscode, _, _ = _history_capture_spec(
         INDEX_SYMBOL,
         requested_count=index_bar_count,
-        minimum_acceptable_history=MIN_INDEX_BARS_FOR_MARKET_ENV,
         as_of_date=target_date,
-        timeout=kline_timeout,
-        retries=kline_retries,
-        request_get=get,
         index=True,
-        allow_tencent_fallback=allow_tencent_fallback,
     )
+    try:
+        cached_index = (
+            _load_captured_market_bars(
+                evidence_store,
+                index_logical_identity,
+                index_thscode,
+                minimum_acceptable_history=MIN_INDEX_BARS_FOR_MARKET_ENV,
+                as_of_date=target_date,
+                require_last_bar_date=True,
+            )
+            if evidence_store is not None
+            else None
+        )
+        if cached_index is None:
+            index_bars, index_resolution = _resolve_market_bars(
+                hithink,
+                INDEX_SYMBOL,
+                requested_count=index_bar_count,
+                minimum_acceptable_history=MIN_INDEX_BARS_FOR_MARKET_ENV,
+                as_of_date=target_date,
+                timeout=kline_timeout,
+                retries=kline_retries,
+                request_get=get,
+                index=True,
+                allow_tencent_fallback=allow_tencent_fallback,
+                tencent_raw_response_callback=lambda response: capture_tencent_kline_response(
+                    INDEX_SYMBOL, index_bar_count, True, response
+                ),
+            )
+            if evidence_store is not None:
+                _capture_market_bars(
+                    evidence_store,
+                    index_logical_identity,
+                    index_bars,
+                    index_resolution,
+                    as_of_date=target_date,
+                )
+        else:
+            index_bars, index_resolution = cached_index
+    except LiveAcquisitionError as exc:
+        record_kline_failure("index_kline", INDEX_SYMBOL, index_logical_identity, exc)
+        raise
+    except Exception as exc:
+        record_kline_failure("index_kline", INDEX_SYMBOL, index_logical_identity, exc)
+        _fail(PROVIDER_FAILURE, f"Index Kline acquisition failed: {type(exc).__name__}")
     index = IndexManifest(
         symbol=INDEX_SYMBOL,
         as_of_date=target_date,
@@ -2183,6 +3037,13 @@ def acquire_live_generation_inputs(
         "hithink_capability": hithink.capability_report(),
         "akshare_sina_capability": sina.capability_report(),
     }
+    if evidence_store is not None:
+        provider_metadata["t_close_evidence"] = {
+            "schema_version": CAPTURE_SCHEMA,
+            "target_date": target_date,
+            "status": "T_CLOSE_VOLATILE_EVIDENCE_SECURED",
+            "captures": evidence_store.summary(),
+        }
     run_context = RunContext(
         as_of_date=target_date,
         mode="close",
@@ -2233,6 +3094,11 @@ def acquire_live_generation_inputs(
             "earliest_execution_date": manifest.earliest_execution_date,
         },
         "provider_version_metadata": provider_metadata,
+        "evidence_capture": (
+            copy.deepcopy(provider_metadata["t_close_evidence"])
+            if evidence_store is not None
+            else {"schema_version": CAPTURE_SCHEMA, "status": "NOT_CONFIGURED"}
+        ),
         "quality_checks": {
             "observation_date": "PASS",
             "freshness_and_session_close": "PASS",
@@ -2266,6 +3132,8 @@ __all__ = [
     "AKSHARE_SZSE_A_SHARE_SYMBOL",
     "AKSHARE_SZSE_LISTED_ROSTER_API",
     "ALLOW_TENCENT_KLINE_FALLBACK",
+    "CAPTURE_SCHEMA",
+    "CaptureRecord",
     "DEFAULT_INDEX_BAR_COUNT",
     "DEFAULT_STOCK_BAR_COUNT",
     "MIN_STOCK_BARS_FOR_GENERATION_INPUT",
@@ -2304,6 +3172,7 @@ __all__ = [
     "SSE_OFFICIAL_LISTED_ROSTER_URL",
     "SZSE_OFFICIAL_LISTED_ROSTER_URL",
     "SinaSectorClient",
+    "TCloseEvidenceStore",
     "TENCENT_KLINE_SOURCE",
     "TRADABLE_UNIVERSE_SCOPE_V1",
     "TRADABLE_UNIVERSE_SCOPE_VERSION",
