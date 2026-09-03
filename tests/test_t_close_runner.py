@@ -12,7 +12,13 @@ def test_runner_persists_input_package_before_generating_watchlist(monkeypatch, 
         generation_input_manifest=SimpleNamespace(signal_date="2026-08-27"),
         display_names={"600519": "测试股份"},
         market_env={"as_of_date": "2026-08-27"},
-        provenance={"evidence_capture": {"status": "T_CLOSE_VOLATILE_EVIDENCE_SECURED"}},
+        provenance={
+            "evidence_capture": {"status": "T_CLOSE_VOLATILE_EVIDENCE_SECURED"},
+            "candidate": {
+                "strategy_version": runner.B_STRATEGY_BINDING.strategy_version,
+                "spec_sha256": runner.B_STRATEGY_BINDING.strategy_spec_sha256,
+            },
+        },
     )
     persisted = SimpleNamespace(
         status="PERSISTED",
@@ -42,11 +48,13 @@ def test_runner_persists_input_package_before_generating_watchlist(monkeypatch, 
         def __init__(self, output_root):
             assert output_root == tmp_path
 
-        def generate(self, manifest, *, names, market_env):
+        def generate(self, manifest, *, names, market_env, strategy_binding, input_provenance):
             events.append("generate_watchlist")
             assert manifest is package.generation_input_manifest
             assert names == package.display_names
             assert market_env == package.market_env
+            assert strategy_binding is runner.B_STRATEGY_BINDING
+            assert input_provenance is package.provenance
             assert events == ["acquire", "persist_package", "generate_watchlist"]
             return candidate
 
