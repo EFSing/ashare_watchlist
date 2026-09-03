@@ -827,3 +827,31 @@ provider call or formal package/output was created before the close. Therefore t
 `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE` remains unresolved until the scheduled run
 completes with auditable evidence and output. Private Drive backup/readback is not configured
 by this runner. The forbidden continuous-speed-probe directory remains untouched.
+
+## Superseding current state — 2026-09-03 recovery stopped at PR #29
+
+Formal Delivery Ladder remains `development candidate`; the task did not enter strategy
+promotion, Final OOS, returns validation, C, Phase 2F, tuning or auto-freeze. Live GitHub
+confirms PR #28 merged at `43f055e4e8e1a0e1e4a70e41cf8ec10580aab984` and merge-after run
+`33720355007` succeeded. The stale PR-open snapshot is therefore resolved as
+`PROJECT_GOVERNANCE_STATE_CONFLICT_RESOLVED`.
+
+The actual 2026-09-03 runner captured the volatile source boundary from 15:30:04 through
+15:30:57 BJT. HiThink universe, all three official roster sources, exact Sina sector inputs,
+all Tencent T-date quote batches and four completed stock-Kline checkpoints are retained;
+the initial 170 raw/sidecar pairs passed SHA verification. The run stopped at `000008.SZ`
+with HiThink `HTTPError`; a later resume attempt used the existing checkpoints, then its
+allowed Tencent qfq fallback failed after three `ConnectionError` attempts. No READY manifest,
+package, canonical watchlist or B/ST result exists.
+
+The resume path exposed a concrete persistence correctness blocker: a changed retry response
+could collide with an immutable prior response at the same request identity. PR #29 adds only
+a deterministic `response_sha256` supplemental identity for changed response bytes and a
+regression test; original `UNKNOWN_ORIGIN` sidecars remain unchanged. PR #29 is open against
+master, with exact-head correctness run `33736428448` successful and state `CLEAN`/mergeable.
+The current stop is
+`NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION_T_EVIDENCE_SECURED`; after user merge,
+resume starts at `000008.SZ` and must not refetch successful volatile components. Original
+runner code provenance remains incomplete, so `FULLY_RECOVERABLE` and frozen-prerequisite PASS
+are not claimed. Private Drive remains `NOT_CONFIGURED`; the forbidden probe directory remains
+untouched.
