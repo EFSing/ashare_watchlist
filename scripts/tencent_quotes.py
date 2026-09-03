@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 import re
 import time
+from collections.abc import Mapping
 from datetime import date, datetime
 from typing import Any, Callable, Iterable
 
@@ -175,18 +176,7 @@ def validate_quote(quote: dict[str, Any]) -> None:
         raise QuoteFieldError(f"{code}: invalid quote_date {quote['quote_date']!r}") from exc
     if parsed_date.isoformat() != quote["quote_date"]:
         raise QuoteFieldError(f"{code}: non-canonical quote_date {quote['quote_date']!r}")
-    no_trade_snapshot = (
-        quote["price"] > 0
-        and quote["prev_close"] > 0
-        and quote["price"] == quote["prev_close"]
-        and quote["chg_pct"] == 0
-        and quote["open"] == 0
-        and quote["high"] == 0
-        and quote["low"] == 0
-        and quote["volume"] == 0
-        and quote["turnover"] == 0
-        and quote["vol_ratio"] == 0
-    )
+    no_trade_snapshot = is_no_trade_snapshot(quote)
     if not no_trade_snapshot and (
         quote["price"] <= 0 or quote["prev_close"] <= 0 or quote["open"] <= 0
     ):
@@ -236,6 +226,36 @@ def parse_quote_response(
         raise errors[0]
     validate_quotes(quotes, expected_codes=expected_codes, expected_date=expected_date)
     return quotes
+
+
+def is_no_trade_snapshot(quote: Mapping[str, Any]) -> bool:
+    """Return whether a complete quote has the canonical no-trade shape."""
+
+    required = (
+        "price",
+        "prev_close",
+        "open",
+        "chg_pct",
+        "high",
+        "low",
+        "volume",
+        "turnover",
+        "vol_ratio",
+    )
+    if any(field not in quote for field in required):
+        return False
+    return (
+        quote["price"] > 0
+        and quote["prev_close"] > 0
+        and quote["price"] == quote["prev_close"]
+        and quote["chg_pct"] == 0
+        and quote["open"] == 0
+        and quote["high"] == 0
+        and quote["low"] == 0
+        and quote["volume"] == 0
+        and quote["turnover"] == 0
+        and quote["vol_ratio"] == 0
+    )
 
 
 def validate_quotes(

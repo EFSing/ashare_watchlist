@@ -99,9 +99,10 @@ class FakeAkShare:
 
 
 class FakeHiThink:
-    def __init__(self, *, universe=None, bars=None, failures=None):
+    def __init__(self, *, universe=None, bars=None, index_bars=None, failures=None):
         self._universe = universe
         self._bars = bars
+        self._index_bars = index_bars
         self._failures = {key: list(values) for key, values in (failures or {}).items()}
         self.universe_calls = 0
         self.kline_calls = []
@@ -149,7 +150,11 @@ class FakeHiThink:
         del start, end, timeout
         self.kline_calls.append((thscode, index))
         self._maybe_fail("index" if index else "stock")
-        bars = self._bars if self._bars is not None else _bars()
+        bars = (
+            self._index_bars
+            if index and self._index_bars is not None
+            else (self._bars if self._bars is not None else _bars())
+        )
         result = []
         for row in bars:
             result.append(
@@ -196,14 +201,25 @@ def _bars(last_date: str = AS_OF, count: int = 21):
     ]
 
 
-def _quote_line(quote_date: str = AS_OF) -> str:
-    return (
-        'v_sh600519="1~测试股份~600519~123.45~120.00~121.00~10000~1000000~0~0~0~0~0~0~0~0~0~0~0~0~0~0~0~0~0~0~0~0~0~0~'
-        f'{quote_date.replace("-", "")}153000~0~2.88~125.00~119.50~0~0~0~4.56~0~0~0~0~0~0~0~0~0~0~1.78";'
-    )
+def _quote_line(quote_date: str = AS_OF, *, no_trade: bool = False) -> str:
+    fields = ["0"] * 50
+    fields[0] = "1"
+    fields[1] = "测试股份"
+    fields[2] = "600519"
+    fields[3] = "0.77" if no_trade else "123.45"
+    fields[4] = "0.77" if no_trade else "120.00"
+    fields[5] = "0" if no_trade else "121.00"
+    fields[6] = "0" if no_trade else "10000"
+    fields[30] = f'{quote_date.replace("-", "")}153000'
+    fields[32] = "0" if no_trade else "2.88"
+    fields[33] = "0" if no_trade else "125.00"
+    fields[34] = "0" if no_trade else "119.50"
+    fields[38] = "0" if no_trade else "4.56"
+    fields[49] = "0" if no_trade else "1.78"
+    return f'v_sh600519="{"~".join(fields)}";'
 
 
-def _request_get(*, quote_date: str = AS_OF, bars=None, calls=None):
+def _request_get(*, quote_date: str = AS_OF, bars=None, calls=None, no_trade: bool = False):
     bars = _bars() if bars is None else bars
 
     def request_get(url, timeout):
@@ -211,7 +227,7 @@ def _request_get(*, quote_date: str = AS_OF, bars=None, calls=None):
         if calls is not None:
             calls.append(url)
         if url.startswith("https://qt.gtimg.cn"):
-            return FakeResponse(text=_quote_line(quote_date))
+            return FakeResponse(text=_quote_line(quote_date, no_trade=no_trade))
         provider_symbol = url.split("param=", 1)[1].split(",", 1)[0]
         return FakeResponse({"data": {provider_symbol: {"qfqday": bars}}})
 
@@ -617,6 +633,32 @@ def test_hithink_stock_failure_uses_only_explicitly_versioned_tencent_fallback()
     assert policy["fallback_symbols"] == [SYMBOL]
 
 
+def test_tencent_stock_fallback_accepts_stale_non_empty_history_for_listed_suspension():
+    hithink = FakeHiThink(failures={"stock": [ConnectionError("down")]})
+    package = _acquire(
+        hithink_client=hithink,
+        request_get=_request_get(
+            bars=_bars(last_date="2026-08-26", count=141),
+            no_trade=True,
+        ),
+    )
+
+    stock = package.generation_input_manifest.stock_klines[0]
+    assert stock.provider == "Tencent"
+    assert stock.bar_count == 141
+    assert stock.last_bar_date == "2026-08-26"
+
+
+def test_tencent_stock_fallback_rejects_stale_history_for_ordinary_trade():
+    with pytest.raises(live.LiveAcquisitionError) as caught:
+        _acquire(
+            hithink_client=FakeHiThink(failures={"stock": [ConnectionError("down")]}),
+            request_get=_request_get(bars=_bars(last_date="2026-08-26", count=141)),
+        )
+
+    assert caught.value.status == INPUT_DATE_MISMATCH
+
+
 def test_hithink_stock_failure_is_fail_closed_when_fallback_is_disabled():
     with pytest.raises(live.LiveAcquisitionError) as caught:
         _acquire(
@@ -885,9 +927,36 @@ def test_missing_t_quote_fails_closed():
     assert caught.value.status == INCOMPLETE_COVERAGE
 
 
-def test_missing_or_stale_t_kline_fails_closed():
+def test_stale_index_kline_fails_closed():
     with pytest.raises(live.LiveAcquisitionError) as caught:
-        _acquire(hithink_client=FakeHiThink(bars=_bars(last_date="2026-08-26")))
+        _acquire(hithink_client=FakeHiThink(index_bars=_bars(last_date="2026-08-26")))
+
+    assert caught.value.status == INPUT_DATE_MISMATCH
+
+
+def test_stale_non_empty_stock_kline_is_accepted_for_listed_suspension():
+    package = _acquire(
+        hithink_client=FakeHiThink(
+            bars=_bars(last_date="2026-08-26", count=141),
+            index_bars=_bars(),
+        ),
+        request_get=_request_get(no_trade=True),
+    )
+
+    stock = package.generation_input_manifest.stock_klines[0]
+    assert stock.bar_count == 141
+    assert stock.last_bar_date == "2026-08-26"
+    assert package.generation_input_manifest.status == "READY_FOR_STRATEGY_EVALUATION"
+
+
+def test_stale_non_empty_stock_kline_is_rejected_for_ordinary_trade():
+    with pytest.raises(live.LiveAcquisitionError) as caught:
+        _acquire(
+            hithink_client=FakeHiThink(
+                bars=_bars(last_date="2026-08-26", count=141),
+                index_bars=_bars(),
+            ),
+        )
 
     assert caught.value.status == INPUT_DATE_MISMATCH
 

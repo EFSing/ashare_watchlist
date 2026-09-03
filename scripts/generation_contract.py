@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
+from tencent_quotes import is_no_trade_snapshot
 from trading_calendar import CalendarUnavailable, TradingCalendar, default_calendar
 
 
@@ -615,7 +616,13 @@ def _validate_calendar(as_of_date: str, calendar: TradingCalendar) -> None:
         _fail(CALENDAR_ERROR, f"XSHG calendar failed: {exc}")
 
 
-def _validate_kline_coverage(item: KlineManifest, as_of_date: str, label: str) -> None:
+def _validate_kline_coverage(
+    item: KlineManifest,
+    as_of_date: str,
+    label: str,
+    *,
+    require_last_bar_date: bool = True,
+) -> None:
     if item.bar_count == 0 or item.first_bar_date is None or item.last_bar_date is None:
         _fail(INCOMPLETE_COVERAGE, f"{label} {item.symbol} has no bars")
     future_dates = [bar["date"] for bar in item.bars if bar["date"] > as_of_date]
@@ -624,20 +631,33 @@ def _validate_kline_coverage(item: KlineManifest, as_of_date: str, label: str) -
             FUTURE_DATA_DETECTED,
             f"{label} {item.symbol} contains bar after {as_of_date}: {future_dates[0]}",
         )
-    if item.last_bar_date != as_of_date:
+    if require_last_bar_date and item.last_bar_date != as_of_date:
         _fail(
             INPUT_DATE_MISMATCH,
             f"{label} {item.symbol} last_bar_date {item.last_bar_date} != {as_of_date}",
         )
 
 
-def _validate_stock_kline(item: KlineManifest, as_of_date: str) -> None:
+def _validate_stock_kline(
+    item: KlineManifest,
+    as_of_date: str,
+    *,
+    no_trade_snapshot: bool,
+) -> None:
     if item.adjustment_mode != PROVIDER_QFQ_SNAPSHOT:
         _fail(
             UNSUPPORTED_MODE,
             f"stock kline {item.symbol} adjustment_mode must be {PROVIDER_QFQ_SNAPSHOT}",
         )
-    _validate_kline_coverage(item, as_of_date, "stock kline")
+    # Ordinary traded securities remain T-date strict. Only a complete T-date
+    # no-trade quote can authorize an as-of history whose latest real bar
+    # predates T; B owns the separate 120-bar evaluation minimum.
+    _validate_kline_coverage(
+        item,
+        as_of_date,
+        "stock kline",
+        require_last_bar_date=not no_trade_snapshot,
+    )
 
 
 def _validate_index_kline(item: IndexManifest, as_of_date: str) -> None:
@@ -772,7 +792,11 @@ def freeze_generation_inputs(
         _fail(INCOMPLETE_COVERAGE, f"stock klines outside universe: {', '.join(extra_klines)}")
     for item in sorted(kline_by_symbol.values(), key=lambda value: value.symbol):
         _ensure_same_date(item.as_of_date, as_of_date, f"stock kline {item.symbol}")
-        _validate_stock_kline(item, as_of_date)
+        _validate_stock_kline(
+            item,
+            as_of_date,
+            no_trade_snapshot=is_no_trade_snapshot(quote_snapshot.quotes[item.symbol]),
+        )
 
     _ensure_same_date(index.as_of_date, as_of_date, "index")
     _validate_index_kline(index, as_of_date)

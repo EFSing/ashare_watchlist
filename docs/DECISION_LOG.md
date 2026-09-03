@@ -956,3 +956,87 @@
 - final decision：`TRADABLE_UNIVERSE_EXCHANGE_ROSTER_FIX_PR_READY_FOR_USER_MERGE_DECISION`。
   保持 PR open，merge 由 user 决定；formal Delivery Ladder、当前 Tencent quote/P1
   blocker、Final OOS `SEALED / UNREAD` 和 frozen artifacts 均不变。
+
+## 2026-09-02 — PR #26 merged; stock-Kline suspension semantics correctness fix
+
+- classification：`correctness blocker` follow-up；本轮不新增策略研究，不读取 Final OOS，
+  不启动 C、Phase 2F、prospective returns、tuning、promotion 或 auto-freeze。
+- governance reconciliation：旧 tracked snapshot 将 PR #25 保留为 open，但实时 PR #25
+  已以 squash merge SHA `f0c1fe56972fe1d1d3db99dd51f75ae9b75e1b74` 合并；这是
+  `PROJECT_GOVERNANCE_STATE_CONFLICT_RESOLVED`，不改变 formal candidate 或 frozen
+  identities。
+- merge result：PR #26 的批准 exact head
+  `1e736979f394401f5fab2e38caa39408cdc1377b` 未移动，base 为
+  `f0c1fe56972fe1d1d3db99dd51f75ae9b75e1b74`，reviews/unresolved threads 为 0，
+  exact-head correctness `33645366992` success；真实 squash merge SHA 为
+  `7bd620e72daac1c8239daa982e958edab94fd236`，merge-after master correctness
+  `33646931153` success。
+- formal attempt：在实时 BJT `2026-09-02T23:13:30.5358588+08:00` 后启动 fresh
+  `LIVE_OBSERVED` capture，目标 `T=2026-09-02`、`T+1=2026-09-03`；没有复用旧
+  attempt/probe/payload/object。失败路径未生成 package、watchlist 或 partial evidence。
+- first exact blocker：`INPUT_DATE_MISMATCH`；HiThink 对已上市停牌 `002731.SZ` 返回
+  合法非空 330 根历史，最新为 `2026-08-31`；bounded Tencent diagnostic 返回 T 日
+  合法 no-trade quote（price/prev_close=`0.77`，open/volume/turnover=`0`）。因此
+  root cause 是 stock Kline history/as-of semantics，不是 malformed provider data、
+  quote mapping、listing/universe、manifest contract identity 或 B input semantics。
+- decision：`ADOPT_MINIMAL_STOCK_KLINE_SUSPENSION_AS_OF_FIX`。stock Kline 允许非空真实
+  history 的 `last_bar_date <= T`，仍 fail closed 于空数据、future bar、OHLCV/schema/
+  duplicate/coverage failure；index 保持 `last_bar_date == T` 与 market-env minimum
+  `21`；B 保持 strategy `B_BREAKOUT_RETEST_LEGACY_V1_1`、role
+  `CORRECTED_EXACT_V0_RECONSTRUCTION`、spec SHA
+  `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`、
+  `score_cutoff=None`、`top_n=None`，并自己处理 `<120 -> INSUFFICIENT_DATA`。
+- verification：focused tests `94 passed`，full pytest `249 passed`，compileall PASS；
+  correctness fix 当前分支为 `codex/stock-kline-suspension-asof-20260902`，后续 stop
+  condition 为 `NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION`。未读取、修改或
+  上传 `data/validation/continuous_speed_probe/`。
+
+## 2026-09-02 — PR #27 exact-head correctness fix ready
+
+- PR #27 (`https://github.com/EFSing/ashare_watchlist/pull/27`) targets
+  `master@7bd620e72daac1c8239daa982e958edab94fd236` with pre-governance head
+  `028d6e33b1411b6d0d52188427aaccf988882e07`; it is open/mergeable, reviews are empty,
+  and no self-approval was performed.
+- pull_request correctness run `33649816076` and push correctness run `33649783681` both
+  succeeded at that exact head. This governance-only update advances the PR head, so the
+  resulting exact-head CI must be re-verified live and is not claimed by this commit.
+- Decision remains `ADOPT_MINIMAL_STOCK_KLINE_SUSPENSION_AS_OF_FIX`: legal non-empty stock
+  history may end at `T` or earlier on both primary and explicit Tencent fallback paths;
+  future bars and malformed/duplicate/insufficient data still fail closed; index remains
+  T-date strict with market-env minimum `21`. No B/spec/threshold/universe/ST rule changed.
+- Evidence boundary: full pytest `250 passed`, focused `95 passed`, compileall,
+  `git diff --check`, JSON/hash/governance validation PASS. The fresh capture stopped before
+  B evaluation/package persistence at the `002731.SZ` blocker; no formal candidate, Drive
+  backup/readback, Final OOS, C, Phase 2F, returns, tuning, auto-freeze, or promotion ran.
+- Stop after live verification of the new head at
+  `NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION`; user decides whether to merge.
+
+## 2026-09-03 — PR #27 narrow no-trade gate and downstream provider audit
+
+- Execution override adopted for the remaining grace window through
+  `2026-09-03T08:00:00+08:00`; T remains `2026-09-02`, T+1=`2026-09-03`, and post-midnight
+  retrieval timestamps must be recorded honestly. The diagnostic-only chain began with
+  `observed_at_bjt=2026-09-02T23:59:52.143765+08:00`; it is not formal evidence.
+- PR #27 technical head before this governance-only update was
+  `474f1e78f9db856f5cd6813f78479bbe5bb5e317`, based on merged master
+  `7bd620e72daac1c8239daa982e958edab94fd236`; push/pull_request correctness runs
+  `33651616418`/`33651627289` both succeeded. The governance update advances the head and
+  requires new live exact-head verification.
+- Decision refinement: ordinary traded securities remain T-date strict. A listed security may
+  use its latest real stock bar before T only when its complete canonical Tencent T-date quote
+  proves the exact no-trade pattern already defined by `validate_quote`; no synthetic bar,
+  forward fill, global stale acceptance, or B change is permitted. Index remains T-date strict
+  with market-env minimum `21`.
+- Downstream audit: corrected diagnostic-only full chain stopped at `603356.SH` with
+  `PROVIDER_FAILURE / ValueError` from HiThink historical acquisition. Three fresh single-symbol
+  current-only HiThink reads then succeeded with identical 376-bar complete schemas ending on
+  `2026-09-02`; Tencent returned a normal T-date quote with `no_trade=false`. The failed raw
+  response was not captured, so the classification is
+  `DOWNSTREAM_PROVIDER_FAILURE_NOT_REPRODUCED`; no safe correctness fix is supported and no
+  independent provider architecture is bundled into PR #27.
+- Verification: focused `104 passed`, full `253 passed`, compileall, diff check, JSON/hash and
+  governance validation PASS. No formal package/output, B/ST result, Drive backup/readback or
+  frozen-candidate prerequisite result exists; Final OOS remains unread/sealed, and C,
+  Phase2F, returns, tuning, auto-freeze and promotion remain not run.
+- Stop condition after the new exact-head CI is live success and clean/mergeable:
+  `NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION`; user must decide whether to merge.

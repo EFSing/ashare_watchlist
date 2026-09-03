@@ -948,3 +948,94 @@ coverage/ambiguity current gate 和 provider counts 不代表本文当前 live g
   `TRADABLE_UNIVERSE_EXCHANGE_ROSTER_FIX_PR_READY_FOR_USER_MERGE_DECISION`，等待 user
   merge decision。Formal Delivery Ladder 仍为 `development candidate`，Tencent quote
   blocker/P1、Final OOS sealed/unread、策略与 frozen artifacts 均不变。
+
+## Superseding current state — PR #25/#26 merge and stock-Kline suspension blocker — 2026-09-02
+
+- classification：`correctness blocker`；本轮先完成已批准的 PR #26 merge，随后执行
+  一次完全 fresh formal capture；不启动 Phase 2F、C、Final OOS、prospective returns、
+  tuning 或 promotion。
+- governance reconciliation：旧快照把 PR #25 记录为 open，但 live PR #25 已于
+  `2026-09-02T14:21:58Z` squash merge，真实 merge SHA 为
+  `f0c1fe56972fe1d1d3db99dd51f75ae9b75e1b74`。该冲突已由 live Git/GitHub 证据显式
+  解决；不是新的 product/strategy decision。
+- PR #26：approved exact head `1e736979f394401f5fab2e38caa39408cdc1377b`，base
+  `f0c1fe56972fe1d1d3db99dd51f75ae9b75e1b74`，真实 squash merge SHA
+  `7bd620e72daac1c8239daa982e958edab94fd236`；merge-after master correctness run
+  `33646931153` 为 `success`。local `master == origin/master == 7bd620e…`，工作树
+  在转入本 correctness fix 前保持 clean。
+- window：实时 `Asia/Shanghai=2026-09-02T23:13:30.5358588+08:00`，因此 9/2 formal
+  window 仍有效；本次 capture 使用 `T=2026-09-02`、`T+1=2026-09-03`、
+  `LIVE_OBSERVED`，未复用任何旧 attempt/probe/payload/in-memory object。失败 runner
+  未持久化 package/output，精确 `observed_at_bjt` 不由失败路径记录，保持
+  `NOT_RECORDED_BY_RUNNER`。
+- first exact blocker：`INPUT_DATE_MISMATCH`，HiThink
+  `002731.SZ` 返回合法非空 330 根真实历史，最后一根为 `2026-08-31`；同一 bounded
+  current-only diagnostic 的 Tencent T 日 snapshot 为合法 no-trade（price/prev_close
+  `0.77`，open/volume/turnover `0`）。这是 stock-Kline history semantics blocker，
+  不是 malformed provider data、quote parser、listing/universe、manifest identity 或
+  B strategy bug。
+- minimal fix：stock Kline 改为要求非空真实历史且 `last_bar_date <= T`，继续拒绝
+  future bar；index Kline 仍要求 `last_bar_date == T` 和 market-env minimum `21`；
+  B 仍独立负责 `<120 -> INSUFFICIENT_DATA`，不补历史、不伪造 bars、不 skip/shrink。
+- current branch：`codex/stock-kline-suspension-asof-20260902`，基于 merge SHA
+  `7bd620e72daac1c8239daa982e958edab94fd236`；focused tests `94 passed`，full pytest
+  `249 passed`，compileall PASS。新 correctness PR 尚未 push；其 exact-head CI 完成
+  后停止于 `NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION`。
+- unchanged boundary：`data/validation/continuous_speed_probe/` 未读取、未修改、未删除；
+  没有生成 `data/prospective_inputs/`、canonical watchlist、Drive backup 或 frozen
+  candidate artifact。Final OOS 仍 `SEALED / UNREAD`。
+
+## Superseding live state — PR #27 stock-Kline correctness fix — 2026-09-02
+
+- PR #27：[`https://github.com/EFSing/ashare_watchlist/pull/27`](https://github.com/EFSing/ashare_watchlist/pull/27)，
+  base=`master@7bd620e72daac1c8239daa982e958edab94fd236`，pre-governance head=
+  `028d6e33b1411b6d0d52188427aaccf988882e07`；PR 保持 `OPEN`、`MERGEABLE`，reviews
+  为空，未进行 self-approval。
+- exact-head correctness：pull_request run `33649816076` 与 push run `33649783681`
+  均为 `success`，且均精确对应上述 head。随后本治理-only 更新会使 PR head 前进；新
+  head 的 exact-head CI 必须以 live GitHub 状态重新核验，不把 self-referential CI 回写为
+  已验证事实。
+- fix scope：stock Kline 允许非空真实历史的 `last_bar_date <= T`，HiThink/Tencent
+  两条路径均适用；future bar、schema、OHLCV、duplicate、coverage 仍 fail closed；
+  index 仍要求 T 日 bar。B、retrieval target=260、stock `<120` 语义、index minimum=21、
+  roster/ST 边界均未改变。
+- verification：focused tests `95 passed`，full pytest `250 passed`，compileall、
+  `git diff --check` 和 JSON/hash/governance validation PASS；未读取、修改或上传
+  `data/validation/continuous_speed_probe/`。
+- formal boundary：fresh 2026-09-02 capture 在该 blocker 停止，未创建 B evaluation、
+  manifest、watchlist、immutable package、Drive backup/readback 或 frozen audit。Final
+  OOS=`SEALED / UNREAD`；C、Phase 2F、prospective returns、tuning、auto-freeze、
+  promotion 均未运行。完成新 head CI 后停止于
+  `NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION`，不 merge。
+
+## Superseding execution state — PR #27 narrow no-trade gate and downstream diagnostic — 2026-09-03
+
+- override execution window：grace window 至 `2026-09-03T08:00:00+08:00`；T 固定为
+  `2026-09-02`、T+1=`2026-09-03`，跨午夜不改变 trading-state anchor。第一条全链
+  diagnostic-only run 的诚实 `observed_at_bjt` 为 `2026-09-02T23:59:52.143765+08:00`；
+  不作为 formal package 或 prospective evidence。
+- PR #27 当前 technical head=`474f1e78f9db856f5cd6813f78479bbe5bb5e317`，base=
+  `master@7bd620e72daac1c8239daa982e958edab94fd236`；push correctness
+  `33651616418` 与 pull_request correctness `33651627289` 均 success。该 section 的
+  final governance-only commit 会推进 head；推进后的 exact-head CI 需再次 live 核验，
+  不把当前 head 的 CI 自引用为新 head 结论。
+- narrow fix：普通交易证券仍要求 stock `last_bar_date == T`；只有同一 T 日、完整且
+  canonical 的 Tencent no-trade quote（price=prev_close>0、open/high/low/volume/
+  turnover/vol_ratio=0、chg_pct=0）才允许最后真实 stock bar `< T`。不合格 quote、
+  future bar、schema/OHLCV/duplicate/coverage failure 继续 fail closed；index 仍 T 日严格。
+- downstream diagnostic：修复后全 universe diagnostic-only chain 在 `603356.SH` 返回
+  `PROVIDER_FAILURE / HiThink historical acquisition failed ... ValueError`，未创建或
+  持久化 package/output。针对该单一标的的 current-only bounded audit 随后取得 3/3
+  HiThink 成功响应，每次 376 根完整历史、最后 bar=`2026-09-02`，字段为完整的
+  `date_ms/open_price/high_price/low_price/close_price/volume/turnover`；Tencent quote
+  为 T 日正常交易快照，`no_trade=false`。原始失败响应未被保存，因此当前证据只支持
+  `DOWNSTREAM_PROVIDER_FAILURE_NOT_REPRODUCED`，不能安全添加 fallback/放宽规则，且不
+  与本 PR 捆绑架构修复；后续 fresh merged-master capture 需重新验证。
+- validation：narrow-fix focused=`104 passed`，full pytest=`253 passed`，compileall、
+  `git diff --check`、JSON/hash/governance validation PASS；未读取、修改或上传
+  `data/validation/continuous_speed_probe/`。不运行 C、Phase 2F、returns、tuning、
+  promotion 或 auto-freeze。
+- final stop after new-head CI：`NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION`；
+  PR #27 保持 open，不 self-approve、不自动 merge。formal package、B/ST counts、final
+  list、manifest/package SHA、Drive backup/readback 和 frozen prerequisite audit 仍为
+  `NOT_REACHED`。
