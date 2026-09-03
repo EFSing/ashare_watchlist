@@ -1040,3 +1040,34 @@
   Phase2F, returns, tuning, auto-freeze and promotion remain not run.
 - Stop condition after the new exact-head CI is live success and clean/mergeable:
   `NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION`; user must decide whether to merge.
+
+## 2026-09-03 — Adopt T-close source evidence checkpoints and one-shot runner
+
+- classification：`correctness blocker` follow-up；materiality 是 provider 返回后到解析、
+  Kline 遍历或 B 评估之间的任何失败都不能抹掉已取得的 T-close evidence，否则无法
+  恢复、审计或证明最终 package 使用的就是同一 source bytes。该修复同时补齐当前
+  `development candidate` usable path 的一次性执行入口，但不改变 Delivery Ladder。
+- inputs / boundary：已合并 PR #27 的 live master `06ee637d61e7de6df4e0e7145b4ae9e79f40ef49`；
+  T 固定为 `2026-09-03`，XSHG session close 为 `15:00 Asia/Shanghai`，calendar-derived
+  T+1 为 `2026-09-04`；B strategy 为 `B_BREAKOUT_RETEST_LEGACY_V1_1`，role 为
+  `CORRECTED_EXACT_V0_RECONSTRUCTION`，spec SHA 为
+  `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`。不读取 Final OOS，
+  不执行 returns/C/Phase 2F/tuning/promotion，不接触 forbidden probe directory。
+- decision：`ADOPT_MINIMAL_T_CLOSE_EVIDENCE_AND_RESUME_PATH`。各 provider source component
+  先保存 raw response 或 adapter records，再进入解析/校验；raw/adapter pair 以逻辑
+  identity + SHA-256 + sidecar provenance immutable 落盘；transport/data/persistence
+  failure 单独保存 failure evidence；成功 checkpoint 可恢复，部分完成结果不删除。
+- product execution：采用 `scripts/t_close_runner.py` 的最小顺序
+  `T-close evidence → complete GenerationInputPackage → existing B candidate lifecycle`。
+  preflight 只验证同一工作目录、Python/依赖、环境凭据、日历和可写根目录，不在收盘前
+  发 provider 请求。Windows 一次性任务 `Ashare TClose 20260903` 已注册为 15:05 BJT；
+  它不包含 secret 参数，外部 private Drive upload/readback 保持 `NOT_CONFIGURED`。
+- verification：focused recovery tests `71 passed`，full pytest `257 passed`，compileall、
+  JSON/hash、diff check 通过；PR #28 exact-head `5493786b06e055a1506e0e5d845715da7d4d46ac`
+  的 correctness run `33714223690` 成功。此 decision 不构成 formal T-close success、
+  B/ST count、canonical output、frozen artifact 或 promotion 结论；这些必须等待任务在
+  收盘后真实执行并验证。
+- stop / revisit：PR #28 保持 open，停在
+  `NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION`，等待 user merge decision；
+  scheduled run 成功后再以实际 package/output/evidence SHA 判断是否解除 P1，若失败则
+  依据 failure evidence 恢复，不放宽 B 或数据时序规则。

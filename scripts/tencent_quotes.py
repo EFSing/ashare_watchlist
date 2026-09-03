@@ -43,6 +43,10 @@ class QuoteRequestError(QuoteDataError):
     """The quote endpoint could not be reached after retries."""
 
 
+class QuoteCaptureError(QuoteDataError):
+    """A required raw-response capture failed before quote parsing."""
+
+
 class MissingQuoteError(QuoteDataError):
     """A requested symbol is absent from the response."""
 
@@ -284,21 +288,48 @@ def fetch_quotes(
     timeout: float = 15,
     retries: int = 3,
     request_get: Callable[..., Any] | None = None,
+    raw_response_callback: Callable[[int, list[str], str, Any], None] | None = None,
+    cached_response_loader: Callable[[int, list[str], str], str | None] | None = None,
 ) -> dict[str, dict[str, Any]]:
-    """Fetch complete quote batches or raise a concrete data-integrity error."""
+    """Fetch complete quote batches or raise a concrete data-integrity error.
+
+    ``raw_response_callback`` runs immediately after a provider response is
+    returned and before any encoding or parsing. ``cached_response_loader``
+    reuses a previously captured immutable batch without contacting Tencent.
+    """
 
     normalized = [_code_only(code) for code in codes]
     if not normalized:
         return {}
     get = request_get or requests.get
     all_quotes: dict[str, dict[str, Any]] = {}
-    for start in range(0, len(normalized), 50):
+    for batch_index, start in enumerate(range(0, len(normalized), 50)):
         batch = normalized[start:start + 50]
         url = QUOTE_URL + ",".join(to_symbol(code) for code in batch)
+        if cached_response_loader is not None:
+            cached_text = cached_response_loader(batch_index, batch, url)
+            if cached_text is not None:
+                all_quotes.update(
+                    parse_quote_response(
+                        cached_text,
+                        expected_codes=batch,
+                        expected_date=expected_date,
+                    )
+                )
+                continue
         last_error: Exception | None = None
         for attempt in range(retries):
             try:
                 response = get(url, timeout=timeout)
+                if raw_response_callback is not None:
+                    try:
+                        raw_response_callback(batch_index, batch, url, response)
+                    except QuoteCaptureError:
+                        raise
+                    except Exception as exc:
+                        raise QuoteCaptureError(
+                            f"raw Tencent response capture failed: {type(exc).__name__}"
+                        ) from exc
                 response.encoding = "gbk"
                 all_quotes.update(
                     parse_quote_response(

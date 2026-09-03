@@ -1039,3 +1039,38 @@ coverage/ambiguity current gate 和 provider counts 不代表本文当前 live g
   PR #27 保持 open，不 self-approve、不自动 merge。formal package、B/ST counts、final
   list、manifest/package SHA、Drive backup/readback 和 frozen prerequisite audit 仍为
   `NOT_REACHED`。
+
+## Superseding live state — T-close source evidence and resumable runner — 2026-09-03
+
+- classification：`correctness blocker` follow-up with a product-path recovery fix；volatile
+  provider evidence must survive parse/evaluation failure, but this does not change the
+  formal Delivery Ladder or authorize strategy promotion。
+- live Git/GitHub：PR #27 was explicitly authorized and squash-merged；its real merge SHA is
+  `06ee637d61e7de6df4e0e7145b4ae9e79f40ef49`，and merge-after correctness run `33712100053`
+  succeeded。The new bounded PR #28 is
+  [`https://github.com/EFSing/ashare_watchlist/pull/28`](https://github.com/EFSing/ashare_watchlist/pull/28)，
+  branch `codex/t-close-raw-capture-20260903`，base=`06ee637d61e7de6df4e0e7145b4ae9e79f40ef49`，
+  exact head=`5493786b06e055a1506e0e5d845715da7d4d46ac`；exact-head correctness run
+  `33714223690` succeeded and PR remains open for user merge decision。
+- implementation：`T_CLOSE_SOURCE_CAPTURE_V1` writes immutable raw/adapter evidence plus
+  sidecar provenance before parsing；it captures HiThink responses、Tencent quote/fallback
+  responses、universe、official rosters、Sina sector inputs and per-symbol/index Kline
+  checkpoints。Successful identities resume without re-fetch；later failures write separate
+  failure evidence and do not delete earlier checkpoints。B evaluator/spec/threshold/score/
+  top-N and post-B `USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` are unchanged。
+- runner：`scripts/t_close_runner.py` executes evidence → complete input package → existing B
+  development-candidate lifecycle。Its preflight returned `PRE_CLOSE_DIAGNOSTIC_READY` at
+  2026-09-03 12:04 BJT with XSHG close `15:00`、locked Python/dependency versions and
+  credential context ready；no provider call or formal output was made before close。
+- schedule：Windows task `Ashare TClose 20260903` is enabled for `2026-09-03T15:05:00+08:00`，
+  uses the repository `.venv` Python、same working directory、`data` root and
+  `data/t_close_evidence` root、current user interactive context and `WakeToRun=True`。
+  Repository XSHG calendar computes `T+1=2026-09-04`。
+- verification：focused recovery tests `71 passed`；full pytest `257 passed`；compileall、
+  JSON/hash and `git diff --check` passed。No formal T-close package、canonical watchlist、
+  private Drive backup/readback、frozen-candidate artifact、C、Phase 2F、returns、tuning、
+  auto-freeze or promotion has run。`data/validation/continuous_speed_probe/` was not read、
+  modified、deleted or uploaded。
+- stop：after this governance-only snapshot is pushed and its new exact-head CI is live
+  success/clean/mergeable，stop at `NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION`；
+  do not auto-merge PR #28。

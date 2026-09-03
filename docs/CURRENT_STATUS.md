@@ -803,3 +803,27 @@ full pytest `249 passed`，compileall PASS；尚未 push 新 PR。当前 P1
   auto-freeze、promotion=`NOT_RUN`。
 - stop after live verification of the new head：
   `NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION`，PR #27 remains open for user merge.
+
+## Superseding current state — 2026-09-03 T-close evidence recovery path
+
+Formal Delivery Ladder remains `development candidate`; no strategy promotion, Final OOS,
+Phase 2F, C, returns validation, tuning or auto-freeze was started. PR #27 has since been
+explicitly merged at `06ee637d61e7de6df4e0e7145b4ae9e79f40ef49` with successful merge-after
+correctness run `33712100053`.
+
+PR #28 (`https://github.com/EFSing/ashare_watchlist/pull/28`) adds the minimum correctness
+and product-path fix for volatile T-close evidence: immutable raw/adapter checkpoints with
+sidecar provider/version/code-SHA metadata, parse-before-persistence protection, failure
+evidence, and resumable per-source/per-symbol acquisition. The final write order is source
+evidence → complete generation-input package → existing B development-candidate output;
+B/spec/threshold/score/top-N and post-B non-ST eligibility are unchanged. Exact-head run
+`33714223690` succeeded for head `5493786b06e055a1506e0e5d845715da7d4d46ac`; PR remains
+open pending user merge decision.
+
+The one-time Windows task `Ashare TClose 20260903` is enabled for 15:05 BJT after the
+repository XSHG close at 15:00; the calendar-derived next session is `2026-09-04`. Pre-close
+diagnostic status was `PRE_CLOSE_DIAGNOSTIC_READY`, credential context was ready, and no
+provider call or formal package/output was created before the close. Therefore the P1
+`P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE` remains unresolved until the scheduled run
+completes with auditable evidence and output. Private Drive backup/readback is not configured
+by this runner. The forbidden continuous-speed-probe directory remains untouched.
