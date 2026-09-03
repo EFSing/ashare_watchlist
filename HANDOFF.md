@@ -1147,3 +1147,49 @@ coverage/ambiguity current gate 和 provider counts 不代表本文当前 live g
   `FROZEN_CANDIDATE_PREREQUISITES_PASS_READY_FOR_USER_FREEZE_DECISION`；名单已生成并可
   交付。Final OOS=`SEALED / UNREAD`；C、Phase 2F、returns、tuning、promotion、
   auto-freeze 均未运行。
+
+## Superseding live state — B evaluator wiring fix ready for user merge decision — 2026-09-03
+
+- classification：`correctness blocker + product blocker`，任务分类未改变。根因是 formal
+  T-close package nominated `B_BREAKOUT_RETEST_LEGACY_V1_1`，但
+  `development_candidate.py` 的默认 A evaluator/publisher identity 被用于该 package；
+  原 0-candidate result 因此为 `INVALIDATED_WRONG_EVALUATOR_A_ON_B_INPUT`，不是 B 市场结论。
+- live Git/GitHub snapshot：`master=origin/master=1639bfeb22e043055a4c30804a0d40e82c94eff5`；
+  PR #30 为 `fix: bind T-close generation to nominated B evaluator`，base=`master`，
+  code head=`ac801969653ae49c82b8c6d202fac25d307def68`，open、clean、mergeable。其
+  exact-head correctness CI `33760664379` 为 `success`。本治理同步 commit 会推进 PR
+  head，必须再以 live query 验证新的 exact-head CI；不自动 merge。
+- implementation boundary：`StrategyBinding` 仅携带 strategy version、spec SHA、
+  qualification status、buy label 与 evaluator callable；A 无 binding caller 仍保持
+  backward-compatible default。`t_close_runner.py` 显式使用 B binding 与 package
+  provenance；package identity、evaluator output provenance、canonical/run manifest
+  identity 不匹配时 fail closed。B strategy/spec、threshold、score、Top-N、universe、
+  sector、Kline/provider acquisition 与 ST semantics 未修改。
+- immutable input/replay：复用
+  `data/prospective_inputs/20260903/2026-09-03_eeb700c98a69a98fae3fa220851190a76de88984b0f451cc1ed275b2e487351f.json`，
+  file SHA=`a2e6da0865ff20316e4d9074f26e2cb3ba53995d2cb3e83a49f8c82988c0b38a`，status
+  `READY_FOR_STRATEGY_EVALUATION`；未重新抓取任何 provider。B deterministic ledger
+  exact 为 `INSUFFICIENT_DATA=42`、`NOT_MATCHED=5115`、`MATCHED_REJECTED=46`、
+  `QUALIFIED_LEGACY_BASELINE=12`，total=`5215`；raw qualified=`12`、ST excluded=`1`、
+  final non-ST=`11`。
+- controlled supersession：原 canonical SHA
+  `ca8cba86527550d7ba10d05083bb1c7523b54ccf8c9ecb34ef10152b8fced1fb`、strategy
+  `A_PLATFORM_BREAKOUT_LEGACY_V1` 与 formal run
+  `FFu4MlWYdPwSFrjFJ52Ak2-X2Z0a5-aOWrkdI74Azrc` 已全部验证；invalidation record 为
+  `data/development_candidate/invalidated/watchlist_20260903-ca8cba86527550d7ba10d05083bb1c7523b54ccf8c9ecb34ef10152b8fced1fb/invalidation.json`。
+  原 bytes 已保留，原 run manifest 未修改，run manifest SHA=
+  `7bd047bb57dfb986de0a5bb71a9a44c8cbf5517098a6a2501770199fad34fc11`，correcting
+  code SHA=`e806879`。
+- corrected local output：同一 package 经 B evaluator 与
+  `USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` 后生成
+  `data/watchlist_20260903.json`，SHA=`50f0717e55daaf4435e1d25b4f1d029109c566d72d63a1fc566f263cdf0fb085`，
+  11 个 final non-ST candidates；run manifest generation fingerprint=
+  `aae2778d21203098e0cd0d52136ad83fb5dc49b04457b7c51632208972a53c19`。该结果标记为
+  `DIAGNOSTIC_B_REPLAY_FROM_FORMAL_20260903_PACKAGE`，仍属于 development candidate，
+  不构成 Final OOS、promotion、auto-freeze 或外部 postprocess 上传。
+- verification：focused tests `18 passed`，full pytest `261 passed`，compileall、JSON/
+  hash validation、`git diff --check` 均通过；此次变更仅涉及
+  `scripts/development_candidate.py`、`scripts/t_close_runner.py` 与对应两份 tests。
+  `data/validation/continuous_speed_probe/` 未读取、修改、删除或上传。
+- handoff：用户只需决定是否 merge PR #30；不得在本任务中执行 merge、provider refetch、
+  B/spec/parameter 修改、Final OOS、returns、C、Phase 2F、promotion 或 auto-freeze。

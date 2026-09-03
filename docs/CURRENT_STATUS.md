@@ -877,3 +877,41 @@ Current terminal is `T_CLOSE_WATCHLIST_GENERATED_POSTPROCESS_BLOCKED`: private D
 upload/readback is `NOT_CONFIGURED_EXTERNAL_UPLOAD`. The empty generated list is deliverable;
 no strategy promotion, Final OOS read, C, Phase 2F, returns validation, tuning, or auto-freeze
 was started, and the forbidden continuous-speed-probe directory remains untouched.
+
+## Superseding current status — 2026-09-03 B evaluator wiring correction
+
+Formal Delivery Ladder remains `development candidate`; no Final OOS, returns, C, Phase 2F,
+tuning, promotion or auto-freeze was started. The prior 0-candidate status is superseded in
+meaning: the formal B package was incorrectly evaluated by A and is
+`INVALIDATED_WRONG_EVALUATOR_A_ON_B_INPUT`. The actual product blocker is
+`WRONG_EVALUATOR_WIRING_A_ON_B_PACKAGE`, not a valid B zero-candidate market result.
+
+PR #30 (`https://github.com/EFSing/ashare_watchlist/pull/30`) is open for user merge decision,
+based on `master` at `1639bfeb22e043055a4c30804a0d40e82c94eff5`, with code head
+`ac801969653ae49c82b8c6d202fac25d307def68`; live GitHub reported `CLEAN`/mergeable and
+exact-head correctness run `33760664379` success. The governance snapshot itself advances
+the head and needs a new exact-head CI check.
+
+The same READY package was reused without provider refetch: file SHA
+`a2e6da0865ff20316e4d9074f26e2cb3ba53995d2cb3e83a49f8c82988c0b38a`. Deterministic B replay
+is exact: `INSUFFICIENT_DATA=42`, `NOT_MATCHED=5115`, `MATCHED_REJECTED=46`,
+`QUALIFIED_LEGACY_BASELINE=12`, total `5215`; post-B
+`USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` excludes one ST and leaves 11 final non-ST candidates.
+The full candidate details are delivered in the task response under
+`DIAGNOSTIC_B_REPLAY_FROM_FORMAL_20260903_PACKAGE`.
+
+Controlled supersession retained the original canonical bytes/SHA
+`ca8cba86527550d7ba10d05083bb1c7523b54ccf8c9ecb34ef10152b8fced1fb`, A identity, formal run
+`FFu4MlWYdPwSFrjFJ52Ak2-X2Z0a5-aOWrkdI74Azrc`, and original run manifest SHA
+`7bd047bb57dfb986de0a5bb71a9a44c8cbf5517098a6a2501770199fad34fc11` under the existing
+development-candidate invalidated evidence path. Corrected local B output now occupies
+`data/watchlist_20260903.json` with SHA
+`50f0717e55daaf4435e1d25b4f1d029109c566d72d63a1fc566f263cdf0fb085` and 11 candidates; it is
+diagnostic/development output only, not promotion or Final OOS.
+
+Validation is complete for the code head: focused `18 passed`, full pytest `261 passed`,
+compileall, JSON/hash validation and `git diff --check` passed. No B strategy semantics,
+thresholds, score, Top-N, ST rule, provider acquisition, universe, sector or Kline policy was
+changed. The forbidden `data/validation/continuous_speed_probe/` directory remains untouched.
+Current status is `B_EVALUATOR_WIRING_FIX_PR_READY_FOR_USER_MERGE_DECISION` pending the final
+post-governance exact-head CI verification and user merge decision.
