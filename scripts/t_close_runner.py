@@ -21,6 +21,7 @@ from typing import Any
 
 from data_paths import DataPaths
 from development_candidate import (
+    B_STRATEGY_BINDING,
     DevelopmentCandidateStore,
     RUN_ALREADY_CURRENT,
     RUN_NO_CANDIDATES,
@@ -114,6 +115,8 @@ def run(as_of_date: str, data_root: Path, evidence_root: Path, now_bjt: str | No
         package.generation_input_manifest,
         names=package.display_names,
         market_env=package.market_env,
+        strategy_binding=B_STRATEGY_BINDING,
+        input_provenance=package.provenance,
     )
     if candidate.status not in RUNNABLE_STATUSES:
         raise RuntimeError(f"development candidate generation failed: {candidate.status}")

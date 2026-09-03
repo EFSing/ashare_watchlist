@@ -1134,3 +1134,48 @@
   `NOT_READY / PARTIAL_UNVERIFIED`；该后处理状态不阻止 B 名单计算与用户交付。
 - boundary：Final OOS 保持 `SEALED / UNREAD`；C、Phase 2F、returns、tuning、promotion、
   auto-freeze 均 `NOT_RUN`；forbidden continuous-speed-probe directory 未读取或修改。
+
+## 2026-09-03 — Adopt nominated B evaluator binding and controlled invalidation
+
+- classification/materiality：`correctness blocker + product blocker`，研究问题未扩大。
+  已确认的 material bug 为 `WRONG_EVALUATOR_WIRING_A_ON_B_PACKAGE`：formal T-close input
+  nominated `B_BREAKOUT_RETEST_LEGACY_V1_1`，但 development-candidate generation routed
+  it through A evaluator and A output identity. This made the persisted zero-candidate
+  result invalid rather than a usable B result.
+- input/stop condition：只复用既有 READY package
+  `data/prospective_inputs/20260903/2026-09-03_eeb700c98a69a98fae3fa220851190a76de88984b0f451cc1ed275b2e487351f.json`
+  with file SHA `a2e6da0865ff20316e4d9074f26e2cb3ba53995d2cb3e83a49f8c82988c0b38a`。停止条件
+  是 B ledger 不精确等于 `42/5115/46/12`；实际结果 exact、total `5215`，随后 ST
+  eligibility 得到 raw `12`、ST excluded `1`、final non-ST `11`。没有 provider refetch。
+- decision：`ADOPT_MINIMAL_NOMINATED_STRATEGY_BINDING_AND_CONTROLLED_SUPERSESSION`。
+  新增一个小的 explicit binding（version/spec SHA/qualification/buy label/evaluator），
+  A 无 binding caller 保持 backward-compatible default；T-close runner 明确绑定 B。
+  package nominated identity 与 binding、以及 evaluator output provenance 不一致时使用
+  现有 `OUTPUT_CONFLICT` fail closed，不 publish canonical。B strategy/spec、threshold、
+  score、Top-N、universe、sector、Kline/provider 与 ST semantics 均 unchanged。
+- historical output decision：旧
+  `data/watchlist_20260903.json` SHA
+  `ca8cba86527550d7ba10d05083bb1c7523b54ccf8c9ecb34ef10152b8fced1fb`、strategy
+  `A_PLATFORM_BREAKOUT_LEGACY_V1`、formal run
+  `FFu4MlWYdPwSFrjFJ52Ak2-X2Z0a5-aOWrkdI74Azrc` 与 run manifest SHA
+  `7bd047bb57dfb986de0a5bb71a9a44c8cbf5517098a6a2501770199fad34fc11` 已核对。采用一次性
+  `INVALIDATED_WRONG_EVALUATOR_A_ON_B_INPUT` controlled supersession；原 bytes 在既有
+  invalidated lifecycle 中保留，original run manifest 未修改；corrected B output 才占用
+  canonical path。
+- evidence/result：corrected local watchlist SHA 为
+  `50f0717e55daaf4435e1d25b4f1d029109c566d72d63a1fc566f263cdf0fb085`，run generation
+  fingerprint 为 `aae2778d21203098e0cd0d52136ad83fb5dc49b04457b7c51632208972a53c19`。
+  12 raw-qualified rows、1 ST exclusion、11 final rows 的完整 actionable fields 以
+  `DIAGNOSTIC_B_REPLAY_FROM_FORMAL_20260903_PACKAGE` 返回；不把它宣称为 Final OOS、
+  production promotion、auto-freeze 或 external postprocess result。
+- PR/verification：PR #30，title=`fix: bind T-close generation to nominated B evaluator`，
+  base=`master` at `1639bfeb22e043055a4c30804a0d40e82c94eff5`，code head
+  `ac801969653ae49c82b8c6d202fac25d307def68`，exact-head correctness run
+  `33760664379` success，GitHub state `CLEAN`/mergeable/open. Focused `18 passed` and full
+  pytest `261 passed`; compileall, JSON/hash validation and `git diff --check` passed. The
+  governance sync advances the head and requires one new exact-head check before stopping.
+- final decision/stop：`ADOPT`；terminal state is
+  `B_EVALUATOR_WIRING_FIX_PR_READY_FOR_USER_MERGE_DECISION` once post-governance exact-head
+  CI is success. User decides merge. Do not fetch providers, alter B/parameters, read Final
+  OOS, run returns/C/Phase 2F/tuning/promotion/auto-freeze, or touch
+  `data/validation/continuous_speed_probe/`.

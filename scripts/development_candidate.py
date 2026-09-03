@@ -15,7 +15,7 @@ import math
 import os
 import tempfile
 from collections import Counter
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -27,6 +27,11 @@ from a_platform_breakout import (
     CandidateEvaluation,
     evaluate_universe,
 )
+from b_breakout_retest_v1_1 import (
+    STRATEGY_SPEC_SHA256 as B_STRATEGY_SPEC_SHA256,
+    STRATEGY_VERSION as B_STRATEGY_VERSION,
+    evaluate_universe as evaluate_b_universe,
+)
 from generation_contract import GenerationInputManifest, READY_FOR_STRATEGY_EVALUATION
 from watchlist_schema import WatchlistSchemaError, load_watchlist, validate_watchlist
 
@@ -34,6 +39,7 @@ from watchlist_schema import WatchlistSchemaError, load_watchlist, validate_watc
 DEVELOPMENT_CANDIDATE_SCHEMA = "DEVELOPMENT_CANDIDATE_RUN_V1"
 GENERATION_FINGERPRINT_SCHEMA = "DEVELOPMENT_GENERATION_FINGERPRINT_V1"
 CANONICAL_WATCHLIST_SCHEMA = "WATCHLIST_SCHEMA_V1"
+INVALIDATION_SCHEMA = "DEVELOPMENT_CANDIDATE_INVALIDATION_V1"
 RUN_SUCCESS = "SUCCESS"
 # Compatibility alias for callers that used the original success status.
 RUN_PUBLISHED = RUN_SUCCESS
@@ -62,6 +68,99 @@ class DevelopmentCandidateError(ValueError):
     def __init__(self, status: str, message: str) -> None:
         self.status = status
         super().__init__(f"{status}: {message}")
+
+
+@dataclass(frozen=True)
+class StrategyBinding:
+    """The small strategy dependency bundle used by one generation call."""
+
+    strategy_version: str
+    strategy_spec_sha256: str
+    qualification_status: str
+    buy_type: str
+    evaluate_universe: Callable[[GenerationInputManifest], Sequence[CandidateEvaluation]]
+
+
+A_STRATEGY_BINDING = StrategyBinding(
+    strategy_version=STRATEGY_VERSION,
+    strategy_spec_sha256=STRATEGY_SPEC_SHA256,
+    qualification_status=QUALIFIED_LEGACY_BASELINE,
+    buy_type=BUY_TYPE,
+    evaluate_universe=evaluate_universe,
+)
+B_STRATEGY_BINDING = StrategyBinding(
+    strategy_version=B_STRATEGY_VERSION,
+    strategy_spec_sha256=B_STRATEGY_SPEC_SHA256,
+    qualification_status=QUALIFIED_LEGACY_BASELINE,
+    buy_type="B \u7a81\u7834\u56de\u8e29",
+    evaluate_universe=evaluate_b_universe,
+)
+INVALIDATED_WRONG_EVALUATOR_A_ON_B_INPUT = "INVALIDATED_WRONG_EVALUATOR_A_ON_B_INPUT"
+
+
+def _binding_for_call(strategy_binding: StrategyBinding | None) -> StrategyBinding:
+    """Resolve one call's binding while preserving the legacy A default."""
+
+    if strategy_binding is None:
+        # Keep module-level monkeypatching and historical A callers working.
+        return StrategyBinding(
+            strategy_version=STRATEGY_VERSION,
+            strategy_spec_sha256=STRATEGY_SPEC_SHA256,
+            qualification_status=QUALIFIED_LEGACY_BASELINE,
+            buy_type=BUY_TYPE,
+            evaluate_universe=evaluate_universe,
+        )
+    if not isinstance(strategy_binding, StrategyBinding):
+        raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, "strategy binding is invalid")
+    return strategy_binding
+
+
+def _validate_nominated_candidate(
+    binding: StrategyBinding,
+    input_provenance: Mapping[str, Any] | None,
+) -> None:
+    """Require an explicitly bound evaluator to match the input nomination."""
+
+    if not isinstance(input_provenance, Mapping):
+        raise DevelopmentCandidateError(
+            RUN_OUTPUT_CONFLICT,
+            "explicit strategy binding requires nominated candidate provenance",
+        )
+    candidate = input_provenance.get("candidate", input_provenance)
+    if not isinstance(candidate, Mapping):
+        raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, "nominated candidate identity is missing")
+    if (
+        candidate.get("strategy_version") != binding.strategy_version
+        or candidate.get("spec_sha256") != binding.strategy_spec_sha256
+    ):
+        raise DevelopmentCandidateError(
+            RUN_OUTPUT_CONFLICT,
+            "nominated candidate identity does not match the explicit strategy binding",
+        )
+
+
+def _validate_evaluations(
+    evaluations: Sequence[CandidateEvaluation],
+    binding: StrategyBinding,
+) -> None:
+    """Reject an evaluator whose output provenance belongs to another strategy."""
+
+    for evaluation in evaluations:
+        if not isinstance(evaluation, CandidateEvaluation):
+            raise DevelopmentCandidateError(RUN_EVALUATION_FAILURE, "evaluator returned an invalid evaluation")
+        if evaluation.strategy_version != binding.strategy_version:
+            raise DevelopmentCandidateError(
+                RUN_OUTPUT_CONFLICT,
+                f"evaluator output strategy mismatch: {evaluation.strategy_version!r}",
+            )
+        provenance = evaluation.provenance
+        if not isinstance(provenance, Mapping):
+            raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, "evaluator output provenance is missing")
+        if (
+            provenance.get("strategy_version") != binding.strategy_version
+            or provenance.get("spec_sha256") != binding.strategy_spec_sha256
+        ):
+            raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, "evaluator output spec provenance mismatch")
 
 
 @dataclass(frozen=True)
@@ -187,8 +286,12 @@ def apply_user_tradability_eligibility(
     return tuple(final_non_st), report
 
 
-def _candidate_payload(evaluation: CandidateEvaluation, names: Mapping[str, str]) -> dict[str, Any]:
-    if evaluation.status != QUALIFIED_LEGACY_BASELINE or evaluation.features is None:
+def _candidate_payload(
+    evaluation: CandidateEvaluation,
+    names: Mapping[str, str],
+    binding: StrategyBinding,
+) -> dict[str, Any]:
+    if evaluation.status != binding.qualification_status or evaluation.features is None:
         raise DevelopmentCandidateError(RUN_EVALUATION_FAILURE, f"{evaluation.symbol} is not qualified")
     features = evaluation.features
     code = _code(evaluation.symbol)
@@ -199,7 +302,7 @@ def _candidate_payload(evaluation: CandidateEvaluation, names: Mapping[str, str]
         "code": code,
         "name": name,
         "sector": features.sector_name,
-        "buy_type": BUY_TYPE,
+        "buy_type": binding.buy_type,
         "score": evaluation.score_total,
         "price": features.close,
         "chg": features.chg1,
@@ -214,7 +317,7 @@ def _candidate_payload(evaluation: CandidateEvaluation, names: Mapping[str, str]
         "target_type": evaluation.target_type,
         "risk": evaluation.risk,
         "setup": evaluation.setup_id,
-        "strategy_version": evaluation.strategy_version,
+        "strategy_version": binding.strategy_version,
     }
     for field_name, value in values.items():
         if field_name not in {"code", "name", "sector", "buy_type", "target_type", "setup", "strategy_version"}:
@@ -278,6 +381,7 @@ def _display_names_for_symbols(symbols: Any, normalized_names: Mapping[str, str]
 def _generation_identity(
     manifest: GenerationInputManifest,
     *,
+    binding: StrategyBinding,
     normalized_names: Mapping[str, str],
     symbols: Any,
     market_env: Mapping[str, Any],
@@ -317,11 +421,11 @@ def _generation_identity(
         "canonical_watchlist_schema": CANONICAL_WATCHLIST_SCHEMA,
         "input_fingerprint": manifest.input_fingerprint,
         "strategy_identity": {
-            "version": STRATEGY_VERSION,
-            "spec_sha256": STRATEGY_SPEC_SHA256,
-            "qualification_status": QUALIFIED_LEGACY_BASELINE,
+            "version": binding.strategy_version,
+            "spec_sha256": binding.strategy_spec_sha256,
+            "qualification_status": binding.qualification_status,
         },
-        "buy_type": BUY_TYPE,
+        "buy_type": binding.buy_type,
         "auxiliary_inputs": auxiliary_values,
     }
     return _sha256_bytes(_canonical_json(payload)), payload, auxiliary_inputs
@@ -382,6 +486,7 @@ class DevelopmentCandidateStore:
         self,
         manifest: GenerationInputManifest,
         *,
+        binding: StrategyBinding,
         generation_fingerprint: str,
         generation_fingerprint_payload: Mapping[str, Any],
         auxiliary_inputs: Mapping[str, Any],
@@ -398,12 +503,14 @@ class DevelopmentCandidateStore:
             "schema_version": DEVELOPMENT_CANDIDATE_SCHEMA,
             "status": status,
             "selection_status": selection_status,
-            "strategy_version": STRATEGY_VERSION,
-            "strategy_spec_sha256": STRATEGY_SPEC_SHA256,
+            "strategy_version": binding.strategy_version,
+            "strategy_spec_sha256": binding.strategy_spec_sha256,
             "strategy_identity": {
-                "version": STRATEGY_VERSION,
-                "spec_sha256": STRATEGY_SPEC_SHA256,
+                "version": binding.strategy_version,
+                "spec_sha256": binding.strategy_spec_sha256,
+                "qualification_status": binding.qualification_status,
             },
+            "buy_type": binding.buy_type,
             "as_of_date": manifest.run_context.as_of_date,
             "signal_date": manifest.signal_date,
             "earliest_execution_date": manifest.earliest_execution_date,
@@ -441,6 +548,7 @@ class DevelopmentCandidateStore:
         status: str,
         manifest: GenerationInputManifest,
         generation_fingerprint: str,
+        binding: StrategyBinding,
         candidate_count: int,
         output_sha256: str | None,
         output_path: Path | None,
@@ -455,7 +563,7 @@ class DevelopmentCandidateStore:
             earliest_execution_date=manifest.earliest_execution_date or "",
             input_fingerprint=manifest.input_fingerprint or "",
             generation_fingerprint=generation_fingerprint,
-            strategy_version=STRATEGY_VERSION,
+            strategy_version=binding.strategy_version,
             candidate_count=candidate_count,
             output_sha256=output_sha256,
             output_path=output_path,
@@ -468,7 +576,7 @@ class DevelopmentCandidateStore:
             else (),
         )
 
-    def _records(self, as_of_date: str, strategy_version: str) -> list[dict[str, Any]]:
+    def _records(self, as_of_date: str, binding: StrategyBinding) -> list[dict[str, Any]]:
         run_root = self.lifecycle_root / "runs"
         records: list[dict[str, Any]] = []
         for manifest_path in sorted(run_root.glob("*/run_manifest.json")):
@@ -479,13 +587,17 @@ class DevelopmentCandidateStore:
             if (
                 isinstance(record, dict)
                 and record.get("as_of_date") == as_of_date
-                and record.get("strategy_version") == strategy_version
+                and record.get("strategy_version") == binding.strategy_version
             ):
                 records.append(record)
         return records
 
     @staticmethod
-    def _provenance_matches(record: Mapping[str, Any], output_sha256: str) -> bool:
+    def _provenance_matches(
+        record: Mapping[str, Any],
+        output_sha256: str,
+        binding: StrategyBinding,
+    ) -> bool:
         if record.get("status") != RUN_SUCCESS:
             return False
         generation_payload = record.get("generation_fingerprint_payload")
@@ -502,13 +614,25 @@ class DevelopmentCandidateStore:
         record_strategy = record.get("strategy_identity")
         if not isinstance(payload_strategy, Mapping) or not isinstance(record_strategy, Mapping):
             return False
-        if payload_strategy.get("version") != record.get("strategy_version"):
+        if payload_strategy.get("version") != binding.strategy_version:
             return False
-        if payload_strategy.get("spec_sha256") != record.get("strategy_spec_sha256"):
+        if payload_strategy.get("spec_sha256") != binding.strategy_spec_sha256:
             return False
-        if record_strategy.get("version") != record.get("strategy_version"):
+        if payload_strategy.get("qualification_status") != binding.qualification_status:
             return False
-        if record_strategy.get("spec_sha256") != record.get("strategy_spec_sha256"):
+        if generation_payload.get("buy_type") != binding.buy_type:
+            return False
+        if record.get("strategy_version") != binding.strategy_version:
+            return False
+        if record.get("strategy_spec_sha256") != binding.strategy_spec_sha256:
+            return False
+        if record_strategy.get("version") != binding.strategy_version:
+            return False
+        if record_strategy.get("spec_sha256") != binding.strategy_spec_sha256:
+            return False
+        if record_strategy.get("qualification_status") != binding.qualification_status:
+            return False
+        if record.get("buy_type") != binding.buy_type:
             return False
         try:
             if _sha256_bytes(_canonical_json(generation_payload)) != generation_fingerprint:
@@ -546,6 +670,7 @@ class DevelopmentCandidateStore:
         self,
         manifest: GenerationInputManifest,
         *,
+        binding: StrategyBinding,
         names: Mapping[str, str],
         market_env: Mapping[str, Any],
     ) -> tuple[str, dict[str, Any], dict[str, Any]]:
@@ -556,6 +681,7 @@ class DevelopmentCandidateStore:
             symbols = ()
         return _generation_identity(
             manifest,
+            binding=binding,
             normalized_names=normalized_names,
             symbols=symbols,
             market_env=market_env,
@@ -567,6 +693,8 @@ class DevelopmentCandidateStore:
         *,
         names: Mapping[str, str],
         market_env: Mapping[str, Any],
+        strategy_binding: StrategyBinding | None = None,
+        input_provenance: Mapping[str, Any] | None = None,
     ) -> DevelopmentRunResult:
         """Evaluate and publish one deterministic development candidate.
 
@@ -580,14 +708,37 @@ class DevelopmentCandidateStore:
         if not isinstance(names, Mapping) or not isinstance(market_env, Mapping):
             raise DevelopmentCandidateError(RUN_INPUT_NOT_READY, "names and market_env must be mappings")
 
+        binding = _binding_for_call(strategy_binding)
         try:
-            evaluations = list(evaluate_universe(manifest))
-        except Exception as exc:
+            if strategy_binding is not None:
+                _validate_nominated_candidate(binding, input_provenance)
+            evaluations = list(binding.evaluate_universe(manifest))
+            _validate_evaluations(evaluations, binding)
+        except DevelopmentCandidateError as exc:
             generation_fingerprint, generation_payload, auxiliary_inputs = self._identity_for_failure(
-                manifest, names=names, market_env=market_env
+                manifest, binding=binding, names=names, market_env=market_env
             )
             run_path = self._record(
                 manifest,
+                binding=binding,
+                generation_fingerprint=generation_fingerprint,
+                generation_fingerprint_payload=generation_payload,
+                auxiliary_inputs=auxiliary_inputs,
+                status=exc.status,
+                selection_status=exc.status,
+                candidate_count=0,
+                evaluation_counts={},
+                failure_message=str(exc),
+                run_key=f"failure-{exc.status}",
+            )
+            return self._result(exc.status, manifest, generation_fingerprint, binding, 0, None, None, run_path)
+        except Exception as exc:
+            generation_fingerprint, generation_payload, auxiliary_inputs = self._identity_for_failure(
+                manifest, binding=binding, names=names, market_env=market_env
+            )
+            run_path = self._record(
+                manifest,
+                binding=binding,
                 generation_fingerprint=generation_fingerprint,
                 generation_fingerprint_payload=generation_payload,
                 auxiliary_inputs=auxiliary_inputs,
@@ -598,22 +749,25 @@ class DevelopmentCandidateStore:
                 failure_message=str(exc),
                 run_key=f"failure-{RUN_EVALUATION_FAILURE}",
             )
-            return self._result(RUN_EVALUATION_FAILURE, manifest, generation_fingerprint, 0, None, None, run_path)
+            return self._result(
+                RUN_EVALUATION_FAILURE, manifest, generation_fingerprint, binding, 0, None, None, run_path
+            )
 
         evaluation_counts = Counter(item.status for item in evaluations)
-        qualified = [item for item in evaluations if item.status == QUALIFIED_LEGACY_BASELINE]
+        qualified = [item for item in evaluations if item.status == binding.qualification_status]
 
         try:
             normalized_names = _normalized_names(names)
             final_qualified, eligibility_report = apply_user_tradability_eligibility(qualified, normalized_names)
             generation_fingerprint, generation_payload, auxiliary_inputs = _generation_identity(
                 manifest,
+                binding=binding,
                 normalized_names=normalized_names,
                 symbols=[item.symbol for item in final_qualified],
                 market_env=market_env,
                 user_tradability_eligibility=eligibility_report,
             )
-            candidates = [_candidate_payload(item, normalized_names) for item in final_qualified]
+            candidates = [_candidate_payload(item, normalized_names, binding) for item in final_qualified]
             candidates.sort(key=lambda item: item["code"])
             if len({item["code"] for item in candidates}) != len(candidates):
                 raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, "multiple symbols collapse to one A-share code")
@@ -624,15 +778,16 @@ class DevelopmentCandidateStore:
                     "market_env": copy.deepcopy(dict(market_env)),
                     "sectors": _sector_payload(list(final_qualified)),
                     "candidates": candidates,
-                    "strategy_version": STRATEGY_VERSION,
+                    "strategy_version": binding.strategy_version,
                 }
             )
         except DevelopmentCandidateError as exc:
             generation_fingerprint, generation_payload, auxiliary_inputs = self._identity_for_failure(
-                manifest, names=names, market_env=market_env
+                manifest, binding=binding, names=names, market_env=market_env
             )
             run_path = self._record(
                 manifest,
+                binding=binding,
                 generation_fingerprint=generation_fingerprint,
                 generation_fingerprint_payload=generation_payload,
                 auxiliary_inputs=auxiliary_inputs,
@@ -643,13 +798,14 @@ class DevelopmentCandidateStore:
                 failure_message=str(exc),
                 run_key=f"failure-{exc.status}",
             )
-            return self._result(exc.status, manifest, generation_fingerprint, 0, None, None, run_path)
+            return self._result(exc.status, manifest, generation_fingerprint, binding, 0, None, None, run_path)
         except (TypeError, ValueError, WatchlistSchemaError) as exc:
             generation_fingerprint, generation_payload, auxiliary_inputs = self._identity_for_failure(
-                manifest, names=names, market_env=market_env
+                manifest, binding=binding, names=names, market_env=market_env
             )
             run_path = self._record(
                 manifest,
+                binding=binding,
                 generation_fingerprint=generation_fingerprint,
                 generation_fingerprint_payload=generation_payload,
                 auxiliary_inputs=auxiliary_inputs,
@@ -660,13 +816,15 @@ class DevelopmentCandidateStore:
                 failure_message=str(exc),
                 run_key=f"failure-{RUN_EVALUATION_FAILURE}",
             )
-            return self._result(RUN_EVALUATION_FAILURE, manifest, generation_fingerprint, 0, None, None, run_path)
+            return self._result(
+                RUN_EVALUATION_FAILURE, manifest, generation_fingerprint, binding, 0, None, None, run_path
+            )
 
         candidate_count = len(candidates)
         selection_status = RUN_NO_CANDIDATES if candidate_count == 0 else SELECTION_QUALIFIED
         output_bytes = _canonical_json(payload)
         output_sha256 = _sha256_bytes(output_bytes)
-        version_path = self.version_path(manifest.signal_date, generation_fingerprint)
+        version_path = self.version_path(manifest.signal_date, generation_fingerprint, binding.strategy_version)
         canonical_path = self.canonical_path(manifest.signal_date)
 
         if canonical_path.exists():
@@ -675,6 +833,7 @@ class DevelopmentCandidateStore:
             except OSError as exc:
                 generation_path = self._record(
                     manifest,
+                    binding=binding,
                     generation_fingerprint=generation_fingerprint,
                     generation_fingerprint_payload=generation_payload,
                     auxiliary_inputs=auxiliary_inputs,
@@ -686,16 +845,24 @@ class DevelopmentCandidateStore:
                     run_key=f"failure-{RUN_OUTPUT_WRITE_FAILURE}",
                 )
                 return self._result(
-                    RUN_OUTPUT_WRITE_FAILURE, manifest, generation_fingerprint, candidate_count, None, None, generation_path
+                    RUN_OUTPUT_WRITE_FAILURE,
+                    manifest,
+                    generation_fingerprint,
+                    binding,
+                    candidate_count,
+                    None,
+                    None,
+                    generation_path,
                 )
             same_generation = any(
                 record.get("generation_fingerprint") == generation_fingerprint
-                and self._provenance_matches(record, existing_sha256)
-                for record in self._records(manifest.signal_date, STRATEGY_VERSION)
+                and self._provenance_matches(record, existing_sha256, binding)
+                for record in self._records(manifest.signal_date, binding)
             )
             if existing_sha256 != output_sha256 or not same_generation:
                 run_path = self._record(
                     manifest,
+                    binding=binding,
                     generation_fingerprint=generation_fingerprint,
                     generation_fingerprint_payload=generation_payload,
                     auxiliary_inputs=auxiliary_inputs,
@@ -707,7 +874,14 @@ class DevelopmentCandidateStore:
                     run_key=f"conflict-{output_sha256}",
                 )
                 return self._result(
-                    RUN_OUTPUT_CONFLICT, manifest, generation_fingerprint, candidate_count, None, None, run_path
+                    RUN_OUTPUT_CONFLICT,
+                    manifest,
+                    generation_fingerprint,
+                    binding,
+                    candidate_count,
+                    None,
+                    None,
+                    run_path,
                 )
 
         already_current = canonical_path.exists()
@@ -717,6 +891,7 @@ class DevelopmentCandidateStore:
                 _atomic_write(canonical_path, output_bytes)
             run_path = self._record(
                 manifest,
+                binding=binding,
                 # The immutable run record always describes a successful
                 # generation; OUTPUT_ALREADY_CURRENT is only the call result.
                 generation_fingerprint=generation_fingerprint,
@@ -731,6 +906,7 @@ class DevelopmentCandidateStore:
         except DevelopmentCandidateError as exc:
             run_path = self._record(
                 manifest,
+                binding=binding,
                 generation_fingerprint=generation_fingerprint,
                 generation_fingerprint_payload=generation_payload,
                 auxiliary_inputs=auxiliary_inputs,
@@ -741,11 +917,14 @@ class DevelopmentCandidateStore:
                 failure_message=str(exc),
                 run_key=f"failure-{exc.status}",
             )
-            return self._result(exc.status, manifest, generation_fingerprint, candidate_count, None, None, run_path)
+            return self._result(
+                exc.status, manifest, generation_fingerprint, binding, candidate_count, None, None, run_path
+            )
         except OSError as exc:
             try:
                 run_path = self._record(
                     manifest,
+                    binding=binding,
                     generation_fingerprint=generation_fingerprint,
                     generation_fingerprint_payload=generation_payload,
                     auxiliary_inputs=auxiliary_inputs,
@@ -760,16 +939,25 @@ class DevelopmentCandidateStore:
                 run_path = self.run_manifest_path(
                     manifest.signal_date,
                     generation_fingerprint,
+                    binding.strategy_version,
                     run_key=f"failure-{RUN_OUTPUT_WRITE_FAILURE}",
                 )
             return self._result(
-                RUN_OUTPUT_WRITE_FAILURE, manifest, generation_fingerprint, candidate_count, None, None, run_path
+                RUN_OUTPUT_WRITE_FAILURE,
+                manifest,
+                generation_fingerprint,
+                binding,
+                candidate_count,
+                None,
+                None,
+                run_path,
             )
 
         return self._result(
             RUN_ALREADY_CURRENT if already_current else RUN_PUBLISHED,
             manifest,
             generation_fingerprint,
+            binding,
             candidate_count,
             output_sha256,
             canonical_path,
@@ -777,9 +965,134 @@ class DevelopmentCandidateStore:
             eligibility_report,
         )
 
-    def monitor(self, as_of_date: str, strategy_version: str = STRATEGY_VERSION) -> MonitoringResult:
+    def supersede_invalid_canonical(
+        self,
+        as_of_date: str,
+        *,
+        expected_sha256: str,
+        expected_strategy_version: str,
+        formal_run_id: str,
+        invalidation_reason: str,
+        superseded_at: str,
+        correcting_code_sha: str,
+        replacement_strategy_version: str,
+        replacement_strategy_spec_sha256: str,
+    ) -> Path:
+        """Retain and invalidate one known-wrong canonical output exactly once."""
+
+        canonical_path = self.canonical_path(as_of_date)
+        invalidated_root = self.lifecycle_root / "invalidated" / f"{canonical_path.stem}-{expected_sha256}"
+        original_path = invalidated_root / canonical_path.name
+        record_path = invalidated_root / "invalidation.json"
+        run_path = self.lifecycle_root / "runs" / formal_run_id / "run_manifest.json"
+
+        if canonical_path.exists():
+            try:
+                original_bytes = canonical_path.read_bytes()
+                payload = load_watchlist(canonical_path)
+            except (OSError, WatchlistSchemaError) as exc:
+                raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, f"canonical evidence is invalid: {exc}") from exc
+            if _sha256_bytes(original_bytes) != expected_sha256:
+                raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, "canonical SHA does not match expected wrong output")
+            if payload.get("strategy_version") != expected_strategy_version:
+                raise DevelopmentCandidateError(
+                    RUN_OUTPUT_CONFLICT, "canonical strategy identity does not match expected wrong output"
+                )
+        else:
+            if not original_path.exists() or not record_path.exists():
+                raise DevelopmentCandidateError(
+                    RUN_OUTPUT_CONFLICT, "expected wrong canonical is missing and no complete invalidation evidence exists"
+                )
+            original_bytes = original_path.read_bytes()
+            if _sha256_bytes(original_bytes) != expected_sha256:
+                raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, "retained canonical evidence SHA mismatch")
+            try:
+                existing_record = json.loads(record_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, f"invalidation record is invalid: {exc}") from exc
+            if not isinstance(existing_record, Mapping) or existing_record.get("status") != INVALIDATED_WRONG_EVALUATOR_A_ON_B_INPUT:
+                raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, "invalidation record status mismatch")
+            existing_original = existing_record.get("original")
+            if (
+                not isinstance(existing_original, Mapping)
+                or existing_original.get("file_sha256") != expected_sha256
+                or existing_original.get("strategy_version") != expected_strategy_version
+                or existing_original.get("formal_run_id") != formal_run_id
+            ):
+                raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, "invalidation record identity mismatch")
+            try:
+                retained_payload = json.loads(original_bytes.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, f"retained canonical evidence is invalid: {exc}") from exc
+            if not isinstance(retained_payload, Mapping) or retained_payload.get("strategy_version") != expected_strategy_version:
+                raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, "retained canonical strategy identity mismatch")
+
+        if not run_path.exists():
+            raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, f"formal run manifest not found: {run_path}")
+        try:
+            run_bytes = run_path.read_bytes()
+            run_record = json.loads(run_bytes.decode("utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, f"formal run manifest is invalid: {exc}") from exc
+        if not isinstance(run_record, Mapping):
+            raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, "formal run manifest is not an object")
+        run_output = run_record.get("output")
+        if (
+            run_record.get("status") != RUN_SUCCESS
+            or run_record.get("strategy_version") != expected_strategy_version
+            or not isinstance(run_output, Mapping)
+            or run_output.get("file_sha256") != expected_sha256
+            or run_record.get("as_of_date") != as_of_date
+        ):
+            raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, "formal run does not link to expected wrong output")
+
+        _write_immutable(original_path, original_bytes)
+        record: dict[str, Any] = {
+            "schema_version": INVALIDATION_SCHEMA,
+            "status": INVALIDATED_WRONG_EVALUATOR_A_ON_B_INPUT,
+            "reason": invalidation_reason,
+            "superseded_at": superseded_at,
+            "correcting_code_sha": correcting_code_sha,
+            "original": {
+                "canonical_logical_path": f"data/{canonical_path.name}",
+                "file_sha256": expected_sha256,
+                "strategy_version": expected_strategy_version,
+                "formal_run_id": formal_run_id,
+                "run_manifest_logical_path": f"data/development_candidate/runs/{formal_run_id}/run_manifest.json",
+                "run_manifest_file_sha256": _sha256_bytes(run_bytes),
+            },
+            "retained_evidence": {
+                "path": str(original_path),
+                "file_sha256": _sha256_bytes(original_bytes),
+            },
+            "replacement": {
+                "canonical_logical_path": f"data/{canonical_path.name}",
+                "strategy_version": replacement_strategy_version,
+                "strategy_spec_sha256": replacement_strategy_spec_sha256,
+            },
+        }
+        _write_immutable(record_path, _canonical_json(record))
+        try:
+            canonical_path.unlink()
+        except FileNotFoundError:
+            pass
+        except OSError as exc:
+            raise DevelopmentCandidateError(RUN_OUTPUT_WRITE_FAILURE, str(exc)) from exc
+        return record_path
+
+    def monitor(
+        self,
+        as_of_date: str,
+        strategy_version: str = STRATEGY_VERSION,
+        *,
+        strategy_binding: StrategyBinding | None = None,
+    ) -> MonitoringResult:
         """Validate canonical output and its complete immutable provenance."""
 
+        if strategy_binding is None and strategy_version == B_STRATEGY_VERSION:
+            binding = B_STRATEGY_BINDING
+        else:
+            binding = _binding_for_call(strategy_binding)
         path = self.canonical_path(as_of_date)
         if not path.exists():
             return MonitoringResult(MONITOR_MISSING_OUTPUT, as_of_date, None, None, None, f"missing {path}")
@@ -788,8 +1101,8 @@ class DevelopmentCandidateStore:
         except (OSError, WatchlistSchemaError) as exc:
             return MonitoringResult(MONITOR_INVALID_OUTPUT, as_of_date, None, None, None, str(exc))
         output_sha256 = _sha256_bytes(path.read_bytes())
-        for record in self._records(as_of_date, strategy_version):
-            if self._provenance_matches(record, output_sha256):
+        for record in self._records(as_of_date, binding):
+            if self._provenance_matches(record, output_sha256, binding):
                 return MonitoringResult(
                     MONITOR_HEALTHY,
                     as_of_date,
@@ -812,13 +1125,19 @@ class DevelopmentCandidateStore:
         as_of_date: str,
         generation_fingerprint: str,
         strategy_version: str = STRATEGY_VERSION,
+        *,
+        strategy_binding: StrategyBinding | None = None,
     ) -> MonitoringResult:
         """Restore the canonical path from one immutable full-identity version."""
 
-        version_path = self.version_path(as_of_date, generation_fingerprint, strategy_version)
+        if strategy_binding is None and strategy_version == B_STRATEGY_VERSION:
+            binding = B_STRATEGY_BINDING
+        else:
+            binding = _binding_for_call(strategy_binding)
+        version_path = self.version_path(as_of_date, generation_fingerprint, binding.strategy_version)
         if not version_path.exists():
             raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, f"version artifact not found: {version_path}")
-        run_path = self.run_manifest_path(as_of_date, generation_fingerprint, strategy_version)
+        run_path = self.run_manifest_path(as_of_date, generation_fingerprint, binding.strategy_version)
         if not run_path.exists():
             raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, f"run provenance not found: {run_path}")
         try:
@@ -828,20 +1147,24 @@ class DevelopmentCandidateStore:
             raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, f"version artifact is invalid: {exc}") from exc
         if record.get("generation_fingerprint") != generation_fingerprint:
             raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, "version provenance generation fingerprint mismatch")
-        if not self._provenance_matches(record, _sha256_bytes(version_path.read_bytes())):
+        if not self._provenance_matches(record, _sha256_bytes(version_path.read_bytes()), binding):
             raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, "version provenance is incomplete or inconsistent")
         try:
             _atomic_write(self.canonical_path(as_of_date), version_path.read_bytes())
         except OSError as exc:
             raise DevelopmentCandidateError(RUN_OUTPUT_WRITE_FAILURE, str(exc)) from exc
-        return self.monitor(as_of_date, strategy_version)
+        return self.monitor(as_of_date, strategy_binding=binding)
 
 
 __all__ = [
     "BUY_TYPE",
+    "A_STRATEGY_BINDING",
+    "B_STRATEGY_BINDING",
     "CANONICAL_WATCHLIST_SCHEMA",
     "DEVELOPMENT_CANDIDATE_SCHEMA",
     "GENERATION_FINGERPRINT_SCHEMA",
+    "INVALIDATED_WRONG_EVALUATOR_A_ON_B_INPUT",
+    "INVALIDATION_SCHEMA",
     "INELIGIBLE_ST",
     "DevelopmentCandidateError",
     "DevelopmentCandidateStore",
@@ -860,6 +1183,7 @@ __all__ = [
     "RUN_OUTPUT_WRITE_FAILURE",
     "RUN_PUBLISHED",
     "RUN_SUCCESS",
+    "StrategyBinding",
     "USER_TRADABILITY_ELIGIBILITY_POLICY",
     "apply_user_tradability_eligibility",
     "MonitoringResult",

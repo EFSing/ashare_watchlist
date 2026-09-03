@@ -3,10 +3,15 @@ import hashlib
 
 import development_candidate
 from a_platform_breakout import STRATEGY_VERSION
+from b_breakout_retest_v1_1 import STRATEGY_SPEC_SHA256 as B_STRATEGY_SPEC_SHA256
+from b_breakout_retest_v1_1 import STRATEGY_VERSION as B_STRATEGY_VERSION
 from data_paths import DataPaths
 from development_candidate import (
+    A_STRATEGY_BINDING,
+    B_STRATEGY_BINDING,
     DevelopmentCandidateStore,
     INELIGIBLE_ST,
+    INVALIDATED_WRONG_EVALUATOR_A_ON_B_INPUT,
     MONITOR_HEALTHY,
     MONITOR_INVALID_OUTPUT,
     RUN_ALREADY_CURRENT,
@@ -20,6 +25,7 @@ from development_candidate import (
     MONITOR_UNTRACKED_OUTPUT,
 )
 from test_a_platform_breakout import _base_bars, _manifest
+from test_b_breakout_retest_v1_1 import _b_bars
 from track_perf import ingest, new_tracker
 from watchlist_schema import load_watchlist
 
@@ -32,6 +38,10 @@ def _canonical_json(value):
     return (json.dumps(value, ensure_ascii=False, allow_nan=False, sort_keys=True, separators=(",", ":")) + "\n").encode(
         "utf-8"
     )
+
+
+def _b_provenance():
+    return {"candidate": {"strategy_version": B_STRATEGY_VERSION, "spec_sha256": B_STRATEGY_SPEC_SHA256}}
 
 
 def test_success_publishes_canonical_output_with_immutable_provenance(tmp_path):
@@ -310,3 +320,111 @@ def test_monitor_rejects_tampered_generation_provenance(tmp_path):
     monitored = store.monitor("2026-08-27")
 
     assert monitored.status == MONITOR_UNTRACKED_OUTPUT
+
+
+def test_explicit_b_binding_routes_b_evaluator_and_all_output_identity(tmp_path):
+    store = DevelopmentCandidateStore(tmp_path)
+    manifest = _manifest(_b_bars())
+
+    result = store.generate(
+        manifest,
+        names={"600000": "测试银行"},
+        market_env=_market_env(),
+        strategy_binding=B_STRATEGY_BINDING,
+        input_provenance=_b_provenance(),
+    )
+
+    assert result.status == RUN_PUBLISHED
+    assert result.strategy_version == B_STRATEGY_VERSION
+    payload = load_watchlist(result.output_path)
+    assert payload["strategy_version"] == B_STRATEGY_VERSION
+    assert payload["candidates"][0]["strategy_version"] == B_STRATEGY_VERSION
+    assert payload["candidates"][0]["buy_type"] == "B 突破回踩"
+    record = json.loads(result.run_manifest_path.read_text(encoding="utf-8"))
+    assert record["strategy_version"] == B_STRATEGY_VERSION
+    assert record["buy_type"] == "B 突破回踩"
+    assert store.monitor("2026-08-27", strategy_binding=B_STRATEGY_BINDING).status == MONITOR_HEALTHY
+
+
+def test_b_package_with_accidental_a_binding_fails_closed_before_publish(tmp_path):
+    store = DevelopmentCandidateStore(tmp_path)
+    manifest = _manifest(_b_bars())
+
+    result = store.generate(
+        manifest,
+        names={"600000": "测试银行"},
+        market_env=_market_env(),
+        strategy_binding=A_STRATEGY_BINDING,
+        input_provenance=_b_provenance(),
+    )
+
+    assert result.status == RUN_OUTPUT_CONFLICT
+    assert result.output_path is None
+    assert not store.canonical_path("2026-08-27").exists()
+    record = json.loads(result.run_manifest_path.read_text(encoding="utf-8"))
+    assert record["strategy_version"] == STRATEGY_VERSION
+    assert "nominated candidate identity" in record["failure_message"]
+
+
+def test_wrong_canonical_supersession_retains_exact_evidence_and_allows_corrected_b_publish(tmp_path):
+    store = DevelopmentCandidateStore(tmp_path)
+    as_of_date = "2026-08-27"
+    old_payload = {
+        "date": as_of_date,
+        "mode": "T_CLOSE",
+        "market_env": _market_env(),
+        "sectors": [],
+        "candidates": [],
+        "strategy_version": STRATEGY_VERSION,
+    }
+    old_bytes = _canonical_json(old_payload)
+    old_sha256 = hashlib.sha256(old_bytes).hexdigest()
+    canonical_path = store.canonical_path(as_of_date)
+    canonical_path.parent.mkdir(parents=True, exist_ok=True)
+    canonical_path.write_bytes(old_bytes)
+    formal_run_id = "formal-wrong-a-run"
+    formal_run_path = store.lifecycle_root / "runs" / formal_run_id / "run_manifest.json"
+    formal_run_path.parent.mkdir(parents=True, exist_ok=True)
+    formal_run_path.write_text(
+        json.dumps(
+            {
+                "status": "SUCCESS",
+                "as_of_date": as_of_date,
+                "strategy_version": STRATEGY_VERSION,
+                "output": {"file_sha256": old_sha256},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    invalidation_path = store.supersede_invalid_canonical(
+        as_of_date,
+        expected_sha256=old_sha256,
+        expected_strategy_version=STRATEGY_VERSION,
+        formal_run_id=formal_run_id,
+        invalidation_reason="wrong evaluator routed a B package through A",
+        superseded_at="2026-09-03T12:00:00+08:00",
+        correcting_code_sha="d" * 40,
+        replacement_strategy_version=B_STRATEGY_VERSION,
+        replacement_strategy_spec_sha256=B_STRATEGY_SPEC_SHA256,
+    )
+
+    assert not canonical_path.exists()
+    retained_path = invalidation_path.parent / canonical_path.name
+    assert retained_path.read_bytes() == old_bytes
+    assert hashlib.sha256(retained_path.read_bytes()).hexdigest() == old_sha256
+    record = json.loads(invalidation_path.read_text(encoding="utf-8"))
+    assert record["status"] == INVALIDATED_WRONG_EVALUATOR_A_ON_B_INPUT
+    assert record["original"]["file_sha256"] == old_sha256
+    assert record["original"]["formal_run_id"] == formal_run_id
+    assert formal_run_path.exists()
+
+    corrected = store.generate(
+        _manifest(_b_bars()),
+        names={"600000": "测试银行"},
+        market_env=_market_env(),
+        strategy_binding=B_STRATEGY_BINDING,
+        input_provenance=_b_provenance(),
+    )
+    assert corrected.status == RUN_PUBLISHED
+    assert load_watchlist(canonical_path)["strategy_version"] == B_STRATEGY_VERSION
