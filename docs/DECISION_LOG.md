@@ -1111,3 +1111,26 @@
   `NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION_T_EVIDENCE_SECURED`。不 merge PR
   #29，不重抓已成功 volatile source，不读取 Final OOS，不执行 returns/C/Phase 2F、
   tuning、promotion、auto-freeze，也不接触 forbidden continuous-speed-probe directory。
+
+## 2026-09-03 — Complete T-close recovery and deliver generated watchlist
+
+- classification：原 correctness/product-path blocker 已解除；执行结果不是 research
+  tuning，也不构成 strategy promotion。固定的
+  `B_BREAKOUT_RETEST_LEGACY_V1_1`、spec、threshold、score、Top-N、universe、sector、ST
+  与 fallback policy 均未修改。
+- evidence decision：`ADOPT` 以 PR #29 merge 后 exact master
+  `af45c8c83cb1a265470bae4693d80cb86708fb76` 继续恢复。最终 10,597/10,597 raw/sidecar
+  pairs 为 `SHA_VERIFIED`；170 个历史 `UNKNOWN_ORIGIN` sidecar 原样保留，失败 evidence
+  原样保留，不删除 mismatch、重写 provenance 或重抓已成功冻结来源。
+- product result：全量 stock/index Klines、market_env、GenerationInputManifest 与 B
+  lifecycle 成功完成。package=`READY_FOR_STRATEGY_EVALUATION`；watchlist 生成 0 个
+  candidate，B raw qualified=0、final non-ST qualified=0、ST excluded=0；evaluation
+  counts=`INSUFFICIENT_DATA:2715, MATCHED_REJECTED:5, NOT_MATCHED:2495`。因此 decision
+  为交付空名单，不把空结果误报为失败或策略结论。
+- postprocess/frozen decision：private Drive upload/readback 未配置，终态为
+  `T_CLOSE_WATCHLIST_GENERATED_POSTPROCESS_BLOCKED`。因历史 code provenance 为
+  `UNKNOWN_ORIGIN`，`FULLY_RECOVERABLE` 与
+  `FROZEN_CANDIDATE_PREREQUISITES_PASS_READY_FOR_USER_FREEZE_DECISION` 保持
+  `NOT_READY / PARTIAL_UNVERIFIED`；该后处理状态不阻止 B 名单计算与用户交付。
+- boundary：Final OOS 保持 `SEALED / UNREAD`；C、Phase 2F、returns、tuning、promotion、
+  auto-freeze 均 `NOT_RUN`；forbidden continuous-speed-probe directory 未读取或修改。

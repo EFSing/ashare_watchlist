@@ -1110,3 +1110,40 @@ coverage/ambiguity current gate 和 provider counts 不代表本文当前 live g
   PR #29 后，才恢复 000008.SZ 及其后缺失 component。Final OOS、returns、C、Phase 2F、
   tuning、promotion、auto-freeze 和 forbidden continuous-speed-probe directory 均未
   读取或修改。
+
+## Superseding live state — T-close watchlist generated; postprocess blocked — 2026-09-03
+
+- classification：原 `correctness blocker` + product-path recovery 已解决；本次执行未改变
+  strategy、B、threshold、score、Top-N、universe、sector、ST 或 fallback semantics。当前
+  formal Delivery Ladder 仍为 `development candidate`。
+- live Git/GitHub：PR #29 已由用户授权并 squash-merged，实际 merge SHA 为
+  `af45c8c83cb1a265470bae4693d80cb86708fb76`；`master`、`origin/master` 与该 SHA 一致；
+  merge-after correctness CI `33738791786` 为 `success`。tracked working tree clean；既有
+  untracked evidence/output 保留，forbidden probe directory 未读取、修改、删除或上传。
+- integrity gate：最终现有 `T_CLOSE_SOURCE_CAPTURE_V1` evidence 共 10,597 个 raw/sidecar
+  pairs，10,597/10,597 为 `SHA_VERIFIED`，`MISSING=0`、`HASH_MISMATCH=0`、
+  `SIDECAR_INVALID=0`。其中原始 `UNKNOWN_ORIGIN` 为 170 个且保持原样；pre-merge
+  recovery code SHA `43f055e4e8e1a0e1e4a70e41cf8ec10580aab984` 为 1 个；merge 后实际
+  code SHA `af45c8c83cb1a265470bae4693d80cb86708fb76` 为 10,426 个。3 条 `FAILED`
+  evidence（000008 原始/恢复 failure 与 301311 provider failure）均保留且已验证，未覆盖。
+- recovery：成功 checkpoint 被复用；000008.SZ 随后完成，301311.SZ 首次 provider
+  `HTTPError` 后在同一 policy 下 resume 成功；完整 5,215 个 stock Kline 加 1 个 index
+  Kline、market_env、GenerationInputManifest 与既有 B candidate lifecycle 均完成。
+- artifacts：package 为
+  `data/prospective_inputs/20260903/2026-09-03_eeb700c98a69a98fae3fa220851190a76de88984b0f451cc1ed275b2e487351f.json`，
+  package file SHA 为 `a2e6da0865ff20316e4d9074f26e2cb3ba53995d2cb3e83a49f8c82988c0b38a`，
+  content SHA 为 `0b1216e5c5855343dba02853eb17e9dbc43c97d50120ac7490da43eaa78cdf86`；
+  status=`READY_FOR_STRATEGY_EVALUATION`。watchlist 为
+  `data/watchlist_20260903.json`，file SHA 为
+  `ca8cba86527550d7ba10d05083bb1c7523b54ccf8c9ecb34ef10152b8fced1fb`，候选数 0、sector
+  数 0，无 actionable candidate fields；run manifest 为
+  `data/development_candidate/runs/FFu4MlWYdPwSFrjFJ52Ak2-X2Z0a5-aOWrkdI74Azrc/run_manifest.json`，
+  `SUCCESS / NO_CANDIDATES`，B raw qualified=0、final non-ST qualified=0、ST excluded=0，
+  evaluation counts=`INSUFFICIENT_DATA:2715, MATCHED_REJECTED:5, NOT_MATCHED:2495`。
+- postprocess/frozen boundary：终态为
+  `T_CLOSE_WATCHLIST_GENERATED_POSTPROCESS_BLOCKED`；private Drive upload/readback 为
+  `NOT_CONFIGURED_EXTERNAL_UPLOAD`。由于历史 170 个 sidecar 的 code provenance 仍为
+  `UNKNOWN_ORIGIN`，不宣称 `FULLY_RECOVERABLE`，也不宣称
+  `FROZEN_CANDIDATE_PREREQUISITES_PASS_READY_FOR_USER_FREEZE_DECISION`；名单已生成并可
+  交付。Final OOS=`SEALED / UNREAD`；C、Phase 2F、returns、tuning、promotion、
+  auto-freeze 均未运行。

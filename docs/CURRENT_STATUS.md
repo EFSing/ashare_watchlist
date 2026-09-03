@@ -855,3 +855,25 @@ resume starts at `000008.SZ` and must not refetch successful volatile components
 runner code provenance remains incomplete, so `FULLY_RECOVERABLE` and frozen-prerequisite PASS
 are not claimed. Private Drive remains `NOT_CONFIGURED`; the forbidden probe directory remains
 untouched.
+
+## Superseding current state — 2026-09-03 T-close watchlist generated
+
+Formal Delivery Ladder remains `development candidate`. PR #29 is merged at
+`af45c8c83cb1a265470bae4693d80cb86708fb76`; merge-after correctness run `33738791786` is
+success, and local `master=origin/master` at that SHA. The exact T-close evidence integrity
+gate passes for 10,597/10,597 raw/sidecar pairs (`MISSING=0`, `HASH_MISMATCH=0`,
+`SIDECAR_INVALID=0`). Original `UNKNOWN_ORIGIN` sidecars remain unchanged; no provenance
+attestation or frozen-prerequisite PASS is claimed.
+
+The recovery completed full stock/index inputs, market_env, GenerationInputManifest and the
+existing B development-candidate lifecycle. Package status is
+`READY_FOR_STRATEGY_EVALUATION`; the canonical watchlist is persisted at
+`data/watchlist_20260903.json` with candidate count 0 and no actionable candidate fields.
+Run manifest status is `SUCCESS / NO_CANDIDATES`; B raw qualified=0, final non-ST qualified=0,
+ST excluded=0, and evaluation counts are `INSUFFICIENT_DATA=2715`, `MATCHED_REJECTED=5`,
+`NOT_MATCHED=2495`.
+
+Current terminal is `T_CLOSE_WATCHLIST_GENERATED_POSTPROCESS_BLOCKED`: private Drive
+upload/readback is `NOT_CONFIGURED_EXTERNAL_UPLOAD`. The empty generated list is deliverable;
+no strategy promotion, Final OOS read, C, Phase 2F, returns validation, tuning, or auto-freeze
+was started, and the forbidden continuous-speed-probe directory remains untouched.
