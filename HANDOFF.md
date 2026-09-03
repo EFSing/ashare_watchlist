@@ -1074,3 +1074,39 @@ coverage/ambiguity current gate 和 provider counts 不代表本文当前 live g
 - stop：after this governance-only snapshot is pushed and its new exact-head CI is live
   success/clean/mergeable，stop at `NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION`；
   do not auto-merge PR #28。
+
+## Superseding live state — T-close recovery stopped at PR #29 — 2026-09-03
+
+- classification：`correctness blocker` + product-path recovery；任务分类未改变。live
+  PR #28 merge state 已由 GitHub truth 确认并解决为
+  `PROJECT_GOVERNANCE_STATE_CONFLICT_RESOLVED`，不是新的 strategy/product/architecture
+  decision。
+- live Git/GitHub：`master=origin/master=43f055e4e8e1a0e1e4a70e41cf8ec10580aab984`，
+  merge-after correctness run `33720355007` success，PR #28 已 merged，当前无其他
+  merged-state ambiguity。PR #29 为本次 bounded fix，base=`43f055e4e8e1a0e1e4a70e41cf8ec10580aab984`，
+  code head=`e17d47d372094d58ce191b338c8e0ca3c1dc4feb`；exact-head run
+  `33736428448` success，PR 为 open、clean、mergeable，merge 留给 user。
+- T-close evidence：初始 15:30:04–15:30:57 BJT capture 已保留 170 个 raw/sidecar
+  pairs，初始全量 SHA verification PASS；其后恢复尝试只新增 000008.SZ 的 failure
+  evidence，既有 `UNKNOWN_ORIGIN` sidecar 未修改。初始失败 response SHA 为
+  `79efc51a20bd6bfcd443fb464242eb18461a224c23d62b815906884abfff18ce`；恢复尝试的
+  HiThink/Tencent transport failure 没有 response body。
+- recovery result：universe、official rosters、Sina sector spot/membership、Tencent
+  T-date quotes 和已成功 stock-Kline checkpoints 均未重新获取。000008.SZ 的 HiThink
+  `HTTPError` 后，现有 bounded Tencent fallback 也以 3 次 `ConnectionError` 失败；
+  没有生成 READY manifest、prospective package、canonical watchlist 或 B/ST output。
+- correctness finding：既有失败 provider response 与后续不同 bytes response 共用
+  request identity 会触发 `PERSISTENCE_CONFLICT`，阻断合法 resume。PR #29 仅新增
+  `response_sha256` 派生的 supplemental response identity，保留旧 bytes，不改变
+  strategy、threshold、universe、fallback policy 或既有 9/3 evidence。
+- provenance boundary：原始 170 个 sidecar 的 `code_git_sha` 仍为
+  `UNKNOWN_ORIGIN`，无法由 task object/event log 严格反推原 runner 的 clean code
+  identity；没有创建 supplemental attestation。PR #29 后续 retry 使用 exact
+  master SHA `43f055e4e8e1a0e1e4a70e41cf8ec10580aab984`，但当前仍不能宣称
+  `FULLY_RECOVERABLE` 或 frozen prerequisite PASS。
+- validation：focused live-acquisition/runner `72 passed`，full pytest `258 passed`，
+  compileall、governance JSON parse、`git diff --check` PASS。当前 stop 为
+  `NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION_T_EVIDENCE_SECURED`；user merge
+  PR #29 后，才恢复 000008.SZ 及其后缺失 component。Final OOS、returns、C、Phase 2F、
+  tuning、promotion、auto-freeze 和 forbidden continuous-speed-probe directory 均未
+  读取或修改。

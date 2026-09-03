@@ -837,6 +837,19 @@ def _hithink_capture_identity(api_name: str, params: Mapping[str, Any]) -> str:
     return f"{api_name}?{query}" if query else api_name
 
 
+def _hithink_response_capture_identity(
+    store: TCloseEvidenceStore,
+    logical_identity: str,
+    payload: bytes,
+) -> str:
+    """Preserve a changed retry response without overwriting prior evidence."""
+
+    existing = store.load_raw("hithink_response", logical_identity)
+    if existing is None or existing.payload == payload:
+        return logical_identity
+    return f"{logical_identity}:response_sha256={_sha256_bytes(payload)}"
+
+
 class _HiThinkReadFailure(RuntimeError):
     """A transient HiThink read exhausted its bounded attempts."""
 
@@ -918,6 +931,7 @@ class HiThinkClient:
     ) -> Mapping[str, Any]:
         query = urllib.parse.urlencode(params)
         url = f"{HITHINK_BASE_URL}{path}?{query}" if query else f"{HITHINK_BASE_URL}{path}"
+        logical_identity = _hithink_capture_identity(api_name, params)
         for attempt in range(1, self.max_attempts + 1):
             try:
                 response = self.request_get(
@@ -927,9 +941,14 @@ class HiThinkClient:
                 )
                 if self.capture_store is not None:
                     payload, encoding = _response_bytes(response)
+                    response_identity = _hithink_response_capture_identity(
+                        self.capture_store,
+                        logical_identity,
+                        payload,
+                    )
                     self.capture_store.capture_raw(
                         "hithink_response",
-                        _hithink_capture_identity(api_name, params),
+                        response_identity,
                         payload,
                         provider="HiThink Financial-API",
                         source_identity=path,

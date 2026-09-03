@@ -1071,3 +1071,43 @@
   `NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION`，等待 user merge decision；
   scheduled run 成功后再以实际 package/output/evidence SHA 判断是否解除 P1，若失败则
   依据 failure evidence 恢复，不放宽 B 或数据时序规则。
+
+## 2026-09-03 — Adopt minimal retry-response identity fix for T-close recovery
+
+- classification：`correctness blocker` + product-path recovery；研究/策略分类未改变。
+  materiality 是已捕获的 T-close source bytes 必须能够在 provider transient failure 后
+  继续恢复；若省略该修复，合法的 changed-response retry 会被 immutable persistence
+  conflict 阻断，当前 development-candidate usable gate 无法完成。
+- live conflict resolution：实时 Git/GitHub truth 已确认 PR #28 squash merge SHA 为
+  `43f055e4e8e1a0e1e4a70e41cf8ec10580aab984`，master merge-after correctness run
+  `33720355007` success，当前无 open PR #28。此前文档中的 PR-open snapshot 明确
+  解决为 `PROJECT_GOVERNANCE_STATE_CONFLICT_RESOLVED`；这不是新的 product、strategy
+  或 architecture decision。
+- input/evidence boundary：T=`2026-09-03`、T+1=`2026-09-04`、strategy
+  `B_BREAKOUT_RETEST_LEGACY_V1_1`、role `CORRECTED_EXACT_V0_RECONSTRUCTION`、spec SHA
+  `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd` 均保持不变。初始
+  capture 的 170 个 raw/sidecar pairs 已 SHA verification PASS；既有
+  `UNKNOWN_ORIGIN` sidecar、成功 volatile checkpoints 和首次 000008 response bytes
+  均未修改。恢复尝试新增一条带 exact resume code SHA 的 000008 transport failure
+  evidence；没有 package、manifest、watchlist 或 frozen artifact。
+- finding：旧失败 response 与 changed retry response 使用同一 provider request
+  identity 时，`TCloseEvidenceStore.capture_raw()` 会 fail closed 为
+  `PERSISTENCE_CONFLICT`。该行为会阻断合法 resume，故 decision 为 `ADOPT`：在
+  response bytes 改变时使用 `response_sha256` 派生 supplemental logical identity；同一
+  bytes 仍复用原 identity，旧 sidecar 不覆盖。B、阈值、score cutoff、Top-N、universe、
+  provider/fallback policy 和 T-close semantics 均未改变。
+- implementation/validation：PR #29，branch
+  `codex/t-close-resume-response-evidence-20260903`，code commit
+  `e17d47d372094d58ce191b338c8e0ca3c1dc4feb`，base master 为上述 merge SHA；focused
+  live-acquisition/runner `72 passed`，full pytest `258 passed`，compileall、governance
+  JSON parse、`git diff --check` PASS；exact-head CI `33736428448` success，PR open and
+  clean/mergeable。
+- provenance decision：无法从已删除/不可读的 Windows task object、event log 和原始
+  `UNKNOWN_ORIGIN` sidecar 严格证明初始 runner 的 clean code SHA，因此不创建 supplemental
+  attestation，不把既有 sidecar 回填为 exact SHA，也不宣称 `FULLY_RECOVERABLE` 或 frozen
+  prerequisite PASS。后续 retry 只允许在 user merge PR #29 后从 exact master 恢复
+  `000008.SZ` 及其后缺失 component。
+- final decision/stop：`ADOPT_MINIMAL_T_CLOSE_RESUME_RESPONSE_IDENTITY_FIX`；当前终态为
+  `NEW_CORRECTNESS_FIX_PR_READY_FOR_USER_MERGE_DECISION_T_EVIDENCE_SECURED`。不 merge PR
+  #29，不重抓已成功 volatile source，不读取 Final OOS，不执行 returns/C/Phase 2F、
+  tuning、promotion、auto-freeze，也不接触 forbidden continuous-speed-probe directory。
