@@ -1012,7 +1012,20 @@ class DevelopmentCandidateStore:
                 raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, f"invalidation record is invalid: {exc}") from exc
             if not isinstance(existing_record, Mapping) or existing_record.get("status") != INVALIDATED_WRONG_EVALUATOR_A_ON_B_INPUT:
                 raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, "invalidation record status mismatch")
-            return record_path
+            existing_original = existing_record.get("original")
+            if (
+                not isinstance(existing_original, Mapping)
+                or existing_original.get("file_sha256") != expected_sha256
+                or existing_original.get("strategy_version") != expected_strategy_version
+                or existing_original.get("formal_run_id") != formal_run_id
+            ):
+                raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, "invalidation record identity mismatch")
+            try:
+                retained_payload = json.loads(original_bytes.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, f"retained canonical evidence is invalid: {exc}") from exc
+            if not isinstance(retained_payload, Mapping) or retained_payload.get("strategy_version") != expected_strategy_version:
+                raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, "retained canonical strategy identity mismatch")
 
         if not run_path.exists():
             raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, f"formal run manifest not found: {run_path}")
