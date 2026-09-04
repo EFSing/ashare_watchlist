@@ -947,3 +947,7 @@ Final terminal status is `T_CLOSE_WATCHLIST_GENERATED_POSTPROCESS_BLOCKED`.
 Drive/readback is `NOT_CONFIGURED_EXTERNAL_UPLOAD`; frozen prerequisite is
 `NOT_READY / PARTIAL_UNVERIFIED`. The forbidden continuous-speed-probe directory and all
 B strategy/spec/threshold/score/Top-N/universe/provider/Kline/ST semantics remain unchanged.
+
+## Development diagnostic status — 2026-09-04
+
+Formal Delivery Ladder remains `development candidate`; this research does not promote or block it. `B_PHASE_VOLUME_PATH_DIAGNOSTIC_V1` completed against the corrected B reconstruction with exact reconciliation of 4,041,140 evaluations and all 17,714 qualified identities. Its final decision is `VOLUME_PATH_NEEDS_MORE_EVIDENCE`: small overall relationships exist, but they are non-monotonic and not coherent across the pre-registered structural, year, board and horizon checks. No B rule, threshold, score, hard gate, Top-N, production path or frozen artifact changed. Final OOS, C and Phase 2F remain untouched/not run.

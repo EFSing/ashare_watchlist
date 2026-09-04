@@ -17,3 +17,6 @@ _download.sh
 
 # Large local-only validation input (resume requires an external copy)
 data/validation/core_signal_validation/raw/daily_k.parquet
+
+# Reproducible DEVELOPMENT diagnostic detail (143+ MB compressed); summary is tracked.
+data/validation/b_phase_volume_path_diagnostic_v1/events.jsonl.gz

@@ -1206,3 +1206,11 @@
 当前 remaining blocker 仅为 external postprocess / Drive-readback，frozen prerequisite
 保持 `NOT_READY / PARTIAL_UNVERIFIED`；B strategy/spec/threshold/score/Top-N/universe/
 provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均未触碰。
+
+## 2026-09-04 — B Phase volume-path diagnostic needs more evidence
+
+- classification/question：`research question`，任务分类未改变。预先定义的问题是：在 corrected `B_BREAKOUT_RETEST_LEGACY_V1_1` 内，breakout、pre-T retest contraction 与 T reactivation 的 volume path 是否显示足够一致的增量关系，值得进入另一轮独立验证。Materiality 是避免在没有稳健证据时改 B，同时不把该研究升级为 current usable-gate blocker。
+- inputs/stop：只使用现有 frozen reconstructed retrospective inputs 与既有 exact outcome builder；protocol commit `a182fa77a67cc41c11ce51041ca8af9c67b451ee` 在 outcome relationship 前完成。停止条件是完成 cohort reconciliation、预注册 quantiles/Spearman/5×5/year/board/proxy/episode audits，并从三个允许结论中选一。
+- evidence：4,041,140 evaluations、573,586 structural first-breakout rows、17,714/17,714 qualified identities exact matched。Pre-T retest ratio 的 qualified 5D spread=+0.489161pp、rho=0.018258，但 adjacent quantile transitions non-monotonic、structural rho=-0.026749；10D 与 year/board consistency 更弱。Reactivation-vs-retest 的 5D/10D rho=-0.005357/-0.008677，且未通过 matrix/cohort/strata coherence。Repeated-breakout episode share=97.0348%，进一步限制将表面样本量当作独立证据。
+- final decision：`VOLUME_PATH_NEEDS_MORE_EVIDENCE`。缺少的是跨年份/板块/结构 cohort 同方向且近似单调的独立验证证据；未来只有一个明确授权的 development validation gate 可以使用它。在此证据缺失时，现有 B、每日 development-candidate path 与外部 postprocess 工作均可继续，不修改规则、不启动 Phase 2F、不 promotion/auto-freeze。
+- provenance/boundary：outputs 标记 `DEVELOPMENT / RECONSTRUCTED_RETROSPECTIVE / DIAGNOSTIC_ONLY`。未读取 Final OOS，未 provider refetch/backfill/model fit/threshold search；B spec/score/threshold/hard gate/Top-N/universe/sector/ST/pipeline/frozen bytes 未改变。143+ MB deterministic event detail local-only；tracked summary/report 保存其 exact hashes。一次普通 status 只暴露 forbidden directory 顶层名称，未读取或展开其内容，随后显式排除。

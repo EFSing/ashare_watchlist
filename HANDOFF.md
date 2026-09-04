@@ -1226,3 +1226,13 @@ coverage/ambiguity current gate 和 provider counts 不代表本文当前 live g
 当前 remaining blocker 仅为 external postprocess / Drive-readback；
 frozen prerequisite 保持 `NOT_READY / PARTIAL_UNVERIFIED`；
 禁止目录未读取/修改/删除。
+
+## Development research handoff — B volume-path diagnostic — 2026-09-04
+
+- classification：`research question`，任务分类未改变；它只回答 corrected B 的量价路径是否值得进入后续独立验证，不阻止当前 usable gate，也不改变 formal Delivery Ladder。
+- branch=`codex/b-volume-path-diagnostic-v1`；pre-outcome protocol commit=`a182fa77a67cc41c11ce51041ca8af9c67b451ee`。协议先提交，之后才运行 outcome relationship。
+- exact reconciliation：4,041,140 evaluation rows；573,586 first-breakout structural rows；17,714/17,714 final B qualified identities exact matched。Corrected B spec SHA=`f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`。
+- final diagnostic decision=`VOLUME_PATH_NEEDS_MORE_EVIDENCE`。Qualified cohort 的 pre-T retest ratio 5D high-low mean spread 为 +0.489161pp、rho=0.018258，但分位路径不单调、structural rho=-0.026749，且 10D/year/board/cohort coherence 不足；reactivation ratio 同样未通过预注册 checks。
+- tracked outputs：`data/validation/b_phase_volume_path_diagnostic_v1/summary.json` SHA=`c83ac51edbd14f964fba195bb3a6e02b6a8bac4a087a6178f8b3c82eb92caf0f`；`docs/research/b_phase_volume_path_diagnostic_v1_report.md` SHA=`6136d805c36c7a4f5f3e9b634d8bc6a5361b536e5fea6f19aeddb808617f317a`。Local-only deterministic event detail 为 573,586 rows、143,728,332 bytes，file SHA=`4bc5261c6d5329f48eded16caead33ebf0a49c462739f2f43d2dc33f0a88c3fe`、content-stream SHA=`c04f4147ab68a12096aef83b4646f6b72883b413e5418b616d9023aaab631018`；因体量不纳入 Git。
+- boundaries：labels=`DEVELOPMENT / RECONSTRUCTED_RETROSPECTIVE / DIAGNOSTIC_ONLY`；未读取 Final OOS，未 provider refetch/backfill，未修改 B spec/score/threshold/Top-N/hard gate/pipeline/universe/sector/ST/frozen bytes，未启动 C/Phase 2F/promotion/auto-freeze。一次普通 `git status` 仅显示 forbidden directory 顶层名称；未读取、展开列举、hash、修改、删除或上传其内容，后续检查均以显式 pathspec 排除。
+- verification/stop：focused tests、full suite、compileall、JSON/hash validation、diff check 和 exact-head CI 需在最终 head 记录；创建 PR 后停在 user decision，不 merge。
