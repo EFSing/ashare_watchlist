@@ -951,3 +951,5 @@ B strategy/spec/threshold/score/Top-N/universe/provider/Kline/ST semantics remai
 ## Development diagnostic status — 2026-09-04
 
 Formal Delivery Ladder remains `development candidate`; this research does not promote or block it. `B_PHASE_VOLUME_PATH_DIAGNOSTIC_V1` completed against the corrected B reconstruction with exact reconciliation of 4,041,140 evaluations and all 17,714 qualified identities. Its final decision is `VOLUME_PATH_NEEDS_MORE_EVIDENCE`: small overall relationships exist, but they are non-monotonic and not coherent across the pre-registered structural, year, board and horizon checks. No B rule, threshold, score, hard gate, Top-N, production path or frozen artifact changed. Final OOS, C and Phase 2F remain untouched/not run.
+
+PR #31 is open for user decision at `https://github.com/EFSing/ashare_watchlist/pull/31`. The result head `f62109545d865d7a547d65327e28b07f576253b3` showed `1/1 checks OK` and automatically mergeable at PR creation; the final governance-only successor requires its own exact-head CI. Do not merge automatically.
