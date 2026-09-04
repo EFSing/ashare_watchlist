@@ -953,3 +953,35 @@ B strategy/spec/threshold/score/Top-N/universe/provider/Kline/ST semantics remai
 Formal Delivery Ladder remains `development candidate`; this research does not promote or block it. `B_PHASE_VOLUME_PATH_DIAGNOSTIC_V1` completed against the corrected B reconstruction with exact reconciliation of 4,041,140 evaluations and all 17,714 qualified identities. Its final decision is `VOLUME_PATH_NEEDS_MORE_EVIDENCE`: small overall relationships exist, but they are non-monotonic and not coherent across the pre-registered structural, year, board and horizon checks. No B rule, threshold, score, hard gate, Top-N, production path or frozen artifact changed. Final OOS, C and Phase 2F remain untouched/not run.
 
 PR #31 is open for user decision at `https://github.com/EFSing/ashare_watchlist/pull/31`. The result head `f62109545d865d7a547d65327e28b07f576253b3` showed `1/1 checks OK` and automatically mergeable at PR creation; the final governance-only successor requires its own exact-head CI. Do not merge automatically.
+
+## Post-merge current status — artifact Drive postprocess verified — 2026-09-04
+
+Formal Delivery Ladder remains `development candidate`. PR #31 was squash-merged by explicit
+authorization at `426b230cdaf53546e5efa4e99cda99c9bcccb85a`; its exact merge-head correctness
+run is `33858481640`, `success`. The merged PR head was
+`1205902f34aa5d057f79a99fdf2c1b2b520e2812`, based on
+`79da0f527ad72c8e77693d116338ebc8ab74755f`.
+
+The corrected development watchlist remains
+`data/watchlist_20260903.json`, SHA
+`50f0717e55daaf4435e1d25b4f1d029109c566d72d63a1fc566f263cdf0fb085`. With explicit user
+authorization it was uploaded to the existing private `ashare_watchlist` Drive folder and
+read back as raw bytes. Drive file ID is `1N-G0LVvMtotffm5Tdq-2-f4I-fZkuTUq`, size is `6422`
+bytes, and the read-back SHA exactly matches the local SHA. The current artifact-level
+external postprocess / Drive-readback blocker is therefore resolved. The generic runner
+default remains `NOT_CONFIGURED_EXTERNAL_UPLOAD` for future automated runs; no automatic
+Drive integration is claimed.
+
+The frozen prerequisite remains `NOT_READY / PARTIAL_UNVERIFIED`, because 170 historical
+sidecars still have `UNKNOWN_ORIGIN` code provenance. Drive read-back of this development
+output does not establish `FULLY_RECOVERABLE`, does not freeze a candidate, and does not
+change the 13/13 frozen artifact registry. The stale pre-merge PR #31-open snapshot has been
+superseded by this post-merge governance update; no strategy/product identity conflict was
+found.
+
+`VOLUME_PATH_NEEDS_MORE_EVIDENCE` remains final. B spec, score, threshold, hard gate, Top-N,
+universe, provider/Kline policy, ST semantics and prospective pipeline are unchanged. Final
+OOS remains `SEALED / UNREAD`; C, Phase 2F, promotion and auto-freeze remain not run. The
+forbidden `data/validation/continuous_speed_probe/` directory was not read, modified,
+deleted, hashed or uploaded. Next gate is the successor governance PR's exact-head CI and
+user merge decision.

@@ -398,3 +398,20 @@ snapshot, the new head must be checked live again; no merge is authorized by thi
 
 The final stop remains
 `TRADABLE_UNIVERSE_EXCHANGE_ROSTER_FIX_PR_READY_FOR_USER_MERGE_DECISION`.
+
+## 15. 2026-09-04 generated watchlist external postprocess evidence
+
+After PR #31 merged at `426b230cdaf53546e5efa4e99cda99c9bcccb85a`, the corrected development
+watchlist `data/watchlist_20260903.json` was uploaded to the existing private Drive project
+folder under explicit user authorization. The Drive item is
+`1N-G0LVvMtotffm5Tdq-2-f4I-fZkuTUq`, MIME `application/json`, size `6422` bytes. Raw
+read-back returned bytes whose SHA-256 is
+`50f0717e55daaf4435e1d25b4f1d029109c566d72d63a1fc566f263cdf0fb085`, exactly matching the
+local canonical file SHA.
+
+This is sufficient to resolve the current generated-artifact external postprocess /
+Drive-readback evidence blocker. It is not evidence that the generic runner has automated
+Drive upload, and it is not a frozen-candidate recovery attestation. The frozen prerequisite
+therefore remains `NOT_READY / PARTIAL_UNVERIFIED`: the 170 historical sidecars with
+`UNKNOWN_ORIGIN` code provenance remain unchanged. No frozen artifact registry record or
+frozen bytes changed, and no freeze/promotion decision is implied.
