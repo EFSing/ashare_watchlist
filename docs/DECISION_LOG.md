@@ -1179,3 +1179,30 @@
   CI is success. User decides merge. Do not fetch providers, alter B/parameters, read Final
   OOS, run returns/C/Phase 2F/tuning/promotion/auto-freeze, or touch
   `data/validation/continuous_speed_probe/`.
+
+## 2026-09-04 — Adopt merged-master B regeneration and close wiring blocker
+
+- decision：`ADOPT_FINAL_MERGED_MASTER_B_REGENERATION`。用户已授权并完成 PR #30 squash
+  merge，actual merge SHA=`9a57c2525c2e621ad568c59940ac2512e575b077`；merge-after
+  correctness CI=`33782477205 success`，exact-head verified。该决策只覆盖已确认的
+  `WRONG_EVALUATOR_WIRING_A_ON_B_PACKAGE`。
+- evidence/stop condition：同一 immutable package SHA
+  `a2e6da0865ff20316e4d9074f26e2cb3ba53995d2cb3e83a49f8c82988c0b38a` 在 merged master
+  上复用，未重新采集 provider。B ledger 精确为 `42/5115/46/12`，total=`5215`；
+  raw=`12`，ST excluded=`1`（`000632 / ST三木`），final non-ST=`11`。因此未触发
+  `B_REGENERATION_SEMANTIC_MISMATCH`。
+- product output：`USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` 后的
+  `data/watchlist_20260903.json` SHA=`50f0717e55daaf4435e1d25b4f1d029109c566d72d63a1fc566f263cdf0fb085`。
+  该 development-candidate output 标记为
+  `DIAGNOSTIC_B_REPLAY_FROM_FORMAL_20260903_PACKAGE`；没有 Final OOS、promotion、
+  auto-freeze 或 external postprocess upload。
+- audit preservation：old A output 通过 expected SHA、A identity、formal run
+  `FFu4MlWYdPwSFrjFJ52Ak2-X2Z0a5-aOWrkdI74Azrc` 与原 run manifest SHA
+  `7bd047bb57dfb986de0a5bb71a9a44c8cbf5517098a6a2501770199fad34fc11` 核验，status 为
+  `INVALIDATED_WRONG_EVALUATOR_A_ON_B_INPUT`；原 bytes/run manifest 保留且未改写。
+- final state：`T_CLOSE_WATCHLIST_GENERATED_POSTPROCESS_BLOCKED`；
+  Drive/readback=`NOT_CONFIGURED_EXTERNAL_UPLOAD`；frozen prerequisite=
+  `NOT_READY / PARTIAL_UNVERIFIED`。PR #30 已解决 `WRONG_EVALUATOR_WIRING_A_ON_B_PACKAGE` correctness blocker；
+当前 remaining blocker 仅为 external postprocess / Drive-readback，frozen prerequisite
+保持 `NOT_READY / PARTIAL_UNVERIFIED`；B strategy/spec/threshold/score/Top-N/universe/
+provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均未触碰。

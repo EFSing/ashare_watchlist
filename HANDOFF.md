@@ -1193,3 +1193,36 @@ coverage/ambiguity current gate 和 provider counts 不代表本文当前 live g
   `data/validation/continuous_speed_probe/` 未读取、修改、删除或上传。
 - handoff：用户只需决定是否 merge PR #30；不得在本任务中执行 merge、provider refetch、
   B/spec/parameter 修改、Final OOS、returns、C、Phase 2F、promotion 或 auto-freeze。
+
+## Final live state — merged B evaluator wiring correction delivered — 2026-09-04
+
+- PR #30 已按用户授权 squash merge。实际 merge SHA=`9a57c2525c2e621ad568c59940ac2512e575b077`；
+  merge-after master correctness CI=`33782477205`，`success`，且 run head exact 对应该
+  merge SHA。merge 当时 `master=origin/master=9a57c2525c2e621ad568c59940ac2512e575b077`；
+  后续仅允许的最后治理同步是其 successor，不改变该 formal merge identity。
+- 从 clean merged master 重新 SHA verify 并复用同一 immutable package：
+  `data/prospective_inputs/20260903/2026-09-03_eeb700c98a69a98fae3fa220851190a76de88984b0f451cc1ed275b2e487351f.json`，
+  SHA=`a2e6da0865ff20316e4d9074f26e2cb3ba53995d2cb3e83a49f8c82988c0b38a`，status
+  `READY_FOR_STRATEGY_EVALUATION`。未重新抓取任何 provider。
+- same-package explicit B regeneration exact：`INSUFFICIENT_DATA=42`、`NOT_MATCHED=5115`、
+  `MATCHED_REJECTED=46`、`QUALIFIED_LEGACY_BASELINE=12`，total=`5215`；
+  `b_raw_qualified_count=12`、`st_excluded_count=1`（`000632 / ST三木`）、
+  `final_non_st_qualified_count=11`。post-B eligibility 为
+  `USER_TRADABILITY_ELIGIBILITY_NON_ST_V1`。
+- corrected canonical 已由 merged master 生成并验证为
+  `data/watchlist_20260903.json`，SHA=`50f0717e55daaf4435e1d25b4f1d029109c566d72d63a1fc566f263cdf0fb085`；
+  11 个 B candidates 的 strategy/buy/setup identity 与 oracle 一致。结果明确标记
+  `DIAGNOSTIC_B_REPLAY_FROM_FORMAL_20260903_PACKAGE`，属于 development candidate，
+  不构成 Final OOS、promotion、auto-freeze 或外部 postprocess 上传。
+- old A zero-output controlled supersession 已完成且可读：status
+  `INVALIDATED_WRONG_EVALUATOR_A_ON_B_INPUT`；原 SHA=
+  `ca8cba86527550d7ba10d05083bb1c7523b54ccf8c9ecb34ef10152b8fced1fb`、原 strategy=
+  `A_PLATFORM_BREAKOUT_LEGACY_V1`、原 run=
+  `FFu4MlWYdPwSFrjFJ52Ak2-X2Z0a5-aOWrkdI74Azrc`；原 bytes 与原 run manifest 未修改，
+  run manifest SHA=`7bd047bb57dfb986de0a5bb71a9a44c8cbf5517098a6a2501770199fad34fc11`。
+- final terminal state=`T_CLOSE_WATCHLIST_GENERATED_POSTPROCESS_BLOCKED`；
+  Drive/readback=`NOT_CONFIGURED_EXTERNAL_UPLOAD`；frozen prerequisite=
+  `NOT_READY / PARTIAL_UNVERIFIED`。PR #30 已解决 `WRONG_EVALUATOR_WIRING_A_ON_B_PACKAGE` correctness blocker；
+当前 remaining blocker 仅为 external postprocess / Drive-readback；
+frozen prerequisite 保持 `NOT_READY / PARTIAL_UNVERIFIED`；
+禁止目录未读取/修改/删除。

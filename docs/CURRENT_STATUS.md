@@ -915,3 +915,35 @@ thresholds, score, Top-N, ST rule, provider acquisition, universe, sector or Kli
 changed. The forbidden `data/validation/continuous_speed_probe/` directory remains untouched.
 Current status is `B_EVALUATOR_WIRING_FIX_PR_READY_FOR_USER_MERGE_DECISION` pending the final
 post-governance exact-head CI verification and user merge decision.
+
+## Final delivered status — 2026-09-04
+
+PR #30 has been squash-merged by explicit user authorization at
+`9a57c2525c2e621ad568c59940ac2512e575b077`. The merge-after master correctness CI is
+`33782477205`, `success`, with an exact-head match. This is the completed correction for
+`WRONG_EVALUATOR_WIRING_A_ON_B_PACKAGE`; the merge-time base was
+`master@1639bfeb22e043055a4c30804a0d40e82c94eff5`.
+
+The immutable 2026-09-03 package was SHA-verified as
+`a2e6da0865ff20316e4d9074f26e2cb3ba53995d2cb3e83a49f8c82988c0b38a` and reused without any
+provider refetch. Merged-master deterministic B regeneration is exact:
+`INSUFFICIENT_DATA=42`, `NOT_MATCHED=5115`, `MATCHED_REJECTED=46`,
+`QUALIFIED_LEGACY_BASELINE=12`, total `5215`; raw qualified `12`, ST excluded `1`
+(`000632 / ST三木`), final non-ST `11`.
+
+Corrected canonical `data/watchlist_20260903.json` is SHA
+`50f0717e55daaf4435e1d25b4f1d029109c566d72d63a1fc566f263cdf0fb085` and contains the 11
+post-`USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` B candidates. It is retained as a
+development-candidate result marked `DIAGNOSTIC_B_REPLAY_FROM_FORMAL_20260903_PACKAGE`, not
+Final OOS, production promotion, auto-freeze, or external upload.
+
+The old A zero-output remains auditable under the existing invalidated lifecycle with status
+`INVALIDATED_WRONG_EVALUATOR_A_ON_B_INPUT`, original SHA
+`ca8cba86527550d7ba10d05083bb1c7523b54ccf8c9ecb34ef10152b8fced1fb`, A identity,
+formal run `FFu4MlWYdPwSFrjFJ52Ak2-X2Z0a5-aOWrkdI74Azrc`, and unchanged original run manifest
+(SHA `7bd047bb57dfb986de0a5bb71a9a44c8cbf5517098a6a2501770199fad34fc11`).
+
+Final terminal status is `T_CLOSE_WATCHLIST_GENERATED_POSTPROCESS_BLOCKED`.
+Drive/readback is `NOT_CONFIGURED_EXTERNAL_UPLOAD`; frozen prerequisite is
+`NOT_READY / PARTIAL_UNVERIFIED`. The forbidden continuous-speed-probe directory and all
+B strategy/spec/threshold/score/Top-N/universe/provider/Kline/ST semantics remain unchanged.
