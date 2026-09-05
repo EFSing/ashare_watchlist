@@ -1247,3 +1247,28 @@ frozen prerequisite 保持 `NOT_READY / PARTIAL_UNVERIFIED`；
 - artifact identities：package file SHA=`a2e6da0865ff20316e4d9074f26e2cb3ba53995d2cb3e83a49f8c82988c0b38a`、content SHA=`0b1216e5c5855343dba02853eb17e9dbc43c97d50120ac7490da43eaa78cdf86`；watchlist SHA=`50f0717e55daaf4435e1d25b4f1d029109c566d72d63a1fc566f263cdf0fb085`；Volume summary/report SHA 分别为 `c83ac51edbd14f964fba195bb3a6e02b6a8bac4a087a6178f8b3c82eb92caf0f` 与 `6136d805c36c7a4f5f3e9b634d8bc6a5361b536e5fea6f19aeddb808617f317a`。
 - next gate：治理同步 successor PR 的 exact-head CI 与用户 merge 决策；其后仍需单独、明确授权的 frozen-candidate prerequisite / freeze decision。Final OOS=`SEALED / UNREAD`；C、Phase 2F、promotion、auto-freeze、returns 与 tuning 均未运行。
 - forbidden boundary：`data/validation/continuous_speed_probe/` 未读取内容、未修改、未删除、未 hash、未上传；本次 Drive 操作仅涉及上述 watchlist 文件。
+
+## 2026-09-05 — Turnover x relative-volume incremental diagnostic stopped at gate A
+
+- classification：`research question`，标签固定为 `DEVELOPMENT` /
+  `RECONSTRUCTED_RETROSPECTIVE` / `DATE_ANCHORED` / `NO_VINTAGE_PROOF` /
+  `DIAGNOSTIC_ONLY`。本轮只检验历史 `换手率` 在 corrected
+  `B_BREAKOUT_RETEST_LEGACY_V1_1` 的 T-day relative volume 之后是否仍有增量信息。
+- live intake：master=`38322b91f691b23e7ebaa10818a8733169aafab8`；独立分支为
+  `codex/b-turnover-x-relative-volume-v1-20260905`；当前提交后工作树 clean。
+- pre-outcome cohort：exact reconciliation 为 `4,041,140` evaluations、`573,586`
+  first-breakout structural rows、`17,714` qualified identities、`5,386` symbols。
+  RV 固定为 `volume_T / mean(volume[T-20:T-1])`，来源是 corrected B shared numeric
+  semantics，T excluded，缺失/非正 denominator 不插值。
+- turnover acquisition：只用 AkShare `1.18.94` 的
+  `ak.stock_zh_a_hist(period="daily", adjust="", start_date="20230630",
+  end_date="20260828")` 与字段 `换手率`。checkpoint 保存了 `0/5,386` completed、
+  `11` failed、`5,375` pending；失败为 `ProxyError / RemoteDisconnected`，每个 symbol
+  尝试 3 次。
+- decision/stop：`TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY`。qualified/structural
+  coverage 为 `NOT_EVALUATED`，raw/canonical SHA 为 `NOT_CREATED`；未提交 protocol，
+  未读取 outcome、Final OOS、continuous-speed-probe，未引入第二 provider。
+- evidence：[`data/validation/b_turnover_x_relative_volume_incremental_v1/input_manifest.json`](data/validation/b_turnover_x_relative_volume_incremental_v1/input_manifest.json)、
+  [`data/validation/b_turnover_x_relative_volume_incremental_v1/summary.json`](data/validation/b_turnover_x_relative_volume_incremental_v1/summary.json)、
+  [`docs/research/b_turnover_x_relative_volume_incremental_v1_report.md`](docs/research/b_turnover_x_relative_volume_incremental_v1_report.md)。checkpoint 与大体积
+  cohort/raw/canonical/detail inputs 为 local-only/ignored，未上传 Drive。
