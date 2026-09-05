@@ -1376,3 +1376,19 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
   `NEW_STRATEGY_CANDIDATE_SELECTION_REQUIRED`。只有用户选择一个 family 后，才创建该
   family 的严格 pre-outcome protocol 与正式 research；不自动启动 B V2、C returns、
   Final OOS、promotion、freeze 或 merge。
+
+## 2026-09-06 — PR #36 exact-head verification and final stop
+
+- live PR：PR #36 open，base=`master@380313c94fdfe388157d5274c4636806d2fa9647`，
+  head=`299def1d996994b4a7fffc9997dca73681b4ff4b`，GitHub state=`MERGEABLE/CLEAN`。
+  push correctness=`33983380604 success`，pull_request correctness=
+  `33983382506 success`；两个 workflow head SHA 均 exact 匹配 PR head。按范围不 merge。
+- Track A remains `ADOPT_B_V1_1_PROSPECTIVE_OBSERVATION_PROTOCOL_V1`，pre-outcome
+  protocol commit=`3dd7d51a6341a60540c26db2aa4f18367520d95b`；Track B remains
+  `DEFER_NEW_STRATEGY_IMPLEMENTATION_PENDING_USER_SELECTION`。
+- no-outcome confirmation：未实现 candidate evaluator，未创建 threshold，未读取 C 或
+  新候选 forward returns、任何 outcome table 或 Final OOS，未创建 future observation data。
+  B、turnover/RV、Volume-Path、frozen state、Final OOS sealed/unread 和受禁目录边界均
+  unchanged。
+- terminal state：`NEW_STRATEGY_CANDIDATE_SELECTION_REQUIRED`。PR merge、候选实现和
+  formal research 必须等待用户下一步选择/授权。

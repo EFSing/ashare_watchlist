@@ -1032,6 +1032,20 @@ selection, or conclusion. `VOLUME_PATH_NEEDS_MORE_EVIDENCE`, B, prospective pipe
 frozen registry and frozen prerequisite remain unchanged; the forbidden
 `data/validation/continuous_speed_probe/` directory remains untouched.
 
+## Final live PR snapshot — 2026-09-06
+
+PR #36 is open at
+[`https://github.com/EFSing/ashare_watchlist/pull/36`](https://github.com/EFSing/ashare_watchlist/pull/36),
+base `master@380313c94fdfe388157d5274c4636806d2fa9647`, head
+`299def1d996994b4a7fffc9997dca73681b4ff4b`, and GitHub reports `MERGEABLE/CLEAN`.
+Push correctness run `33983380604` and pull_request correctness run `33983382506` both
+completed `success` with exact head matching. This PR is not merged.
+
+No prospective observation data store has been created yet. The protocol is bound to
+`3dd7d51a6341a60540c26db2aa4f18367520d95b`; no C/new-candidate outcomes, Final OOS or
+forbidden-directory contents were read. The next user decision remains
+`NEW_STRATEGY_CANDIDATE_SELECTION_REQUIRED`.
+
 ## 2026-09-05 — Phase 2 full subprocess env proxy bypass probe: no-proxy stop gate
 
 The second bounded probe ran the same primary AkShare `1.18.94` /

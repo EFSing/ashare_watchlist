@@ -1402,3 +1402,19 @@ frozen prerequisite 保持 `NOT_READY / PARTIAL_UNVERIFIED`；
 - terminal state：`NEW_STRATEGY_CANDIDATE_SELECTION_REQUIRED`。下一步只创建 bounded PR、
   等 exact-head CI，然后停在用户选择；不得自动 implement candidate、tune、run returns、
   read C/Final OOS、启动 B V2 或 merge。
+
+## Final live snapshot — PR #36 open and verified — 2026-09-06
+
+- PR #36=`https://github.com/EFSing/ashare_watchlist/pull/36`，state=`OPEN`，base=
+  `master@380313c94fdfe388157d5274c4636806d2fa9647`，head=
+  `299def1d996994b4a7fffc9997dca73681b4ff4b`，GitHub=`MERGEABLE/CLEAN`。本任务明确
+  不 merge。
+- exact-head CI：push correctness run=`33983380604` success；pull_request correctness
+  run=`33983382506` success；两者 workflow head SHA 均 exact 等于上述 PR head。
+- protocol identity：`B_V1_1_PROSPECTIVE_PRE_OUTCOME_PROTOCOL_COMMIT=
+  3dd7d51a6341a60540c26db2aa4f18367520d95b`；observations 尚未运行，未创建
+  `data/prospective_observation/b_v1_1/` data store，不读取任何 future outcome。
+- final decision/stop：Track A=`ADOPT_B_V1_1_PROSPECTIVE_OBSERVATION_PROTOCOL_V1`；
+  Track B=`DEFER_NEW_STRATEGY_IMPLEMENTATION_PENDING_USER_SELECTION`；终态为
+  `NEW_STRATEGY_CANDIDATE_SELECTION_REQUIRED`。B/spec、turnover/RV、Volume-Path、
+  frozen state 和 Final OOS=`SEALED / UNREAD` unchanged；受禁目录未触碰。
