@@ -1418,3 +1418,18 @@ frozen prerequisite 保持 `NOT_READY / PARTIAL_UNVERIFIED`；
   Track B=`DEFER_NEW_STRATEGY_IMPLEMENTATION_PENDING_USER_SELECTION`；终态为
   `NEW_STRATEGY_CANDIDATE_SELECTION_REQUIRED`。B/spec、turnover/RV、Volume-Path、
   frozen state 和 Final OOS=`SEALED / UNREAD` unchanged；受禁目录未触碰。
+
+## PR #36 methodological amendment — 2026-09-06
+
+- 本轮仅更新 `docs/research/new_strategy_candidate_intake_v1.md` 的方法论边界并同步
+  治理快照；不改 B、不改 observation protocol、不实现 candidate evaluator，不读取
+  C/new-strategy outcomes、Final OOS 或受禁目录。
+- 新增正式原则：`FEATURE_EPISTEMIC_SEPARATION`、`ALTERNATIVE_EXPLANATIONS_REQUIRED`、
+  `SIMPLE_BASELINE_REQUIRED`、`FALSIFICATION_CRITERIA_REQUIRED`、`CAUSAL_LANGUAGE_RULE`。
+  四个候选分别记录 observable/state、proxy/mechanism、predictive status、mechanism
+  status、替代解释、simple baseline 与 falsification concept。
+- shortlist、recommendation 和 secondary 不变：推荐仍为
+  `NEW_CROSS_SECTIONAL_RELATIVE_STRENGTH_LEADERSHIP_V1`，secondary 仍为
+  `NEW_VOLATILITY_CONTRACTION_BREAKOUT_V1`；推荐没有使用 returns。
+- 本文档变更推进 PR #36 head，需重新等待 exact-head CI；终态为
+  `PR_36_METHODOLOGY_AMENDMENT_READY_FOR_USER_MERGE_DECISION`，不 merge。

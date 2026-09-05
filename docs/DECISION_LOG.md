@@ -1392,3 +1392,19 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
   unchanged。
 - terminal state：`NEW_STRATEGY_CANDIDATE_SELECTION_REQUIRED`。PR merge、候选实现和
   formal research 必须等待用户下一步选择/授权。
+
+## 2026-09-06 — Adopt epistemic separation for PR #36 new-strategy intake
+
+- classification：`research question` / bounded methodological amendment；materiality
+  是防止 future candidate 先形成经济故事、再用 outcome 选择指标或因果语言，同时不
+  扩大 B、prospective observation 或 product ladder 范围。
+- decision：`ADOPT_FEATURE_EPISTEMIC_SEPARATION`。intake 现在要求分开记录
+  `DEFINITION_AND_PROXY_CLAIM`、`PREDICTIVE_EVIDENCE`、`MECHANISM_EVIDENCE`，并在
+  outcome access 前满足 alternatives、simple baseline、falsification 与 causal-language
+  规则。
+- candidate status：四个候选、推荐和 secondary 均不变；本轮只补齐 design-level
+  records，全部 predictive status=`UNTESTED`，mechanism status=`HYPOTHESIS`，不因
+  returns 改变推荐。
+- boundaries：未读取 C/new-candidate forward outcomes、任何 outcome table 或 Final
+  OOS；未实现 evaluator、选参数、run replay、改 B 或创建数据。终态待 PR exact-head
+  CI 后为 `PR_36_METHODOLOGY_AMENDMENT_READY_FOR_USER_MERGE_DECISION`，不自动 merge。

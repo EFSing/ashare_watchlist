@@ -1032,6 +1032,25 @@ selection, or conclusion. `VOLUME_PATH_NEEDS_MORE_EVIDENCE`, B, prospective pipe
 frozen registry and frozen prerequisite remain unchanged; the forbidden
 `data/validation/continuous_speed_probe/` directory remains untouched.
 
+## 2026-09-06 — PR #36 epistemic methodology amendment
+
+Formal Delivery Ladder, B state and the B prospective protocol remain unchanged. The new
+strategy intake now adopts `FEATURE_EPISTEMIC_SEPARATION`: `DEFINITION_AND_PROXY_CLAIM`,
+`PREDICTIVE_EVIDENCE`, and `MECHANISM_EVIDENCE` are separate evidence layers. It also
+requires `ALTERNATIVE_EXPLANATIONS_REQUIRED`, `SIMPLE_BASELINE_REQUIRED`,
+`FALSIFICATION_CRITERIA_REQUIRED`, and `CAUSAL_LANGUAGE_RULE` before future candidate
+outcome access.
+
+The four-candidate shortlist and recommendation are unchanged. In particular,
+`NEW_CROSS_SECTIONAL_RELATIVE_STRENGTH_LEADERSHIP_V1` is observable cross-sectional
+trailing relative-return leadership with `PREDICTIVE_EVIDENCE=UNTESTED` and
+`MECHANISM_EVIDENCE=HYPOTHESIS`; future research must distinguish incremental leadership
+information from generic momentum and other exposure explanations using a simple baseline.
+
+This is a no-outcome documentation amendment: no candidate evaluator, threshold, replay,
+forward outcome, C return, Final OOS or new provider was used. B, turnover/RV, Volume-Path,
+frozen state and the forbidden directory remain unchanged.
+
 ## Final live PR snapshot — 2026-09-06
 
 PR #36 is open at
