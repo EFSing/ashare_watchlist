@@ -25,7 +25,7 @@ def _bars(length: int, *, signal_date: str) -> list[dict[str, object]]:
         if index == 118:
             close, volume = 11.0, 300.0
         elif index > 118:
-            close = 10.8
+            close = 10.3
         if index == length - 1:
             volume = 150.0
         bars.append({
@@ -47,9 +47,9 @@ def _candidate(signal_date: str = SIGNAL_DATE) -> dict[str, object]:
         "sector": "银行",
         "buy_type": "B 突破回踩",
         "score": 66,
-        "price": 10.8,
+        "price": 10.3,
         "chg": 1.0,
-        "trigger": 10.8,
+        "trigger": 10.3,
         "support": 10.0,
         "stop": 9.8,
         "target": 12.8,

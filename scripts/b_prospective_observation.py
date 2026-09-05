@@ -35,7 +35,7 @@ EPISODE_IDENTITY_VERSION = "B_V1_1_BREAKOUT_EPISODE_ID_V1"
 # Filled in by the post-protocol bookkeeping commit.  Keeping a hard value in
 # the module prevents a future operator from accidentally starting a stream
 # before the semantics have been committed.
-PROTOCOL_COMMIT_SHA = "PENDING_PRE_OUTCOME_PROTOCOL_COMMIT"
+PROTOCOL_COMMIT_SHA = "3dd7d51a6341a60540c26db2aa4f18367520d95b"
 
 LABELS = (
     "DEVELOPMENT",

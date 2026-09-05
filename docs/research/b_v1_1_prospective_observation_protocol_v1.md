@@ -18,10 +18,10 @@ Volume-Path V2、promotion、freeze、Final OOS，也不是对 retrospective B r
   `APPEND_ONLY`、`NO_RULE_CHANGE`、`NOT_FROZEN`、`NOT_PRODUCTION`、
   `FINAL_OOS_UNREAD`。
 - pre-outcome protocol commit：
-  `B_V1_1_PROSPECTIVE_PRE_OUTCOME_PROTOCOL_COMMIT=PENDING_PRE_OUTCOME_PROTOCOL_COMMIT`
+  `B_V1_1_PROSPECTIVE_PRE_OUTCOME_PROTOCOL_COMMIT=3dd7d51a6341a60540c26db2aa4f18367520d95b`
 
-未来任何 outcome 读取前，必须先把本协议与 observation semantics 提交，并将上面的
-placeholder 替换为该 protocol commit 的完整 SHA。observer 会拒绝未绑定该 commit
+未来任何 outcome 读取前，必须先把本协议与 observation semantics 提交。上面的
+SHA 是已经提交的 protocol/semantics baseline；observer 会拒绝未绑定该 commit
 或其后代生成 commit 的 source。
 
 ## 2. Cohort 与 signal semantics
