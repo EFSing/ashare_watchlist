@@ -1223,3 +1223,25 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
 - frozen decision：frozen prerequisite 仍为 `NOT_READY / PARTIAL_UNVERIFIED`；170 个历史 sidecar 的 code provenance 仍为 `UNKNOWN_ORIGIN`，所以不声称 `FULLY_RECOVERABLE`，不启动 freeze/promotion/auto-freeze，也不修改 frozen registry 或 frozen bytes。
 - boundary：Final OOS 继续 `SEALED / UNREAD`；C、Phase 2F、returns、tuning 未运行。B strategy/spec/threshold/score/hard gate/Top-N/universe/provider/Kline/ST semantics、prospective pipeline 与 Volume-Price outputs 未修改。禁止目录未读取、修改、删除、hash 或上传。
 - next gate：提交治理 successor PR，等待其 exact-head CI 全绿与用户 merge 决策；之后若要进入 frozen-candidate freeze，仍需独立且明确授权的 prerequisite decision。
+
+## 2026-09-05 — Turnover x relative-volume diagnostic stopped at acquisition gate
+
+- classification/question：`research question`。独立问题是：在 corrected
+  `B_BREAKOUT_RETEST_LEGACY_V1_1` 中，历史 `turnover_rate_pct` 控制 frozen T-day
+  relative volume 后是否提供稳定增量信息，并检查固定 5x5 interaction；这不改变 B，
+  也不阻止现有 usable development path。
+- materiality/input：使用当前 live master=`38322b91f691b23e7ebaa10818a8733169aafab8`、
+  frozen daily-K 与 exact corrected-B construction；no-outcome reconciliation 得到
+  `4,041,140` evaluations、`573,586` structural rows、`17,714` qualified identities。
+  RV 预定义为 `volume_T / mean(volume[T-20:T-1])`。
+- decision：`TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY`。唯一授权 primary source
+  AkShare `1.18.94` / `ak.stock_zh_a_hist` 在 3 次 bounded retry 后连续返回
+  `ProxyError / RemoteDisconnected`；checkpoint=`0` completed、`11` failed、`5,375`
+  pending of `5,386` requested symbols。未达到 turnover coverage，因此停止，不创建
+  pre-outcome protocol，不读取 returns/MFE/MAE，不执行 research decision。审计注：intake 期间仅为
+  识别既有 artifact schema 查看过一条 pre-existing event record，未使用任何 outcome 值做计算、筛选或结论。
+- consequences：保留 resumable checkpoint、input manifest、summary/report；不引入
+  第二 provider、不填补 turnover、不写 raw/canonical dataset、不修改 B/spec/score/
+  threshold/hard gates/Top-N/universe/sector/ST/prospective pipeline/frozen registry，
+  不读 Final OOS，不运行 C/Phase 2F，不上传 Drive。后续只有重新获得 primary source
+  可用性或获得明确 source decision 后，才能从 checkpoint 继续。

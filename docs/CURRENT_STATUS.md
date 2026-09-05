@@ -985,3 +985,24 @@ OOS remains `SEALED / UNREAD`; C, Phase 2F, promotion and auto-freeze remain not
 forbidden `data/validation/continuous_speed_probe/` directory was not read, modified,
 deleted, hashed or uploaded. Next gate is the successor governance PR's exact-head CI and
 user merge decision.
+
+## 2026-09-05 — Turnover x relative-volume incremental diagnostic gate A
+
+The independent research question `B_TURNOVER_X_RELATIVE_VOLUME_INCREMENTAL_DIAGNOSTIC_V1`
+is classified as `DEVELOPMENT` / `RECONSTRUCTED_RETROSPECTIVE` / `DATE_ANCHORED` /
+`NO_VINTAGE_PROOF` / `DIAGNOSTIC_ONLY`. Its no-outcome cohort construction reconciled
+`4,041,140` evaluations, `573,586` structural first-breakout rows, `17,714` qualified
+identities and `5,386` symbols. The canonical RV definition remains
+`volume_T / mean(volume[T-20:T-1])` from corrected B shared numeric semantics.
+
+The task stopped at `TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY`: primary AkShare
+`ak.stock_zh_a_hist` acquisition (`1.18.94`, daily, unadjusted, 20230630--20260828) had
+`0/5,386` completed symbols after bounded retries, `11` failed and `5,375` pending due to
+`ProxyError / RemoteDisconnected`. Turnover coverage is therefore `NOT_EVALUATED`, no
+canonical/raw SHA exists, and no pre-outcome protocol commit or research decision exists.
+Outcome analysis was not started. Intake inspected one pre-existing event record only for
+artifact-schema identification; no outcome value was used. Final OOS and the forbidden
+continuous-speed-probe directory were not used. B, prospective pipeline, frozen inputs/registry and all production boundaries remain
+unchanged. Resume evidence and gate-A report are recorded under
+`data/validation/b_turnover_x_relative_volume_incremental_v1/` and
+`docs/research/b_turnover_x_relative_volume_incremental_v1_report.md`.

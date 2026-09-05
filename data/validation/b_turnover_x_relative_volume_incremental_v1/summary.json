@@ -1,0 +1,100 @@
+{
+  "boundaries": {
+    "b_unchanged": true,
+    "continuous_speed_probe_read": false,
+    "final_oos_read": false,
+    "frozen_dataset_unchanged": true,
+    "frozen_registry_unchanged": true,
+    "new_provider": false,
+    "outcome_values_used": false,
+    "parameter_sweep": false,
+    "prospective_pipeline_unchanged": true,
+    "threshold_search": false
+  },
+  "cohort_coverage": {
+    "qualified": {
+      "coverage": null,
+      "matched": 0,
+      "status": "NOT_EVALUATED",
+      "total": 17714
+    },
+    "structural": {
+      "coverage": null,
+      "matched": 0,
+      "status": "NOT_EVALUATED",
+      "total": 573586
+    }
+  },
+  "content_sha256": "8174c9a5776a38742206251282df0f40a346b73dc561e3b7c9ba6ce9098532ce",
+  "decision_gate": "TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY",
+  "input_manifest": "data/validation/b_turnover_x_relative_volume_incremental_v1/input_manifest.json",
+  "intake": {
+    "branch": "codex/b-turnover-x-relative-volume-v1-20260905",
+    "expected_master_sha": "38322b91f691b23e7ebaa10818a8733169aafab8",
+    "master_sha": "38322b91f691b23e7ebaa10818a8733169aafab8"
+  },
+  "labels": [
+    "DEVELOPMENT",
+    "RECONSTRUCTED_RETROSPECTIVE",
+    "DATE_ANCHORED",
+    "NO_VINTAGE_PROOF",
+    "DIAGNOSTIC_ONLY"
+  ],
+  "outcome_access": "SCHEMA_SAMPLE_OBSERVED_NOT_USED",
+  "outcome_access_note": "One pre-existing event record was inspected during intake only to identify the artifact schema; no outcome value was used in computation, filtering, or conclusion.",
+  "protocol": {
+    "pre_outcome_commit": null,
+    "status": "NOT_CREATED_DUE_TO_GATE_A"
+  },
+  "relative_volume": {
+    "formula": "RV20_T = volume_T / mean(volume[T-20:T-1])",
+    "known_at": "T close",
+    "lookback": 20,
+    "missing_bar_policy": "unavailable; no interpolation",
+    "semantic_source": "corrected B shared numeric semantics / scripts/b_breakout_retest_v1_1.py",
+    "source_column": "daily_k.volume",
+    "t_excluded": true,
+    "zero_volume_policy": "unavailable when denominator <= 0"
+  },
+  "research_decision": null,
+  "resume_checkpoint": "data/validation/b_turnover_x_relative_volume_incremental_v1/acquisition_checkpoint.json",
+  "schema_version": "B_TURNOVER_X_RELATIVE_VOLUME_INCREMENTAL_DIAGNOSTIC_V1",
+  "status": "BLOCKED",
+  "turnover_acquisition": {
+    "canonical_content_sha256": null,
+    "completed_symbols": 0,
+    "endpoint": "https://push2his.eastmoney.com/api/qt/stock/kline/get",
+    "error_class": "ProxyError / RemoteDisconnected",
+    "failed_symbols": 11,
+    "function": "ak.stock_zh_a_hist",
+    "package_version": "1.18.94",
+    "parameters": {
+      "adjust": "",
+      "end_date": "20260828",
+      "function": "ak.stock_zh_a_hist",
+      "package": "akshare",
+      "period": "daily",
+      "raw_field": "换手率",
+      "start_date": "20230630",
+      "unit": "percent",
+      "version": "1.18.94"
+    },
+    "pending_symbols": 5375,
+    "persisted_raw_rows": 0,
+    "raw_sha256": null,
+    "requested_symbols": 5386,
+    "sample_failed_symbols": [
+      "000001.sz",
+      "000002.sz",
+      "000006.sz",
+      "000007.sz",
+      "000008.sz",
+      "000009.sz",
+      "000010.sz",
+      "000011.sz",
+      "000012.sz",
+      "000014.sz"
+    ],
+    "source": "AkShare"
+  }
+}
