@@ -483,6 +483,8 @@ def acquire_turnover(
     completed = checkpoint["completed"]
     failed = checkpoint["failed"]
     targets = _acquisition_targets(symbols, checkpoint, max_symbols)
+    probe_started_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()) if max_symbols is not None else None
+    probe_initial_completed = set(completed)
     for symbol in targets:
         raw_path = raw_dir / f"{symbol.replace('.', '_')}.json"
         prior = completed.get(symbol)
@@ -534,6 +536,30 @@ def acquire_turnover(
     checkpoint["completed_symbol_count"] = len(completed)
     checkpoint["failed_symbol_count"] = len(failed)
     checkpoint["pending_symbol_count"] = len(checkpoint["pending"])
+    if max_symbols is not None:
+        proxy_environment = sorted(
+            name for name, value in os.environ.items()
+            if "proxy" in name.lower() and str(value).strip()
+        )
+        checkpoint.setdefault("resume_probes", []).append({
+            "mode": "bounded_connectivity_resume_probe",
+            "max_symbols": max_symbols,
+            "started_at_utc": probe_started_at,
+            "finished_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "symbols": targets,
+            "successful_symbols": sorted(set(completed) - probe_initial_completed),
+            "failed_symbols": [
+                {
+                    "symbol": symbol,
+                    "error_class": str(failed[symbol].get("error", "")).split(":", 1)[0],
+                    "status": failed[symbol].get("status"),
+                }
+                for symbol in targets if symbol in failed
+            ],
+            "proxy_environment_names": proxy_environment,
+            "http_provider_response_received": False,
+            "classification": "CONNECTION_LAYER_PROXY_REMOTE_DISCONNECT",
+        })
     _write_json_atomic(checkpoint_path, checkpoint)
     return checkpoint
 
@@ -731,6 +757,7 @@ def audit_inputs(
                 "failed_symbols": acquisition.get("failed_symbols", sorted(acquisition.get("failed", {}))),
                 "pending_symbols": acquisition.get("pending_symbols", acquisition.get("pending", [])),
                 "checkpoint": acquisition_manifest_path.as_posix(),
+                "resume_probes": acquisition.get("resume_probes", []),
             },
             "coverage": {
                 "qualified": {"matched": 0, "total": EXPECTED_QUALIFIED, "coverage": None, "minimum": MIN_QUALIFIED_COVERAGE, "status": "NOT_EVALUATED"},
@@ -944,6 +971,19 @@ def write_blocked_artifacts(
     checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
     failed = sorted(checkpoint.get("failed", {}))
     pending = sorted(checkpoint.get("pending", []))
+    resume_probes = checkpoint.get("resume_probes", [])
+    probe_symbols = sorted({
+        symbol for probe in resume_probes for symbol in probe.get("symbols", [])
+    })
+    probe_successes = sorted({
+        symbol for probe in resume_probes for symbol in probe.get("successful_symbols", [])
+    })
+    probe_failures = [
+        item for probe in resume_probes for item in probe.get("failed_symbols", [])
+    ]
+    proxy_environment_names = sorted({
+        name for probe in resume_probes for name in probe.get("proxy_environment_names", [])
+    })
     summary: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "status": "BLOCKED",
@@ -968,6 +1008,13 @@ def write_blocked_artifacts(
             "canonical_content_sha256": None,
             "error_class": "ProxyError / RemoteDisconnected",
             "sample_failed_symbols": failed[:10],
+            "resume_probes": resume_probes,
+            "probe_symbols": probe_symbols,
+            "probe_successful_symbols": probe_successes,
+            "probe_failed_symbols": probe_failures,
+            "proxy_environment_names": proxy_environment_names,
+            "http_provider_response_received": False,
+            "failure_classification": "CONNECTION_LAYER_PROXY_REMOTE_DISCONNECT",
         },
         "cohort_coverage": {
             "qualified": {"matched": 0, "total": EXPECTED_QUALIFIED, "coverage": None, "status": "NOT_EVALUATED"},
@@ -1037,10 +1084,15 @@ used in computation, filtering, or conclusion.
 | pending symbols | {len(pending)} |
 | persisted raw rows | 0 |
 | raw / canonical SHA | `NOT_CREATED` |
+| post-merge probe symbols | {', '.join(probe_symbols) if probe_symbols else 'none'} |
+| post-merge probe result | {len(probe_successes)} success / {len(probe_failures)} failed |
+| proxy environment | {'present: ' + ', '.join(proxy_environment_names) if proxy_environment_names else 'not observed'} |
+| response layer | connection-layer `ProxyError` wrapping `RemoteDisconnected`; no HTTP/provider response |
 
 The first bounded failures were consistent `ProxyError` / `RemoteDisconnected`
- responses from the Eastmoney endpoint after three attempts per symbol. No failed
-response was promoted into the canonical dataset and no second provider was used.
+ responses from the Eastmoney endpoint after three attempts per symbol. The post-merge
+ bounded probe retried the listed failed symbols once each and produced no success.
+No failed response was promoted into the canonical dataset and no second provider was used.
 
 ## Cohort and semantics
 
