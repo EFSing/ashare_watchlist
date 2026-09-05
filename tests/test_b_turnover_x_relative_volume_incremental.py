@@ -10,10 +10,20 @@ from b_turnover_x_relative_volume_incremental import (
     DATE_FIELD,
     TURNOVER_FIELD,
     _canonical_turnover_rows,
+    _acquisition_targets,
     _load_qualified_identity_without_outcomes,
     _raw_payload_from_frame,
     _relative_volume,
 )
+
+
+def test_bounded_targets_retry_failed_before_pending():
+    symbols = ["000001.sz", "000002.sz", "000003.sz", "000004.sz"]
+    checkpoint = {
+        "completed": {"000003.sz": {"status": "COMPLETED"}},
+        "failed": {"000002.sz": {"status": "FAILED"}},
+    }
+    assert _acquisition_targets(symbols, checkpoint, 2) == ["000002.sz", "000001.sz"]
 
 
 def test_identity_extraction_does_not_require_outcome_values():

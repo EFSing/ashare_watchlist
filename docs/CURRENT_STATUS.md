@@ -1006,3 +1006,97 @@ continuous-speed-probe directory were not used. B, prospective pipeline, frozen 
 unchanged. Resume evidence and gate-A report are recorded under
 `data/validation/b_turnover_x_relative_volume_incremental_v1/` and
 `docs/research/b_turnover_x_relative_volume_incremental_v1_report.md`.
+
+## 2026-09-05 — PR #33 merged; post-merge primary probe blocked
+
+PR #33 was live-verified and squash-merged after exact-head CI remained green and the
+base/head were unchanged. Merge SHA and current `origin/master` are both
+`873169aeecb9eb12d32e58990677f2478f3081c0`; GitHub recorded 2 merge checks passed.
+The resume branch is `codex/b-turnover-x-relative-volume-resume-20260905`, based on that
+merge-head, with the existing ignored checkpoint/cohort preserved.
+
+The bounded same-primary probe retried `000001.sz`, `000002.sz`, and `000006.sz` once
+each using AkShare `1.18.94` / `ak.stock_zh_a_hist` with unchanged daily, unadjusted,
+20230630--20260828 parameters. It produced `0` successes and `3` failures, all
+`ProxyError` wrapping `RemoteDisconnected`; no HTTP/provider response was received.
+Non-empty proxy environment names observed were `ALL_PROXY`, `HTTP_PROXY`, `HTTPS_PROXY`,
+and `NO_PROXY` (values not recorded). The full checkpoint remains `0/5,386` completed,
+`11` failed, `5,375` pending. The stop gate is
+`TURNOVER_PRIMARY_SOURCE_STILL_UNAVAILABLE`.
+
+No provider substitution, source-semantic change, protocol commit, outcome analysis,
+Final OOS access, C/Phase 2F, promotion, freeze, or upload occurred. The prior
+`SCHEMA_SAMPLE_OBSERVED_NOT_USED` status remains truthful: one schema-only event sample
+was observed earlier, but no outcome value entered computation, filtering, feature
+selection, or conclusion. `VOLUME_PATH_NEEDS_MORE_EVIDENCE`, B, prospective pipeline,
+frozen registry and frozen prerequisite remain unchanged; the forbidden
+`data/validation/continuous_speed_probe/` directory remains untouched.
+
+## 2026-09-05 — Phase 2 full subprocess env proxy bypass probe: no-proxy stop gate
+
+The second bounded probe ran the same primary AkShare `1.18.94` /
+`ak.stock_zh_a_hist` source and fixed daily, unadjusted, 20230630--20260828
+parameters for `000001.sz`, `000002.sz`, and `000006.sz` inside a transient
+subprocess whose `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY` (and lowercase
+equivalents) were removed and whose `NO_PROXY` was set to
+`push2his.eastmoney.com`. No system proxy, registry, persistent user
+environment, or Git/pip proxy change occurred, and no proxy value was recorded.
+
+Result: `0/3` success. All three symbols failed with outer `ConnectionError`,
+underlying `MaxRetryError`, and a chain ending in `WinError 10013` (direct
+socket access denied); no HTTP status and no provider response were received.
+Because the outer class is not `ProxyError` and no response layer was reached,
+the proxy bypass is confirmed effective and the remaining failure is a direct
+connection-layer block to the Eastmoney endpoint.
+
+The task stops at `TURNOVER_PRIMARY_SOURCE_UNAVAILABLE_AFTER_NO_PROXY_PROBE`.
+No provider substitution, endpoint/source semantic change, pre-outcome protocol
+commit, or outcome analysis occurred. Checkpoint state is unchanged at
+`0` completed, `11` failed, `5,375` pending of `5,386`; raw/canonical SHA
+`NOT_CREATED`; coverage `NOT_EVALUATED`. Summary/report evidence was refreshed
+with the new gate. `SCHEMA_SAMPLE_OBSERVED_NOT_USED` remains truthful and
+`VOLUME_PATH_NEEDS_MORE_EVIDENCE`, B, prospective pipeline, frozen registry and
+frozen prerequisite remain unchanged; Final OOS remains `SEALED / UNREAD`, and
+the forbidden `data/validation/continuous_speed_probe/` directory was not read,
+modified, deleted, hashed or uploaded.
+
+## 2026-09-05 — Tushare-compatible gateway diagnostic complete
+
+The independent turnover × relative-volume research task was resumed only after
+explicit user authorization for a bounded `THIRD_PARTY_TUSHARE_COMPATIBLE_GATEWAY`.
+The formal Delivery Ladder remains `development candidate`; this diagnostic does
+not promote or block the existing usable path.
+
+The fixed source contract is `https://tuaremax.top`, `tushare==1.4.24`, endpoint
+`daily_basic`, fields `ts_code,trade_date,turnover_rate,float_share`. It is not
+official Tushare, has `NO_VINTAGE_PROOF`, and is not production validated. The
+environment token was never persisted, printed, hashed or uploaded. The prior
+AkShare evidence remains preserved and was not overwritten.
+
+The five-date pilot passed: coverage was `24,941/24,941`, and the fixed 500-row
+turnover semantics sample was `500/500` within tolerance with median provider /
+implied ratio `0.9999992421`. Full acquisition then completed `769/769` frozen
+sessions with zero failed or pending dates. The gateway canonical has `3,938,059`
+rows sorted by `symbol,date`; raw and canonical hashes are recorded in the
+gateway manifests and checkpoint. Full raw responses remain local resumable
+evidence because of their size.
+
+The input audit preserved exact reconciliation of `17,714` qualified and
+`573,586` structural rows. Under the fixed Main/ChiNext/STAR boundary, the
+in-scope counts are `17,008` and `543,616`; qualified and structural coverage,
+all major years and boards, are `100%`. Missing, null, negative and extreme
+turnover checks passed with no imputation.
+
+The pre-outcome protocol was committed at
+`1148ebd23a567ad81e09b0c2323f9be285920858` before outcome analysis. The final
+research decision is `TURNOVER_X_RELATIVE_VOLUME_NEEDS_MORE_EVIDENCE`: turnover
+5D Q5-Q1 mean spread is `-0.277596pp` and rho is `-0.058525`, but the fixed
+turnover-after-RV spreads are not directionally coherent and year/board
+coherence does not pass. This is evidence for further bounded research only,
+not a rule or parameter change.
+
+Final OOS remains `SEALED / UNREAD`; B/spec/score/threshold/hard gates/Top-N/
+prospective pipeline/universe/frozen dataset are unchanged. C, Phase 2F,
+threshold search, model fitting, freeze and promotion were not run. The next
+delivery state is an independent research PR awaiting exact-head CI and user
+merge decision.

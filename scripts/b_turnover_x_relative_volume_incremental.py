@@ -443,9 +443,48 @@ def _load_checkpoint(path: Path, symbols: Sequence[str], raw_dir: Path) -> dict[
     }
 
 
+def _acquisition_targets(
+    symbols: Sequence[str], checkpoint: Mapping[str, Any], max_symbols: int | None,
+) -> list[str]:
+    if max_symbols is not None and max_symbols <= 0:
+        raise ValueError("max_symbols must be positive when supplied")
+    completed = checkpoint.get("completed", {})
+    failed = checkpoint.get("failed", {})
+    failed_first = [symbol for symbol in symbols if symbol in failed]
+    unfinished = [
+        symbol for symbol in symbols
+        if symbol not in completed and symbol not in failed
+    ]
+    targets = failed_first + unfinished
+    return targets if max_symbols is None else targets[:max_symbols]
+
+
+def _exception_class_chain(exc: BaseException) -> list[str]:
+    """Return nested exception class names without persisting exception text."""
+
+    names: list[str] = []
+    queue: list[BaseException] = [exc]
+    seen: set[int] = set()
+    while queue:
+        current = queue.pop(0)
+        if id(current) in seen:
+            continue
+        seen.add(id(current))
+        names.append(type(current).__name__)
+        for attribute in ("__cause__", "__context__", "reason"):
+            nested = getattr(current, attribute, None)
+            if isinstance(nested, BaseException):
+                queue.append(nested)
+        for argument in getattr(current, "args", ()):
+            if isinstance(argument, BaseException):
+                queue.append(argument)
+    return names
+
+
 def acquire_turnover(
     *, cohort_manifest_path: Path, checkpoint_path: Path, raw_dir: Path,
     retry_attempts: int = 3, retry_sleep_seconds: float = 2.0,
+    max_symbols: int | None = None, probe_bypass_mode: str | None = None,
 ) -> dict[str, Any]:
     """Acquire one exact AKShare response per structural symbol and checkpoint it."""
 
@@ -465,13 +504,27 @@ def acquire_turnover(
 
     completed = checkpoint["completed"]
     failed = checkpoint["failed"]
-    for symbol in symbols:
+    targets = _acquisition_targets(symbols, checkpoint, max_symbols)
+    probe_started_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()) if max_symbols is not None else None
+    probe_results: list[dict[str, Any]] = []
+    for symbol in targets:
         raw_path = raw_dir / f"{symbol.replace('.', '_')}.json"
         prior = completed.get(symbol)
         if prior and raw_path.exists() and _sha256_file(raw_path) == prior.get("file_sha256"):
+            if max_symbols is not None:
+                probe_results.append({
+                    "symbol": symbol,
+                    "status": "SKIPPED_HASH_VALID",
+                    "returned_row_count": prior.get("returned_rows"),
+                    "exception_class": None,
+                    "underlying_exception_class": None,
+                    "http_provider_response_received": False,
+                })
             continue
         last_error = None
+        probe_result: dict[str, Any] | None = None
         for attempt in range(1, retry_attempts + 1):
+            provider_response_received = False
             try:
                 frame = ak.stock_zh_a_hist(
                     symbol=_provider_symbol(symbol),
@@ -480,6 +533,7 @@ def acquire_turnover(
                     end_date=END_DATE_PROVIDER,
                     adjust="",
                 )
+                provider_response_received = True
                 if TURNOVER_FIELD not in frame.columns or DATE_FIELD not in frame.columns:
                     raise ValueError(f"required provider fields missing: {list(frame.columns)}")
                 payload = _raw_payload_from_frame(symbol, frame)
@@ -498,13 +552,43 @@ def acquire_turnover(
                 }
                 failed.pop(symbol, None)
                 checkpoint["retry_count"] += attempt - 1
+                if max_symbols is not None:
+                    probe_result = {
+                        "symbol": symbol,
+                        "status": "SUCCESS",
+                        "returned_row_count": len(payload["rows"]),
+                        "exception_class": None,
+                        "underlying_exception_class": None,
+                        "http_provider_response_received": True,
+                    }
                 break
             except Exception as exc:  # provider failure is retained, not substituted
                 last_error = f"{type(exc).__name__}: {exc}"
+                if max_symbols is not None:
+                    exception_chain = _exception_class_chain(exc)
+                    underlying = next(iter(exception_chain[1:]), None)
+                    if underlying is None:
+                        known_classes = (
+                            "RemoteDisconnected", "Timeout", "NameResolutionError",
+                            "ConnectionRefusedError", "SSLError", "ConnectionError",
+                        )
+                        underlying = next(
+                            (name for name in known_classes if name in str(exc)), None
+                        )
+                    probe_result = {
+                        "symbol": symbol,
+                        "status": "FAILED",
+                        "returned_row_count": None,
+                        "exception_class": type(exc).__name__,
+                        "underlying_exception_class": underlying,
+                        "http_provider_response_received": provider_response_received,
+                    }
                 if attempt < retry_attempts:
                     time.sleep(min(30.0, retry_sleep_seconds * (2 ** (attempt - 1))))
         else:
             failed[symbol] = {"status": "FAILED", "error": last_error, "attempts": retry_attempts}
+        if max_symbols is not None and probe_result is not None:
+            probe_results.append(probe_result)
         checkpoint["pending"] = [item for item in symbols if item not in completed and item not in failed]
         checkpoint["failed"] = failed
         checkpoint["completed"] = completed
@@ -516,6 +600,55 @@ def acquire_turnover(
     checkpoint["completed_symbol_count"] = len(completed)
     checkpoint["failed_symbol_count"] = len(failed)
     checkpoint["pending_symbol_count"] = len(checkpoint["pending"])
+    if max_symbols is not None:
+        proxy_environment = sorted(
+            name for name, value in os.environ.items()
+            if "proxy" in name.lower() and str(value).strip()
+        )
+        successful_probe_results = [
+            result for result in probe_results if result["status"] == "SUCCESS"
+        ]
+        failed_probe_results = [
+            result for result in probe_results if result["status"] == "FAILED"
+        ]
+        if successful_probe_results:
+            if probe_bypass_mode == "no_proxy_host_bypass":
+                classification = "PRIMARY_SOURCE_AVAILABLE_WITH_HOST_PROXY_BYPASS"
+            elif probe_bypass_mode == "full_subprocess_proxy_bypass":
+                classification = "PRIMARY_SOURCE_AVAILABLE_WITH_SUBPROCESS_PROXY_BYPASS"
+            else:
+                classification = "PRIMARY_SOURCE_AVAILABLE"
+        elif probe_bypass_mode == "no_proxy_host_bypass":
+            classification = "NO_PROXY_HOST_BYPASS_FAILED"
+        elif probe_bypass_mode == "full_subprocess_proxy_bypass":
+            classification = "FULL_SUBPROCESS_PROXY_BYPASS_FAILED"
+        else:
+            classification = "CONNECTION_LAYER_PROXY_REMOTE_DISCONNECT"
+        checkpoint.setdefault("resume_probes", []).append({
+            "mode": "bounded_connectivity_resume_probe",
+            "bypass_mode": probe_bypass_mode,
+            "max_symbols": max_symbols,
+            "started_at_utc": probe_started_at,
+            "finished_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "symbols": targets,
+            "successful_symbols": [result["symbol"] for result in successful_probe_results],
+            "failed_symbols": [
+                {
+                    "symbol": result["symbol"],
+                    "error_class": result["exception_class"],
+                    "underlying_exception_class": result["underlying_exception_class"],
+                    "returned_row_count": result["returned_row_count"],
+                    "status": result["status"],
+                }
+                for result in failed_probe_results
+            ],
+            "probe_results": probe_results,
+            "proxy_environment_names": proxy_environment,
+            "http_provider_response_received": any(
+                result["http_provider_response_received"] for result in probe_results
+            ),
+            "classification": classification,
+        })
     _write_json_atomic(checkpoint_path, checkpoint)
     return checkpoint
 
@@ -530,7 +663,11 @@ def finalize_failed_checkpoint(path: Path) -> dict[str, Any]:
     failed = dict(checkpoint.get("failed", {}))
     checkpoint["pending"] = [symbol for symbol in symbols if symbol not in completed and symbol not in failed]
     checkpoint["status"] = "PARTIAL_FAILED"
-    checkpoint["stop_gate"] = "TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY"
+    checkpoint["stop_gate"] = (
+        "TURNOVER_PRIMARY_SOURCE_STILL_UNAVAILABLE"
+        if checkpoint.get("resume_probes") else
+        "TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY"
+    )
     checkpoint["stopped_at_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     checkpoint["requested_symbol_count"] = len(symbols)
     checkpoint["completed_symbol_count"] = len(completed)
@@ -694,11 +831,17 @@ def audit_inputs(
     cohort_manifest = json.loads(cohort_manifest_path.read_text(encoding="utf-8"))
     acquisition = json.loads(acquisition_manifest_path.read_text(encoding="utf-8"))
     if acquisition.get("status") != "COMPLETE":
+        stop_gate = (
+            "TURNOVER_PRIMARY_SOURCE_STILL_UNAVAILABLE"
+            if acquisition.get("resume_probes") else
+            "TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY"
+        )
         blocked = {
             "schema_version": SCHEMA_VERSION,
             "status": "TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY",
             "labels": list(EVIDENCE_LABELS),
             "decision_gate": "TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY",
+            "stop_gate": stop_gate,
             "provider": acquisition.get("provider"),
             "cohort": {
                 "structural_rows": cohort_manifest["cohorts"]["structural_rows"],
@@ -713,6 +856,7 @@ def audit_inputs(
                 "failed_symbols": acquisition.get("failed_symbols", sorted(acquisition.get("failed", {}))),
                 "pending_symbols": acquisition.get("pending_symbols", acquisition.get("pending", [])),
                 "checkpoint": acquisition_manifest_path.as_posix(),
+                "resume_probes": acquisition.get("resume_probes", []),
             },
             "coverage": {
                 "qualified": {"matched": 0, "total": EXPECTED_QUALIFIED, "coverage": None, "minimum": MIN_QUALIFIED_COVERAGE, "status": "NOT_EVALUATED"},
@@ -926,6 +1070,81 @@ def write_blocked_artifacts(
     checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
     failed = sorted(checkpoint.get("failed", {}))
     pending = sorted(checkpoint.get("pending", []))
+    resume_probes = checkpoint.get("resume_probes", [])
+    probe_symbols = sorted({
+        symbol for probe in resume_probes for symbol in probe.get("symbols", [])
+    })
+    probe_failures = [
+        item for probe in resume_probes for item in probe.get("failed_symbols", [])
+    ]
+    probe_results = [
+        item for probe in resume_probes for item in probe.get("probe_results", [])
+    ]
+    proxy_environment_names = sorted({
+        name for probe in resume_probes for name in probe.get("proxy_environment_names", [])
+    })
+    probe_successes = sorted({
+        symbol for probe in resume_probes for symbol in probe.get("successful_symbols", [])
+    })
+    probe_bypass_modes = {
+        probe.get("bypass_mode") for probe in resume_probes if probe.get("bypass_mode")
+    }
+    no_proxy_probe_pair_completed = {
+        "no_proxy_host_bypass", "full_subprocess_proxy_bypass"
+    }.issubset(probe_bypass_modes)
+    stop_gate = (
+        "TURNOVER_PRIMARY_SOURCE_UNAVAILABLE_AFTER_NO_PROXY_PROBE"
+        if no_proxy_probe_pair_completed and not probe_successes else
+        "TURNOVER_PRIMARY_SOURCE_STILL_UNAVAILABLE"
+        if resume_probes else
+        "TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY"
+    )
+    probe_http_response = any(
+        item.get("http_provider_response_received", False) for item in probe_results
+    ) or any(
+        probe.get("http_provider_response_received", False) for probe in resume_probes
+    )
+    probe_classifications = [
+        probe.get("classification") for probe in resume_probes if probe.get("classification")
+    ]
+    failure_classification = (
+        probe_classifications[-1] if probe_classifications
+        else "CONNECTION_LAYER_PROXY_REMOTE_DISCONNECT"
+    )
+    probe_detail_lines: list[str] = []
+    for probe in resume_probes:
+        mode = probe.get("bypass_mode") or "existing_environment"
+        details = probe.get("probe_results", [])
+        if details:
+            detail_text = "; ".join(
+                "{symbol}: {status}, rows={rows}, outer={outer}, underlying={underlying}, response={response}".format(
+                    symbol=item.get("symbol"),
+                    status=item.get("status"),
+                    rows=item.get("returned_row_count"),
+                    outer=item.get("exception_class") or "none",
+                    underlying=item.get("underlying_exception_class") or "none",
+                    response=item.get("http_provider_response_received", False),
+                )
+                for item in details
+            )
+        else:
+            detail_text = "no per-symbol result fields in legacy checkpoint record"
+        probe_detail_lines.append(f"- `{mode}`: {detail_text}")
+    probe_details = "\n".join(probe_detail_lines) or "- none"
+    latest_failed_probe_result = next(
+        (item for item in reversed(probe_results) if item.get("exception_class")),
+        None,
+    )
+    if latest_failed_probe_result:
+        error_class = "{outer} / {underlying}".format(
+            outer=latest_failed_probe_result.get("exception_class"),
+            underlying=latest_failed_probe_result.get("underlying_exception_class") or "unknown",
+        )
+    else:
+        error_class = "ProxyError / RemoteDisconnected"
+    latest_probe_outer = "ProxyError"
+    if probe_results:
+        latest_probe_outer = probe_results[-1].get("exception_class") or latest_probe_outer
     summary: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "status": "BLOCKED",
@@ -933,7 +1152,7 @@ def write_blocked_artifacts(
         "intake": {
             "master_sha": intake_master_sha,
             "branch": branch,
-            "expected_master_sha": "38322b91f691b23e7ebaa10818a8733169aafab8",
+            "expected_master_sha": intake_master_sha,
         },
         "turnover_acquisition": {
             "source": "AkShare",
@@ -948,8 +1167,18 @@ def write_blocked_artifacts(
             "persisted_raw_rows": 0,
             "raw_sha256": None,
             "canonical_content_sha256": None,
-            "error_class": "ProxyError / RemoteDisconnected",
+            "error_class": error_class,
             "sample_failed_symbols": failed[:10],
+            "resume_probes": resume_probes,
+            "probe_symbols": probe_symbols,
+            "probe_successful_symbols": probe_successes,
+            "probe_failed_symbols": probe_failures,
+            "probe_results": probe_results,
+            "probe_classifications": probe_classifications,
+            "probe_http_provider_response_received": probe_http_response,
+            "proxy_environment_names": proxy_environment_names,
+            "http_provider_response_received": probe_http_response,
+            "failure_classification": failure_classification,
         },
         "cohort_coverage": {
             "qualified": {"matched": 0, "total": EXPECTED_QUALIFIED, "coverage": None, "status": "NOT_EVALUATED"},
@@ -966,7 +1195,8 @@ def write_blocked_artifacts(
             "known_at": "T close",
         },
         "protocol": {"pre_outcome_commit": None, "status": "NOT_CREATED_DUE_TO_GATE_A"},
-        "decision_gate": "TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY",
+        "decision_gate": stop_gate,
+        "initial_acquisition_gate": "TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY",
         "research_decision": None,
         "outcome_access": OUTCOME_ACCESS_STATUS,
         "outcome_access_note": OUTCOME_ACCESS_NOTE,
@@ -993,10 +1223,11 @@ def write_blocked_artifacts(
 
 Labels: `DEVELOPMENT` / `RECONSTRUCTED_RETROSPECTIVE` / `DATE_ANCHORED` / `NO_VINTAGE_PROOF` / `DIAGNOSTIC_ONLY`
 
-## Gate-A decision
+## Current stop gate
 
-`TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY`
+`{stop_gate}`
 
+The initial acquisition gate was `TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY`.
 This task stopped before the pre-outcome protocol commit because the authorized
 primary AKShare source could not provide a usable acquisition. The resumable
 checkpoint remains available for a later explicitly authorized resume or source
@@ -1019,10 +1250,24 @@ used in computation, filtering, or conclusion.
 | pending symbols | {len(pending)} |
 | persisted raw rows | 0 |
 | raw / canonical SHA | `NOT_CREATED` |
+| post-merge probe symbols | {', '.join(probe_symbols) if probe_symbols else 'none'} |
+| post-merge probe result | {len(probe_successes)} success / {len(probe_failures)} failed |
+| proxy environment | {'present: ' + ', '.join(proxy_environment_names) if proxy_environment_names else 'not observed'} |
+| response layer | `{failure_classification}`; HTTP/provider response observed: `{probe_http_response}` |
 
 The first bounded failures were consistent `ProxyError` / `RemoteDisconnected`
- responses from the Eastmoney endpoint after three attempts per symbol. No failed
-response was promoted into the canonical dataset and no second provider was used.
+responses from the Eastmoney endpoint after three attempts per symbol. All temporary
+bypass probe results are recorded below without proxy values:
+
+{probe_details}
+
+Layer distinction: outer exception class `{latest_probe_outer}` and HTTP/provider
+response observed `{probe_http_response}`. A non-`ProxyError` outer class means
+the proxy bypass took effect and the remaining failure is a direct connection-layer
+failure; a received HTTP/provider response would instead point to a
+provider/server-layer issue.
+
+No failed response was promoted into the canonical dataset and no second provider was used.
 
 ## Cohort and semantics
 
@@ -1081,6 +1326,12 @@ def _parse_args() -> argparse.Namespace:
     acquire.add_argument("--raw-dir", type=Path, default=common["output_dir"] / "raw")
     acquire.add_argument("--retry-attempts", type=int, default=3)
     acquire.add_argument("--retry-sleep-seconds", type=float, default=2.0)
+    acquire.add_argument("--max-symbols", type=int, default=None)
+    acquire.add_argument(
+        "--probe-bypass-mode",
+        choices=("no_proxy_host_bypass", "full_subprocess_proxy_bypass"),
+        default=None,
+    )
     finalize = sub.add_parser("finalize-failed-checkpoint")
     finalize.add_argument("--checkpoint", type=Path, default=common["output_dir"] / "acquisition_checkpoint.json")
     normalize = sub.add_parser("normalize")
@@ -1116,7 +1367,8 @@ def main() -> None:
         result = acquire_turnover(
             cohort_manifest_path=args.cohort_manifest, checkpoint_path=args.checkpoint,
             raw_dir=args.raw_dir, retry_attempts=args.retry_attempts,
-            retry_sleep_seconds=args.retry_sleep_seconds,
+            retry_sleep_seconds=args.retry_sleep_seconds, max_symbols=args.max_symbols,
+            probe_bypass_mode=args.probe_bypass_mode,
         )
     elif args.command == "finalize-failed-checkpoint":
         result = finalize_failed_checkpoint(args.checkpoint)

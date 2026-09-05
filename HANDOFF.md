@@ -1273,3 +1273,72 @@ frozen prerequisite 保持 `NOT_READY / PARTIAL_UNVERIFIED`；
   [`data/validation/b_turnover_x_relative_volume_incremental_v1/summary.json`](data/validation/b_turnover_x_relative_volume_incremental_v1/summary.json)、
   [`docs/research/b_turnover_x_relative_volume_incremental_v1_report.md`](docs/research/b_turnover_x_relative_volume_incremental_v1_report.md)。checkpoint 与大体积
   cohort/raw/canonical/detail inputs 为 local-only/ignored，未上传 Drive。
+
+## 2026-09-05 — PR #33 merged; primary acquisition resume probe still unavailable
+
+- merge verification：PR #33 在实时核对 `Open`、base/master 无漂移、head=`fad439b54c1eeac9b4e67623a46cd6f64390510e`、mergeable 且 exact-head push/pull_request CI 全绿后，按授权 squash merge。merge SHA=`873169aeecb9eb12d32e58990677f2478f3081c0`；实时 `origin/master` 已 exact 指向该 SHA，GitHub merge event 显示 2 checks passed。
+- resumed branch：从 merge-head 建立 `codex/b-turnover-x-relative-volume-resume-20260905`，保留既有 local ignored cohort/checkpoint，不重建 cohort。现有 checkpoint 仍为 `0` completed、`11` failed、`5,375` pending of `5,386` symbols。
+- bounded probe：在同一 AkShare `1.18.94` / `ak.stock_zh_a_hist` / daily / unadjusted / `20230630--20260828` primary source 下，优先重试 `000001.sz`、`000002.sz`、`000006.sz`，每个 1 次；`0` success、`3` failed，均为 `ProxyError` wrapping `RemoteDisconnected`。未收到 HTTP/provider response，属于 connection-layer proxy failure。环境中存在非空 `ALL_PROXY`、`HTTP_PROXY`、`HTTPS_PROXY`、`NO_PROXY`（仅记录名称，不记录值）。
+- stop gate：`TURNOVER_PRIMARY_SOURCE_STILL_UNAVAILABLE`。不切换 provider，不修改日期/字段/adjust/source semantics，不读取 Final OOS，不运行 C/Phase 2F，不提交 pre-outcome protocol，不进行 outcome analysis；`SCHEMA_SAMPLE_OBSERVED_NOT_USED` 继续保留，且没有 outcome 值参与 computation/filtering/feature selection/conclusion。
+- preserved state：`VOLUME_PATH_NEEDS_MORE_EVIDENCE`、B spec/score/threshold/hard gate/Top-N/universe/sector/ST、prospective pipeline、frozen registry 与 frozen prerequisite 均不变；forbidden `data/validation/continuous_speed_probe/` 未读、未改、未删、未 hash、未上传。
+- next user decision：恢复当前 primary source 的网络/代理可用性后从 checkpoint 继续；或由 Sol/user 明确选择 source/proxy/credential 方案。第二 provider、proxy semantic change、credential、Drive/upload 均不自动执行。
+
+## 2026-09-05 — Phase 2 full subprocess env proxy bypass probe stopped at no-proxy gate
+
+- continuation probe：授权范围仍仅为 `AUTHORIZE_BOUNDED_SUBPROCESS_NO_PROXY_PROBE`。第二阶段在单个 transient subprocess 内移除 `HTTP_PROXY`、`HTTPS_PROXY`、`ALL_PROXY`（Windows env case-insensitive，含 lowercase 等价）并设置 `NO_PROXY=push2his.eastmoney.com`；未修改系统代理、注册表、用户持久环境变量、Git/pip proxy，未记录任何 proxy value。
+- parameters：同一 AkShare `1.18.94` / `ak.stock_zh_a_hist` / daily / unadjusted / `20230630--20260828`，同一 `000001.sz`、`000002.sz`、`000006.sz`，每个 1 次。
+- result：`0/3` success、`3/3` failed。outer=`ConnectionError`，underlying=`MaxRetryError`，链含 `NewConnectionError` → `WinError 10013`（direct socket access denied）；未收到 HTTP status / provider response。
+- layer distinction（三分类）：不是 `ProxyError`（排除 bypass 未生效或底层 interception），也不是 HTTP/provider 响应层问题；proxy bypass 已生效，但本机到 Eastmoney 的直接连接在 socket 层被拒绝 → direct connection-layer failure 分支。
+- decision/stop：`TURNOVER_PRIMARY_SOURCE_UNAVAILABLE_AFTER_NO_PROXY_PROBE`。不切换 provider，不改 endpoint/source semantics，不 commit pre-outcome protocol，不进行 outcome analysis。checkpoint 仍为 `0` completed、`11` failed、`5,375` pending of `5,386`。
+- preserved state：`SCHEMA_SAMPLE_OBSERVED_NOT_USED`、`VOLUME_PATH_NEEDS_MORE_EVIDENCE`、B spec/score/threshold/hard gate/Top-N/universe/sector/ST、prospective pipeline、frozen registry 与 frozen prerequisite 均不变；Final OOS=`SEALED / UNREAD`，C/Phase 2F、freeze/promotion、threshold search、parameter sweep 未运行；forbidden `data/validation/continuous_speed_probe/` 未读、未改、未删、未 hash、未上传。
+- evidence：summary/report 已刷新为 `TURNOVER_PRIMARY_SOURCE_UNAVAILABLE_AFTER_NO_PROXY_PROBE`，`error_class=ConnectionError / MaxRetryError`，`failure_classification=FULL_SUBPROCESS_PROXY_BYPASS_FAILED`。
+- next user decision gate：恢复 direct connection/proxy 可用性后从 checkpoint 继续；或由 Sol/user 明确 source/proxy/credential 方案。第二 provider、credential、permanent proxy/network change、Drive、Final OOS、freeze/promotion 均不自动执行。
+
+## 2026-09-05 — Third-party Tushare-compatible gateway pilot, acquisition and diagnostic complete
+
+- classification：`research question`。用户明确授权了有界的
+  `THIRD_PARTY_TUSHARE_COMPATIBLE_GATEWAY` pilot 与条件性全量获取；该研究始终为
+  `DEVELOPMENT / RECONSTRUCTED_RETROSPECTIVE / DATE_ANCHORED / NO_VINTAGE_PROOF /
+  THIRD_PARTY_GATEWAY / DIAGNOSTIC_ONLY`，不改变当前 development-candidate 产品路径。
+- live intake：当前 continuation branch 为
+  `codex/b-turnover-x-relative-volume-resume-20260905`，此前 continuation HEAD
+  `4aa37f5f1a508d1485d3ea8f99f0dfe6f5c5ceb4`、`origin/master`=
+  `873169aeecb9eb12d32e58990677f2478f3081c0`；source contract commit 为
+  `8636fe8`。本机 GitHub/gh 实时凭据查询曾受本机配置权限阻断，但本地 remote refs
+  与该 live snapshot 一致；最终 PR head/CI 必须在 push 后重新核验。
+- source contract：gateway=`https://tuaremax.top`，严格使用 `tushare==1.4.24`
+  / `daily_basic` / `ts_code,trade_date,turnover_rate,float_share`。token 仅从
+  `TUSHARE_GATEWAY_TOKEN` 环境变量读取；artifact 只记录 `credential_present=true`，
+  不记录 token、token hash 或 token value。未使用 `turnover_rate_f`。
+- pilot：固定日期为 `2023-06-30`、`2024-01-02`、`2025-01-02`、`2026-01-05`、
+  `2026-08-28`；5/5 成功。frozen daily-K date universe（Main/ChiNext/STAR only）
+  coverage=`100%`（24,941/24,941）；turnover semantics sample=`500/500`，
+  within tolerance=`100%`，provider/implied median ratio=`0.9999992421`，未发现
+  10x/100x 系统性量纲错误。pilot raw/checkpoint/canonical/manifest 已独立保存。
+- full acquisition：769/769 frozen XSHG sessions 成功，0 failed，0 pending；每个日期
+  均保存独立 raw response 与 SHA-valid checkpoint。full raw 共约 399 MB，作为本机
+  resumable evidence 保留并由 checkpoint/raw stream SHA 识别，不纳入 Git；未覆盖
+  frozen daily_k.parquet 或 frozen registry。
+- canonical/input audit：canonical=`3,938,059` rows，排序=`symbol,date`；raw stream
+  SHA=`e0a43824ab93d593e70078f94fd61fdd823c98b3930c34693e0fba598130e1e4`，file SHA=
+  `589322bcc14cffcc56b5ce96141da7293dca3c7ef4b94bf5ad897cdc44d74193`，content-stream
+  SHA=`cfa763eeb067c5162dbda0421539001fd6739a04315dfa5fa7949542f94c7a9c`。Input audit
+  保留 exact cohort=`17,714` qualified / `573,586` structural；in-scope=`17,008` /
+  `543,616`，coverage=`100%`，各 major year/board=`100%`，missing/null/negative/
+  extreme turnover 均为 0；non-Main/ChiNext/STAR rows 按既定 universe boundary 排除。
+- protocol/outcome：pre-outcome protocol commit 为
+  `1148ebd23a567ad81e09b0c2323f9be285920858`；其后才读取 outcome builder。diagnostic
+  event detail 为 543,616 structural rows 的本机 local-only artifact，file SHA=
+  `684e1e2f8ff58cc1c799b57dcbbcd504a8d0302ad5707440d158e074ea75adb7`，content-stream
+  SHA=`06f93f3aa60878796d9c28e566908f01ecc97ddeb1516e414d671286d2e4f753`。
+- final research decision：`TURNOVER_X_RELATIVE_VOLUME_NEEDS_MORE_EVIDENCE`。
+  turnover 5D Q5-Q1 mean=`-0.277596pp`、median=`-0.969710pp`、rho=`-0.058525`；
+  turnover-after-RV 5D conditional spreads 为
+  `-0.674851/-0.806752/-0.331511/-0.026368/+0.060428pp`，方向不一致；year/board
+  coherence 也未通过。未进行 threshold search、best-cell search、parameter sweep、
+  model fitting、provider switching、Final OOS、C、Phase 2F、freeze 或 promotion。
+- terminal state：`TURNOVER_X_RELATIVE_VOLUME_DIAGNOSTIC_PR_READY_FOR_USER_MERGE_DECISION`
+  需在独立 research PR 的 exact-head CI 成功后成立；当前不自动 merge。现有
+  `VOLUME_PATH_NEEDS_MORE_EVIDENCE`、B spec/score/threshold/hard gates/Top-N/
+  prospective pipeline/universe/frozen registry/frozen dataset 与 Final OOS=`SEALED / UNREAD`
+  均 unchanged。

@@ -23,6 +23,8 @@ data/validation/b_phase_volume_path_diagnostic_v1/events.jsonl.gz
 
 # Large local-only DEVELOPMENT turnover acquisition/canonical/detail inputs.
 data/validation/b_turnover_x_relative_volume_incremental_v1/raw/
+data/validation/b_turnover_x_relative_volume_incremental_v1/tushare_gateway/raw/full/
+data/validation/b_turnover_x_relative_volume_incremental_v1/tushare_gateway/diagnostic/events.jsonl.gz
 data/validation/b_turnover_x_relative_volume_incremental_v1/cohort_features.jsonl.gz
 data/validation/b_turnover_x_relative_volume_incremental_v1/canonical_turnover.parquet
 data/validation/b_turnover_x_relative_volume_incremental_v1/analysis_events.jsonl.gz
@@ -30,3 +32,5 @@ data/validation/b_turnover_x_relative_volume_incremental_v1/acquisition_checkpoi
 data/validation/b_turnover_x_relative_volume_incremental_v1/acquisition_manifest.json
 data/validation/b_turnover_x_relative_volume_incremental_v1/cohort_manifest.json
 .pytest-tmp-turnover/
+.pytest-final-validation/
+.pytest-single-validation/

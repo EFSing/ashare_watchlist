@@ -1245,3 +1245,82 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
   threshold/hard gates/Top-N/universe/sector/ST/prospective pipeline/frozen registry，
   不读 Final OOS，不运行 C/Phase 2F，不上传 Drive。后续只有重新获得 primary source
   可用性或获得明确 source decision 后，才能从 checkpoint 继续。
+
+## 2026-09-05 — Post-merge primary AkShare resume probe stopped
+
+- merge：PR #33 passed its live pre-merge verification and was squash-merged. merge SHA
+  `873169aeecb9eb12d32e58990677f2478f3081c0` equals the refreshed `origin/master`; GitHub
+  merge event reported 2 checks passed.
+- probe：from the merge-head resume branch, the same primary
+  `ak.stock_zh_a_hist` source and fixed parameters were used. A bounded one-attempt probe
+  of `000001.sz`, `000002.sz`, and `000006.sz` yielded `0` successes and `3` failures,
+  all connection-layer `ProxyError` wrapping `RemoteDisconnected`; no HTTP/provider
+  response was received. Non-empty proxy environment names were present:
+  `ALL_PROXY`, `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY`.
+- state：checkpoint remains `0` completed, `11` failed, `5,375` pending of `5,386`;
+  raw/canonical SHA remains `NOT_CREATED`; coverage remains `NOT_EVALUATED`.
+- decision：`TURNOVER_PRIMARY_SOURCE_STILL_UNAVAILABLE`。Do not switch provider or alter
+  source semantics. Wait for restored primary connectivity or an explicit user/source
+  decision. `SCHEMA_SAMPLE_OBSERVED_NOT_USED` remains recorded; no outcome value was used
+  in computation/filtering/feature selection/conclusion. No protocol or research decision
+  was created.
+- boundaries：`VOLUME_PATH_NEEDS_MORE_EVIDENCE`、B、prospective pipeline、frozen registry、
+  frozen prerequisite and `Final OOS=SEALED / UNREAD` remain unchanged；C/Phase 2F、freeze、
+  promotion、threshold search、model fitting and Drive/upload were not run. Forbidden
+  `data/validation/continuous_speed_probe/` was not read, modified, deleted, hashed or uploaded.
+
+## 2026-09-05 — Full subprocess env proxy bypass probe stopped at no-proxy gate
+
+- context：第一阶段 host `NO_PROXY` 后 outer exception 从 `ProxyError` 变为
+  `ConnectionError`；第二阶段验证完全移除 proxy env 后 primary source 是否可用。
+- probe：在 transient subprocess 内移除 `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY`（含
+  lowercase 等价）并设 `NO_PROXY=push2his.eastmoney.com`；AkShare `1.18.94` /
+  `ak.stock_zh_a_hist` / daily / unadjusted / 20230630--20260828 参数与三个 fixed
+  symbols 不变，每个 1 次。未改系统代理、注册表、持久用户环境变量，未记录 proxy value。
+- result：`0/3` success。outer=`ConnectionError`、underlying=`MaxRetryError`、链尾
+  `WinError 10013`（direct socket access denied）；无 HTTP status、无 provider response。
+- layer distinction：非 `ProxyError` → proxy bypass 已生效且无底层 interception；未到
+  response layer → 排除 provider/server 层问题；剩余失败是本机 direct connection 到
+  Eastmoney 被 socket 层拒绝。
+- decision：`TURNOVER_PRIMARY_SOURCE_UNAVAILABLE_AFTER_NO_PROXY_PROBE`。不切换
+  provider、不改 source semantics、不 commit pre-outcome protocol、不进行 outcome
+  analysis；等待 direct connection/proxy 恢复或用户明确 source/proxy/credential 决策。
+- consequences：checkpoint `0/5,386` completed、`11` failed、`5,375` pending；
+  raw/canonical SHA `NOT_CREATED`；coverage `NOT_EVALUATED`；summary/report 已刷新。
+  `SCHEMA_SAMPLE_OBSERVED_NOT_USED`、`VOLUME_PATH_NEEDS_MORE_EVIDENCE`、B、
+  prospective pipeline、frozen registry、frozen prerequisite、Final OOS 边界均不变。
+- next gate：user decision — restore direct connectivity or authorize a
+  source/proxy/credential path; second provider, credential, permanent
+  network/proxy change, Drive, Final OOS and freeze/promotion remain non-automatic.
+
+## 2026-09-05 — Decision: turnover × relative-volume gateway diagnostic
+
+- classification：`research question`；materiality 是判断 historical
+  `turnover_rate_pct` 在 frozen T-day relative volume 条件下是否显示稳定增量
+  信息，同时不改 B 或现有 development-candidate 产品路径。
+- authorization/source：用户明确授权有界的
+  `THIRD_PARTY_TUSHARE_COMPATIBLE_GATEWAY`。固定为
+  `https://tuaremax.top`、`tushare==1.4.24`、`daily_basic`，字段为
+  `ts_code,trade_date,turnover_rate,float_share`；不是 official Tushare、不是
+  `STRICT_PIT_VERIFIED`、不是 production validated。token 仅环境读取，未持久化。
+- evidence：五日 pilot coverage=`100%`，固定量纲 sample=`500/500` 通过；769 日
+  full acquisition=`769/769` 成功，canonical=`3,938,059` rows。Input audit 保留
+  exact `17,714` qualified / `573,586` structural reconciliation；Main/ChiNext/STAR
+  in-scope coverage 与各 major year/board 均为 `100%`，无 imputation。
+- protocol：正式 pre-outcome protocol commit
+  `1148ebd23a567ad81e09b0c2323f9be285920858` 后才读取 outcome。固定 TQ1-TQ5、
+  RVQ1-RVQ5、5×5 matrix、conditional summaries、year/board、episode-deduplicated
+  和 top-1% sensitivity 均已执行；未 threshold search、parameter sweep、model fit
+  或 provider switching。
+- result：turnover 5D Q5-Q1 mean spread=`-0.277596pp`，median spread=`-0.969710pp`，
+  Spearman rho=`-0.058525`。在 RV 五分位条件下，turnover 5D spreads 为
+  `-0.674851/-0.806752/-0.331511/-0.026368/+0.060428pp`，方向不一致；year/board
+  coherence 亦未通过。结构/episode/top-1% 的部分方向不能弥补 conditioned
+  coherence 缺失。
+- decision：`NEEDS_MORE_EVIDENCE`，对应研究终态
+  `TURNOVER_X_RELATIVE_VOLUME_NEEDS_MORE_EVIDENCE`。缺少的是跨 RV 条件、年份和
+  板块方向一致的独立验证证据；该缺口只限制本研究的进一步结论，不限制现有 B
+  development path。
+- boundaries：`VOLUME_PATH_NEEDS_MORE_EVIDENCE` 保持不变；B/spec/score/threshold/
+  hard gate/Top-N/prospective pipeline/universe/frozen dataset/frozen registry 未改变；
+  Final OOS=`SEALED / UNREAD`，C/Phase 2F/freeze/promotion/auto-freeze 未运行。
