@@ -185,6 +185,8 @@ def _safe_path(path: Path) -> None:
 
 
 def _git_is_ancestor(ancestor_sha: str, descendant_sha: str) -> bool:
+    if ancestor_sha == descendant_sha:
+        return True
     completed = subprocess.run(
         ["git", "merge-base", "--is-ancestor", ancestor_sha, descendant_sha],
         capture_output=True,
@@ -534,10 +536,10 @@ class AppendOnlyObservationStore:
         if prior_dates and signal_date < prior_dates[-1]:
             raise ObservationError("OBSERVATION_BACKFILL_FORBIDDEN", f"{signal_date} precedes last observed session {prior_dates[-1]}")
 
-        candidates = watchlist.get("candidates")
-        if not isinstance(candidates, list):
+        raw_candidates = watchlist.get("candidates")
+        if not isinstance(raw_candidates, list) or any(not isinstance(item, Mapping) for item in raw_candidates):
             raise ObservationError("OBSERVATION_SOURCE_INVALID", "watchlist candidates are missing")
-        candidates = sorted(candidates, key=lambda item: str(item.get("code", "")))
+        candidates = sorted(raw_candidates, key=lambda item: str(item.get("code", "")))
         existing_signal_ids = {item.get("signal_id") for item in signal_events}
         existing_episode_ids = {item.get("breakout_episode_id") for item in signal_events if item.get("first_signal_in_episode")}
         new_records: list[dict[str, Any]] = []
