@@ -12,12 +12,15 @@ from __future__ import annotations
 
 from collections import Counter
 from datetime import datetime, timezone
+import gzip
 import hashlib
 import json
 import math
 import numbers
 import os
 from pathlib import Path
+import sqlite3
+import tempfile
 import time
 from typing import Any, Iterable, Mapping, Sequence
 
@@ -365,6 +368,32 @@ def _canonical_rows_from_payload(payload: Mapping[str, Any]) -> list[dict[str, A
     return [by_key[key] for key in sorted(by_key)]
 
 
+def _canonical_rows_with_counts(payload: Mapping[str, Any]) -> tuple[list[dict[str, Any]], int]:
+    """Return canonical in-scope rows and exact duplicate count."""
+
+    by_key: dict[tuple[str, str], dict[str, Any]] = {}
+    duplicate_count = 0
+    for row in payload["response"]["rows"]:
+        symbol = _canonical_symbol(row.get("ts_code"))
+        date = _date_text(row.get("trade_date"))
+        if symbol is None or date is None:
+            continue
+        canonical = {
+            "symbol": symbol,
+            "date": date,
+            "turnover_rate_pct": _numeric_or_null(row.get("turnover_rate")),
+        }
+        key = (symbol, date)
+        prior = by_key.get(key)
+        if prior is not None:
+            duplicate_count += 1
+            if prior != canonical:
+                raise RuntimeError(f"{STOP_FULL}: conflicting duplicate canonical row for {symbol} {date}")
+        else:
+            by_key[key] = canonical
+    return [by_key[key] for key in sorted(by_key)], duplicate_count
+
+
 def write_pilot_canonical(
     *, raw_dir: Path, dates: Sequence[str], canonical_path: Path,
 ) -> dict[str, Any]:
@@ -633,6 +662,342 @@ def acquire_dates(
     return checkpoint
 
 
+def build_full_canonical(
+    *, checkpoint_path: Path, raw_dir: Path, canonical_path: Path, manifest_path: Path,
+) -> dict[str, Any]:
+    """Validate all full raw responses and write sorted canonical turnover rows."""
+
+    _reject_forbidden((checkpoint_path, raw_dir, canonical_path, manifest_path))
+    checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+    dates = list(checkpoint.get("requested_dates", []))
+    if checkpoint.get("status") != "COMPLETE" or len(dates) != EXPECTED_SESSION_COUNT:
+        raise RuntimeError(f"{STOP_FULL}: full checkpoint is not complete")
+    expected_identity = {
+        "source_classification": SOURCE_CLASSIFICATION,
+        "gateway_url": GATEWAY_URL,
+        "package": PACKAGE_NAME,
+        "package_version": PACKAGE_VERSION,
+        "endpoint": ENDPOINT,
+    }
+    raw_digest = hashlib.sha256()
+    total_rows = 0
+    duplicate_rows = 0
+    excluded_rows = 0
+    temporary_dir = Path(tempfile.mkdtemp(prefix="tushare-canonical-"))
+    sqlite_path = temporary_dir / "rows.sqlite3"
+    temporary_output = temporary_dir / "canonical.parquet"
+    try:
+        connection = sqlite3.connect(sqlite_path)
+        try:
+            connection.execute("PRAGMA journal_mode=OFF")
+            connection.execute("PRAGMA synchronous=OFF")
+            connection.execute(
+                "CREATE TABLE rows (symbol TEXT NOT NULL, date TEXT NOT NULL, "
+                "turnover_rate_pct REAL, PRIMARY KEY(symbol, date))"
+            )
+            for date in dates:
+                raw_path = raw_dir / f"daily_basic_{date.replace('-', '')}.json"
+                if not raw_path.exists():
+                    raise RuntimeError(f"{STOP_FULL}: raw response missing for {date}")
+                raw_bytes = raw_path.read_bytes()
+                raw_digest.update(date.encode("utf-8") + b"\n" + raw_bytes)
+                payload = json.loads(raw_bytes.decode("utf-8"))
+                if any(payload.get(key) != value for key, value in expected_identity.items()):
+                    raise RuntimeError(f"{STOP_FULL}: source identity changed for {date}")
+                if payload.get("request") != {"trade_date": date, "fields": FIELDS}:
+                    raise RuntimeError(f"{STOP_FULL}: request identity changed for {date}")
+                _schema_audit(payload, date, strict_unique=False)
+                rows, duplicates = _canonical_rows_with_counts(payload)
+                duplicate_rows += duplicates
+                excluded_rows += int(payload["response_row_count"]) - len(rows)
+                try:
+                    connection.executemany(
+                        "INSERT INTO rows(symbol, date, turnover_rate_pct) VALUES (?, ?, ?)",
+                        [(row["symbol"], row["date"], row["turnover_rate_pct"]) for row in rows],
+                    )
+                except sqlite3.IntegrityError as exc:
+                    raise RuntimeError(f"{STOP_FULL}: conflicting canonical duplicate") from exc
+                total_rows += len(rows)
+            connection.commit()
+            import pyarrow as pa
+            import pyarrow.parquet as pq
+
+            schema = pa.schema([
+                pa.field("symbol", pa.string(), nullable=False),
+                pa.field("date", pa.string(), nullable=False),
+                pa.field("turnover_rate_pct", pa.float64(), nullable=True),
+            ])
+            writer = pq.ParquetWriter(temporary_output, schema=schema, compression="zstd")
+            content_digest = hashlib.sha256()
+            written = 0
+            try:
+                cursor = connection.execute(
+                    "SELECT symbol, date, turnover_rate_pct FROM rows ORDER BY symbol, date"
+                )
+                while True:
+                    batch = cursor.fetchmany(10000)
+                    if not batch:
+                        break
+                    rows = [
+                        {"symbol": symbol, "date": date, "turnover_rate_pct": turnover}
+                        for symbol, date, turnover in batch
+                    ]
+                    for row in rows:
+                        content_digest.update((_canonical_json(row) + "\n").encode("utf-8"))
+                    writer.write_table(pa.Table.from_pylist(rows, schema=schema))
+                    written += len(rows)
+            finally:
+                writer.close()
+            if written != total_rows:
+                raise RuntimeError(f"{STOP_FULL}: canonical row count changed during write")
+        finally:
+            connection.close()
+        canonical_path.parent.mkdir(parents=True, exist_ok=True)
+        os.replace(temporary_output, canonical_path)
+        result = {
+            "schema_version": SCHEMA_VERSION,
+            "status": "COMPLETE",
+            "labels": list(LABELS),
+            "source_classification": SOURCE_CLASSIFICATION,
+            "gateway_url": GATEWAY_URL,
+            "package": PACKAGE_NAME,
+            "package_version": PACKAGE_VERSION,
+            "endpoint": ENDPOINT,
+            "fields": FIELDS,
+            "requested_dates": dates,
+            "completed_dates": len(dates),
+            "credential_present": True,
+            "token_persisted": False,
+            "raw_acquisition": {
+                "raw_dir": raw_dir.as_posix(),
+                "date_files": len(dates),
+                "raw_stream_sha256": raw_digest.hexdigest(),
+            },
+            "canonical_dataset": {
+                "path": canonical_path.as_posix(),
+                "rows": total_rows,
+                "bytes": canonical_path.stat().st_size,
+                "file_sha256": _sha256_file(canonical_path),
+                "content_stream_sha256": content_digest.hexdigest(),
+                "duplicate_rows_deduplicated": duplicate_rows,
+                "excluded_provider_rows": excluded_rows,
+                "sort": ["symbol", "date"],
+            },
+            "duplicate_policy": "conflicting duplicates fail closed; exact duplicates deterministically deduplicated and counted",
+            "missing_policy": "null turnover retained; no imputation",
+            "outcome_access": {
+                "status": OUTCOME_ACCESS_STATUS,
+                "outcome_values_used": False,
+            },
+        }
+        _write_json_atomic(manifest_path, result)
+        return result
+    finally:
+        for item in sorted(temporary_dir.glob("*"), reverse=True):
+            item.unlink(missing_ok=True)
+        temporary_dir.rmdir()
+
+
+def _load_cohort_rows(path: Path) -> Iterable[dict[str, Any]]:
+    with gzip.open(path, "rt", encoding="utf-8", newline="") as handle:
+        for line in handle:
+            yield json.loads(line)
+
+
+def audit_inputs(
+    *, frozen_raw_dir: Path, cohort_path: Path, cohort_manifest_path: Path,
+    canonical_path: Path, full_manifest_path: Path, output_manifest_path: Path,
+) -> dict[str, Any]:
+    """Audit in-scope turnover coverage against the frozen no-outcome cohort."""
+
+    _reject_forbidden((frozen_raw_dir, cohort_path, cohort_manifest_path, canonical_path, full_manifest_path, output_manifest_path))
+    full_manifest = json.loads(full_manifest_path.read_text(encoding="utf-8"))
+    if full_manifest.get("status") != "COMPLETE":
+        raise RuntimeError(f"{STOP_FULL}: full acquisition manifest is not complete")
+    import pandas as pd
+
+    frame = pd.read_parquet(canonical_path, columns=["symbol", "date", "turnover_rate_pct"])
+    if frame.duplicated(["symbol", "date"]).any():
+        raise RuntimeError("TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY: canonical duplicate remains")
+    frame["key"] = frame["symbol"].astype(str) + "|" + frame["date"].astype(str)
+    lookup = frame.set_index("key")["turnover_rate_pct"]
+    earliest_by_symbol = frame.groupby("symbol")["date"].min().to_dict()
+    frozen_dates, _index_bars, _index_meta = replay._load_index(frozen_raw_dir)
+    store, _store_meta = replay._load_stock_store(frozen_raw_dir / "daily_k.parquet")
+    cohort_manifest = json.loads(cohort_manifest_path.read_text(encoding="utf-8"))
+    exact_structural = int(cohort_manifest["cohorts"]["structural_rows"])
+    exact_qualified = int(cohort_manifest["cohorts"]["qualified_rows"])
+    structural = 0
+    qualified = 0
+    in_scope_structural = 0
+    in_scope_qualified = 0
+    matched_structural = 0
+    matched_qualified = 0
+    missing_structural = 0
+    missing_qualified = 0
+    null_structural = 0
+    null_qualified = 0
+    negative_structural = 0
+    zero_volume_structural = 0
+    newly_listed_symbols: set[str] = set()
+    structural_years: Counter[str] = Counter()
+    qualified_years: Counter[str] = Counter()
+    structural_boards: Counter[str] = Counter()
+    qualified_boards: Counter[str] = Counter()
+    matched_structural_years: Counter[str] = Counter()
+    matched_qualified_years: Counter[str] = Counter()
+    matched_structural_boards: Counter[str] = Counter()
+    matched_qualified_boards: Counter[str] = Counter()
+    extreme_gt_100 = 0
+    extreme_gt_1000 = 0
+
+    for row in _load_cohort_rows(cohort_path):
+        structural += 1
+        is_qualified = bool(row["final_b_qualified"])
+        if is_qualified:
+            qualified += 1
+        board = row.get("board") or _board(row["symbol"])
+        if board not in {"Main", "ChiNext", "STAR"}:
+            continue
+        in_scope_structural += 1
+        structural_years[row["year"]] += 1
+        structural_boards[board] += 1
+        if is_qualified:
+            in_scope_qualified += 1
+            qualified_years[row["year"]] += 1
+            qualified_boards[board] += 1
+        key = f"{str(row['symbol']).lower()}|{row['signal_date']}"
+        found = key in lookup.index
+        value = lookup.get(key) if found else None
+        valid = found and value is not None and not bool(pd.isna(value))
+        numeric = None
+        if valid:
+            try:
+                numeric = float(value)
+            except (TypeError, ValueError):
+                valid = False
+        if valid and (not math.isfinite(numeric) or numeric < 0):
+            negative_structural += 1
+            valid = False
+        if not found:
+            missing_structural += 1
+            if is_qualified:
+                missing_qualified += 1
+        elif not valid:
+            null_structural += 1
+            if is_qualified:
+                null_qualified += 1
+        else:
+            matched_structural += 1
+            matched_structural_years[row["year"]] += 1
+            matched_structural_boards[board] += 1
+            if numeric > 100:
+                extreme_gt_100 += 1
+            if numeric > 1000:
+                extreme_gt_1000 += 1
+            if is_qualified:
+                matched_qualified += 1
+                matched_qualified_years[row["year"]] += 1
+                matched_qualified_boards[board] += 1
+        volume = _frozen_volume(store, row["symbol"], frozen_dates[row["signal_date"]])
+        if volume == 0:
+            zero_volume_structural += 1
+        earliest = earliest_by_symbol.get(str(row["symbol"]).lower())
+        if earliest and earliest > START_DATE:
+            newly_listed_symbols.add(str(row["symbol"]).lower())
+
+    if structural != exact_structural or qualified != exact_qualified:
+        raise RuntimeError("TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY: cohort counts changed")
+
+    def ratio(matches: int, total: int) -> float:
+        return matches / total if total else 0.0
+
+    qualified_coverage = ratio(matched_qualified, in_scope_qualified)
+    structural_coverage = ratio(matched_structural, in_scope_structural)
+    strata: dict[str, dict[str, Any]] = {"year": {}, "board": {}}
+    for group, totals, matches in (
+        ("year", qualified_years, matched_qualified_years),
+        ("board", qualified_boards, matched_qualified_boards),
+    ):
+        for key, total in sorted(totals.items()):
+            strata[group][key] = {"rows": total, "matched": matches[key], "coverage": ratio(matches[key], total)}
+    structural_strata: dict[str, dict[str, Any]] = {"year": {}, "board": {}}
+    for group, totals, matches in (
+        ("year", structural_years, matched_structural_years),
+        ("board", structural_boards, matched_structural_boards),
+    ):
+        for key, total in sorted(totals.items()):
+            structural_strata[group][key] = {"rows": total, "matched": matches[key], "coverage": ratio(matches[key], total)}
+    major = list(strata["year"].values()) + [strata["board"].get(board, {"coverage": 0.0}) for board in ("Main", "ChiNext", "STAR")]
+    structural_major = list(structural_strata["year"].values()) + [structural_strata["board"].get(board, {"coverage": 0.0}) for board in ("Main", "ChiNext", "STAR")]
+    coverage_ready = (
+        qualified_coverage >= 0.99 and structural_coverage >= 0.98
+        and all(item["coverage"] >= 0.95 for item in major)
+        and all(item["coverage"] >= 0.95 for item in structural_major)
+    )
+    canonical_negative = int((frame["turnover_rate_pct"].dropna() < 0).sum())
+    result = {
+        "schema_version": SCHEMA_VERSION,
+        "status": "RESEARCH_READY" if coverage_ready and canonical_negative == 0 else "TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY",
+        "labels": list(LABELS),
+        "source_classification": SOURCE_CLASSIFICATION,
+        "gateway_url": GATEWAY_URL,
+        "package": PACKAGE_NAME,
+        "package_version": PACKAGE_VERSION,
+        "endpoint": ENDPOINT,
+        "fields": FIELDS,
+        "cohort_reconciliation": {
+            "exact_structural_rows": structural,
+            "exact_qualified_rows": qualified,
+            "in_scope_structural_rows": in_scope_structural,
+            "in_scope_qualified_rows": in_scope_qualified,
+            "out_of_scope_structural_rows_excluded": structural - in_scope_structural,
+            "out_of_scope_qualified_rows_excluded": qualified - in_scope_qualified,
+            "out_of_scope_policy": "exclude non-Main/ChiNext/STAR rows; do not expand universe",
+        },
+        "coverage": {
+            "qualified": {"matched": matched_qualified, "total": in_scope_qualified, "coverage": qualified_coverage, "minimum": 0.99},
+            "structural": {"matched": matched_structural, "total": in_scope_structural, "coverage": structural_coverage, "minimum": 0.98},
+            "qualified_strata": strata,
+            "structural_strata": structural_strata,
+            "status": "PASS" if coverage_ready else "FAIL",
+        },
+        "data_quality": {
+            "missing_structural_at_t": missing_structural,
+            "missing_qualified_at_t": missing_qualified,
+            "null_structural_at_t": null_structural,
+            "null_qualified_at_t": null_qualified,
+            "negative_canonical_rows": canonical_negative,
+            "negative_structural_at_t": negative_structural,
+            "extreme_gt_100_pct_rows": extreme_gt_100,
+            "extreme_gt_1000_pct_rows": extreme_gt_1000,
+            "newly_listed_symbol_count": len(newly_listed_symbols),
+            "newly_listed_symbols": sorted(newly_listed_symbols),
+            "suspension_or_no_trade_proxy_rows": zero_volume_structural,
+            "no_trade_proxy_definition": "frozen daily_k volume == 0 on T; exact suspension status not inferred",
+            "duplicate_policy": "canonical symbol/date uniqueness checked; conflicting duplicates fail closed",
+            "imputation": False,
+        },
+        "canonical_dataset": full_manifest["canonical_dataset"],
+        "outcome_access": {"status": OUTCOME_ACCESS_STATUS, "outcome_values_used": False},
+        "boundary": {
+            "b_unchanged": True,
+            "universe_unchanged": True,
+            "frozen_daily_k_unchanged": True,
+            "frozen_registry_unchanged": True,
+            "final_oos_read": False,
+            "turnover_rate_f_used": False,
+            "no_vintage_proof": True,
+            "diagnostic_only": True,
+        },
+        "audited_at_utc": _utc_now(),
+    }
+    _write_json_atomic(output_manifest_path, result)
+    if result["status"] != "RESEARCH_READY":
+        raise RuntimeError("TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY")
+    return result
+
+
 def run_pilot(
     *, raw_dir: Path, pilot_dir: Path, checkpoint_path: Path, raw_output_dir: Path,
     canonical_path: Path, manifest_path: Path, retry_sleep_seconds: float = 2.0,
@@ -722,6 +1087,8 @@ __all__ = [
     "_schema_audit",
     "_semantics_audit",
     "pilot_dates",
+    "build_full_canonical",
+    "audit_inputs",
     "run_pilot",
     "write_pilot_canonical",
 ]
