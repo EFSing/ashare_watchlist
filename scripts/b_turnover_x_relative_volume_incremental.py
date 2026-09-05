@@ -443,9 +443,26 @@ def _load_checkpoint(path: Path, symbols: Sequence[str], raw_dir: Path) -> dict[
     }
 
 
+def _acquisition_targets(
+    symbols: Sequence[str], checkpoint: Mapping[str, Any], max_symbols: int | None,
+) -> list[str]:
+    if max_symbols is not None and max_symbols <= 0:
+        raise ValueError("max_symbols must be positive when supplied")
+    completed = checkpoint.get("completed", {})
+    failed = checkpoint.get("failed", {})
+    failed_first = [symbol for symbol in symbols if symbol in failed]
+    unfinished = [
+        symbol for symbol in symbols
+        if symbol not in completed and symbol not in failed
+    ]
+    targets = failed_first + unfinished
+    return targets if max_symbols is None else targets[:max_symbols]
+
+
 def acquire_turnover(
     *, cohort_manifest_path: Path, checkpoint_path: Path, raw_dir: Path,
     retry_attempts: int = 3, retry_sleep_seconds: float = 2.0,
+    max_symbols: int | None = None,
 ) -> dict[str, Any]:
     """Acquire one exact AKShare response per structural symbol and checkpoint it."""
 
@@ -465,7 +482,8 @@ def acquire_turnover(
 
     completed = checkpoint["completed"]
     failed = checkpoint["failed"]
-    for symbol in symbols:
+    targets = _acquisition_targets(symbols, checkpoint, max_symbols)
+    for symbol in targets:
         raw_path = raw_dir / f"{symbol.replace('.', '_')}.json"
         prior = completed.get(symbol)
         if prior and raw_path.exists() and _sha256_file(raw_path) == prior.get("file_sha256"):
@@ -1081,6 +1099,7 @@ def _parse_args() -> argparse.Namespace:
     acquire.add_argument("--raw-dir", type=Path, default=common["output_dir"] / "raw")
     acquire.add_argument("--retry-attempts", type=int, default=3)
     acquire.add_argument("--retry-sleep-seconds", type=float, default=2.0)
+    acquire.add_argument("--max-symbols", type=int, default=None)
     finalize = sub.add_parser("finalize-failed-checkpoint")
     finalize.add_argument("--checkpoint", type=Path, default=common["output_dir"] / "acquisition_checkpoint.json")
     normalize = sub.add_parser("normalize")
@@ -1116,7 +1135,7 @@ def main() -> None:
         result = acquire_turnover(
             cohort_manifest_path=args.cohort_manifest, checkpoint_path=args.checkpoint,
             raw_dir=args.raw_dir, retry_attempts=args.retry_attempts,
-            retry_sleep_seconds=args.retry_sleep_seconds,
+            retry_sleep_seconds=args.retry_sleep_seconds, max_symbols=args.max_symbols,
         )
     elif args.command == "finalize-failed-checkpoint":
         result = finalize_failed_checkpoint(args.checkpoint)
