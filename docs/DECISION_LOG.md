@@ -1352,3 +1352,59 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
 - boundaries：B spec/score/threshold/hard gate/Top-N/prospective pipeline/
   universe/frozen dataset/frozen registry unchanged；Final OOS=`SEALED / UNREAD`；
   no C、Phase 2F、promotion、freeze 或 auto-freeze。
+
+## 2026-09-06 — Adopt B observation protocol; defer new-strategy implementation pending selection
+
+- classification：Track A 为 `product infrastructure + correctness/provenance gate`；
+  Track B 为 `research question`。Materiality 是让既有 B 在不改规则的情况下形成
+  可审计的未来 evidence stream，并把主动研究转为独立、outcome 之前的候选设计选择。
+- Track A decision：`ADOPT_B_V1_1_PROSPECTIVE_OBSERVATION_PROTOCOL_V1`。protocol/semantics
+  先提交于 `3dd7d51a6341a60540c26db2aa4f18367520d95b`；未来 store 绑定该 SHA，仅接受
+  其后代 generation commit，primary cohort 从首个真实 post-commit XSHG T-close signal
+  date 开始。固定 `60 sessions AND 200 mature independent episodes`、最大 `120 sessions`，
+  不设置盈利提前停止；raw signal、episode dedup、execution feasibility 和 append-only
+  outcome state 均保留。
+- Track B decision：`DEFER_NEW_STRATEGY_IMPLEMENTATION_PENDING_USER_SELECTION`。在未
+  读取 C/任何新候选 forward outcome 的前提下，完成 4-family shortlist 与 qualitative
+  design review。推荐 `NEW_CROSS_SECTIONAL_RELATIVE_STRENGTH_LEADERSHIP_V1`，secondary
+  `NEW_VOLATILITY_CONTRACTION_BREAKOUT_V1`；C 保留 exact V0 provenance，但未自动 nominate。
+- consequences：B/spec/threshold/score/hard gates/Top-N/universe/prospective path、
+  `VOLUME_PATH_NEEDS_MORE_EVIDENCE`、`TURNOVER_X_RELATIVE_VOLUME_NEEDS_MORE_EVIDENCE`、
+  frozen state 和 Final OOS=`SEALED / UNREAD` unchanged。没有实现候选 evaluator、没有
+  threshold/parameter research、没有读取 outcome、没有创建 future observation data。
+- next gate：bounded PR exact-head CI 后停在
+  `NEW_STRATEGY_CANDIDATE_SELECTION_REQUIRED`。只有用户选择一个 family 后，才创建该
+  family 的严格 pre-outcome protocol 与正式 research；不自动启动 B V2、C returns、
+  Final OOS、promotion、freeze 或 merge。
+
+## 2026-09-06 — PR #36 exact-head verification and final stop
+
+- live PR：PR #36 open，base=`master@380313c94fdfe388157d5274c4636806d2fa9647`，
+  head=`299def1d996994b4a7fffc9997dca73681b4ff4b`，GitHub state=`MERGEABLE/CLEAN`。
+  push correctness=`33983380604 success`，pull_request correctness=
+  `33983382506 success`；两个 workflow head SHA 均 exact 匹配 PR head。按范围不 merge。
+- Track A remains `ADOPT_B_V1_1_PROSPECTIVE_OBSERVATION_PROTOCOL_V1`，pre-outcome
+  protocol commit=`3dd7d51a6341a60540c26db2aa4f18367520d95b`；Track B remains
+  `DEFER_NEW_STRATEGY_IMPLEMENTATION_PENDING_USER_SELECTION`。
+- no-outcome confirmation：未实现 candidate evaluator，未创建 threshold，未读取 C 或
+  新候选 forward returns、任何 outcome table 或 Final OOS，未创建 future observation data。
+  B、turnover/RV、Volume-Path、frozen state、Final OOS sealed/unread 和受禁目录边界均
+  unchanged。
+- terminal state：`NEW_STRATEGY_CANDIDATE_SELECTION_REQUIRED`。PR merge、候选实现和
+  formal research 必须等待用户下一步选择/授权。
+
+## 2026-09-06 — Adopt epistemic separation for PR #36 new-strategy intake
+
+- classification：`research question` / bounded methodological amendment；materiality
+  是防止 future candidate 先形成经济故事、再用 outcome 选择指标或因果语言，同时不
+  扩大 B、prospective observation 或 product ladder 范围。
+- decision：`ADOPT_FEATURE_EPISTEMIC_SEPARATION`。intake 现在要求分开记录
+  `DEFINITION_AND_PROXY_CLAIM`、`PREDICTIVE_EVIDENCE`、`MECHANISM_EVIDENCE`，并在
+  outcome access 前满足 alternatives、simple baseline、falsification 与 causal-language
+  规则。
+- candidate status：四个候选、推荐和 secondary 均不变；本轮只补齐 design-level
+  records，全部 predictive status=`UNTESTED`，mechanism status=`HYPOTHESIS`，不因
+  returns 改变推荐。
+- boundaries：未读取 C/new-candidate forward outcomes、任何 outcome table 或 Final
+  OOS；未实现 evaluator、选参数、run replay、改 B 或创建数据。终态待 PR exact-head
+  CI 后为 `PR_36_METHODOLOGY_AMENDMENT_READY_FOR_USER_MERGE_DECISION`，不自动 merge。
