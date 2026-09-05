@@ -574,7 +574,11 @@ def finalize_failed_checkpoint(path: Path) -> dict[str, Any]:
     failed = dict(checkpoint.get("failed", {}))
     checkpoint["pending"] = [symbol for symbol in symbols if symbol not in completed and symbol not in failed]
     checkpoint["status"] = "PARTIAL_FAILED"
-    checkpoint["stop_gate"] = "TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY"
+    checkpoint["stop_gate"] = (
+        "TURNOVER_PRIMARY_SOURCE_STILL_UNAVAILABLE"
+        if checkpoint.get("resume_probes") else
+        "TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY"
+    )
     checkpoint["stopped_at_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     checkpoint["requested_symbol_count"] = len(symbols)
     checkpoint["completed_symbol_count"] = len(completed)
@@ -738,11 +742,17 @@ def audit_inputs(
     cohort_manifest = json.loads(cohort_manifest_path.read_text(encoding="utf-8"))
     acquisition = json.loads(acquisition_manifest_path.read_text(encoding="utf-8"))
     if acquisition.get("status") != "COMPLETE":
+        stop_gate = (
+            "TURNOVER_PRIMARY_SOURCE_STILL_UNAVAILABLE"
+            if acquisition.get("resume_probes") else
+            "TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY"
+        )
         blocked = {
             "schema_version": SCHEMA_VERSION,
             "status": "TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY",
             "labels": list(EVIDENCE_LABELS),
             "decision_gate": "TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY",
+            "stop_gate": stop_gate,
             "provider": acquisition.get("provider"),
             "cohort": {
                 "structural_rows": cohort_manifest["cohorts"]["structural_rows"],
@@ -984,6 +994,11 @@ def write_blocked_artifacts(
     proxy_environment_names = sorted({
         name for probe in resume_probes for name in probe.get("proxy_environment_names", [])
     })
+    stop_gate = (
+        "TURNOVER_PRIMARY_SOURCE_STILL_UNAVAILABLE"
+        if resume_probes else
+        "TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY"
+    )
     summary: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "status": "BLOCKED",
@@ -991,7 +1006,7 @@ def write_blocked_artifacts(
         "intake": {
             "master_sha": intake_master_sha,
             "branch": branch,
-            "expected_master_sha": "38322b91f691b23e7ebaa10818a8733169aafab8",
+            "expected_master_sha": intake_master_sha,
         },
         "turnover_acquisition": {
             "source": "AkShare",
@@ -1031,7 +1046,8 @@ def write_blocked_artifacts(
             "known_at": "T close",
         },
         "protocol": {"pre_outcome_commit": None, "status": "NOT_CREATED_DUE_TO_GATE_A"},
-        "decision_gate": "TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY",
+        "decision_gate": stop_gate,
+        "initial_acquisition_gate": "TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY",
         "research_decision": None,
         "outcome_access": OUTCOME_ACCESS_STATUS,
         "outcome_access_note": OUTCOME_ACCESS_NOTE,
@@ -1058,10 +1074,11 @@ def write_blocked_artifacts(
 
 Labels: `DEVELOPMENT` / `RECONSTRUCTED_RETROSPECTIVE` / `DATE_ANCHORED` / `NO_VINTAGE_PROOF` / `DIAGNOSTIC_ONLY`
 
-## Gate-A decision
+## Current stop gate
 
-`TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY`
+`{stop_gate}`
 
+The initial acquisition gate was `TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY`.
 This task stopped before the pre-outcome protocol commit because the authorized
 primary AKShare source could not provide a usable acquisition. The resumable
 checkpoint remains available for a later explicitly authorized resume or source

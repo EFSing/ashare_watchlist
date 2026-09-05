@@ -1273,3 +1273,12 @@ frozen prerequisite 保持 `NOT_READY / PARTIAL_UNVERIFIED`；
   [`data/validation/b_turnover_x_relative_volume_incremental_v1/summary.json`](data/validation/b_turnover_x_relative_volume_incremental_v1/summary.json)、
   [`docs/research/b_turnover_x_relative_volume_incremental_v1_report.md`](docs/research/b_turnover_x_relative_volume_incremental_v1_report.md)。checkpoint 与大体积
   cohort/raw/canonical/detail inputs 为 local-only/ignored，未上传 Drive。
+
+## 2026-09-05 — PR #33 merged; primary acquisition resume probe still unavailable
+
+- merge verification：PR #33 在实时核对 `Open`、base/master 无漂移、head=`fad439b54c1eeac9b4e67623a46cd6f64390510e`、mergeable 且 exact-head push/pull_request CI 全绿后，按授权 squash merge。merge SHA=`873169aeecb9eb12d32e58990677f2478f3081c0`；实时 `origin/master` 已 exact 指向该 SHA，GitHub merge event 显示 2 checks passed。
+- resumed branch：从 merge-head 建立 `codex/b-turnover-x-relative-volume-resume-20260905`，保留既有 local ignored cohort/checkpoint，不重建 cohort。现有 checkpoint 仍为 `0` completed、`11` failed、`5,375` pending of `5,386` symbols。
+- bounded probe：在同一 AkShare `1.18.94` / `ak.stock_zh_a_hist` / daily / unadjusted / `20230630--20260828` primary source 下，优先重试 `000001.sz`、`000002.sz`、`000006.sz`，每个 1 次；`0` success、`3` failed，均为 `ProxyError` wrapping `RemoteDisconnected`。未收到 HTTP/provider response，属于 connection-layer proxy failure。环境中存在非空 `ALL_PROXY`、`HTTP_PROXY`、`HTTPS_PROXY`、`NO_PROXY`（仅记录名称，不记录值）。
+- stop gate：`TURNOVER_PRIMARY_SOURCE_STILL_UNAVAILABLE`。不切换 provider，不修改日期/字段/adjust/source semantics，不读取 Final OOS，不运行 C/Phase 2F，不提交 pre-outcome protocol，不进行 outcome analysis；`SCHEMA_SAMPLE_OBSERVED_NOT_USED` 继续保留，且没有 outcome 值参与 computation/filtering/feature selection/conclusion。
+- preserved state：`VOLUME_PATH_NEEDS_MORE_EVIDENCE`、B spec/score/threshold/hard gate/Top-N/universe/sector/ST、prospective pipeline、frozen registry 与 frozen prerequisite 均不变；forbidden `data/validation/continuous_speed_probe/` 未读、未改、未删、未 hash、未上传。
+- next user decision：恢复当前 primary source 的网络/代理可用性后从 checkpoint 继续；或由 Sol/user 明确选择 source/proxy/credential 方案。第二 provider、proxy semantic change、credential、Drive/upload 均不自动执行。

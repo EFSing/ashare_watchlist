@@ -10780,6 +10780,45 @@
       "920985.bj",
       "920992.bj"
     ],
+    "resume_probes": [
+      {
+        "classification": "CONNECTION_LAYER_PROXY_REMOTE_DISCONNECT",
+        "failed_symbols": [
+          {
+            "error_class": "ProxyError",
+            "status": "FAILED",
+            "symbol": "000001.sz"
+          },
+          {
+            "error_class": "ProxyError",
+            "status": "FAILED",
+            "symbol": "000002.sz"
+          },
+          {
+            "error_class": "ProxyError",
+            "status": "FAILED",
+            "symbol": "000006.sz"
+          }
+        ],
+        "finished_at_utc": "2026-09-05T07:36:57Z",
+        "http_provider_response_received": false,
+        "max_symbols": 3,
+        "mode": "bounded_connectivity_resume_probe",
+        "proxy_environment_names": [
+          "ALL_PROXY",
+          "HTTPS_PROXY",
+          "HTTP_PROXY",
+          "NO_PROXY"
+        ],
+        "started_at_utc": "2026-09-05T07:36:56Z",
+        "successful_symbols": [],
+        "symbols": [
+          "000001.sz",
+          "000002.sz",
+          "000006.sz"
+        ]
+      }
+    ],
     "status": "PARTIAL_FAILED"
   },
   "boundaries": {
@@ -10854,5 +10893,6 @@
     "zero_volume_policy": "unavailable when denominator <= 0"
   },
   "schema_version": "B_TURNOVER_X_RELATIVE_VOLUME_INCREMENTAL_DIAGNOSTIC_V1",
-  "status": "TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY"
+  "status": "TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY",
+  "stop_gate": "TURNOVER_PRIMARY_SOURCE_STILL_UNAVAILABLE"
 }

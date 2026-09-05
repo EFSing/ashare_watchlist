@@ -1245,3 +1245,26 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
   threshold/hard gates/Top-N/universe/sector/ST/prospective pipeline/frozen registry，
   不读 Final OOS，不运行 C/Phase 2F，不上传 Drive。后续只有重新获得 primary source
   可用性或获得明确 source decision 后，才能从 checkpoint 继续。
+
+## 2026-09-05 — Post-merge primary AkShare resume probe stopped
+
+- merge：PR #33 passed its live pre-merge verification and was squash-merged. merge SHA
+  `873169aeecb9eb12d32e58990677f2478f3081c0` equals the refreshed `origin/master`; GitHub
+  merge event reported 2 checks passed.
+- probe：from the merge-head resume branch, the same primary
+  `ak.stock_zh_a_hist` source and fixed parameters were used. A bounded one-attempt probe
+  of `000001.sz`, `000002.sz`, and `000006.sz` yielded `0` successes and `3` failures,
+  all connection-layer `ProxyError` wrapping `RemoteDisconnected`; no HTTP/provider
+  response was received. Non-empty proxy environment names were present:
+  `ALL_PROXY`, `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY`.
+- state：checkpoint remains `0` completed, `11` failed, `5,375` pending of `5,386`;
+  raw/canonical SHA remains `NOT_CREATED`; coverage remains `NOT_EVALUATED`.
+- decision：`TURNOVER_PRIMARY_SOURCE_STILL_UNAVAILABLE`。Do not switch provider or alter
+  source semantics. Wait for restored primary connectivity or an explicit user/source
+  decision. `SCHEMA_SAMPLE_OBSERVED_NOT_USED` remains recorded; no outcome value was used
+  in computation/filtering/feature selection/conclusion. No protocol or research decision
+  was created.
+- boundaries：`VOLUME_PATH_NEEDS_MORE_EVIDENCE`、B、prospective pipeline、frozen registry、
+  frozen prerequisite and `Final OOS=SEALED / UNREAD` remain unchanged；C/Phase 2F、freeze、
+  promotion、threshold search、model fitting and Drive/upload were not run. Forbidden
+  `data/validation/continuous_speed_probe/` was not read, modified, deleted, hashed or uploaded.

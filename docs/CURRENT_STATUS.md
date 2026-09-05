@@ -1006,3 +1006,28 @@ continuous-speed-probe directory were not used. B, prospective pipeline, frozen 
 unchanged. Resume evidence and gate-A report are recorded under
 `data/validation/b_turnover_x_relative_volume_incremental_v1/` and
 `docs/research/b_turnover_x_relative_volume_incremental_v1_report.md`.
+
+## 2026-09-05 — PR #33 merged; post-merge primary probe blocked
+
+PR #33 was live-verified and squash-merged after exact-head CI remained green and the
+base/head were unchanged. Merge SHA and current `origin/master` are both
+`873169aeecb9eb12d32e58990677f2478f3081c0`; GitHub recorded 2 merge checks passed.
+The resume branch is `codex/b-turnover-x-relative-volume-resume-20260905`, based on that
+merge-head, with the existing ignored checkpoint/cohort preserved.
+
+The bounded same-primary probe retried `000001.sz`, `000002.sz`, and `000006.sz` once
+each using AkShare `1.18.94` / `ak.stock_zh_a_hist` with unchanged daily, unadjusted,
+20230630--20260828 parameters. It produced `0` successes and `3` failures, all
+`ProxyError` wrapping `RemoteDisconnected`; no HTTP/provider response was received.
+Non-empty proxy environment names observed were `ALL_PROXY`, `HTTP_PROXY`, `HTTPS_PROXY`,
+and `NO_PROXY` (values not recorded). The full checkpoint remains `0/5,386` completed,
+`11` failed, `5,375` pending. The stop gate is
+`TURNOVER_PRIMARY_SOURCE_STILL_UNAVAILABLE`.
+
+No provider substitution, source-semantic change, protocol commit, outcome analysis,
+Final OOS access, C/Phase 2F, promotion, freeze, or upload occurred. The prior
+`SCHEMA_SAMPLE_OBSERVED_NOT_USED` status remains truthful: one schema-only event sample
+was observed earlier, but no outcome value entered computation, filtering, feature
+selection, or conclusion. `VOLUME_PATH_NEEDS_MORE_EVIDENCE`, B, prospective pipeline,
+frozen registry and frozen prerequisite remain unchanged; the forbidden
+`data/validation/continuous_speed_probe/` directory remains untouched.
