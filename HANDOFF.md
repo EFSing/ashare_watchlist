@@ -1433,3 +1433,16 @@ frozen prerequisite 保持 `NOT_READY / PARTIAL_UNVERIFIED`；
   `NEW_VOLATILITY_CONTRACTION_BREAKOUT_V1`；推荐没有使用 returns。
 - 本文档变更推进 PR #36 head，需重新等待 exact-head CI；终态为
   `PR_36_METHODOLOGY_AMENDMENT_READY_FOR_USER_MERGE_DECISION`，不 merge。
+
+## Post-merge reconciliation — PR #36 merged and master verified — 2026-09-06
+
+- PR #36 已按用户授权在 exact head
+  `6d5c99114a94fd6c22565a3257a4f6c634192620` squash-merged，merge SHA 为
+  `b21d476c16cf4828073843e578e2ee5a9ef8501b`。live `master`/`origin/master` 均 exact
+  指向该 merge SHA。
+- merge-head correctness run=`33984699289`，conclusion=`success`，workflow head SHA
+  exact 等于 `b21d476c16cf4828073843e578e2ee5a9ef8501b`。
+- 本次仅做治理状态 reconciliation：修正旧快照中的 `PR #36 OPEN/awaiting merge`；
+  未启动新策略 outcome research、未实现 evaluator、未读取 Final OOS 或受禁目录。
+- B、B observation protocol、methodology intake、四候选 shortlist/recommendation、
+  turnover/RV、Volume-Path、frozen state 均保持不变。下一步仍需用户选择新策略候选。

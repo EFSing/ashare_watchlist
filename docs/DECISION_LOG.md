@@ -1408,3 +1408,16 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
 - boundaries：未读取 C/new-candidate forward outcomes、任何 outcome table 或 Final
   OOS；未实现 evaluator、选参数、run replay、改 B 或创建数据。终态待 PR exact-head
   CI 后为 `PR_36_METHODOLOGY_AMENDMENT_READY_FOR_USER_MERGE_DECISION`，不自动 merge。
+
+## 2026-09-06 — PR #36 merge and bounded governance reconciliation
+
+- decision：`ADOPT_PR36_SQUASH_MERGE_AT_EXACT_HEAD`。用户授权的 PR head
+  `6d5c99114a94fd6c22565a3257a4f6c634192620` 已 squash-merged，merge SHA 为
+  `b21d476c16cf4828073843e578e2ee5a9ef8501b`。
+- verification：merge-head correctness run=`33984699289` 为 `success`，且 workflow
+  head SHA exact 匹配 merge SHA；live master 已更新并通过验证。
+- reconciliation：旧治理快照把 PR #36 写为 open/awaiting merge，现已 bounded docs-only
+  修正。这不是新的 research；没有读取 C/new-candidate outcomes、Final OOS 或受禁目录，
+  没有修改 B、observation protocol、shortlist 或推荐。
+- next gate：保持 `NEW_STRATEGY_CANDIDATE_SELECTION_REQUIRED`；只有用户选择后才
+  创建下一策略的正式 pre-outcome protocol，不自动进行 outcome research。

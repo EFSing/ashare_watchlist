@@ -1032,6 +1032,20 @@ selection, or conclusion. `VOLUME_PATH_NEEDS_MORE_EVIDENCE`, B, prospective pipe
 frozen registry and frozen prerequisite remain unchanged; the forbidden
 `data/validation/continuous_speed_probe/` directory remains untouched.
 
+## 2026-09-06 — PR #36 merged; governance reconciliation complete
+
+PR #36 was squash-merged at authorized exact head
+`6d5c99114a94fd6c22565a3257a4f6c634192620`, producing merge SHA
+`b21d476c16cf4828073843e578e2ee5a9ef8501b`. Live `master` and `origin/master` both point
+to that SHA. Merge-head correctness run `33984699289` completed `success` with exact
+workflow head SHA.
+
+The prior `PR #36 OPEN/awaiting merge` text was a stale governance snapshot and has been
+superseded by this bounded docs-only reconciliation. No strategy evaluator, outcome table,
+Final OOS or new provider was read; B, the prospective observation protocol, the four-family
+shortlist, recommendation and methodology principles remain unchanged. Formal Delivery
+Ladder remains `development candidate`; next stop is user candidate selection.
+
 ## 2026-09-06 — PR #36 epistemic methodology amendment
 
 Formal Delivery Ladder, B state and the B prospective protocol remain unchanged. The new
