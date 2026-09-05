@@ -9,7 +9,11 @@ Labels: `DEVELOPMENT`, `RECONSTRUCTED_RETROSPECTIVE`, `DATE_ANCHORED`,
 `PREDICTIVE_EVIDENCE_UNTESTED_AT_PROTOCOL`, `MECHANISM_EVIDENCE_HYPOTHESIS`,
 `FINAL_OOS_UNREAD`.
 
-`RS_LEADERSHIP_PRE_OUTCOME_PROTOCOL_COMMIT=TO_BE_RECORDED_AFTER_COMMIT`
+`RS_LEADERSHIP_PRE_OUTCOME_PROTOCOL_COMMIT=73d62f40fad92f1c85662136e50dc45fb78035bb`
+
+The commit above is the semantic pre-outcome protocol commit. This line is a
+provenance-only recording made immediately afterward; it does not change the
+fixed research semantics.
 
 This document fixes the research before any forward outcome for this candidate is
 read. It is an independent research evaluator. It does not modify
