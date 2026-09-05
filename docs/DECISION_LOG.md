@@ -1324,3 +1324,31 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
 - boundaries：`VOLUME_PATH_NEEDS_MORE_EVIDENCE` 保持不变；B/spec/score/threshold/
   hard gate/Top-N/prospective pipeline/universe/frozen dataset/frozen registry 未改变；
   Final OOS=`SEALED / UNREAD`，C/Phase 2F/freeze/promotion/auto-freeze 未运行。
+
+## 2026-09-05 — PR #34 merged; post-merge governance reconciliation
+
+- live merge：用户明确授权 `AUTHORIZE_SQUASH_MERGE_PR_34` 后，PR #34 在
+  exact head=`65d7a8329f012394b9fce6a9aad42f5834dc84e6`、base
+  `master@873169aeecb9eb12d32e58990677f2478f3081c0`、exact-head checks 全部
+  success 且无 unresolved review threads 的条件下 squash-merged。merge SHA 为
+  `2d601360b5160739ec91400175df345f84cd2b95`；live `master` 与
+  `origin/master` 均 exact 指向该 SHA。
+- merge-head verification：correctness run=`33971522763`，workflow head SHA
+  exact 等于 merge SHA，conclusion=`success`。
+- research result：PR #34 的 turnover × relative-volume diagnostic 已完成，
+  final decision=`TURNOVER_X_RELATIVE_VOLUME_NEEDS_MORE_EVIDENCE`；固定
+  pre-registered joint top-1% check 为 turnover N=`171`、RV N=`171`、joint
+  intersection N=`11`。该结果不改变 B 或现有 development-candidate 路径。
+- protocol/provenance：pre-outcome protocol SHA 未变，仍为
+  `1148ebd23a567ad81e09b0c2323f9be285920858`；labels 保持
+  `DEVELOPMENT / RECONSTRUCTED_RETROSPECTIVE / DATE_ANCHORED /
+  NO_VINTAGE_PROOF / THIRD_PARTY_GATEWAY / DIAGNOSTIC_ONLY`，source 为
+  `THIRD_PARTY_TUSHARE_COMPATIBLE_GATEWAY`。
+- governance conflict：merge 后重新读取治理文档发现其最新段落仍表达
+  PR #34 open/awaiting merge，因此记录 `PROJECT_GOVERNANCE_STATE_CONFLICT`。
+  本次一次性 bounded docs-only reconciliation 仅更新治理文档，不改
+  research result、protocol、diagnostic summary、scripts、tests、strategy、
+  data、frozen registry 或 production pipeline。
+- boundaries：B spec/score/threshold/hard gate/Top-N/prospective pipeline/
+  universe/frozen dataset/frozen registry unchanged；Final OOS=`SEALED / UNREAD`；
+  no C、Phase 2F、promotion、freeze 或 auto-freeze。
