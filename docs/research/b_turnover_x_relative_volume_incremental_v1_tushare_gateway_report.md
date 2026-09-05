@@ -23,8 +23,26 @@ A fixed turnover relationship is visible in part of the pre-registered diagnosti
 - turnover conditional on RV coherent: `False`
 - year/board coherent: `False`
 - episode-deduplicated coherent: `True`
-- top-1% coherent: `True`
+- turnover top-1% coherent: `True`
+- relative-volume top-1% coherent with turnover direction: `True`
+- joint top-1% coherent: `True`
 - structural coherent: `True`
+
+## Pre-registered top-1% sensitivity
+
+- eligible definition: `qualified in-scope cohort; each feature's top 1% is selected independently from its non-null rows using the existing stable-ranked definition; joint eligible rows require both feature values and the intersection is the exact membership intersection`
+- turnover top-1% N: `171` (eligible rows: `17008`)
+- relative-volume top-1% N: `171` (eligible rows: `17008`)
+- joint intersection N: `11` (joint eligible rows: `17008`)
+- comparison baseline: `qualified_pair_complete_non_joint` — the same qualified pair-complete cohort excluding the fixed joint intersection; outcome availability does not define membership
+
+| Group | Horizon | N | Mean return | Median return | Positive rate | Mean MFE | Mean MAE |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| joint intersection | 5D | 11 | -0.002859459964440864 | 0.5105046141763214 | 0.5454545454545454 | 7.01647906309851 | -4.294153699503632 |
+| joint intersection | 10D | 11 | -3.193592768836777 | -2.513253485175737 | 0.2727272727272727 | 8.954717023565955 | -7.134764935191731 |
+| baseline (non-joint) | 5D | 16890 | 0.5887951204290701 | -0.0811166438592914 | 0.4886323268206039 | 5.581076798717208 | -3.9972144198024644 |
+| baseline (non-joint) | 10D | 16847 | 1.3808100595866493 | 0.3620273531777851 | 0.5181337923665934 | 8.667530074089305 | -5.652147069296993 |
+- joint minus baseline mean-return difference: 5D `-0.5916545803935109`, 10D `-4.574402828423427` percentage points
 
 ## 5×5 matrix
 
@@ -60,4 +78,4 @@ A fixed turnover relationship is visible in part of the pre-registered diagnosti
 
 B/spec/score/threshold/hard gate/Top-N/prospective pipeline/universe/frozen dataset were unchanged. Final OOS was not read; C and Phase 2F were not run; no threshold search, parameter sweep, model fitting, promotion or freeze occurred. `turnover_rate_f` was not used.
 
-Event detail: `data/validation/b_turnover_x_relative_volume_incremental_v1/tushare_gateway/diagnostic/events.jsonl.gz` (local-only deterministic artifact). Summary SHA-256: `17970ccce7ba21bd1a721a1fb9408dba89270516cf42cdc69dd42d3e05d0c6ee`.
+Event detail: `data/validation/b_turnover_x_relative_volume_incremental_v1/tushare_gateway/diagnostic/events.jsonl.gz` (local-only deterministic artifact). Summary SHA-256: `9d5aa71d8c3043b48dd5412e0198b434d3b159ba4408078173acb085f0b2eeac`.

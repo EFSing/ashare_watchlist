@@ -1208,10 +1208,36 @@ def _episode_deduplicated(records: Sequence[Mapping[str, Any]]) -> list[Mapping[
     return [item[2] for item in sorted(selected.values(), key=lambda item: item[:2])]
 
 
+def _top_one_percent_order(records: Sequence[Mapping[str, Any]], feature: str) -> tuple[list[int], int]:
+    available_indices = [index for index, record in enumerate(records) if record.get(feature) is not None]
+    # Keep the existing stable sort exactly: Python's stable sort preserves the
+    # input order for equal (value, symbol, signal_date) keys.
+    available_indices.sort(
+        key=lambda index: (
+            float(records[index][feature]),
+            str(records[index]["symbol"]),
+            str(records[index]["signal_date"]),
+        )
+    )
+    top_n = max(1, int(math.ceil(len(available_indices) * 0.01))) if available_indices else 0
+    return available_indices, top_n
+
+
+def _top_one_percent_membership(records: Sequence[Mapping[str, Any]], feature: str) -> set[int]:
+    ordered_indices, top_n = _top_one_percent_order(records, feature)
+    return set(ordered_indices[-top_n:]) if top_n else set()
+
+
+def _joint_top_one_percent_membership(records: Sequence[Mapping[str, Any]]) -> set[int]:
+    return (
+        _top_one_percent_membership(records, "turnover_rate_pct")
+        & _top_one_percent_membership(records, "relative_volume")
+    )
+
+
 def _top_one_percent(records: Sequence[Mapping[str, Any]], feature: str) -> dict[str, Any]:
-    available = [record for record in records if record.get(feature) is not None]
-    ordered = sorted(available, key=lambda record: (float(record[feature]), str(record["symbol"]), str(record["signal_date"])))
-    top_n = max(1, int(math.ceil(len(ordered) * 0.01))) if ordered else 0
+    ordered_indices, top_n = _top_one_percent_order(records, feature)
+    ordered = [records[index] for index in ordered_indices]
     top = ordered[-top_n:] if top_n else []
     non_top = ordered[:-top_n] if top_n else []
     return {
@@ -1226,6 +1252,60 @@ def _top_one_percent(records: Sequence[Mapping[str, Any]], feature: str) -> dict
                 - _available_outcome_metrics(non_top, horizon)["mean_return_pct"]
                 if _available_outcome_metrics(top, horizon)["mean_return_pct"] is not None
                 and _available_outcome_metrics(non_top, horizon)["mean_return_pct"] is not None else None
+            )
+            for horizon in ("5D", "10D")
+        },
+    }
+
+
+def _joint_top_one_percent(records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    """Summarize the pre-registered intersection of the two fixed top-1% sets."""
+
+    turnover_membership = _top_one_percent_membership(records, "turnover_rate_pct")
+    relative_volume_membership = _top_one_percent_membership(records, "relative_volume")
+    intersection_membership = _joint_top_one_percent_membership(records)
+    pair_complete_indices = {
+        index
+        for index, record in enumerate(records)
+        if record.get("turnover_rate_pct") is not None and record.get("relative_volume") is not None
+    }
+    joint = [records[index] for index in range(len(records)) if index in intersection_membership]
+    non_joint = [
+        records[index]
+        for index in range(len(records))
+        if index in pair_complete_indices and index not in intersection_membership
+    ]
+    turnover_top_rows = len(turnover_membership)
+    relative_volume_top_rows = len(relative_volume_membership)
+    joint_metrics = {horizon: _available_outcome_metrics(joint, horizon) for horizon in ("5D", "10D")}
+    baseline_metrics = {horizon: _available_outcome_metrics(non_joint, horizon) for horizon in ("5D", "10D")}
+    return {
+        "eligible_definition": (
+            "qualified in-scope cohort; each feature's top 1% is selected independently "
+            "from its non-null rows using the existing stable-ranked definition; joint "
+            "eligible rows require both feature values and the intersection is the exact "
+            "membership intersection"
+        ),
+        "joint_eligible_rows": len(pair_complete_indices),
+        "turnover_top_rows": turnover_top_rows,
+        "relative_volume_top_rows": relative_volume_top_rows,
+        "intersection_rows": len(joint),
+        "joint": joint_metrics,
+        "comparison_baseline": {
+            "name": "qualified_pair_complete_non_joint",
+            "definition": (
+                "the same qualified pair-complete cohort excluding the fixed joint "
+                "intersection; outcome availability does not define membership"
+            ),
+            "rows": len(non_joint),
+            "5D": baseline_metrics["5D"],
+            "10D": baseline_metrics["10D"],
+        },
+        "joint_minus_baseline_mean_return_pct": {
+            horizon: (
+                joint_metrics[horizon]["mean_return_pct"] - baseline_metrics[horizon]["mean_return_pct"]
+                if joint_metrics[horizon]["mean_return_pct"] is not None
+                and baseline_metrics[horizon]["mean_return_pct"] is not None else None
             )
             for horizon in ("5D", "10D")
         },
@@ -1342,6 +1422,7 @@ def run_diagnostic(
         feature: _top_one_percent(qualified, feature)
         for feature in ("turnover_rate_pct", "relative_volume")
     }
+    joint_top_one_percent = _joint_top_one_percent(qualified)
     turnover_5d = feature_summaries["turnover_rate_pct"]["5D"]["high_minus_low_mean_return_pct"]
     turnover_5d_median = feature_summaries["turnover_rate_pct"]["5D"]["high_minus_low_median_return_pct"]
     direction = 1 if turnover_5d and turnover_5d > 0 else -1 if turnover_5d and turnover_5d < 0 else 0
@@ -1358,11 +1439,22 @@ def run_diagnostic(
     strata_coherent = bool(direction and strata_spreads and all(value is not None and (1 if value > 0 else -1 if value < 0 else 0) == direction for value in strata_spreads))
     episode_spread = episode_summaries["turnover_rate_pct"]["5D"]["high_minus_low_mean_return_pct"]
     top_spread = top_one_percent["turnover_rate_pct"]["top_minus_non_top_mean_return_pct"]["5D"]
+    relative_volume_top_spread = top_one_percent["relative_volume"]["top_minus_non_top_mean_return_pct"]["5D"]
+    joint_spread = joint_top_one_percent["joint_minus_baseline_mean_return_pct"]["5D"]
+    relative_volume_top_coherent = bool(
+        direction and relative_volume_top_spread is not None
+        and (1 if relative_volume_top_spread > 0 else -1 if relative_volume_top_spread < 0 else 0) == direction
+    )
+    joint_top_coherent = bool(
+        direction and joint_spread is not None
+        and (1 if joint_spread > 0 else -1 if joint_spread < 0 else 0) == direction
+    )
     sign_checks = [
         conditional_coherent,
         strata_coherent,
         episode_spread is not None and (1 if episode_spread > 0 else -1 if episode_spread < 0 else 0) == direction,
         top_spread is not None and (1 if top_spread > 0 else -1 if top_spread < 0 else 0) == direction,
+        joint_top_coherent,
         structural_summaries["turnover_rate_pct"]["5D"]["spearman"]["rho"] is not None
         and (1 if structural_summaries["turnover_rate_pct"]["5D"]["spearman"]["rho"] > 0 else -1 if structural_summaries["turnover_rate_pct"]["5D"]["spearman"]["rho"] < 0 else 0) == direction,
     ]
@@ -1409,7 +1501,7 @@ def run_diagnostic(
         "structural_quintiles": structural_summaries,
         "year_board_strata": strata,
         "episode_deduplicated": episode_summaries,
-        "top_one_percent": top_one_percent,
+        "top_one_percent": top_one_percent | {"joint_intersection": joint_top_one_percent},
         "decision_audit": {
             "turnover_5D_high_minus_low_mean_return_pct": turnover_5d,
             "turnover_5D_high_minus_low_median_return_pct": turnover_5d_median,
@@ -1418,7 +1510,29 @@ def run_diagnostic(
             "year_board_coherent": strata_coherent,
             "episode_deduplicated_coherent": sign_checks[2],
             "top_one_percent_coherent": sign_checks[3],
-            "structural_coherent": sign_checks[4],
+            "turnover_top_one_percent_coherent": sign_checks[3],
+            "relative_volume_top_one_percent_coherent": relative_volume_top_coherent,
+            "joint_top_one_percent_coherent": sign_checks[4],
+            "top_one_percent_sensitivity_coherent": bool(sign_checks[3] and sign_checks[4]),
+            "turnover_top_5D_top_minus_non_top_mean_return_pct": top_spread,
+            "relative_volume_top_5D_top_minus_non_top_mean_return_pct": relative_volume_top_spread,
+            "joint_5D_joint_minus_baseline_mean_return_pct": joint_spread,
+            "pre_registered_top_one_percent_checks": {
+                "turnover_rate_pct": {
+                    "top_rows": top_one_percent["turnover_rate_pct"]["top_rows"],
+                    "coherent_with_turnover_direction": sign_checks[3],
+                },
+                "relative_volume": {
+                    "top_rows": top_one_percent["relative_volume"]["top_rows"],
+                    "coherent_with_turnover_direction": relative_volume_top_coherent,
+                },
+                "joint_intersection": {
+                    "intersection_rows": joint_top_one_percent["intersection_rows"],
+                    "coherent_with_turnover_direction": sign_checks[4],
+                    "comparison_baseline": joint_top_one_percent["comparison_baseline"]["name"],
+                },
+            },
+            "structural_coherent": sign_checks[5],
             "all_fixed_checks_pass": bool(all(sign_checks) and visible),
         },
         "decision": decision,
@@ -1478,8 +1592,39 @@ def run_diagnostic(
         f"- turnover conditional on RV coherent: `{conditional_coherent}`",
         f"- year/board coherent: `{strata_coherent}`",
         f"- episode-deduplicated coherent: `{sign_checks[2]}`",
-        f"- top-1% coherent: `{sign_checks[3]}`",
-        f"- structural coherent: `{sign_checks[4]}`",
+        f"- turnover top-1% coherent: `{sign_checks[3]}`",
+        f"- relative-volume top-1% coherent with turnover direction: `{relative_volume_top_coherent}`",
+        f"- joint top-1% coherent: `{sign_checks[4]}`",
+        f"- structural coherent: `{sign_checks[5]}`",
+        "",
+        "## Pre-registered top-1% sensitivity",
+        "",
+        f"- eligible definition: `{joint_top_one_percent['eligible_definition']}`",
+        f"- turnover top-1% N: `{top_one_percent['turnover_rate_pct']['top_rows']}` (eligible rows: `{top_one_percent['turnover_rate_pct']['eligible_rows']}`)",
+        f"- relative-volume top-1% N: `{top_one_percent['relative_volume']['top_rows']}` (eligible rows: `{top_one_percent['relative_volume']['eligible_rows']}`)",
+        f"- joint intersection N: `{joint_top_one_percent['intersection_rows']}` (joint eligible rows: `{joint_top_one_percent['joint_eligible_rows']}`)",
+        f"- comparison baseline: `{joint_top_one_percent['comparison_baseline']['name']}` — {joint_top_one_percent['comparison_baseline']['definition']}",
+        "",
+        "| Group | Horizon | N | Mean return | Median return | Positive rate | Mean MFE | Mean MAE |",
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+        *[
+            "| {label} | {horizon} | {n} | {mean} | {median} | {positive} | {mfe} | {mae} |".format(
+                label=label,
+                horizon=horizon,
+                n=metrics_by_horizon[horizon]["n"],
+                mean=metrics_by_horizon[horizon]["mean_return_pct"],
+                median=metrics_by_horizon[horizon]["median_return_pct"],
+                positive=metrics_by_horizon[horizon]["positive_rate"],
+                mfe=metrics_by_horizon[horizon]["mean_mfe_pct"],
+                mae=metrics_by_horizon[horizon]["mean_mae_pct"],
+            )
+            for label, metrics_by_horizon in (
+                ("joint intersection", joint_top_one_percent["joint"]),
+                ("baseline (non-joint)", joint_top_one_percent["comparison_baseline"]),
+            )
+            for horizon in ("5D", "10D")
+        ],
+        f"- joint minus baseline mean-return difference: 5D `{joint_top_one_percent['joint_minus_baseline_mean_return_pct']['5D']}`, 10D `{joint_top_one_percent['joint_minus_baseline_mean_return_pct']['10D']}` percentage points",
         "",
         "## 5×5 matrix",
         "",
