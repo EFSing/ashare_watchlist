@@ -248,6 +248,16 @@ def _iter_jsonl_gzip(path: Path) -> Iterator[dict[str, Any]]:
                 yield json.loads(line)
 
 
+def _jsonl_gzip_content_identity(path: Path) -> dict[str, Any]:
+    digest = hashlib.sha256()
+    rows = 0
+    with gzip.open(path, "rb") as handle:
+        for line in handle:
+            digest.update(line)
+            rows += 1
+    return {"rows": rows, "bytes": path.stat().st_size, "file_sha256": file_sha256(path), "content_sha256": digest.hexdigest()}
+
+
 @dataclass(frozen=True)
 class SignalPassResult:
     per_date: dict[str, dict[str, Any]]
@@ -392,7 +402,7 @@ def _signal_pass(
                 rank20, q20 = top_quintile_ranked(r20)
                 rank60, q60 = top_quintile_ranked(r60)
                 classes = classify_membership(q20, q60)
-                if q20 & q60 != set(classes):
+                if set(classes) != q60:
                     raise RuntimeError("candidate/control membership accounting mismatch")
                 rows_for_date: list[dict[str, Any]] = []
                 execution_date = _next_execution_date(signal_date, session_dates)
@@ -445,10 +455,12 @@ def _signal_pass(
     candidate_pairs = {(date, symbol) for date, values in per_date.items() for symbol in values["candidate_symbols"]}
     control_pairs = {(date, symbol) for date, values in per_date.items() for symbol in values["control_symbols"]}
     overlap = len(candidate_pairs & b_memberships)
+    candidate_dates = {date for date, _symbol in candidate_pairs}
+    b_dates = {date for date, _symbol in b_memberships if date in per_date}
     b_in_scope = {pair for pair in b_memberships if pair[0] in per_date}
     b_overlap = {
         "source": b_source,
-        "same_date_overlap": overlap,
+        "same_date_overlap": len(candidate_dates & b_dates),
         "same_symbol_date_overlap": overlap,
         "candidate_share_overlapping_b": overlap / len(candidate_pairs) if candidate_pairs else None,
         "b_share_overlapping_candidate": overlap / len(b_in_scope) if b_in_scope else None,
@@ -581,6 +593,16 @@ def _process_outcome_date(
         daily["spread_5D"] = means["CANDIDATE"][SECONDARY_HORIZON] - means["PRIMARY_CONTROL"][SECONDARY_HORIZON]
     if means["CANDIDATE"][PRIMARY_HORIZON] is not None and means["PRIMARY_CONTROL"][PRIMARY_HORIZON] is not None:
         daily["spread_10D"] = means["CANDIDATE"][PRIMARY_HORIZON] - means["PRIMARY_CONTROL"][PRIMARY_HORIZON]
+    for horizon, suffix in ((SECONDARY_HORIZON, "5D"), (PRIMARY_HORIZON, "10D")):
+        all_values = class_returns["CANDIDATE"][horizon] + class_returns["PRIMARY_CONTROL"][horizon]
+        daily[f"baseline_mean_{suffix}"] = float(np.mean(all_values)) if all_values else None
+        candidate_mean = means["CANDIDATE"][horizon]
+        baseline_mean = daily[f"baseline_mean_{suffix}"]
+        daily[f"candidate_minus_baseline_{suffix}"] = (
+            candidate_mean - baseline_mean
+            if candidate_mean is not None and baseline_mean is not None
+            else None
+        )
     daily_rows.append(daily)
     rho = spearman(q60_ranks, q60_returns)
     if rho is not None:
@@ -705,18 +727,22 @@ def _render_report(summary: Mapping[str, Any]) -> str:
         f"- 95% 20-session moving-block-bootstrap CI: [{ci[0]}, {ci[1]}].",
         f"- Positive-spread date rate: {primary['positive_spread_date_rate_10D']}.",
         f"- Dates with both groups available: {primary['both_groups_available_dates']} / {primary['spread_date_count']}.",
+        f"- Full Q60 baseline 10D mean return: {summary['simple_60D_momentum_baseline']['10D']['mean']}%; candidate-minus-baseline event mean: {summary['secondary_full_baseline']['candidate_minus_full_q60_event_mean_10D']} percentage points.",
         "",
         "## Secondary and robustness",
         "",
         f"- Equal-weight mean daily Spearman(R20 rank, future 10D return) within Q60: {summary['continuous_rank_check']['mean_daily_rho']}.",
         f"- 5D analogue mean date spread: {summary['secondary_5D']['mean_spread_5D']} percentage points.",
+        f"- Candidate-minus-full-Q60 mean-date difference: 10D={summary['secondary_full_baseline']['candidate_minus_full_q60_mean_date_difference_10D']}; 5D={summary['secondary_full_baseline']['candidate_minus_full_q60_mean_date_difference_5D']} percentage points.",
         f"- Calendar-year diagnostics: {json.dumps(summary['year_diagnostics'], ensure_ascii=False, sort_keys=True)}",
+        f"- Signal board composition (candidate/control rows): {json.dumps(summary['signal_board_composition'], ensure_ascii=False, sort_keys=True)}",
         f"- Board diagnostics: {json.dumps(summary['board_diagnostics'], ensure_ascii=False, sort_keys=True)}",
         "",
         "## Input and execution boundaries",
         "",
         "- Signal input audit: PASS; existing date-anchored replay universe and validated T-anchor signal prices.",
         "- Reference entry: T+1 XSHG open; not an actual fill.",
+        f"- Outcome maturity: {json.dumps(summary['outcome_maturity'], ensure_ascii=False, sort_keys=True)}",
         f"- Execution coverage: {json.dumps(summary['execution_coverage'], ensure_ascii=False, sort_keys=True)}",
         "- Historical PIT size and sector explanations: unresolved/not available for this V1 identification.",
         f"- B signal overlap (membership only): {json.dumps(summary['b_signal_overlap'], ensure_ascii=False, sort_keys=True)}",
@@ -824,6 +850,7 @@ def run(
                 date_index=session_index[current_date] if current_date is not None else 0,
             )
     _finalize_runs(run_state, run_lengths)
+    outcome_identity = _jsonl_gzip_content_identity(outcome_path)
     available_spreads_10d = [float(row["spread_10D"]) for row in daily_rows if row["spread_10D"] is not None]
     available_spreads_5d = [float(row["spread_5D"]) for row in daily_rows if row["spread_5D"] is not None]
     ci_10d = moving_block_bootstrap_ci(available_spreads_10d) if len(available_spreads_10d) >= BOOTSTRAP_BLOCK_LENGTH else (None, None)
@@ -845,6 +872,33 @@ def run(
         "moving_block_bootstrap_ci_95": list(ci_5d) if ci_5d[0] is not None else [None, None],
         "positive_spread_date_rate_5D": float(np.mean(np.asarray(available_spreads_5d) > 0)) if available_spreads_5d else None,
     }
+    execution_coverage = _state_summary(states)
+    baseline_states = {horizon: _empty_horizon_state() for horizon in (SECONDARY_HORIZON, PRIMARY_HORIZON)}
+    for horizon in (SECONDARY_HORIZON, PRIMARY_HORIZON):
+        for class_name in VALID_CLASSES:
+            baseline_states[horizon]["status_counts"].update(states[class_name][horizon]["status_counts"])
+            baseline_states[horizon]["returns"].extend(states[class_name][horizon]["returns"])
+            baseline_states[horizon]["mfe"].extend(states[class_name][horizon]["mfe"])
+            baseline_states[horizon]["mae"].extend(states[class_name][horizon]["mae"])
+    simple_baseline = {horizon: _event_summary(state) for horizon, state in baseline_states.items()}
+    baseline_daily_10d = [float(row["candidate_minus_baseline_10D"]) for row in daily_rows if row["candidate_minus_baseline_10D"] is not None]
+    baseline_daily_5d = [float(row["candidate_minus_baseline_5D"]) for row in daily_rows if row["candidate_minus_baseline_5D"] is not None]
+    secondary_full_baseline = {
+        "candidate_minus_full_q60_event_mean_10D": (
+            execution_coverage["CANDIDATE"][PRIMARY_HORIZON]["mean"] - simple_baseline[PRIMARY_HORIZON]["mean"]
+            if execution_coverage["CANDIDATE"][PRIMARY_HORIZON]["mean"] is not None and simple_baseline[PRIMARY_HORIZON]["mean"] is not None
+            else None
+        ),
+        "candidate_minus_full_q60_event_mean_5D": (
+            execution_coverage["CANDIDATE"][SECONDARY_HORIZON]["mean"] - simple_baseline[SECONDARY_HORIZON]["mean"]
+            if execution_coverage["CANDIDATE"][SECONDARY_HORIZON]["mean"] is not None and simple_baseline[SECONDARY_HORIZON]["mean"] is not None
+            else None
+        ),
+        "candidate_minus_full_q60_mean_date_difference_10D": float(np.mean(baseline_daily_10d)) if baseline_daily_10d else None,
+        "candidate_minus_full_q60_mean_date_difference_5D": float(np.mean(baseline_daily_5d)) if baseline_daily_5d else None,
+        "dates_with_candidate_and_full_q60_10D": len(baseline_daily_10d),
+        "dates_with_candidate_and_full_q60_5D": len(baseline_daily_5d),
+    }
     signal_only = {
         "sessions": len(per_date),
         "first_session": min(per_date),
@@ -861,9 +915,23 @@ def run(
         "insufficient_history_symbol_dates": sum(item["insufficient_history_n"] for item in per_date.values()),
         "coverage_gate": "PASS",
     }
-    execution_coverage = _state_summary(states)
     years = _year_summary(daily_rows, PRIMARY_HORIZON)
     decision = _decision(primary, {"mean_daily_rho": mean_rho}, years)
+    signal_board_composition = {
+        board: {
+            class_name: len(board_states[board][class_name][PRIMARY_HORIZON]["all"])
+            for class_name in VALID_CLASSES
+        }
+        for board in BOARDS
+    }
+    research_last_index = session_index[max(per_date)]
+    outcome_maturity = {}
+    for horizon, label in ((5, "5D"), (10, "10D")):
+        mature_index = min(research_last_index, len(session_dates) - 1 - horizon)
+        outcome_maturity[label] = {
+            "mature_through_signal_date": session_dates[mature_index],
+            "censored_signal_dates_after_maturity": max(0, research_last_index - mature_index),
+        }
     top_symbols = {}
     for class_name, counts in symbol_counts.items():
         total = sum(counts.values())
@@ -889,9 +957,7 @@ def run(
             "signal_membership": signal_result.signal_artifact,
             "outcome_detail": {
                 "logical_path": "local-only/new_cross_sectional_relative_strength_leadership_v1_outcomes.jsonl.gz",
-                "rows": sum(sum(item["status_counts"].values()) for class_states in states.values() for item in class_states.values()) // 2,
-                "bytes": outcome_path.stat().st_size,
-                "file_sha256": file_sha256(outcome_path),
+                **outcome_identity,
             },
         },
         "fixed_signal": {
@@ -912,8 +978,12 @@ def run(
             "dates_with_rho": len(continuous_rhos),
         },
         "execution_coverage": execution_coverage,
+        "outcome_maturity": outcome_maturity,
+        "simple_60D_momentum_baseline": simple_baseline,
+        "secondary_full_baseline": secondary_full_baseline,
         "year_diagnostics": years,
         "board_diagnostics": _board_summary(board_states),
+        "signal_board_composition": signal_board_composition,
         "volatility_distribution": {class_name: _distribution(values) for class_name, values in vol_values.items()},
         "median_traded_amount_distribution": {class_name: _distribution(values) for class_name, values in amount_values.items()},
         "membership_persistence": {class_name: _run_summary(values) for class_name, values in run_lengths.items()},

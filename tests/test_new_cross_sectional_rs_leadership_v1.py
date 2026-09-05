@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import inspect
 import math
+from pathlib import Path
 
 import pytest
 
@@ -12,6 +14,8 @@ from new_cross_sectional_rs_leadership_v1 import (
     SHORT_LOOKBACK,
     classify_membership,
     moving_block_bootstrap_ci,
+    _signal_pass,
+    run,
     spearman,
     top_quintile_ranked,
     trailing_return,
@@ -94,3 +98,19 @@ def test_date_equal_weight_and_block_bootstrap_are_deterministic() -> None:
 def test_spearman_returns_none_for_insufficient_or_constant_input() -> None:
     assert spearman([1.0], [1.0]) is None
     assert spearman([1.0, 1.0], [1.0, 2.0]) is None
+
+
+def test_signal_generation_has_no_outcome_field_dependency() -> None:
+    assert "outcome" not in inspect.getsource(_signal_pass).lower()
+
+
+def test_final_oos_path_is_rejected_before_any_read() -> None:
+    with pytest.raises(RuntimeError, match="Final OOS path is forbidden"):
+        run(
+            raw_dir=Path("final_oos/raw"),
+            core_manifest_path=Path("final_oos/manifest.json"),
+            core_output_path=Path("final_oos/core.jsonl.gz"),
+            b_membership_path=Path("b-membership.jsonl.gz"),
+            output_dir=Path("tmp-output"),
+            detail_dir=Path("tmp-detail"),
+        )

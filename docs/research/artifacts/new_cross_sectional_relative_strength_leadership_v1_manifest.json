@@ -1,0 +1,24 @@
+{
+  "final_oos_read": false,
+  "forbidden_directory_touched": false,
+  "outcome_detail_artifact": {
+    "bytes": 104082918,
+    "content_sha256": "b15eacf9f468129864343ca51521276fad5e1812b03380a6376f8b671e6db2f6",
+    "file_sha256": "985b073a9c125f2be433f4c4c8ba751f57b2269f98766a94725df8aeea5b6c32",
+    "logical_path": "local-only/new_cross_sectional_relative_strength_leadership_v1_outcomes.jsonl.gz",
+    "rows": 808532
+  },
+  "protocol_commit_sha": "73d62f40fad92f1c85662136e50dc45fb78035bb",
+  "report_path": "docs/research/artifacts/new_cross_sectional_relative_strength_leadership_v1_report.md",
+  "schema_version": "RS_LEADERSHIP_RESEARCH_MANIFEST_V1",
+  "signal_artifact": {
+    "bytes": 42062717,
+    "content_sha256": "2fb4d87d05ea2998d06eddf5e6df1811cf640841db38b0fbab1ceae028bc9344",
+    "file_sha256": "ab14ee4435a0666ceac0f845550dc5298875c2b50fa95146f8bf5847b3b6c6bc",
+    "logical_path": "local-only/new_cross_sectional_relative_strength_leadership_v1_signal_membership.jsonl.gz",
+    "rows": 808532
+  },
+  "strategy": "NEW_CROSS_SECTIONAL_RELATIVE_STRENGTH_LEADERSHIP_V1",
+  "summary_path": "docs/research/artifacts/new_cross_sectional_relative_strength_leadership_v1_summary.json",
+  "summary_sha256": "5be82f8907c2a8ef02acf6600167ae3baf332c8861a636a13216e65d910ee125"
+}
