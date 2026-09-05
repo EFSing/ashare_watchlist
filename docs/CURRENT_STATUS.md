@@ -1059,3 +1059,44 @@ with the new gate. `SCHEMA_SAMPLE_OBSERVED_NOT_USED` remains truthful and
 frozen prerequisite remain unchanged; Final OOS remains `SEALED / UNREAD`, and
 the forbidden `data/validation/continuous_speed_probe/` directory was not read,
 modified, deleted, hashed or uploaded.
+
+## 2026-09-05 — Tushare-compatible gateway diagnostic complete
+
+The independent turnover × relative-volume research task was resumed only after
+explicit user authorization for a bounded `THIRD_PARTY_TUSHARE_COMPATIBLE_GATEWAY`.
+The formal Delivery Ladder remains `development candidate`; this diagnostic does
+not promote or block the existing usable path.
+
+The fixed source contract is `https://tuaremax.top`, `tushare==1.4.24`, endpoint
+`daily_basic`, fields `ts_code,trade_date,turnover_rate,float_share`. It is not
+official Tushare, has `NO_VINTAGE_PROOF`, and is not production validated. The
+environment token was never persisted, printed, hashed or uploaded. The prior
+AkShare evidence remains preserved and was not overwritten.
+
+The five-date pilot passed: coverage was `24,941/24,941`, and the fixed 500-row
+turnover semantics sample was `500/500` within tolerance with median provider /
+implied ratio `0.9999992421`. Full acquisition then completed `769/769` frozen
+sessions with zero failed or pending dates. The gateway canonical has `3,938,059`
+rows sorted by `symbol,date`; raw and canonical hashes are recorded in the
+gateway manifests and checkpoint. Full raw responses remain local resumable
+evidence because of their size.
+
+The input audit preserved exact reconciliation of `17,714` qualified and
+`573,586` structural rows. Under the fixed Main/ChiNext/STAR boundary, the
+in-scope counts are `17,008` and `543,616`; qualified and structural coverage,
+all major years and boards, are `100%`. Missing, null, negative and extreme
+turnover checks passed with no imputation.
+
+The pre-outcome protocol was committed at
+`1148ebd23a567ad81e09b0c2323f9be285920858` before outcome analysis. The final
+research decision is `TURNOVER_X_RELATIVE_VOLUME_NEEDS_MORE_EVIDENCE`: turnover
+5D Q5-Q1 mean spread is `-0.277596pp` and rho is `-0.058525`, but the fixed
+turnover-after-RV spreads are not directionally coherent and year/board
+coherence does not pass. This is evidence for further bounded research only,
+not a rule or parameter change.
+
+Final OOS remains `SEALED / UNREAD`; B/spec/score/threshold/hard gates/Top-N/
+prospective pipeline/universe/frozen dataset are unchanged. C, Phase 2F,
+threshold search, model fitting, freeze and promotion were not run. The next
+delivery state is an independent research PR awaiting exact-head CI and user
+merge decision.

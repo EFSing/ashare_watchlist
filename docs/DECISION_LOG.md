@@ -1292,3 +1292,35 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
 - next gate：user decision — restore direct connectivity or authorize a
   source/proxy/credential path; second provider, credential, permanent
   network/proxy change, Drive, Final OOS and freeze/promotion remain non-automatic.
+
+## 2026-09-05 — Decision: turnover × relative-volume gateway diagnostic
+
+- classification：`research question`；materiality 是判断 historical
+  `turnover_rate_pct` 在 frozen T-day relative volume 条件下是否显示稳定增量
+  信息，同时不改 B 或现有 development-candidate 产品路径。
+- authorization/source：用户明确授权有界的
+  `THIRD_PARTY_TUSHARE_COMPATIBLE_GATEWAY`。固定为
+  `https://tuaremax.top`、`tushare==1.4.24`、`daily_basic`，字段为
+  `ts_code,trade_date,turnover_rate,float_share`；不是 official Tushare、不是
+  `STRICT_PIT_VERIFIED`、不是 production validated。token 仅环境读取，未持久化。
+- evidence：五日 pilot coverage=`100%`，固定量纲 sample=`500/500` 通过；769 日
+  full acquisition=`769/769` 成功，canonical=`3,938,059` rows。Input audit 保留
+  exact `17,714` qualified / `573,586` structural reconciliation；Main/ChiNext/STAR
+  in-scope coverage 与各 major year/board 均为 `100%`，无 imputation。
+- protocol：正式 pre-outcome protocol commit
+  `1148ebd23a567ad81e09b0c2323f9be285920858` 后才读取 outcome。固定 TQ1-TQ5、
+  RVQ1-RVQ5、5×5 matrix、conditional summaries、year/board、episode-deduplicated
+  和 top-1% sensitivity 均已执行；未 threshold search、parameter sweep、model fit
+  或 provider switching。
+- result：turnover 5D Q5-Q1 mean spread=`-0.277596pp`，median spread=`-0.969710pp`，
+  Spearman rho=`-0.058525`。在 RV 五分位条件下，turnover 5D spreads 为
+  `-0.674851/-0.806752/-0.331511/-0.026368/+0.060428pp`，方向不一致；year/board
+  coherence 亦未通过。结构/episode/top-1% 的部分方向不能弥补 conditioned
+  coherence 缺失。
+- decision：`NEEDS_MORE_EVIDENCE`，对应研究终态
+  `TURNOVER_X_RELATIVE_VOLUME_NEEDS_MORE_EVIDENCE`。缺少的是跨 RV 条件、年份和
+  板块方向一致的独立验证证据；该缺口只限制本研究的进一步结论，不限制现有 B
+  development path。
+- boundaries：`VOLUME_PATH_NEEDS_MORE_EVIDENCE` 保持不变；B/spec/score/threshold/
+  hard gate/Top-N/prospective pipeline/universe/frozen dataset/frozen registry 未改变；
+  Final OOS=`SEALED / UNREAD`，C/Phase 2F/freeze/promotion/auto-freeze 未运行。

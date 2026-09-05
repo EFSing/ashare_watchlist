@@ -10,6 +10,7 @@ DATE_ANCHORED / NO_VINTAGE_PROOF / THIRD_PARTY_GATEWAY / DIAGNOSTIC_ONLY.
 
 from __future__ import annotations
 
+import argparse
 from collections import Counter
 from datetime import datetime, timezone
 import gzip
@@ -27,6 +28,8 @@ from typing import Any, Iterable, Mapping, Sequence
 import numpy as np
 
 import core_signal_replay as replay
+import validate_development_returns as returns_v1
+from strategy_development_eligibility import _frozen_timing, _next_execution_date
 
 
 SCHEMA_VERSION = "B_TURNOVER_X_RELATIVE_VOLUME_INCREMENTAL_DIAGNOSTIC_V1"
@@ -998,6 +1001,509 @@ def audit_inputs(
     return result
 
 
+def _available_outcome_metrics(records: Sequence[Mapping[str, Any]], horizon: str) -> dict[str, Any]:
+    values = [
+        record["outcomes"][horizon]
+        for record in records
+        if record.get("outcomes", {}).get(horizon, {}).get("status") == "AVAILABLE"
+    ]
+    returns = np.asarray([float(value["return_pct"]) for value in values], dtype=float)
+    mfes = np.asarray([float(value["mfe_pct"]) for value in values], dtype=float)
+    maes = np.asarray([float(value["mae_pct"]) for value in values], dtype=float)
+    return {
+        "n": int(len(values)),
+        "mean_return_pct": float(np.mean(returns)) if len(values) else None,
+        "median_return_pct": float(np.median(returns)) if len(values) else None,
+        "positive_rate": float(np.mean(returns > 0)) if len(values) else None,
+        "mean_mfe_pct": float(np.mean(mfes)) if len(values) else None,
+        "median_mfe_pct": float(np.median(mfes)) if len(values) else None,
+        "mean_mae_pct": float(np.mean(maes)) if len(values) else None,
+        "median_mae_pct": float(np.median(maes)) if len(values) else None,
+    }
+
+
+def _assign_quintiles(records: Sequence[Mapping[str, Any]], feature: str, bins: int = 5) -> dict[int, int]:
+    available = [
+        (index, float(record[feature]), str(record["symbol"]), str(record["signal_date"]))
+        for index, record in enumerate(records)
+        if record.get(feature) is not None and math.isfinite(float(record[feature]))
+    ]
+    available.sort(key=lambda item: (item[1], item[2], item[3], item[0]))
+    count = len(available)
+    return {
+        index: min(bins, int(position * bins / count) + 1)
+        for position, (index, _value, _symbol, _date) in enumerate(available)
+    } if count else {}
+
+
+def _spearman(records: Sequence[Mapping[str, Any]], feature: str, horizon: str) -> dict[str, Any]:
+    pairs = [
+        (float(record[feature]), float(record["outcomes"][horizon]["return_pct"]))
+        for record in records
+        if record.get(feature) is not None
+        and record.get("outcomes", {}).get(horizon, {}).get("status") == "AVAILABLE"
+    ]
+    if len(pairs) < 2:
+        return {"n": len(pairs), "rho": None}
+    x = np.asarray([pair[0] for pair in pairs], dtype=float)
+    y = np.asarray([pair[1] for pair in pairs], dtype=float)
+    def ranks(values: np.ndarray) -> np.ndarray:
+        order = np.argsort(values, kind="mergesort")
+        output = np.empty(len(values), dtype=float)
+        position = 0
+        while position < len(values):
+            end = position + 1
+            while end < len(values) and values[order[end]] == values[order[position]]:
+                end += 1
+            output[order[position:end]] = (position + end - 1) / 2.0 + 1.0
+            position = end
+        return output
+    x_rank, y_rank = ranks(x), ranks(y)
+    if np.std(x_rank) == 0 or np.std(y_rank) == 0:
+        return {"n": len(pairs), "rho": None}
+    return {"n": len(pairs), "rho": float(np.corrcoef(x_rank, y_rank)[0, 1])}
+
+
+def _feature_quintile_summary(records: Sequence[Mapping[str, Any]], feature: str) -> dict[str, Any]:
+    assignments = _assign_quintiles(records, feature)
+    rows: list[dict[str, Any]] = []
+    for quintile in range(1, 6):
+        group = [records[index] for index, value in assignments.items() if value == quintile]
+        values = [float(record[feature]) for record in group]
+        rows.append({
+            "quintile": quintile,
+            "row_n": len(group),
+            "feature_min": min(values) if values else None,
+            "feature_max": max(values) if values else None,
+            "5D": _available_outcome_metrics(group, "5D"),
+            "10D": _available_outcome_metrics(group, "10D"),
+        })
+    result: dict[str, Any] = {"rows": rows}
+    for horizon in ("5D", "10D"):
+        low, high = rows[0][horizon], rows[-1][horizon]
+        result[horizon] = {
+            "spearman": _spearman(records, feature, horizon),
+            "high_minus_low_mean_return_pct": (
+                high["mean_return_pct"] - low["mean_return_pct"]
+                if high["mean_return_pct"] is not None and low["mean_return_pct"] is not None else None
+            ),
+            "high_minus_low_median_return_pct": (
+                high["median_return_pct"] - low["median_return_pct"]
+                if high["median_return_pct"] is not None and low["median_return_pct"] is not None else None
+            ),
+        }
+    return result
+
+
+def _conditional_and_matrix(records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    pair_records = [
+        record for record in records
+        if record.get("turnover_rate_pct") is not None and record.get("relative_volume") is not None
+    ]
+    turnover_bins = _assign_quintiles(pair_records, "turnover_rate_pct")
+    rv_bins = _assign_quintiles(pair_records, "relative_volume")
+    matrix: list[dict[str, Any]] = []
+    for turnover_quintile in range(1, 6):
+        for rv_quintile in range(1, 6):
+            group = [
+                pair_records[index]
+                for index in set(turnover_bins) & set(rv_bins)
+                if turnover_bins[index] == turnover_quintile and rv_bins[index] == rv_quintile
+            ]
+            matrix.append({
+                "turnover_quintile": turnover_quintile,
+                "relative_volume_quintile": rv_quintile,
+                "row_n": len(group),
+                "5D": _available_outcome_metrics(group, "5D"),
+                "10D": _available_outcome_metrics(group, "10D"),
+            })
+
+    def conditional(feature: str, condition: str, assignments: dict[int, int], condition_assignments: dict[int, int]) -> list[dict[str, Any]]:
+        result: list[dict[str, Any]] = []
+        for condition_quintile in range(1, 6):
+            low = [
+                pair_records[index]
+                for index in set(assignments) & set(condition_assignments)
+                if condition_assignments[index] == condition_quintile and assignments[index] == 1
+            ]
+            high = [
+                pair_records[index]
+                for index in set(assignments) & set(condition_assignments)
+                if condition_assignments[index] == condition_quintile and assignments[index] == 5
+            ]
+            item: dict[str, Any] = {
+                "condition": condition,
+                "condition_quintile": condition_quintile,
+                "low_feature_quintile": 1,
+                "high_feature_quintile": 5,
+                "low": {horizon: _available_outcome_metrics(low, horizon) for horizon in ("5D", "10D")},
+                "high": {horizon: _available_outcome_metrics(high, horizon) for horizon in ("5D", "10D")},
+            }
+            for horizon in ("5D", "10D"):
+                low_mean = item["low"][horizon]["mean_return_pct"]
+                high_mean = item["high"][horizon]["mean_return_pct"]
+                item[horizon + "_high_minus_low_mean_return_pct"] = (
+                    high_mean - low_mean if high_mean is not None and low_mean is not None else None
+                )
+            result.append(item)
+        return result
+
+    corner_lookup = {
+        (item["turnover_quintile"], item["relative_volume_quintile"]): item
+        for item in matrix
+    }
+    interaction: dict[str, Any] = {}
+    for horizon in ("5D", "10D"):
+        values = []
+        for key in ((5, 5), (5, 1), (1, 5), (1, 1)):
+            values.append(corner_lookup[key][horizon]["mean_return_pct"])
+        interaction[horizon + "_corner_contrast"] = (
+            values[0] - values[1] - values[2] + values[3]
+            if all(value is not None for value in values) else None
+        )
+    return {
+        "pair_complete_rows": len(pair_records),
+        "matrix_5x5": matrix,
+        "turnover_conditional_on_relative_volume": conditional(
+            "turnover_rate_pct", "relative_volume", turnover_bins, rv_bins,
+        ),
+        "relative_volume_conditional_on_turnover": conditional(
+            "relative_volume", "turnover_rate_pct", rv_bins, turnover_bins,
+        ),
+        "corner_interaction_contrast": interaction,
+    }
+
+
+def _strata_summary(records: Sequence[Mapping[str, Any]], feature: str) -> dict[str, Any]:
+    assignments = _assign_quintiles(records, feature)
+    result: dict[str, Any] = {"year": {}, "board": {}}
+    for field, values in (("year", ("2023", "2024", "2025", "2026")), ("board", ("Main", "ChiNext", "STAR"))):
+        for value in values:
+            low = [records[index] for index, quintile in assignments.items() if quintile == 1 and str(records[index][field]) == value]
+            high = [records[index] for index, quintile in assignments.items() if quintile == 5 and str(records[index][field]) == value]
+            item: dict[str, Any] = {"group": value}
+            for horizon in ("5D", "10D"):
+                low_metrics = _available_outcome_metrics(low, horizon)
+                high_metrics = _available_outcome_metrics(high, horizon)
+                item[horizon] = {
+                    "low": low_metrics,
+                    "high": high_metrics,
+                    "high_minus_low_mean_return_pct": (
+                        high_metrics["mean_return_pct"] - low_metrics["mean_return_pct"]
+                        if high_metrics["mean_return_pct"] is not None and low_metrics["mean_return_pct"] is not None else None
+                    ),
+                }
+            result[field][value] = item
+    return result
+
+
+def _episode_deduplicated(records: Sequence[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
+    selected: dict[tuple[str, str], tuple[str, int, Mapping[str, Any]]] = {}
+    for index, record in enumerate(records):
+        key = (str(record["symbol"]), str(record["breakout_date"]))
+        candidate = (str(record["signal_date"]), index, record)
+        prior = selected.get(key)
+        if prior is None or candidate[:2] < prior[:2]:
+            selected[key] = candidate
+    return [item[2] for item in sorted(selected.values(), key=lambda item: item[:2])]
+
+
+def _top_one_percent(records: Sequence[Mapping[str, Any]], feature: str) -> dict[str, Any]:
+    available = [record for record in records if record.get(feature) is not None]
+    ordered = sorted(available, key=lambda record: (float(record[feature]), str(record["symbol"]), str(record["signal_date"])))
+    top_n = max(1, int(math.ceil(len(ordered) * 0.01))) if ordered else 0
+    top = ordered[-top_n:] if top_n else []
+    non_top = ordered[:-top_n] if top_n else []
+    return {
+        "eligible_rows": len(ordered),
+        "top_rows": len(top),
+        "top_feature_min": min((float(record[feature]) for record in top), default=None),
+        "top": {horizon: _available_outcome_metrics(top, horizon) for horizon in ("5D", "10D")},
+        "non_top": {horizon: _available_outcome_metrics(non_top, horizon) for horizon in ("5D", "10D")},
+        "top_minus_non_top_mean_return_pct": {
+            horizon: (
+                _available_outcome_metrics(top, horizon)["mean_return_pct"]
+                - _available_outcome_metrics(non_top, horizon)["mean_return_pct"]
+                if _available_outcome_metrics(top, horizon)["mean_return_pct"] is not None
+                and _available_outcome_metrics(non_top, horizon)["mean_return_pct"] is not None else None
+            )
+            for horizon in ("5D", "10D")
+        },
+    }
+
+
+def _diagnostic_record(
+    row: Mapping[str, Any], turnover_value: float | None, outcomes: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "symbol": row["symbol"],
+        "signal_date": row["signal_date"],
+        "year": row["year"],
+        "board": row["board"],
+        "breakout_date": row["breakout_date"],
+        "pullback_stage": row["pullback_stage"],
+        "final_b_qualified": bool(row["final_b_qualified"]),
+        "turnover_rate_pct": turnover_value,
+        "relative_volume": row.get("relative_volume"),
+        "outcomes": outcomes,
+    }
+
+
+def _write_diagnostic_events(path: Path, records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    _reject_forbidden((path,))
+    digest = hashlib.sha256()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("wb") as raw_handle:
+        with __import__("gzip").GzipFile(fileobj=raw_handle, mode="wb", filename="", mtime=0) as handle:
+            for record in records:
+                line = (_canonical_json(record) + "\n").encode("utf-8")
+                digest.update(line)
+                handle.write(line)
+    return {"path": path.as_posix(), "rows": len(records), "bytes": path.stat().st_size, "file_sha256": _sha256_file(path), "content_stream_sha256": digest.hexdigest()}
+
+
+def run_diagnostic(
+    *, frozen_raw_dir: Path, core_output: Path, cohort_path: Path, canonical_path: Path,
+    input_audit_manifest_path: Path, protocol_path: Path, protocol_commit: str,
+    output_dir: Path, summary_path: Path, report_path: Path,
+) -> dict[str, Any]:
+    """Run the fixed post-protocol turnover x RV diagnostic."""
+
+    _reject_forbidden((frozen_raw_dir, core_output, cohort_path, canonical_path, input_audit_manifest_path, protocol_path, output_dir, summary_path, report_path))
+    if not protocol_commit or replay.file_sha256(protocol_path) == "":
+        raise RuntimeError("TURNOVER_X_RELATIVE_VOLUME_NEEDS_MORE_EVIDENCE: protocol identity missing")
+    audit = json.loads(input_audit_manifest_path.read_text(encoding="utf-8"))
+    if audit.get("status") != "RESEARCH_READY":
+        raise RuntimeError("TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY")
+    import pandas as pd
+
+    turnover_frame = pd.read_parquet(canonical_path, columns=["symbol", "date", "turnover_rate_pct"])
+    if turnover_frame.duplicated(["symbol", "date"]).any():
+        raise RuntimeError("TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY: canonical duplicate")
+    turnover_frame["key"] = turnover_frame["symbol"].astype(str) + "|" + turnover_frame["date"].astype(str)
+    turnover_lookup = turnover_frame.set_index("key")["turnover_rate_pct"]
+    index_dates, index_bars, _index_meta = replay._load_index(frozen_raw_dir)
+    session_dates = sorted(index_dates)
+    session_ms = np.asarray([index_dates[value] for value in session_dates], dtype=np.int64)
+    session_index = {value: index for index, value in enumerate(session_dates)}
+    store, _store_meta = replay._load_stock_store(frozen_raw_dir / "daily_k.parquet")
+    frozen_timing = _frozen_timing(core_output)
+    structural: list[dict[str, Any]] = []
+    exact_structural = 0
+    exact_qualified = 0
+    for row in _load_cohort_rows(cohort_path):
+        exact_structural += 1
+        if row["final_b_qualified"]:
+            exact_qualified += 1
+        if row.get("board") not in {"Main", "ChiNext", "STAR"}:
+            continue
+        symbol = str(row["symbol"]).lower()
+        signal_date = str(row["signal_date"])
+        key = f"{symbol}|{signal_date}"
+        value = turnover_lookup.get(key)
+        turnover_value = None if value is None or bool(pd.isna(value)) else float(value)
+        projection = {
+            "as_of_date": signal_date,
+            "signal_date": signal_date,
+            "earliest_execution_date": _next_execution_date(signal_date, session_dates, session_index, frozen_timing),
+            "symbol": symbol,
+            "setup_id": "B_BREAKOUT_RETEST",
+        }
+        outcome_record = returns_v1._build_event_record(
+            row=projection, store=store, session_dates=session_dates,
+            session_ms=session_ms, session_index=session_index,
+        )
+        structural.append(_diagnostic_record(row, turnover_value, outcome_record["outcomes"]))
+    if exact_structural != 573586 or exact_qualified != 17714:
+        raise RuntimeError("TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY: cohort reconciliation changed")
+    qualified = [record for record in structural if record["final_b_qualified"]]
+    if len(qualified) != audit["cohort_reconciliation"]["in_scope_qualified_rows"]:
+        raise RuntimeError("TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY: in-scope qualified count changed")
+    feature_complete = [record for record in qualified if record.get("turnover_rate_pct") is not None and record.get("relative_volume") is not None]
+    feature_summaries = {
+        feature: _feature_quintile_summary(qualified, feature)
+        for feature in ("turnover_rate_pct", "relative_volume")
+    }
+    matrix_and_conditional = _conditional_and_matrix(qualified)
+    structural_summaries = {
+        feature: _feature_quintile_summary(structural, feature)
+        for feature in ("turnover_rate_pct", "relative_volume")
+    }
+    strata = {
+        feature: _strata_summary(qualified, feature)
+        for feature in ("turnover_rate_pct", "relative_volume")
+    }
+    episode_records = _episode_deduplicated(qualified)
+    episode_summaries = {
+        feature: _feature_quintile_summary(episode_records, feature)
+        for feature in ("turnover_rate_pct", "relative_volume")
+    }
+    top_one_percent = {
+        feature: _top_one_percent(qualified, feature)
+        for feature in ("turnover_rate_pct", "relative_volume")
+    }
+    turnover_5d = feature_summaries["turnover_rate_pct"]["5D"]["high_minus_low_mean_return_pct"]
+    turnover_5d_median = feature_summaries["turnover_rate_pct"]["5D"]["high_minus_low_median_return_pct"]
+    direction = 1 if turnover_5d and turnover_5d > 0 else -1 if turnover_5d and turnover_5d < 0 else 0
+    conditional_spreads = [
+        item["5D_high_minus_low_mean_return_pct"]
+        for item in matrix_and_conditional["turnover_conditional_on_relative_volume"]
+    ]
+    conditional_coherent = bool(direction and conditional_spreads and all(value is not None and (1 if value > 0 else -1 if value < 0 else 0) == direction for value in conditional_spreads))
+    strata_spreads = [
+        item["5D"]["high_minus_low_mean_return_pct"]
+        for group in (strata["turnover_rate_pct"]["year"], strata["turnover_rate_pct"]["board"])
+        for item in group.values()
+    ]
+    strata_coherent = bool(direction and strata_spreads and all(value is not None and (1 if value > 0 else -1 if value < 0 else 0) == direction for value in strata_spreads))
+    episode_spread = episode_summaries["turnover_rate_pct"]["5D"]["high_minus_low_mean_return_pct"]
+    top_spread = top_one_percent["turnover_rate_pct"]["top_minus_non_top_mean_return_pct"]["5D"]
+    sign_checks = [
+        conditional_coherent,
+        strata_coherent,
+        episode_spread is not None and (1 if episode_spread > 0 else -1 if episode_spread < 0 else 0) == direction,
+        top_spread is not None and (1 if top_spread > 0 else -1 if top_spread < 0 else 0) == direction,
+        structural_summaries["turnover_rate_pct"]["5D"]["spearman"]["rho"] is not None
+        and (1 if structural_summaries["turnover_rate_pct"]["5D"]["spearman"]["rho"] > 0 else -1 if structural_summaries["turnover_rate_pct"]["5D"]["spearman"]["rho"] < 0 else 0) == direction,
+    ]
+    visible = direction != 0 and turnover_5d_median is not None and (1 if turnover_5d_median > 0 else -1 if turnover_5d_median < 0 else 0) == direction
+    if all(sign_checks) and visible:
+        decision = "TURNOVER_X_RELATIVE_VOLUME_INCREMENTAL_SUPPORTED_FOR_FURTHER_VALIDATION"
+        explanation = "The fixed turnover relationship remains directionally coherent after conditioning on relative volume and across the pre-registered sensitivity checks."
+    elif visible or any(sign_checks):
+        decision = "TURNOVER_X_RELATIVE_VOLUME_NEEDS_MORE_EVIDENCE"
+        explanation = "A fixed turnover relationship is visible in part of the pre-registered diagnostic, but complete conditioned, strata and sensitivity coherence is not established."
+    else:
+        decision = "TURNOVER_X_RELATIVE_VOLUME_NO_CLEAR_INCREMENTAL_SIGNAL"
+        explanation = "The fixed turnover relationship does not show aligned endpoint evidence in the pre-registered diagnostic."
+    event_artifact = _write_diagnostic_events(output_dir / "events.jsonl.gz", structural)
+    summary: dict[str, Any] = {
+        "schema_version": SCHEMA_VERSION,
+        "status": "COMPLETE",
+        "labels": list(LABELS),
+        "source_classification": SOURCE_CLASSIFICATION,
+        "gateway_url": GATEWAY_URL,
+        "package": PACKAGE_NAME,
+        "package_version": PACKAGE_VERSION,
+        "endpoint": ENDPOINT,
+        "strategy": {"version": "B_BREAKOUT_RETEST_LEGACY_V1_1", "modified": False},
+        "protocol": {"path": protocol_path.as_posix(), "commit_sha": protocol_commit, "file_sha256": replay.file_sha256(protocol_path), "frozen_before_outcome_read": True},
+        "input_audit_manifest": input_audit_manifest_path.as_posix(),
+        "cohort_reconciliation": {
+            "exact_structural_rows": exact_structural,
+            "exact_qualified_rows": exact_qualified,
+            "in_scope_structural_rows": len(structural),
+            "in_scope_qualified_rows": len(qualified),
+            "feature_pair_complete_qualified_rows": len(feature_complete),
+            "unique_breakout_episode_count": len(episode_records),
+            "episode_deduplicated_qualified_rows": len(episode_records),
+        },
+        "features": {
+            "primary_pair": ["turnover_rate_pct", "relative_volume"],
+            "turnover_rate_pct": "daily_basic.turnover_rate percent; T-day",
+            "relative_volume": "volume_T / mean(volume[T-20:T-1]) using raw frozen daily_k volume",
+            "quintile_method": "stable ascending rank by feature, symbol, signal_date, original row index",
+        },
+        "feature_quintiles": feature_summaries,
+        "conditional_and_matrix": matrix_and_conditional,
+        "structural_quintiles": structural_summaries,
+        "year_board_strata": strata,
+        "episode_deduplicated": episode_summaries,
+        "top_one_percent": top_one_percent,
+        "decision_audit": {
+            "turnover_5D_high_minus_low_mean_return_pct": turnover_5d,
+            "turnover_5D_high_minus_low_median_return_pct": turnover_5d_median,
+            "direction": direction,
+            "turnover_conditional_on_relative_volume_coherent": conditional_coherent,
+            "year_board_coherent": strata_coherent,
+            "episode_deduplicated_coherent": sign_checks[2],
+            "top_one_percent_coherent": sign_checks[3],
+            "structural_coherent": sign_checks[4],
+            "all_fixed_checks_pass": bool(all(sign_checks) and visible),
+        },
+        "decision": decision,
+        "decision_explanation": explanation,
+        "artifacts": {"events": event_artifact},
+        "outcome_access": {
+            "status": "OUTCOME_ANALYSIS_AFTER_PROTOCOL_COMMIT",
+            "pre_protocol_status": OUTCOME_ACCESS_STATUS,
+            "outcome_values_used": True,
+        },
+        "boundaries": {
+            "b_spec_unchanged": True,
+            "b_score_unchanged": True,
+            "threshold_unchanged": True,
+            "hard_gate_unchanged": True,
+            "top_n_unchanged": True,
+            "prospective_pipeline_unchanged": True,
+            "universe_unchanged": True,
+            "frozen_dataset_unchanged": True,
+            "final_oos_read": False,
+            "phase_2f": False,
+            "c": False,
+            "threshold_search": False,
+            "parameter_sweep": False,
+            "model_fitting": False,
+            "turnover_rate_f_fished": False,
+        },
+        "completed_at_utc": _utc_now(),
+    }
+    summary["content_sha256"] = hashlib.sha256(
+        (_canonical_json({key: value for key, value in summary.items() if key != "content_sha256"}) + "\n").encode("utf-8")
+    ).hexdigest()
+    _write_json_atomic(summary_path, summary)
+    lines = [
+        "# B Turnover × Relative Volume Incremental Diagnostic V1 — Tushare gateway",
+        "",
+        "Labels: `DEVELOPMENT` / `RECONSTRUCTED_RETROSPECTIVE` / `DATE_ANCHORED` / `NO_VINTAGE_PROOF` / `THIRD_PARTY_GATEWAY` / `DIAGNOSTIC_ONLY`",
+        "",
+        "## Decision",
+        "",
+        f"`{decision}`",
+        "",
+        explanation,
+        "",
+        "## Provenance",
+        "",
+        f"- source: `{SOURCE_CLASSIFICATION}` at `{GATEWAY_URL}`; `tushare=={PACKAGE_VERSION}`; endpoint `{ENDPOINT}`",
+        f"- input audit: `{input_audit_manifest_path.as_posix()}`; status `RESEARCH_READY`",
+        f"- pre-outcome protocol commit: `{protocol_commit}`",
+        f"- exact cohort: `{exact_qualified}` qualified / `{exact_structural}` structural; in-scope: `{len(qualified)}` / `{len(structural)}`",
+        f"- pair-complete qualified rows: `{len(feature_complete)}`; episode-deduplicated qualified rows: `{len(episode_records)}`",
+        "",
+        "## Fixed checks",
+        "",
+        f"- turnover 5D Q5-Q1 mean return: `{turnover_5d}` percentage points",
+        f"- turnover 5D Q5-Q1 median return: `{turnover_5d_median}` percentage points",
+        f"- turnover conditional on RV coherent: `{conditional_coherent}`",
+        f"- year/board coherent: `{strata_coherent}`",
+        f"- episode-deduplicated coherent: `{sign_checks[2]}`",
+        f"- top-1% coherent: `{sign_checks[3]}`",
+        f"- structural coherent: `{sign_checks[4]}`",
+        "",
+        "## 5×5 matrix",
+        "",
+        "| TQ | RVQ | N | 5D mean | 5D median | 10D mean | 5D MFE | 5D MAE |",
+        "| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ]
+    for item in matrix_and_conditional["matrix_5x5"]:
+        lines.append("| {turnover_quintile} | {relative_volume_quintile} | {row_n} | {m5} | {med5} | {m10} | {mfe} | {mae} |".format(
+            turnover_quintile=item["turnover_quintile"], relative_volume_quintile=item["relative_volume_quintile"], row_n=item["row_n"],
+            m5=item["5D"]["mean_return_pct"], med5=item["5D"]["median_return_pct"], m10=item["10D"]["mean_return_pct"], mfe=item["5D"]["mean_mfe_pct"], mae=item["5D"]["mean_mae_pct"],
+        ))
+    lines += [
+        "",
+        "## Boundaries",
+        "",
+        "B/spec/score/threshold/hard gate/Top-N/prospective pipeline/universe/frozen dataset were unchanged. Final OOS was not read; C and Phase 2F were not run; no threshold search, parameter sweep, model fitting, promotion or freeze occurred. `turnover_rate_f` was not used.",
+        "",
+        f"Event detail: `{event_artifact['path']}` (local-only deterministic artifact). Summary SHA-256: `{summary['content_sha256']}`.",
+    ]
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+    return summary
+
+
 def run_pilot(
     *, raw_dir: Path, pilot_dir: Path, checkpoint_path: Path, raw_output_dir: Path,
     canonical_path: Path, manifest_path: Path, retry_sleep_seconds: float = 2.0,
@@ -1089,6 +1595,76 @@ __all__ = [
     "pilot_dates",
     "build_full_canonical",
     "audit_inputs",
+    "run_diagnostic",
     "run_pilot",
     "write_pilot_canonical",
 ]
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    base = Path("data/validation/b_turnover_x_relative_volume_incremental_v1/tushare_gateway")
+    raw_frozen = Path("data/validation/core_signal_validation/raw")
+    pilot = subparsers.add_parser("pilot")
+    pilot.add_argument("--sleep", type=float, default=2.0)
+    full = subparsers.add_parser("full-acquire")
+    full.add_argument("--sleep", type=float, default=2.0)
+    canonical = subparsers.add_parser("build-canonical")
+    audit = subparsers.add_parser("audit-inputs")
+    diagnostic = subparsers.add_parser("diagnostic")
+    diagnostic.add_argument("--protocol-commit", required=True)
+    args = parser.parse_args()
+    if args.command == "pilot":
+        result = run_pilot(
+            raw_dir=raw_frozen, pilot_dir=base / "pilot",
+            checkpoint_path=base / "checkpoint/pilot_checkpoint.json",
+            raw_output_dir=base / "raw/pilot",
+            canonical_path=base / "canonical/pilot_turnover.jsonl",
+            manifest_path=base / "manifest/pilot_manifest.json",
+            retry_sleep_seconds=args.sleep,
+        )
+    elif args.command == "full-acquire":
+        result = acquire_dates(
+            dates=_session_dates(raw_frozen),
+            checkpoint_path=base / "checkpoint/full_acquisition_checkpoint.json",
+            raw_dir=base / "raw/full", mode="full", retry_attempts=3,
+            retry_sleep_seconds=args.sleep,
+        )
+    elif args.command == "build-canonical":
+        result = build_full_canonical(
+            checkpoint_path=base / "checkpoint/full_acquisition_checkpoint.json",
+            raw_dir=base / "raw/full", canonical_path=base / "canonical/full_turnover.parquet",
+            manifest_path=base / "manifest/full_acquisition_manifest.json",
+        )
+    elif args.command == "audit-inputs":
+        result = audit_inputs(
+            frozen_raw_dir=raw_frozen,
+            cohort_path=Path("data/validation/b_turnover_x_relative_volume_incremental_v1/cohort_features.jsonl.gz"),
+            cohort_manifest_path=Path("data/validation/b_turnover_x_relative_volume_incremental_v1/cohort_manifest.json"),
+            canonical_path=base / "canonical/full_turnover.parquet",
+            full_manifest_path=base / "manifest/full_acquisition_manifest.json",
+            output_manifest_path=base / "manifest/input_audit_manifest.json",
+        )
+    else:
+        result = run_diagnostic(
+            frozen_raw_dir=raw_frozen,
+            core_output=Path("data/validation/core_signal_validation_continuous_parts/core_replay_results.jsonl.gz"),
+            cohort_path=Path("data/validation/b_turnover_x_relative_volume_incremental_v1/cohort_features.jsonl.gz"),
+            canonical_path=base / "canonical/full_turnover.parquet",
+            input_audit_manifest_path=base / "manifest/input_audit_manifest.json",
+            protocol_path=Path("docs/research/b_turnover_x_relative_volume_incremental_v1_protocol.md"),
+            protocol_commit=args.protocol_commit,
+            output_dir=base / "diagnostic",
+            summary_path=base / "manifest/diagnostic_summary.json",
+            report_path=Path("docs/research/b_turnover_x_relative_volume_incremental_v1_tushare_gateway_report.md"),
+        )
+    print(_canonical_json({
+        "status": result.get("status"),
+        "decision": result.get("decision"),
+        "content_sha256": result.get("content_sha256"),
+    }))
+
+
+if __name__ == "__main__":
+    main()
