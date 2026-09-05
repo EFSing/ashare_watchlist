@@ -1342,3 +1342,29 @@ frozen prerequisite 保持 `NOT_READY / PARTIAL_UNVERIFIED`；
   `VOLUME_PATH_NEEDS_MORE_EVIDENCE`、B spec/score/threshold/hard gates/Top-N/
   prospective pipeline/universe/frozen registry/frozen dataset 与 Final OOS=`SEALED / UNREAD`
   均 unchanged。
+
+## 2026-09-05 — PR #34 merged; turnover × relative-volume diagnostic verified
+
+- governance reconciliation：上一节在 PR #34 merge 前记录的
+  `TURNOVER_X_RELATIVE_VOLUME_DIAGNOSTIC_PR_READY_FOR_USER_MERGE_DECISION` 已被
+  live merged state supersede；本节为当前治理快照。
+- live GitHub：PR #34 已按明确授权以 squash merge 合并。PR head=
+  `65d7a8329f012394b9fce6a9aad42f5834dc84e6`，base=`master@873169aeecb9eb12d32e58990677f2478f3081c0`，
+  merge SHA=`2d601360b5160739ec91400175df345f84cd2b95`；PR state=`MERGED`，
+  live `master` 与 `origin/master` 均 exact 指向该 merge SHA。
+- merge-head CI：correctness run `33971522763` 的 workflow head SHA exact
+  等于 `2d601360b5160739ec91400175df345f84cd2b95`，conclusion=`success`。
+- research complete：decision 保持
+  `TURNOVER_X_RELATIVE_VOLUME_NEEDS_MORE_EVIDENCE`；pre-registered joint top-1%
+  intersection 为 turnover N=`171`、RV N=`171`、joint N=`11`。
+- protocol/provenance：pre-outcome protocol SHA 仍为
+  `1148ebd23a567ad81e09b0c2323f9be285920858`；研究 labels 仍为
+  `DEVELOPMENT / RECONSTRUCTED_RETROSPECTIVE / DATE_ANCHORED / NO_VINTAGE_PROOF /
+  THIRD_PARTY_GATEWAY / DIAGNOSTIC_ONLY`，source classification 仍为
+  `THIRD_PARTY_TUSHARE_COMPATIBLE_GATEWAY`。
+- preserved boundary：B spec/score/threshold/hard gate/Top-N/prospective pipeline/
+  universe/frozen dataset/frozen registry unchanged；Final OOS=`SEALED / UNREAD`；
+  C、Phase 2F、promotion、freeze、auto-freeze 均未运行。
+- governance state：`PROJECT_GOVERNANCE_STATE_CONFLICT` 已由本 bounded docs-only
+  reconciliation 记录；本 PR 不改变任何 research/result/protocol/data artifact。
+- terminal state：`PR_34_MERGED_AND_VERIFIED`。

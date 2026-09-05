@@ -1100,3 +1100,29 @@ prospective pipeline/universe/frozen dataset are unchanged. C, Phase 2F,
 threshold search, model fitting, freeze and promotion were not run. The next
 delivery state is an independent research PR awaiting exact-head CI and user
 merge decision.
+
+## 2026-09-05 — PR #34 merged and verified
+
+The previous pre-merge snapshot has been superseded by the live merged state.
+PR #34 was squash-merged from exact head
+`65d7a8329f012394b9fce6a9aad42f5834dc84e6` into
+`master@873169aeecb9eb12d32e58990677f2478f3081c0`, producing merge SHA
+`2d601360b5160739ec91400175df345f84cd2b95`. GitHub reports PR #34 as
+`MERGED`; live `master` and `origin/master` both point to that SHA.
+
+The merge-head correctness workflow is run `33971522763`; its workflow head
+SHA exactly equals the merge SHA and its conclusion is `success`. The completed
+research decision remains
+`TURNOVER_X_RELATIVE_VOLUME_NEEDS_MORE_EVIDENCE`. The pre-registered joint
+top-1% check is turnover N=`171`, RV N=`171`, joint intersection N=`11`.
+The pre-outcome protocol SHA remains
+`1148ebd23a567ad81e09b0c2323f9be285920858`.
+
+This remains `DEVELOPMENT` / `RECONSTRUCTED_RETROSPECTIVE` / `DATE_ANCHORED` /
+`NO_VINTAGE_PROOF` / `THIRD_PARTY_GATEWAY` / `DIAGNOSTIC_ONLY`, using the
+`THIRD_PARTY_TUSHARE_COMPATIBLE_GATEWAY`. B/spec/score/threshold/hard gate/
+Top-N/prospective pipeline/universe/frozen dataset/frozen registry remain
+unchanged. Final OOS remains `SEALED / UNREAD`; C, Phase 2F, promotion,
+freeze and auto-freeze were not run. The prior governance conflict was resolved
+by a bounded docs-only reconciliation; no research, protocol, data or
+production files were changed.
