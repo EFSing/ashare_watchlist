@@ -1268,3 +1268,27 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
   frozen prerequisite and `Final OOS=SEALED / UNREAD` remain unchanged；C/Phase 2F、freeze、
   promotion、threshold search、model fitting and Drive/upload were not run. Forbidden
   `data/validation/continuous_speed_probe/` was not read, modified, deleted, hashed or uploaded.
+
+## 2026-09-05 — Full subprocess env proxy bypass probe stopped at no-proxy gate
+
+- context：第一阶段 host `NO_PROXY` 后 outer exception 从 `ProxyError` 变为
+  `ConnectionError`；第二阶段验证完全移除 proxy env 后 primary source 是否可用。
+- probe：在 transient subprocess 内移除 `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY`（含
+  lowercase 等价）并设 `NO_PROXY=push2his.eastmoney.com`；AkShare `1.18.94` /
+  `ak.stock_zh_a_hist` / daily / unadjusted / 20230630--20260828 参数与三个 fixed
+  symbols 不变，每个 1 次。未改系统代理、注册表、持久用户环境变量，未记录 proxy value。
+- result：`0/3` success。outer=`ConnectionError`、underlying=`MaxRetryError`、链尾
+  `WinError 10013`（direct socket access denied）；无 HTTP status、无 provider response。
+- layer distinction：非 `ProxyError` → proxy bypass 已生效且无底层 interception；未到
+  response layer → 排除 provider/server 层问题；剩余失败是本机 direct connection 到
+  Eastmoney 被 socket 层拒绝。
+- decision：`TURNOVER_PRIMARY_SOURCE_UNAVAILABLE_AFTER_NO_PROXY_PROBE`。不切换
+  provider、不改 source semantics、不 commit pre-outcome protocol、不进行 outcome
+  analysis；等待 direct connection/proxy 恢复或用户明确 source/proxy/credential 决策。
+- consequences：checkpoint `0/5,386` completed、`11` failed、`5,375` pending；
+  raw/canonical SHA `NOT_CREATED`；coverage `NOT_EVALUATED`；summary/report 已刷新。
+  `SCHEMA_SAMPLE_OBSERVED_NOT_USED`、`VOLUME_PATH_NEEDS_MORE_EVIDENCE`、B、
+  prospective pipeline、frozen registry、frozen prerequisite、Final OOS 边界均不变。
+- next gate：user decision — restore direct connectivity or authorize a
+  source/proxy/credential path; second provider, credential, permanent
+  network/proxy change, Drive, Final OOS and freeze/promotion remain non-automatic.

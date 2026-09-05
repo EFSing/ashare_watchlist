@@ -1031,3 +1031,31 @@ was observed earlier, but no outcome value entered computation, filtering, featu
 selection, or conclusion. `VOLUME_PATH_NEEDS_MORE_EVIDENCE`, B, prospective pipeline,
 frozen registry and frozen prerequisite remain unchanged; the forbidden
 `data/validation/continuous_speed_probe/` directory remains untouched.
+
+## 2026-09-05 — Phase 2 full subprocess env proxy bypass probe: no-proxy stop gate
+
+The second bounded probe ran the same primary AkShare `1.18.94` /
+`ak.stock_zh_a_hist` source and fixed daily, unadjusted, 20230630--20260828
+parameters for `000001.sz`, `000002.sz`, and `000006.sz` inside a transient
+subprocess whose `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY` (and lowercase
+equivalents) were removed and whose `NO_PROXY` was set to
+`push2his.eastmoney.com`. No system proxy, registry, persistent user
+environment, or Git/pip proxy change occurred, and no proxy value was recorded.
+
+Result: `0/3` success. All three symbols failed with outer `ConnectionError`,
+underlying `MaxRetryError`, and a chain ending in `WinError 10013` (direct
+socket access denied); no HTTP status and no provider response were received.
+Because the outer class is not `ProxyError` and no response layer was reached,
+the proxy bypass is confirmed effective and the remaining failure is a direct
+connection-layer block to the Eastmoney endpoint.
+
+The task stops at `TURNOVER_PRIMARY_SOURCE_UNAVAILABLE_AFTER_NO_PROXY_PROBE`.
+No provider substitution, endpoint/source semantic change, pre-outcome protocol
+commit, or outcome analysis occurred. Checkpoint state is unchanged at
+`0` completed, `11` failed, `5,375` pending of `5,386`; raw/canonical SHA
+`NOT_CREATED`; coverage `NOT_EVALUATED`. Summary/report evidence was refreshed
+with the new gate. `SCHEMA_SAMPLE_OBSERVED_NOT_USED` remains truthful and
+`VOLUME_PATH_NEEDS_MORE_EVIDENCE`, B, prospective pipeline, frozen registry and
+frozen prerequisite remain unchanged; Final OOS remains `SEALED / UNREAD`, and
+the forbidden `data/validation/continuous_speed_probe/` directory was not read,
+modified, deleted, hashed or uploaded.

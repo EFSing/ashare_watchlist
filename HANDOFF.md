@@ -1282,3 +1282,14 @@ frozen prerequisite 保持 `NOT_READY / PARTIAL_UNVERIFIED`；
 - stop gate：`TURNOVER_PRIMARY_SOURCE_STILL_UNAVAILABLE`。不切换 provider，不修改日期/字段/adjust/source semantics，不读取 Final OOS，不运行 C/Phase 2F，不提交 pre-outcome protocol，不进行 outcome analysis；`SCHEMA_SAMPLE_OBSERVED_NOT_USED` 继续保留，且没有 outcome 值参与 computation/filtering/feature selection/conclusion。
 - preserved state：`VOLUME_PATH_NEEDS_MORE_EVIDENCE`、B spec/score/threshold/hard gate/Top-N/universe/sector/ST、prospective pipeline、frozen registry 与 frozen prerequisite 均不变；forbidden `data/validation/continuous_speed_probe/` 未读、未改、未删、未 hash、未上传。
 - next user decision：恢复当前 primary source 的网络/代理可用性后从 checkpoint 继续；或由 Sol/user 明确选择 source/proxy/credential 方案。第二 provider、proxy semantic change、credential、Drive/upload 均不自动执行。
+
+## 2026-09-05 — Phase 2 full subprocess env proxy bypass probe stopped at no-proxy gate
+
+- continuation probe：授权范围仍仅为 `AUTHORIZE_BOUNDED_SUBPROCESS_NO_PROXY_PROBE`。第二阶段在单个 transient subprocess 内移除 `HTTP_PROXY`、`HTTPS_PROXY`、`ALL_PROXY`（Windows env case-insensitive，含 lowercase 等价）并设置 `NO_PROXY=push2his.eastmoney.com`；未修改系统代理、注册表、用户持久环境变量、Git/pip proxy，未记录任何 proxy value。
+- parameters：同一 AkShare `1.18.94` / `ak.stock_zh_a_hist` / daily / unadjusted / `20230630--20260828`，同一 `000001.sz`、`000002.sz`、`000006.sz`，每个 1 次。
+- result：`0/3` success、`3/3` failed。outer=`ConnectionError`，underlying=`MaxRetryError`，链含 `NewConnectionError` → `WinError 10013`（direct socket access denied）；未收到 HTTP status / provider response。
+- layer distinction（三分类）：不是 `ProxyError`（排除 bypass 未生效或底层 interception），也不是 HTTP/provider 响应层问题；proxy bypass 已生效，但本机到 Eastmoney 的直接连接在 socket 层被拒绝 → direct connection-layer failure 分支。
+- decision/stop：`TURNOVER_PRIMARY_SOURCE_UNAVAILABLE_AFTER_NO_PROXY_PROBE`。不切换 provider，不改 endpoint/source semantics，不 commit pre-outcome protocol，不进行 outcome analysis。checkpoint 仍为 `0` completed、`11` failed、`5,375` pending of `5,386`。
+- preserved state：`SCHEMA_SAMPLE_OBSERVED_NOT_USED`、`VOLUME_PATH_NEEDS_MORE_EVIDENCE`、B spec/score/threshold/hard gate/Top-N/universe/sector/ST、prospective pipeline、frozen registry 与 frozen prerequisite 均不变；Final OOS=`SEALED / UNREAD`，C/Phase 2F、freeze/promotion、threshold search、parameter sweep 未运行；forbidden `data/validation/continuous_speed_probe/` 未读、未改、未删、未 hash、未上传。
+- evidence：summary/report 已刷新为 `TURNOVER_PRIMARY_SOURCE_UNAVAILABLE_AFTER_NO_PROXY_PROBE`，`error_class=ConnectionError / MaxRetryError`，`failure_classification=FULL_SUBPROCESS_PROXY_BYPASS_FAILED`。
+- next user decision gate：恢复 direct connection/proxy 可用性后从 checkpoint 继续；或由 Sol/user 明确 source/proxy/credential 方案。第二 provider、credential、permanent proxy/network change、Drive、Final OOS、freeze/promotion 均不自动执行。

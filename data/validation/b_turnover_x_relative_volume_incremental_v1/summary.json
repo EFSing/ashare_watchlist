@@ -25,8 +25,8 @@
       "total": 573586
     }
   },
-  "content_sha256": "b68d3d401734b5f611b3adcdfda82bdbae63e0ef2e3daaed47513b15f1874abe",
-  "decision_gate": "TURNOVER_PRIMARY_SOURCE_STILL_UNAVAILABLE",
+  "content_sha256": "f7e2e632eb936d4ed1b6951fbade9e37317d31ff87c76145cbcb6951d94333f1",
+  "decision_gate": "TURNOVER_PRIMARY_SOURCE_UNAVAILABLE_AFTER_NO_PROXY_PROBE",
   "initial_acquisition_gate": "TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY",
   "input_manifest": "data/validation/b_turnover_x_relative_volume_incremental_v1/input_manifest.json",
   "intake": {
@@ -65,9 +65,9 @@
     "canonical_content_sha256": null,
     "completed_symbols": 0,
     "endpoint": "https://push2his.eastmoney.com/api/qt/stock/kline/get",
-    "error_class": "ProxyError / RemoteDisconnected",
+    "error_class": "ConnectionError / MaxRetryError",
     "failed_symbols": 11,
-    "failure_classification": "CONNECTION_LAYER_PROXY_REMOTE_DISCONNECT",
+    "failure_classification": "FULL_SUBPROCESS_PROXY_BYPASS_FAILED",
     "function": "ak.stock_zh_a_hist",
     "http_provider_response_received": false,
     "package_version": "1.18.94",
@@ -84,6 +84,13 @@
     },
     "pending_symbols": 5375,
     "persisted_raw_rows": 0,
+    "probe_classifications": [
+      "CONNECTION_LAYER_PROXY_REMOTE_DISCONNECT",
+      "NO_PROXY_HOST_BYPASS_FAILED",
+      "FULL_SUBPROCESS_PROXY_BYPASS_FAILED",
+      "FULL_SUBPROCESS_PROXY_BYPASS_FAILED",
+      "FULL_SUBPROCESS_PROXY_BYPASS_FAILED"
+    ],
     "probe_failed_symbols": [
       {
         "error_class": "ProxyError",
@@ -99,6 +106,189 @@
         "error_class": "ProxyError",
         "status": "FAILED",
         "symbol": "000006.sz"
+      },
+      {
+        "error_class": "ConnectionError",
+        "returned_row_count": null,
+        "status": "FAILED",
+        "symbol": "000001.sz",
+        "underlying_exception_class": "ProtocolError"
+      },
+      {
+        "error_class": "ConnectionError",
+        "returned_row_count": null,
+        "status": "FAILED",
+        "symbol": "000002.sz",
+        "underlying_exception_class": "ProtocolError"
+      },
+      {
+        "error_class": "ConnectionError",
+        "returned_row_count": null,
+        "status": "FAILED",
+        "symbol": "000006.sz",
+        "underlying_exception_class": "ProtocolError"
+      },
+      {
+        "error_class": "ConnectionError",
+        "returned_row_count": null,
+        "status": "FAILED",
+        "symbol": "000001.sz",
+        "underlying_exception_class": "ProtocolError"
+      },
+      {
+        "error_class": "ConnectionError",
+        "returned_row_count": null,
+        "status": "FAILED",
+        "symbol": "000002.sz",
+        "underlying_exception_class": "ProtocolError"
+      },
+      {
+        "error_class": "ConnectionError",
+        "returned_row_count": null,
+        "status": "FAILED",
+        "symbol": "000006.sz",
+        "underlying_exception_class": "ProtocolError"
+      },
+      {
+        "error_class": "ConnectionError",
+        "returned_row_count": null,
+        "status": "FAILED",
+        "symbol": "000001.sz",
+        "underlying_exception_class": "MaxRetryError"
+      },
+      {
+        "error_class": "ConnectionError",
+        "returned_row_count": null,
+        "status": "FAILED",
+        "symbol": "000002.sz",
+        "underlying_exception_class": "MaxRetryError"
+      },
+      {
+        "error_class": "ConnectionError",
+        "returned_row_count": null,
+        "status": "FAILED",
+        "symbol": "000006.sz",
+        "underlying_exception_class": "MaxRetryError"
+      },
+      {
+        "error_class": "ConnectionError",
+        "returned_row_count": null,
+        "status": "FAILED",
+        "symbol": "000001.sz",
+        "underlying_exception_class": "MaxRetryError"
+      },
+      {
+        "error_class": "ConnectionError",
+        "returned_row_count": null,
+        "status": "FAILED",
+        "symbol": "000002.sz",
+        "underlying_exception_class": "MaxRetryError"
+      },
+      {
+        "error_class": "ConnectionError",
+        "returned_row_count": null,
+        "status": "FAILED",
+        "symbol": "000006.sz",
+        "underlying_exception_class": "MaxRetryError"
+      }
+    ],
+    "probe_http_provider_response_received": false,
+    "probe_results": [
+      {
+        "exception_class": "ConnectionError",
+        "http_provider_response_received": false,
+        "returned_row_count": null,
+        "status": "FAILED",
+        "symbol": "000001.sz",
+        "underlying_exception_class": "ProtocolError"
+      },
+      {
+        "exception_class": "ConnectionError",
+        "http_provider_response_received": false,
+        "returned_row_count": null,
+        "status": "FAILED",
+        "symbol": "000002.sz",
+        "underlying_exception_class": "ProtocolError"
+      },
+      {
+        "exception_class": "ConnectionError",
+        "http_provider_response_received": false,
+        "returned_row_count": null,
+        "status": "FAILED",
+        "symbol": "000006.sz",
+        "underlying_exception_class": "ProtocolError"
+      },
+      {
+        "exception_class": "ConnectionError",
+        "http_provider_response_received": false,
+        "returned_row_count": null,
+        "status": "FAILED",
+        "symbol": "000001.sz",
+        "underlying_exception_class": "ProtocolError"
+      },
+      {
+        "exception_class": "ConnectionError",
+        "http_provider_response_received": false,
+        "returned_row_count": null,
+        "status": "FAILED",
+        "symbol": "000002.sz",
+        "underlying_exception_class": "ProtocolError"
+      },
+      {
+        "exception_class": "ConnectionError",
+        "http_provider_response_received": false,
+        "returned_row_count": null,
+        "status": "FAILED",
+        "symbol": "000006.sz",
+        "underlying_exception_class": "ProtocolError"
+      },
+      {
+        "exception_class": "ConnectionError",
+        "http_provider_response_received": false,
+        "returned_row_count": null,
+        "status": "FAILED",
+        "symbol": "000001.sz",
+        "underlying_exception_class": "MaxRetryError"
+      },
+      {
+        "exception_class": "ConnectionError",
+        "http_provider_response_received": false,
+        "returned_row_count": null,
+        "status": "FAILED",
+        "symbol": "000002.sz",
+        "underlying_exception_class": "MaxRetryError"
+      },
+      {
+        "exception_class": "ConnectionError",
+        "http_provider_response_received": false,
+        "returned_row_count": null,
+        "status": "FAILED",
+        "symbol": "000006.sz",
+        "underlying_exception_class": "MaxRetryError"
+      },
+      {
+        "exception_class": "ConnectionError",
+        "http_provider_response_received": false,
+        "returned_row_count": null,
+        "status": "FAILED",
+        "symbol": "000001.sz",
+        "underlying_exception_class": "MaxRetryError"
+      },
+      {
+        "exception_class": "ConnectionError",
+        "http_provider_response_received": false,
+        "returned_row_count": null,
+        "status": "FAILED",
+        "symbol": "000002.sz",
+        "underlying_exception_class": "MaxRetryError"
+      },
+      {
+        "exception_class": "ConnectionError",
+        "http_provider_response_received": false,
+        "returned_row_count": null,
+        "status": "FAILED",
+        "symbol": "000006.sz",
+        "underlying_exception_class": "MaxRetryError"
       }
     ],
     "probe_successful_symbols": [],
@@ -146,6 +336,280 @@
           "NO_PROXY"
         ],
         "started_at_utc": "2026-09-05T07:36:56Z",
+        "successful_symbols": [],
+        "symbols": [
+          "000001.sz",
+          "000002.sz",
+          "000006.sz"
+        ]
+      },
+      {
+        "bypass_mode": "no_proxy_host_bypass",
+        "classification": "NO_PROXY_HOST_BYPASS_FAILED",
+        "failed_symbols": [
+          {
+            "error_class": "ConnectionError",
+            "returned_row_count": null,
+            "status": "FAILED",
+            "symbol": "000001.sz",
+            "underlying_exception_class": "ProtocolError"
+          },
+          {
+            "error_class": "ConnectionError",
+            "returned_row_count": null,
+            "status": "FAILED",
+            "symbol": "000002.sz",
+            "underlying_exception_class": "ProtocolError"
+          },
+          {
+            "error_class": "ConnectionError",
+            "returned_row_count": null,
+            "status": "FAILED",
+            "symbol": "000006.sz",
+            "underlying_exception_class": "ProtocolError"
+          }
+        ],
+        "finished_at_utc": "2026-09-05T09:25:59Z",
+        "http_provider_response_received": false,
+        "max_symbols": 3,
+        "mode": "bounded_connectivity_resume_probe",
+        "probe_results": [
+          {
+            "exception_class": "ConnectionError",
+            "http_provider_response_received": false,
+            "returned_row_count": null,
+            "status": "FAILED",
+            "symbol": "000001.sz",
+            "underlying_exception_class": "ProtocolError"
+          },
+          {
+            "exception_class": "ConnectionError",
+            "http_provider_response_received": false,
+            "returned_row_count": null,
+            "status": "FAILED",
+            "symbol": "000002.sz",
+            "underlying_exception_class": "ProtocolError"
+          },
+          {
+            "exception_class": "ConnectionError",
+            "http_provider_response_received": false,
+            "returned_row_count": null,
+            "status": "FAILED",
+            "symbol": "000006.sz",
+            "underlying_exception_class": "ProtocolError"
+          }
+        ],
+        "proxy_environment_names": [
+          "ALL_PROXY",
+          "HTTPS_PROXY",
+          "HTTP_PROXY",
+          "NO_PROXY"
+        ],
+        "started_at_utc": "2026-09-05T09:25:59Z",
+        "successful_symbols": [],
+        "symbols": [
+          "000001.sz",
+          "000002.sz",
+          "000006.sz"
+        ]
+      },
+      {
+        "bypass_mode": "full_subprocess_proxy_bypass",
+        "classification": "FULL_SUBPROCESS_PROXY_BYPASS_FAILED",
+        "failed_symbols": [
+          {
+            "error_class": "ConnectionError",
+            "returned_row_count": null,
+            "status": "FAILED",
+            "symbol": "000001.sz",
+            "underlying_exception_class": "ProtocolError"
+          },
+          {
+            "error_class": "ConnectionError",
+            "returned_row_count": null,
+            "status": "FAILED",
+            "symbol": "000002.sz",
+            "underlying_exception_class": "ProtocolError"
+          },
+          {
+            "error_class": "ConnectionError",
+            "returned_row_count": null,
+            "status": "FAILED",
+            "symbol": "000006.sz",
+            "underlying_exception_class": "ProtocolError"
+          }
+        ],
+        "finished_at_utc": "2026-09-05T09:26:37Z",
+        "http_provider_response_received": false,
+        "max_symbols": 3,
+        "mode": "bounded_connectivity_resume_probe",
+        "probe_results": [
+          {
+            "exception_class": "ConnectionError",
+            "http_provider_response_received": false,
+            "returned_row_count": null,
+            "status": "FAILED",
+            "symbol": "000001.sz",
+            "underlying_exception_class": "ProtocolError"
+          },
+          {
+            "exception_class": "ConnectionError",
+            "http_provider_response_received": false,
+            "returned_row_count": null,
+            "status": "FAILED",
+            "symbol": "000002.sz",
+            "underlying_exception_class": "ProtocolError"
+          },
+          {
+            "exception_class": "ConnectionError",
+            "http_provider_response_received": false,
+            "returned_row_count": null,
+            "status": "FAILED",
+            "symbol": "000006.sz",
+            "underlying_exception_class": "ProtocolError"
+          }
+        ],
+        "proxy_environment_names": [
+          "NO_PROXY"
+        ],
+        "started_at_utc": "2026-09-05T09:26:37Z",
+        "successful_symbols": [],
+        "symbols": [
+          "000001.sz",
+          "000002.sz",
+          "000006.sz"
+        ]
+      },
+      {
+        "bypass_mode": "full_subprocess_proxy_bypass",
+        "classification": "FULL_SUBPROCESS_PROXY_BYPASS_FAILED",
+        "failed_symbols": [
+          {
+            "error_class": "ConnectionError",
+            "returned_row_count": null,
+            "status": "FAILED",
+            "symbol": "000001.sz",
+            "underlying_exception_class": "MaxRetryError"
+          },
+          {
+            "error_class": "ConnectionError",
+            "returned_row_count": null,
+            "status": "FAILED",
+            "symbol": "000002.sz",
+            "underlying_exception_class": "MaxRetryError"
+          },
+          {
+            "error_class": "ConnectionError",
+            "returned_row_count": null,
+            "status": "FAILED",
+            "symbol": "000006.sz",
+            "underlying_exception_class": "MaxRetryError"
+          }
+        ],
+        "finished_at_utc": "2026-09-05T10:23:41Z",
+        "http_provider_response_received": false,
+        "max_symbols": 3,
+        "mode": "bounded_connectivity_resume_probe",
+        "probe_results": [
+          {
+            "exception_class": "ConnectionError",
+            "http_provider_response_received": false,
+            "returned_row_count": null,
+            "status": "FAILED",
+            "symbol": "000001.sz",
+            "underlying_exception_class": "MaxRetryError"
+          },
+          {
+            "exception_class": "ConnectionError",
+            "http_provider_response_received": false,
+            "returned_row_count": null,
+            "status": "FAILED",
+            "symbol": "000002.sz",
+            "underlying_exception_class": "MaxRetryError"
+          },
+          {
+            "exception_class": "ConnectionError",
+            "http_provider_response_received": false,
+            "returned_row_count": null,
+            "status": "FAILED",
+            "symbol": "000006.sz",
+            "underlying_exception_class": "MaxRetryError"
+          }
+        ],
+        "proxy_environment_names": [
+          "ALL_PROXY",
+          "HTTPS_PROXY",
+          "HTTP_PROXY",
+          "NO_PROXY"
+        ],
+        "started_at_utc": "2026-09-05T10:23:41Z",
+        "successful_symbols": [],
+        "symbols": [
+          "000001.sz",
+          "000002.sz",
+          "000006.sz"
+        ]
+      },
+      {
+        "bypass_mode": "full_subprocess_proxy_bypass",
+        "classification": "FULL_SUBPROCESS_PROXY_BYPASS_FAILED",
+        "failed_symbols": [
+          {
+            "error_class": "ConnectionError",
+            "returned_row_count": null,
+            "status": "FAILED",
+            "symbol": "000001.sz",
+            "underlying_exception_class": "MaxRetryError"
+          },
+          {
+            "error_class": "ConnectionError",
+            "returned_row_count": null,
+            "status": "FAILED",
+            "symbol": "000002.sz",
+            "underlying_exception_class": "MaxRetryError"
+          },
+          {
+            "error_class": "ConnectionError",
+            "returned_row_count": null,
+            "status": "FAILED",
+            "symbol": "000006.sz",
+            "underlying_exception_class": "MaxRetryError"
+          }
+        ],
+        "finished_at_utc": "2026-09-05T10:25:28Z",
+        "http_provider_response_received": false,
+        "max_symbols": 3,
+        "mode": "bounded_connectivity_resume_probe",
+        "probe_results": [
+          {
+            "exception_class": "ConnectionError",
+            "http_provider_response_received": false,
+            "returned_row_count": null,
+            "status": "FAILED",
+            "symbol": "000001.sz",
+            "underlying_exception_class": "MaxRetryError"
+          },
+          {
+            "exception_class": "ConnectionError",
+            "http_provider_response_received": false,
+            "returned_row_count": null,
+            "status": "FAILED",
+            "symbol": "000002.sz",
+            "underlying_exception_class": "MaxRetryError"
+          },
+          {
+            "exception_class": "ConnectionError",
+            "http_provider_response_received": false,
+            "returned_row_count": null,
+            "status": "FAILED",
+            "symbol": "000006.sz",
+            "underlying_exception_class": "MaxRetryError"
+          }
+        ],
+        "proxy_environment_names": [
+          "NO_PROXY"
+        ],
+        "started_at_utc": "2026-09-05T10:25:28Z",
         "successful_symbols": [],
         "symbols": [
           "000001.sz",
