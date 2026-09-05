@@ -1126,3 +1126,36 @@ unchanged. Final OOS remains `SEALED / UNREAD`; C, Phase 2F, promotion,
 freeze and auto-freeze were not run. The prior governance conflict was resolved
 by a bounded docs-only reconciliation; no research, protocol, data or
 production files were changed.
+
+## 2026-09-06 — B V1_1 observation protocol and no-outcome strategy intake
+
+Formal Delivery Ladder remains `development candidate`. B is unchanged:
+`B_BREAKOUT_RETEST_LEGACY_V1_1`, spec SHA
+`f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`, including match,
+first qualifying breakout, pullback, hard gates, support/stop/target/RR/overhang/score,
+`score_cutoff=None`, `top_n=None`, universe and prospective generation path. The completed
+diagnostic decisions `VOLUME_PATH_NEEDS_MORE_EVIDENCE` and
+`TURNOVER_X_RELATIVE_VOLUME_NEEDS_MORE_EVIDENCE` remain unchanged.
+
+Track A adopted the one-time `B_V1_1_PROSPECTIVE_OBSERVATION_PROTOCOL_V1`; its pre-outcome
+protocol/semantics commit is
+`3dd7d51a6341a60540c26db2aa4f18367520d95b` and its store is a future-only,
+append-only calendar-time stream under `data/prospective_observation/b_v1_1/`. The primary
+cohort starts at the first real post-commit XSHG T-close signal date; prior watchlists are
+not backfilled. Signal-level records and deterministic episode-deduplicated records are
+both retained. Mature outcomes are appended separately with explicit execution feasibility;
+the protocol never claims a reference open was an actual fill. Fixed checkpoint is 60
+completed XSHG signal sessions AND 200 mature independent episodes, with a 120-session
+maximum window and no early stop for good performance.
+
+Track B is a separate `NO_OUTCOME_CANDIDATE_INTAKE`. The shortlist is in
+[`docs/research/new_strategy_candidate_intake_v1.md`](research/new_strategy_candidate_intake_v1.md).
+It contains exact-provenance `C_MAIN_TREND_RETEST_LEGACY_V1` plus three explicitly marked
+new hypotheses. Recommended candidate is
+`NEW_CROSS_SECTIONAL_RELATIVE_STRENGTH_LEADERSHIP_V1`; secondary is
+`NEW_VOLATILITY_CONTRACTION_BREAKOUT_V1`. No candidate evaluator, threshold, forward return,
+Final OOS, or new provider was used.
+
+Current stop marker: `NEW_STRATEGY_CANDIDATE_SELECTION_REQUIRED`. Frozen state remains
+unchanged; Final OOS remains `SEALED / UNREAD`; the forbidden
+`data/validation/continuous_speed_probe/` directory remains untouched.

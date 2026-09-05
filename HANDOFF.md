@@ -1368,3 +1368,37 @@ frozen prerequisite 保持 `NOT_READY / PARTIAL_UNVERIFIED`；
 - governance state：`PROJECT_GOVERNANCE_STATE_CONFLICT` 已由本 bounded docs-only
   reconciliation 记录；本 PR 不改变任何 research/result/protocol/data artifact。
 - terminal state：`PR_34_MERGED_AND_VERIFIED`。
+
+## Current handoff — B V1_1 prospective observation and new-strategy intake — 2026-09-06
+
+- task classification：Track A 是 `product infrastructure + correctness/provenance gate`，
+  Track B 是 `research question`；本轮没有升级 Formal Delivery Ladder，也没有启动
+  B V2、turnover V2、Volume-Path V2、promotion、freeze 或 Final OOS。
+- live intake：本次从已实时核验的 `origin/master=380313c94fdfe388157d5274c4636806d2fa9647`
+  派生分支 `codex/b-v1-1-prospective-observation-new-strategy-intake`。PR #35 已
+  `MERGED`，merge-head correctness run=`33973015084`，head SHA exact 为
+  `380313c94fdfe388157d5274c4636806d2fa9647`；本分支在 bounded PR 创建前的 HEAD 为
+  `845c97d`（完整 SHA 由 Git live state 为准），working tree tracked 内容 clean。
+- Track A：protocol/semantics baseline commit=`3dd7d51a6341a60540c26db2aa4f18367520d95b`，
+  strategy=`B_BREAKOUT_RETEST_LEGACY_V1_1`，spec SHA=
+  `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`。Primary cohort
+  只从该 commit 后真实生成的第一个 XSHG T-close signal date 开始；此前 watchlist 不
+  进入 primary cohort，observer 通过 generation-commit ancestry 与日期单调性拒绝回填。
+- observation store：`data/prospective_observation/b_v1_1/`，只在未来真实运行时创建
+  `protocol_manifest.json`（immutable）和 `events.jsonl`（append-only）。保留 raw signal
+  与 deterministic breakout episode dedup；outcome 只能追加 `OUTCOME_UPDATE`，不覆盖
+  signal-time bytes/identity。execution 仅按显式分类记录，并声明
+  `REFERENCE_EXECUTION_NOT_ACTUAL_FILL`。
+- fixed checkpoint：`60` completed XSHG signal sessions AND `200` mature independent
+  breakout episodes，maximum `120` sessions；`NO_EARLY_STOP_FOR_GOOD_PERFORMANCE`。
+  diagnostics 只解释，不优化 B；无 automatic promotion。
+- Track B：no-outcome shortlist 已写入
+  `docs/research/new_strategy_candidate_intake_v1.md`，包括 C legacy 与三个
+  `NEW_RESEARCH_HYPOTHESIS`。`RECOMMENDED_NEXT_STRATEGY_CANDIDATE=NEW_CROSS_SECTIONAL_RELATIVE_STRENGTH_LEADERSHIP_V1`，
+  `SECONDARY_CANDIDATE=NEW_VOLATILITY_CONTRACTION_BREAKOUT_V1`；C 未自动 nominate。
+- verification：focused observation tests=`6 passed`；full pytest 使用仓库 `.venv`
+  (Python 3.12.14) 为 `290 passed`；未读取任何 new-candidate returns、C returns、Final
+  OOS 或受禁目录内容，未创建 prospective data。
+- terminal state：`NEW_STRATEGY_CANDIDATE_SELECTION_REQUIRED`。下一步只创建 bounded PR、
+  等 exact-head CI，然后停在用户选择；不得自动 implement candidate、tune、run returns、
+  read C/Final OOS、启动 B V2 或 merge。
