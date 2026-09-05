@@ -72,6 +72,11 @@ DATE_FIELD = "日期"
 PRIMARY_FEATURES = ("turnover_rate_pct", "relative_volume")
 ROBUSTNESS_OUTCOMES = ("10D_return", "5D_mfe", "5D_mae", "10D_mfe", "10D_mae")
 ALL_OUTCOME_FIELDS = ("5D_return", *ROBUSTNESS_OUTCOMES)
+OUTCOME_ACCESS_STATUS = "SCHEMA_SAMPLE_OBSERVED_NOT_USED"
+OUTCOME_ACCESS_NOTE = (
+    "One pre-existing event record was inspected during intake only to identify the "
+    "artifact schema; no outcome value was used in computation, filtering, or conclusion."
+)
 YEAR_GROUPS = ("2023", "2024", "2025", "2026")
 BOARD_GROUPS = ("Main", "ChiNext", "STAR")
 STAGE_LABELS = volume_path.STAGE_LABELS
@@ -716,14 +721,19 @@ def audit_inputs(
             },
             "data_quality": {"status": "NOT_EVALUATED_DUE_TO_PROVIDER_FAILURE"},
             "relative_volume_semantics": cohort_manifest["relative_volume_semantics"],
-            "outcome_access": {"status": "NOT_READ", "required_next_gate": "NEW_PROVIDER_ACCESS_OR_RESUME"},
+            "outcome_access": {
+                "status": OUTCOME_ACCESS_STATUS,
+                "note": OUTCOME_ACCESS_NOTE,
+                "required_next_gate": "NEW_PROVIDER_ACCESS_OR_RESUME",
+            },
             "boundaries": {
                 "b_unchanged": True,
                 "prospective_pipeline_unchanged": True,
                 "frozen_registry_unchanged": True,
                 "final_oos_read": False,
                 "new_provider": False,
-                "outcome_read": False,
+                "outcome_read": True,
+                "outcome_values_used": False,
             },
         }
         _write_json_atomic(output_manifest_path, blocked)
@@ -895,7 +905,11 @@ def audit_inputs(
             "raw_dir": acquisition["raw_acquisition"]["raw_dir"],
             "raw_bytes_stream_sha256": acquisition["raw_acquisition"]["raw_bytes_stream_sha256"],
         },
-        "outcome_access": {"status": "NOT_READ", "required_next_gate": "PRE_OUTCOME_PROTOCOL_COMMIT"},
+        "outcome_access": {
+            "status": OUTCOME_ACCESS_STATUS,
+            "note": OUTCOME_ACCESS_NOTE,
+            "required_next_gate": "PRE_OUTCOME_PROTOCOL_COMMIT",
+        },
     }
     _write_json_atomic(output_manifest_path, result)
     return result
@@ -954,7 +968,8 @@ def write_blocked_artifacts(
         "protocol": {"pre_outcome_commit": None, "status": "NOT_CREATED_DUE_TO_GATE_A"},
         "decision_gate": "TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY",
         "research_decision": None,
-        "outcome_access": "NOT_READ",
+        "outcome_access": OUTCOME_ACCESS_STATUS,
+        "outcome_access_note": OUTCOME_ACCESS_NOTE,
         "boundaries": {
             "b_unchanged": True,
             "prospective_pipeline_unchanged": True,
@@ -965,6 +980,7 @@ def write_blocked_artifacts(
             "new_provider": False,
             "threshold_search": False,
             "parameter_sweep": False,
+            "outcome_values_used": False,
         },
         "input_manifest": input_manifest_path.as_posix(),
         "resume_checkpoint": checkpoint_path.as_posix(),
@@ -984,7 +1000,9 @@ Labels: `DEVELOPMENT` / `RECONSTRUCTED_RETROSPECTIVE` / `DATE_ANCHORED` / `NO_VI
 This task stopped before the pre-outcome protocol commit because the authorized
 primary AKShare source could not provide a usable acquisition. The resumable
 checkpoint remains available for a later explicitly authorized resume or source
-decision. Outcome analysis was not started; this gate path does not access outcome values.
+decision. Outcome analysis was not started. During intake, one pre-existing event
+record was inspected only to identify the artifact schema; no outcome value was
+used in computation, filtering, or conclusion.
 
 ## Intake and acquisition
 

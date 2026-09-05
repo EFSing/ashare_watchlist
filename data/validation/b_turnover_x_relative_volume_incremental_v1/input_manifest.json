@@ -10787,7 +10787,8 @@
     "final_oos_read": false,
     "frozen_registry_unchanged": true,
     "new_provider": false,
-    "outcome_read": false,
+    "outcome_read": true,
+    "outcome_values_used": false,
     "prospective_pipeline_unchanged": true
   },
   "cohort": {
@@ -10825,8 +10826,9 @@
     "DIAGNOSTIC_ONLY"
   ],
   "outcome_access": {
+    "note": "One pre-existing event record was inspected during intake only to identify the artifact schema; no outcome value was used in computation, filtering, or conclusion.",
     "required_next_gate": "NEW_PROVIDER_ACCESS_OR_RESUME",
-    "status": "NOT_READ"
+    "status": "SCHEMA_SAMPLE_OBSERVED_NOT_USED"
   },
   "provider": {
     "adjust": "",

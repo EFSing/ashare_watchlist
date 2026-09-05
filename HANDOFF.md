@@ -1267,7 +1267,8 @@ frozen prerequisite 保持 `NOT_READY / PARTIAL_UNVERIFIED`；
   尝试 3 次。
 - decision/stop：`TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY`。qualified/structural
   coverage 为 `NOT_EVALUATED`，raw/canonical SHA 为 `NOT_CREATED`；未提交 protocol，
-  未读取 outcome、Final OOS、continuous-speed-probe，未引入第二 provider。
+  outcome analysis 未启动；intake 期间仅为识别既有 artifact schema 查看过一条 pre-existing
+  event record，未使用任何 outcome 值做计算、筛选或结论。Final OOS、continuous-speed-probe 未读，未引入第二 provider。
 - evidence：[`data/validation/b_turnover_x_relative_volume_incremental_v1/input_manifest.json`](data/validation/b_turnover_x_relative_volume_incremental_v1/input_manifest.json)、
   [`data/validation/b_turnover_x_relative_volume_incremental_v1/summary.json`](data/validation/b_turnover_x_relative_volume_incremental_v1/summary.json)、
   [`docs/research/b_turnover_x_relative_volume_incremental_v1_report.md`](docs/research/b_turnover_x_relative_volume_incremental_v1_report.md)。checkpoint 与大体积

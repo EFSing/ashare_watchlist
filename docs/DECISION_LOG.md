@@ -1238,7 +1238,8 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
   AkShare `1.18.94` / `ak.stock_zh_a_hist` 在 3 次 bounded retry 后连续返回
   `ProxyError / RemoteDisconnected`；checkpoint=`0` completed、`11` failed、`5,375`
   pending of `5,386` requested symbols。未达到 turnover coverage，因此停止，不创建
-  pre-outcome protocol，不读取 returns/MFE/MAE，不执行 research decision。
+  pre-outcome protocol，不读取 returns/MFE/MAE，不执行 research decision。审计注：intake 期间仅为
+  识别既有 artifact schema 查看过一条 pre-existing event record，未使用任何 outcome 值做计算、筛选或结论。
 - consequences：保留 resumable checkpoint、input manifest、summary/report；不引入
   第二 provider、不填补 turnover、不写 raw/canonical dataset、不修改 B/spec/score/
   threshold/hard gates/Top-N/universe/sector/ST/prospective pipeline/frozen registry，

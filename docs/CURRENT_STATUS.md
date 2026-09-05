@@ -1000,8 +1000,9 @@ The task stopped at `TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY`: primary AkSh
 `0/5,386` completed symbols after bounded retries, `11` failed and `5,375` pending due to
 `ProxyError / RemoteDisconnected`. Turnover coverage is therefore `NOT_EVALUATED`, no
 canonical/raw SHA exists, and no pre-outcome protocol commit or research decision exists.
-Outcome values, Final OOS and the forbidden continuous-speed-probe directory were not
-used. B, prospective pipeline, frozen inputs/registry and all production boundaries remain
+Outcome analysis was not started. Intake inspected one pre-existing event record only for
+artifact-schema identification; no outcome value was used. Final OOS and the forbidden
+continuous-speed-probe directory were not used. B, prospective pipeline, frozen inputs/registry and all production boundaries remain
 unchanged. Resume evidence and gate-A report are recorded under
 `data/validation/b_turnover_x_relative_volume_incremental_v1/` and
 `docs/research/b_turnover_x_relative_volume_incremental_v1_report.md`.

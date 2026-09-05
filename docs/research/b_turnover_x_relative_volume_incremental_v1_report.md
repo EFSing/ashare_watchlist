@@ -9,7 +9,9 @@ Labels: `DEVELOPMENT` / `RECONSTRUCTED_RETROSPECTIVE` / `DATE_ANCHORED` / `NO_VI
 This task stopped before the pre-outcome protocol commit because the authorized
 primary AKShare source could not provide a usable acquisition. The resumable
 checkpoint remains available for a later explicitly authorized resume or source
-decision. Outcome analysis was not started; this gate path does not access outcome values.
+decision. Outcome analysis was not started. During intake, one pre-existing event
+record was inspected only to identify the artifact schema; no outcome value was
+used in computation, filtering, or conclusion.
 
 ## Intake and acquisition
 
@@ -60,4 +62,4 @@ numeric semantics in `scripts/b_breakout_retest_v1_1.py`.
 
 Resume evidence: `data/validation/b_turnover_x_relative_volume_incremental_v1/acquisition_checkpoint.json`  
 Input manifest: `data/validation/b_turnover_x_relative_volume_incremental_v1/input_manifest.json`  
-Summary content SHA-256: `a28da3b3884487ed303eeb5833aed3979399c6c3f8df1d32c1fa7e6faf27346c`
+Summary content SHA-256: `8174c9a5776a38742206251282df0f40a346b73dc561e3b7c9ba6ce9098532ce`

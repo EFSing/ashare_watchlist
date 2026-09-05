@@ -6,6 +6,7 @@
     "frozen_dataset_unchanged": true,
     "frozen_registry_unchanged": true,
     "new_provider": false,
+    "outcome_values_used": false,
     "parameter_sweep": false,
     "prospective_pipeline_unchanged": true,
     "threshold_search": false
@@ -24,7 +25,7 @@
       "total": 573586
     }
   },
-  "content_sha256": "a28da3b3884487ed303eeb5833aed3979399c6c3f8df1d32c1fa7e6faf27346c",
+  "content_sha256": "8174c9a5776a38742206251282df0f40a346b73dc561e3b7c9ba6ce9098532ce",
   "decision_gate": "TURNOVER_RATE_ACQUISITION_NOT_RESEARCH_READY",
   "input_manifest": "data/validation/b_turnover_x_relative_volume_incremental_v1/input_manifest.json",
   "intake": {
@@ -39,7 +40,8 @@
     "NO_VINTAGE_PROOF",
     "DIAGNOSTIC_ONLY"
   ],
-  "outcome_access": "NOT_READ",
+  "outcome_access": "SCHEMA_SAMPLE_OBSERVED_NOT_USED",
+  "outcome_access_note": "One pre-existing event record was inspected during intake only to identify the artifact schema; no outcome value was used in computation, filtering, or conclusion.",
   "protocol": {
     "pre_outcome_commit": null,
     "status": "NOT_CREATED_DUE_TO_GATE_A"
