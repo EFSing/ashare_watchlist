@@ -9,7 +9,29 @@ final canonical master SHA。
 Phase 2E research baseline：PR #6 / `74ccf86dfdea3b9d4b0124fb54346aa429735508`
 职责：记录项目正式处于什么状态，以及哪些研究结论已经成立。长期产品目标和 usable gate 见 [`PRODUCT_CHARTER.md`](PRODUCT_CHARTER.md)，接手动作见 [`HANDOFF.md`](../HANDOFF.md)，决策理由见 [`DECISION_LOG.md`](DECISION_LOG.md)。
 
-## Current live checkpoint — PR #39 MERGED + DURABILITY AUDIT — 2026-09-06
+## Final live checkpoint — WORKSTATION RESUME VERIFIED — 2026-09-06
+
+本轮 post-merge governance、Drive durability 和 clean-workstation dry run 已完成；下方旧
+checkpoint 是历史静态记录。PR #39 authorized head=`fdb4640fb8556f7ce86c1d8d1feb7ceb41f9e822`，
+merge SHA=`1fdb099926a1172cfebee7001537910d805019e4`，merge-head correctness
+`34031658818=success`；governance reconciliation commit=`dd491382c5c8d5bfb07ec844ec116ece56afa526`，
+governance-head correctness `34034984771=success`，两者 workflow head 均 exact。
+
+- final live state：master/origin/master exact，open PR=0，tracked working tree clean；formal
+  Delivery Ladder=`development candidate`，B=`B_BREAKOUT_RETEST_LEGACY_V1_1` fixed rule +
+  prospective observation。
+- Drive root `ashare_watchlist`=`13_-tlozdfe1KEtNSMxp6pCroI893g_qH` remains private owner-only。
+  2026-09-03 watchlist exact readback verified；daily_k existing recovery valid and no re-upload。
+  RS/VCB/CRSR detail archive exact readback verified；Volume-Path local-only detail missing，
+  turnover/RV raw/full archive condition not met。
+- clean clone HEAD=`dd491382c5c8d5bfb07ec844ec116ece56afa526`，pinned dependencies installed，
+  compileall PASS，focused tests=`12 passed`，historical watchlist restore/read-only review PASS，
+  no-secret T-close preflight fail-closed and provider calls NOT RUN，status clean。
+- `ACTIVE_NEW_STRATEGY_RESEARCH=NONE` / `PAUSED / PHASE_COMPLETE`；Final OOS=`SEALED / UNREAD`；
+  C unread/candidate inventory only；old D not reconstructed；forbidden directory untouched。
+- close marker：`A_SHARE_RESEARCH_PHASE_CLOSED_WORKSTATION_RESUME_READY`。
+
+## Historical checkpoint — PR #39 MERGED + DURABILITY AUDIT (superseded)
 
 这是当前 post-merge、pre-governance-commit 的 authoritative snapshot；下方旧段均为历史
 记录。PR #39 authorized head=`fdb4640fb8556f7ce86c1d8d1feb7ceb41f9e822`，merge SHA=

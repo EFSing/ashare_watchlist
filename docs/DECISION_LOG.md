@@ -1534,6 +1534,28 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
 - stop：`CRSR_RESEARCH_PR_READY_FOR_USER_MERGE_DECISION`，等待用户 merge decision；任何
   后续 head 变化都必须重新通过 exact-head CI。
 
+## 2026-09-06 — Final workstation resume closure
+
+- verification：PR #39 merge SHA=`1fdb099926a1172cfebee7001537910d805019e4`，merge-head
+  correctness=`34031658818 success`；bounded governance reconciliation commit=
+  `dd491382c5c8d5bfb07ec844ec116ece56afa526`，governance-head correctness=
+  `34034984771 success`，workflow head exact；master/origin/master exact，open PR=0，tracked
+  working tree clean。
+- recovery：Drive project root remains private; operational watchlist readback exact，daily_k
+  existing registry recovery valid；RS/VCB/CRSR research detail archive exact readback verified。
+  Volume-Path missing local-only detail is an audit gap only, not a daily-operation blocker；no
+  turnover/RV archive was created without manifest-confirmed raw/full bytes。
+- clean clone：exact final handoff snapshot cloned from GitHub，pinned dependencies installed，
+  compileall PASS，focused tests `12 passed`；historical 2026-09-03 watchlist restored outside
+  clone and read-only schema/provenance/revision/hash review PASS；no-secret T-close preflight
+  failed closed without provider calls；research archive not required at daily startup。
+- decision：`DAILY_WORK_COMPUTER_RESUME_READY=YES` and
+  `CURRENT_HOME_COMPUTER_NO_LONGER_SINGLE_POINT_OF_FAILURE=YES`。`ACTIVE_NEW_STRATEGY_RESEARCH=
+  NONE` / `PAUSED / PHASE_COMPLETE`，Final OOS=`SEALED / UNREAD`，C unread，old D not
+  reconstructed；no new strategy/tuning/promotion/freeze/production semantic change；forbidden
+  directory untouched。
+- terminal marker：`A_SHARE_RESEARCH_PHASE_CLOSED_WORKSTATION_RESUME_READY`；本轮停止。
+
 ## 2026-09-06 — PR #39 final merge and post-merge durability governance
 
 - classification：`product infrastructure + correctness/provenance + recovery`；不是新的

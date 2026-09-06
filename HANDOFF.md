@@ -2,7 +2,42 @@
 
 > 本文件是下一台电脑、一次新 clone 或一个新 Codex 会话的接手入口；它不是完整 Git 历史。
 
-## LATEST LIVE CHECKPOINT — PR #39 FINAL MERGE + DURABILITY AUDIT — 2026-09-06
+## FINAL HANDOFF CHECKPOINT — WORKSTATION RESUME VERIFIED — 2026-09-06
+
+本段是本轮最终交接结论；下方 post-merge/reconciliation 段均为历史 provenance。下一台
+电脑仍必须重新查询 live Git/GitHub/CI，不把静态 SHA 当作永久 invariant。
+
+- 本轮 classification：`product infrastructure + correctness/provenance + recovery`，已完成。
+  PR #39 authorized head=`fdb4640fb8556f7ce86c1d8d1feb7ceb41f9e822`；
+  `CRSR_MERGE_SHA=1fdb099926a1172cfebee7001537910d805019e4`；merge-head correctness
+  `34031658818=success` 且 head exact。post-merge governance reconciliation commit 为
+  `dd491382c5c8d5bfb07ec844ec116ece56afa526`；governance-head correctness
+  `34034984771=success` 且 head exact。
+- final live verification：master 与 origin/master exact；active open PR=`0`；tracked working
+  tree clean。正式层级仍为 `development candidate`，active daily strategy 为
+  `B_BREAKOUT_RETEST_LEGACY_V1_1`，B state 为 fixed rule + prospective observation。
+- Drive root `ashare_watchlist` ID=`13_-tlozdfe1KEtNSMxp6pCroI893g_qH` 保持私有 owner-only。
+  `watchlist_20260903.json` exact readback verified；daily_k registry remains
+  `FULLY_RECOVERABLE` / `NO_REUPLOAD_REQUIRED`。RS、VCB、CRSR local-only research detail
+  archives 已 exact-backed-up and readback-verified；Volume-Path detail 原 bytes missing，已
+  记录 `LOCAL_ONLY_ARTIFACT_MISSING`，未用重生成文件替代；turnover/RV 未满足 raw/full
+  manifest 条件，未归档。
+- clean-workstation dry run：从 GitHub clone 的 HEAD=`dd491382c5c8d5bfb07ec844ec116ece56afa526`；
+  pinned runtime 安装完成，compileall PASS，focused tests=`12 passed`；2026-09-03 historical
+  watchlist 在外部恢复 data root 中 schema/provenance/revision identity/readback SHA 均通过，
+  不依赖家庭电脑绝对路径；无 credential 时 T-close preflight 明确 fail-closed、provider calls
+  未执行；clone status clean。research archive 未放入 daily startup。
+- required environment variable names only：`HITHINK_FINANCE_API_KEY`（live B required）、
+  `ASHARE_DATA_ROOT`（optional data-root override）。没有记录任何值、token、API key 或第三方
+  research credential。
+- formal close state：`CONTROLLED_RIGHT_SIDE_REVERSAL_NO_CLEAR_INCREMENTAL_SIGNAL`；
+  `ACTIVE_NEW_STRATEGY_RESEARCH=NONE` / `PAUSED / PHASE_COMPLETE`；C=`UNREAD / CANDIDATE
+  INVENTORY ONLY`；old D=`NOT_RECONSTRUCTED`；Final OOS=`SEALED / UNREAD`。没有新 strategy、
+  tuning、promotion、freeze、production semantic change、fake prospective capture 或 forbidden
+  directory access。
+- final marker：`A_SHARE_RESEARCH_PHASE_CLOSED_WORKSTATION_RESUME_READY`。
+
+## Historical checkpoint — PR #39 FINAL MERGE + DURABILITY AUDIT (superseded)
 
 本段 supersede 下方所有旧的 current/open/awaiting-merge 快照；历史段保留作 provenance，
 不再表示 live state。
