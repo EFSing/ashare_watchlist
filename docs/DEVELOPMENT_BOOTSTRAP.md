@@ -13,14 +13,19 @@ git clone https://github.com/EFSing/ashare_watchlist.git
 Set-Location ashare_watchlist
 git remote -v
 git fetch --all --prune
-git branch --show-current
-git rev-parse origin/master
 git status --short --branch
+git branch --show-current
+git rev-parse HEAD
+git rev-parse @{u}
 ```
 
 确认 origin 是 `EFSing/ashare_watchlist`。不要用 `git clean`，不要删除未跟踪文件。
-普通开发（FAST PATH）继续任务时只读取 `AGENTS.md` 与 `HANDOFF.md`，并核对 working
-tree、branch、HEAD、remote/fetch；不默认重新核验历史 PR/CI/artifact 或旧 Phase。
+若 tracked working tree clean 且当前 branch 仅落后 upstream（HEAD 是 `@{u}` 的祖先），
+执行 `git pull --ff-only`；之后读取 `HANDOFF.md` 并基于同步后的 checkout 继续任务。若
+存在未提交的 tracked 改动或本地分支与 upstream 已 diverge，先处理该状态，不得用 pull
+覆盖。
+普通开发（FAST PATH）只读取 `AGENTS.md` 与 `HANDOFF.md`，不默认重新核验历史
+PR/CI/artifact 或旧 Phase。
 STRICT PATH（交易语义、数据口径、research/live 证据、artifact、不可逆写入、merge/
 release、资金/生产风险等）才按 `AGENTS.md` 指示读取相关 protocol/governance 文件，
 并只验证当前任务实际依赖的 PR head、exact-head CI 和 working tree。

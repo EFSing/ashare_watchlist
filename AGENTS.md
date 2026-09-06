@@ -14,13 +14,21 @@ live state 都以实时 Git/GitHub 查询为准；Git-tracked 治理文档中的
 普通 bugfix、字段/映射修正、CLI 修复、局部 acquisition 修复、测试维护、文档同步，
 以及不改变交易语义或研究结论的局部优化，一律走 FAST PATH。
 
-开始工作时只检查：
+开始工作时先按以下顺序核对并同步：
 
-1. `git status`（当前 working tree）；
-2. current branch；
-3. `HEAD`；
-4. `git remote -v` + `git fetch`；
-5. 读取 `HANDOFF.md`。
+```text
+git remote -v
+git fetch --all --prune
+git status --short --branch
+git branch --show-current
+git rev-parse HEAD
+git rev-parse @{u}
+```
+
+若 tracked working tree clean 且当前 branch 仅落后 upstream（HEAD 是 `@{u}` 的祖先），
+执行 `git pull --ff-only`；之后读取 `HANDOFF.md`，再基于同步后的 checkout 继续任务。
+若存在未提交的 tracked 改动或本地分支与 upstream 已 diverge，先处理该状态，不得用
+pull 覆盖。
 
 FAST PATH 不得默认重新核验全部历史 PR、CI、artifact SHA、数据血缘或旧 Phase。
 
@@ -55,7 +63,7 @@ artifact、数据血缘和研究证据，不进行无边界历史审计。
 两类状态必须明确区分：
 
 - **LIVE STATE**：需要时从 Git/GitHub 实时读取 current branch、current HEAD、
-  `origin/master` 和 working tree；以这些查询结果为准，不以文档中的静态 SHA 为准。
+  upstream（`@{u}`）和 working tree；以这些查询结果为准，不以文档中的静态 SHA 为准。
 - **PERSISTED GOVERNANCE STATE**：文档可以保存 formal milestone merge identity、
   strategy/protocol/frozen-artifact SHA、Delivery Ladder、Current Objective、
   blockers/deferred、decisions 和 frozen artifact identities；这些不是 live-state invariant。
@@ -152,15 +160,17 @@ registry、新 shadow、新 gate、新状态机或其他治理层。
 ### New-device recovery flow
 
 ```text
-git fetch
-读取 HANDOFF.md
-切换对应 branch
-git pull --ff-only
-git status
+git remote -v
+git fetch --all --prune
+git status --short --branch
+git branch --show-current
 git rev-parse HEAD
+git rev-parse @{u}
 ```
 
-如果 branch、HEAD 和当前任务状态一致，直接继续，不执行完整项目审计。
+若 tracked working tree clean 且当前 branch 仅落后 upstream，执行 `git pull --ff-only`；
+随后读取 `HANDOFF.md`，确认 branch、HEAD 与当前任务状态一致后直接继续，不执行完整
+项目审计。
 
 ### 声明完成前
 
