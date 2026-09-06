@@ -1478,3 +1478,47 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
   B、RS、frozen state 或 production semantics。
 - stop：不启动另一 candidate，不读取 Final OOS，不调参、不 promotion、不 freeze；终态为
   `VCB_RESEARCH_MERGED_MASTER_VERIFIED`。
+
+## 2026-09-06 — CRSR V1 fixed research decision
+
+- classification：`research question`。Materiality 是回答在 fixed downside-extreme state
+  与 positive-bounce baseline 之上，严格 prior-5-close right-side reclaim 是否仍提供
+  incremental predictive information；primary identification 预先控制 T-day bounce magnitude。
+- identity/boundary：用户选择 `NEW_CONTROLLED_RIGHT_SIDE_REVERSAL_V1`，这是
+  `NEW_RESEARCH_HYPOTHESIS`，不是 old D 恢复、重建或替代；不得读取 old D 名单、sample、
+  outcomes 或 predictive provenance。pre-outcome protocol commit=
+  `123ef5299ef94411a0b1cb4ec5745ee2c472979e`，commit 后才访问 CRSR DEVELOPMENT outcomes。
+- input：769 continuous XSHG sessions、4,041,140 date-symbol PIT identities；identity SHA=
+  `dbc5d220f24f51a0245d047b88733c961fc4f184d02ef6f5ac0fc795576217b0`；daily-K SHA=
+  `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426`；adjustment SHA=
+  `a1b7d63c5826ccd3610dc9bdd949d82eeb0ba84ffad451bfb8bb30ca74962716`；signal price 为
+  `HISTORICAL_T_ANCHOR_PRICE_RAW_VOLUME`；per-bar vintage proof 不存在，保留 `NO_VINTAGE_PROOF`。
+- signal：T-1 `R20_PRE=close_T-1/close_T-21-1`，same-date ascending bottom-20% rank with
+  symbol tie-break and absolute `<0`；T-day strict positive bounce；strict close above prior
+  five-session close high；candidate=`121,698`，primary control=`250,506`，baseline=`372,204`；
+  shared-bounce-bin dates=`765`；readiness gate PASS。没有 RSI/MACD/KDJ/MA/Bollinger、volume、
+  turnover、RV、sector、B、VCB、RS 或 ML qualification。
+- outcome：signal=T close；reference=T+1 XSHG open，`REFERENCE_EXECUTION_NOT_ACTUAL_FILL`；
+  DEVELOPMENT adjusted outcome convention；candidate/control usable 10D coverage=`98.31%` /
+  `98.15%`，coverage gate PASS。Primary stratified 10D mean=`-0.079350pp`，median=`-0.232037pp`，
+  95% 20-session moving-block CI=`[-0.495382,+0.403562]`，positive-spread date rate=`44.90%`；
+  raw unstratified spread=`-0.233054pp`；5D stratified mean=`-0.155740pp`。
+- robustness：continuous reclaim-margin rho mean=`-0.025847`，positive-rho date rate=`42.14%`；
+  non-downside generic reclaim spread=`-0.084147pp`，context interaction mean=`-0.023253`；
+  cooldown retained candidate/control=`22,176`/`89,553`，10D mean=`+0.047685pp`，CI crosses zero；
+  year primary signs are 2023 negative、2024 negative、2025 negative、2026 positive；boards、
+  prior-R20、prior realized-volatility、amount、symbol/month concentration、best/worst dates 和
+  post-stratification T-day balance 均保存于 summary/report。
+- decision：`CONTROLLED_RIGHT_SIDE_REVERSAL_NO_CLEAR_INCREMENTAL_SIGNAL`。因为 primary mean
+  `<=0` 且 continuous rho `<=0`；同时 primary CI crosses zero。不能保留“right-side reclaim
+  provides incremental predictive value”作为当前 fixed evidence 结论；不得自动加指标、调窗口、
+  切板块、改 horizon、重开 old D 或启动下一 candidate。该 decision 是固定 research decision，
+  不是 production strategy rejection 或对其他策略的结论。
+- artifacts/verification：signal detail `4,041,140` rows，SHA=
+  `267995e9098c67759fe6ab401e8f1abedbca4bba452df187b7c36b715be8e203`；outcome detail local-only
+  `1,935,412` rows，SHA=`e64fc9543e0bb01ccd9454c1a52d42306ae8d0613e93254ca05c0047c21ba3ca`；focused
+  tests=`15 passed`，full pytest=`330 passed`，compileall、JSON/schema/hash、diff checks PASS。
+- governance/stop：B/B prospective、RS、VCB、Volume-Path、turnover/RV、frozen state unchanged；
+  C unread；Final OOS=`SEALED / UNREAD`；forbidden directory untouched；没有 provider change、
+  parameter tuning、promotion、freeze 或 production path change。下一 gate 是 independent PR
+  exact-head CI；终态为 `CRSR_RESEARCH_PR_READY_FOR_USER_MERGE_DECISION`。

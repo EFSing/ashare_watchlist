@@ -206,8 +206,7 @@ def _new_state() -> dict[str, Any]:
 
 
 def _reference_entry_available(outcome_record: Mapping[str, Any]) -> bool:
-    status = str(outcome_record["outcomes"]["1D"]["status"])
-    return status not in UNAVAILABLE_ENTRY_STATUSES
+    return bool(outcome_record.get("reference_entry_available", False))
 
 
 def _update_state(state: dict[str, Any], outcome_record: Mapping[str, Any], horizon: str) -> None:
@@ -560,6 +559,8 @@ def _signal_pass(*, raw_dir: Path, core_manifest_path: Path, core_output_path: P
         "prior_r20_distribution": {group: _date_distribution(rows, "r20_pre") for group, rows in grouped_rows.items() if group in ("CANDIDATE", "PRIMARY_CONTROL", "FULL_DOWNSIDE_BOUNCE")},
         "prior_realized_volatility_distribution": {group: _date_distribution(rows, "prior_realized_volatility20_pct") for group, rows in grouped_rows.items()},
         "traded_amount_distribution": {group: _date_distribution(rows, "median_traded_amount20") for group, rows in grouped_rows.items()},
+        "post_stratification_t_day_return_balance": _post_stratification_balance(per_date),
+        "monthly_event_counts": _monthly_event_counts(grouped_rows),
         "sample_gate": {
             "candidate_events_min": 500,
             "primary_control_events_min": 1000,
@@ -605,13 +606,29 @@ def _reuse_signal_pass(signal_path: Path, audit_path: Path) -> dict[str, Any]:
                 entry["generic_reclaim_rows"].append(row)
             if row.get("non_downside_generic_control"):
                 entry["generic_control_rows"].append(row)
+    for entry in per_date.values():
+        entry.update({
+            "eligible_n": None,
+            "valid_r20_pre_n": None,
+            "insufficient_history_n": None,
+            "invalid_signal_input_n": None,
+            "downside_extreme_n": None,
+            "downside_bounce_baseline_n": len(entry["baseline_rows"]),
+            "candidate_n": len(entry["candidate_rows"]),
+            "primary_control_n": len(entry["control_rows"]),
+            "generic_reclaim_n": len(entry["generic_reclaim_rows"]),
+            "generic_control_n": len(entry["generic_control_rows"]),
+        })
     return {"audit": signal_summary["input_audit"], "per_date": per_date, "signal_only": signal_summary["signal_only"], "signal_artifact": artifact, "signal_overlap": signal_summary["signal_overlap"], "signal_summary": signal_summary}
 
 
 def _outcome_record(row: Mapping[str, Any], store: dict[str, Any], events: dict[str, list[tuple[int, float, float, float, float]]], session_dates: list[str], session_ms: np.ndarray, session_index: dict[str, int]) -> dict[str, Any]:
-    record = returns_v2._build_event_record(row={"as_of_date": row["date"], "signal_date": row["date"], "earliest_execution_date": row["earliest_execution_date"], "symbol": row["symbol"], "setup_id": STRATEGY_VERSION}, store=store, events=events, session_dates=session_dates, session_ms=session_ms, session_index=session_index)
+    full_record = returns_v2._build_event_record(row={"as_of_date": row["date"], "signal_date": row["date"], "earliest_execution_date": row["earliest_execution_date"], "symbol": row["symbol"], "setup_id": STRATEGY_VERSION}, store=store, events=events, session_dates=session_dates, session_ms=session_ms, session_index=session_index)
+    record = dict(full_record)
+    record["outcomes"] = {horizon: full_record["outcomes"][horizon] for horizon in (SECONDARY_HORIZON, PRIMARY_HORIZON)}
     record["reference_execution"] = "T+1 XSHG open"
     record["reference_execution_not_actual_fill"] = True
+    record["reference_entry_available"] = str(full_record["outcomes"]["1D"]["status"]) not in UNAVAILABLE_ENTRY_STATUSES
     return record
 
 
@@ -684,6 +701,44 @@ def _monthly_concentration(daily_rows: Sequence[Mapping[str, Any]]) -> dict[str,
     return {month: {"valid_primary_dates": count} for month, count in sorted(counts.items())}
 
 
+def _monthly_event_counts(rows: Mapping[str, Sequence[Mapping[str, Any]]]) -> dict[str, dict[str, int]]:
+    months: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    for group, group_rows in rows.items():
+        for row in group_rows:
+            months[str(row["date"])[:7]][group] += 1
+    return {month: dict(sorted(values.items())) for month, values in sorted(months.items())}
+
+
+def _post_stratification_balance(per_date: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
+    date_values: list[float] = []
+    bin_values: list[float] = []
+    for item in per_date.values():
+        by_bin: dict[int, dict[str, list[float]]] = defaultdict(lambda: {"candidate": [], "control": []})
+        for row in item["candidate_rows"]:
+            by_bin[int(row["bounce_bin"])]["candidate"].append(float(row["t_day_return"]))
+        for row in item["control_rows"]:
+            by_bin[int(row["bounce_bin"])]["control"].append(float(row["t_day_return"]))
+        differences = [abs(float(np.mean(values["candidate"])) - float(np.mean(values["control"]))) for values in by_bin.values() if values["candidate"] and values["control"]]
+        if differences:
+            bin_values.extend(differences)
+            date_values.append(float(np.mean(differences)))
+    return {"date_level": _distribution(date_values), "shared_bin_level": _distribution(bin_values), "definition": "absolute candidate-control mean T-day-return difference after same-date five-bin stratification; outcome-blind"}
+
+
+def _best_worst_signal_dates(daily_rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    valid = [row for row in daily_rows if row.get("primary_stratified_10D") is not None]
+    if not valid:
+        return {"primary_10D_best": None, "primary_10D_worst": None, "raw_10D_best": None, "raw_10D_worst": None}
+    best = max(valid, key=lambda row: (float(row["primary_stratified_10D"]), str(row["date"])))
+    worst = min(valid, key=lambda row: (float(row["primary_stratified_10D"]), str(row["date"])))
+    raw_valid = [row for row in daily_rows if row.get("raw_spread_10D") is not None]
+    raw_best = max(raw_valid, key=lambda row: (float(row["raw_spread_10D"]), str(row["date"]))) if raw_valid else None
+    raw_worst = min(raw_valid, key=lambda row: (float(row["raw_spread_10D"]), str(row["date"]))) if raw_valid else None
+    def compact(row: Mapping[str, Any] | None, field: str) -> dict[str, Any] | None:
+        return {"date": row["date"], "value": row[field], "candidate_n": row["candidate_n"], "control_n": row["control_n"]} if row is not None else None
+    return {"primary_10D_best": compact(best, "primary_stratified_10D"), "primary_10D_worst": compact(worst, "primary_stratified_10D"), "raw_10D_best": compact(raw_best, "raw_spread_10D"), "raw_10D_worst": compact(raw_worst, "raw_spread_10D")}
+
+
 def _process_outcomes(*, signal: dict[str, Any], raw_dir: Path, outcome_path: Path) -> dict[str, Any]:
     index_dates, _index_bars, _index_meta = replay._load_index(raw_dir)
     session_dates = sorted(index_dates)
@@ -695,10 +750,15 @@ def _process_outcomes(*, signal: dict[str, Any], raw_dir: Path, outcome_path: Pa
     states = {group: {horizon: _new_state() for horizon in (SECONDARY_HORIZON, PRIMARY_HORIZON)} for group in state_groups}
     board_states = {board: {group: {horizon: _new_state() for horizon in (SECONDARY_HORIZON, PRIMARY_HORIZON)} for group in state_groups} for board in BOARDS}
     daily_rows: list[dict[str, Any]] = []
-    detail_rows: list[dict[str, Any]] = []
     primary_outcome_by_pair: dict[tuple[str, str], dict[str, Any]] = {}
+    primary_row_by_pair: dict[tuple[str, str], Mapping[str, Any]] = {}
     continuous_rows: list[dict[str, Any]] = []
     raw_events: list[tuple[str, str, str]] = []
+    outcome_path.parent.mkdir(parents=True, exist_ok=True)
+    outcome_content_digest = hashlib.sha256()
+    outcome_detail_rows = 0
+    outcome_raw = outcome_path.open("wb")
+    outcome_compressed = gzip.GzipFile(fileobj=outcome_raw, mode="wb", filename="", mtime=0)
     for date in sorted(signal["per_date"]):
         item = signal["per_date"][date]
         grouped_rows = {"CANDIDATE": item["candidate_rows"], "PRIMARY_CONTROL": item["control_rows"], "FULL_DOWNSIDE_BOUNCE": item["baseline_rows"], "GENERIC_RECLAIM": item["generic_reclaim_rows"], "GENERIC_BOUNCE_CONTROL": item["generic_control_rows"]}
@@ -712,7 +772,11 @@ def _process_outcomes(*, signal: dict[str, Any], raw_dir: Path, outcome_path: Pa
                 seen_pairs.add(pair)
                 outcome = _outcome_record(row, store, events, session_dates, session_ms, session_index)
                 primary_outcome_by_pair[pair] = outcome
-                detail_rows.append({"signal": row, "outcome": outcome})
+                primary_row_by_pair[pair] = row
+                detail_line = (canonical_json({"signal": row, "outcome": outcome}) + "\n").encode("utf-8")
+                outcome_compressed.write(detail_line)
+                outcome_content_digest.update(detail_line)
+                outcome_detail_rows += 1
                 grouped_outcomes[group].append((row, outcome))
                 _update_board_state(board_states, row["board"], group, outcome)
                 for horizon in (SECONDARY_HORIZON, PRIMARY_HORIZON):
@@ -763,7 +827,9 @@ def _process_outcomes(*, signal: dict[str, Any], raw_dir: Path, outcome_path: Pa
             "context_interaction_10D": interaction,
             "continuous_reclaim_margin_rho_10D": rho,
         })
-    outcome_artifact = _write_jsonl_gzip(outcome_path, detail_rows)
+    outcome_compressed.close()
+    outcome_raw.close()
+    outcome_artifact = {"path": outcome_path.as_posix(), "rows": outcome_detail_rows, "bytes": outcome_path.stat().st_size, "file_sha256": file_sha256(outcome_path), "content_sha256": outcome_content_digest.hexdigest()}
     primary_spreads = [float(row["primary_stratified_10D"]) for row in daily_rows if row["primary_stratified_10D"] is not None]
     primary_5d = [float(row["primary_stratified_5D"]) for row in daily_rows if row["primary_stratified_5D"] is not None]
     generic_spreads = [float(row["generic_reclaim_stratified_10D"]) for row in daily_rows if row["generic_reclaim_stratified_10D"] is not None]
@@ -790,11 +856,11 @@ def _process_outcomes(*, signal: dict[str, Any], raw_dir: Path, outcome_path: Pa
     cooldown_rows: dict[str, dict[str, list[tuple[Mapping[str, Any], Mapping[str, Any]]]]] = defaultdict(lambda: {"CANDIDATE": [], "PRIMARY_CONTROL": []})
     for date, symbol, group in cooldown_retained:
         row_outcome = primary_outcome_by_pair[(date, symbol)]
-        row = next(row for row in (signal["per_date"][date]["candidate_rows"] + signal["per_date"][date]["control_rows"]) if row["symbol"] == symbol)
+        row = primary_row_by_pair[(date, symbol)]
         cooldown_rows[date][group].append((row, row_outcome))
     cooldown_daily = []
     for date in sorted(cooldown_rows):
-        spread = _stratified_spread(cooldown_rows, "CANDIDATE", "PRIMARY_CONTROL", PRIMARY_HORIZON)
+        spread = _stratified_spread(cooldown_rows[date], "CANDIDATE", "PRIMARY_CONTROL", PRIMARY_HORIZON)
         if spread["spread"] is not None:
             cooldown_daily.append(float(spread["spread"]))
     cooldown_ci = list(_moving_block_bootstrap_ci(cooldown_daily)) if len(cooldown_daily) >= BOOTSTRAP_BLOCK_LENGTH else [None, None]
@@ -820,7 +886,9 @@ def _process_outcomes(*, signal: dict[str, Any], raw_dir: Path, outcome_path: Pa
         decision = "CONTROLLED_RIGHT_SIDE_REVERSAL_INCREMENTAL_SUPPORTED_FOR_FURTHER_VALIDATION"
     else:
         decision = "CONTROLLED_RIGHT_SIDE_REVERSAL_NEEDS_MORE_EVIDENCE"
-    outcome_maturity = {"primary_horizon": PRIMARY_HORIZON, "last_signal_date_with_mature_10D": session_dates[-PRIMARY_HORIZON_INT - 1] if len(session_dates) > PRIMARY_HORIZON_INT else None, "mature_signal_date_count": max(0, len(session_dates) - PRIMARY_HORIZON_INT), "censored_signal_dates_after_maturity": PRIMARY_HORIZON_INT}
+    research_dates = sorted(signal["per_date"])
+    mature_research_dates = [date for date in research_dates if session_index[date] + PRIMARY_HORIZON_INT < len(session_dates)]
+    outcome_maturity = {"primary_horizon": PRIMARY_HORIZON, "last_signal_date_with_mature_10D": mature_research_dates[-1] if mature_research_dates else None, "mature_signal_date_count": len(mature_research_dates), "censored_signal_dates_after_maturity": len(research_dates) - len(mature_research_dates)}
     return {
         "outcome_artifact": outcome_artifact,
         "primary": {"mean_stratified_spread_10D": primary_mean, "median_stratified_spread_10D": float(np.median(primary_spreads)) if primary_spreads else None, "moving_block_bootstrap_ci_95": primary_ci, "positive_spread_date_rate_10D": float(np.mean(np.asarray(primary_spreads) > 0)) if primary_spreads else None, "valid_date_count": len(primary_spreads), "signal_shared_bounce_bin_date_count": len(shared_signal_dates), "shared_bounce_bin_10D_date_coverage": shared_date_coverage},
@@ -837,9 +905,11 @@ def _process_outcomes(*, signal: dict[str, Any], raw_dir: Path, outcome_path: Pa
         "board_diagnostics": board_diagnostics,
         "symbol_concentration": {group: _group_concentration(rows) for group, rows in raw_event_rows.items()},
         "monthly_concentration": _monthly_concentration(daily_rows),
+        "monthly_event_counts": signal["signal_only"]["monthly_event_counts"],
         "cooldown": cooldown,
         "candidate_control_prior_distributions": {group: {field: _date_distribution(rows, field) for field in ("r20_pre", "prior_realized_volatility20_pct", "median_traded_amount20")} for group, rows in raw_event_rows.items()},
-        "post_stratification_t_day_return_balance": {"definition": "absolute candidate-control mean T-day-return difference within shared bounce bins, signal-only", "available_dates": len(shared_signal_dates), "note": "outcome-blind diagnostic"},
+        "post_stratification_t_day_return_balance": signal["signal_only"]["post_stratification_t_day_return_balance"],
+        "best_worst_signal_dates": _best_worst_signal_dates(daily_rows),
         "decision": decision,
     }
 
@@ -883,6 +953,8 @@ def _render_report(summary: Mapping[str, Any]) -> str:
         f"- Year diagnostics: {json.dumps(summary['year_diagnostics'], ensure_ascii=False, sort_keys=True)}",
         f"- Board diagnostics: {json.dumps(summary['board_diagnostics'], ensure_ascii=False, sort_keys=True)}",
         f"- T-day return balance before stratification: {json.dumps(signal['t_day_return_distribution_before_stratification'], ensure_ascii=False, sort_keys=True)}",
+        f"- T-day return balance after stratification: {json.dumps(summary['post_stratification_t_day_return_balance'], ensure_ascii=False, sort_keys=True)}",
+        f"- Best/worst signal dates: {json.dumps(summary['best_worst_signal_dates'], ensure_ascii=False, sort_keys=True)}",
         "",
         "## Coverage and unresolved explanations",
         "",
@@ -891,7 +963,7 @@ def _render_report(summary: Mapping[str, Any]) -> str:
         "- Limit-state classification: `LIMIT_STATE_EXECUTION_CLASSIFICATION_NOT_AVAILABLE` unless an existing authoritative classifier is added in a new protocol.",
         "- Size and historical sector: `UNRESOLVED_ALTERNATIVE_EXPLANATION / NOT_AVAILABLE_FOR_THIS_V1_IDENTIFICATION`.",
         f"- B/RS/VCB membership-only overlap: {json.dumps(summary['signal_overlap'], ensure_ascii=False, sort_keys=True)}.",
-        f"- Symbol concentration: {json.dumps(summary['symbol_concentration'], ensure_ascii=False, sort_keys=True)}; monthly concentration: {json.dumps(summary['monthly_concentration'], ensure_ascii=False, sort_keys=True)}.",
+        f"- Symbol concentration: {json.dumps(summary['symbol_concentration'], ensure_ascii=False, sort_keys=True)}; monthly concentration: {json.dumps(summary['monthly_concentration'], ensure_ascii=False, sort_keys=True)}; monthly event counts are in the summary JSON.",
         "",
         "## Interpretation limit",
         "",

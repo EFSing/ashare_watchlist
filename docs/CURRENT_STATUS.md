@@ -1239,3 +1239,32 @@ PR #38 已在 live head 精确为
 B、B prospective observation、RS、Volume-Path、turnover/RV、frozen state 均未改变。没有
 启动另一候选、没有读取 Final OOS、没有调参、promotion、freeze 或生产路径变更；受禁目录
 保持 untouched。当前终态：`VCB_RESEARCH_MERGED_MASTER_VERIFIED`。
+
+## Superseding current state — CRSR V1 research complete — 2026-09-06
+
+用户正式选择 `NEW_CONTROLLED_RIGHT_SIDE_REVERSAL_V1`，完成独立 DEVELOPMENT
+retrospective research。研究问题是：在相同 T-1 downside-extreme state、相同 positive
+T-day bounce baseline、并控制 T-day bounce magnitude 后，strict prior-5-close reclaim
+是否有未来增量信息。该研究不是 old D reconstruction、恢复或替代。
+
+Protocol commit=`123ef5299ef94411a0b1cb4ec5745ee2c472979e`。Input audit PASS：769 个
+continuous XSHG sessions、4,041,140 个 historical PIT identities、validated
+`HISTORICAL_T_ANCHOR_PRICE_RAW_VOLUME`、`NO_VINTAGE_PROOF`。Signal readiness PASS：candidate
+121,698、primary control 250,506、full downside-bounce baseline 372,204、downside
+shared-bounce-bin dates 765。
+
+固定 DEVELOPMENT outcome：primary stratified 10D spread=`-0.079350pp`，median=`-0.232037pp`，
+95% 20-session moving-block CI=`[-0.495382,+0.403562]`；continuous reclaim-margin rho
+mean=`-0.025847`；5D stratified spread=`-0.155740pp`；context interaction mean=`-0.023253`；
+10-session cooldown spread=`+0.047685pp`，CI crosses zero；2023/2024/2025 primary sign negative、
+2026 positive。Candidate/control usable 10D coverage 为 98.31% / 98.15%，coverage gate PASS。
+
+固定 decision：`CONTROLLED_RIGHT_SIDE_REVERSAL_NO_CLEAR_INCREMENTAL_SIGNAL`。这不是 causal
+proof、mechanism proof、production alpha、frozen candidate 或 Final OOS validation；不启动
+volume/turnover/RSI/MACD/MA/sector/board/window/horizon rescue。B、B prospective observation、
+RS、VCB、Volume-Path、turnover/RV、frozen state 和 production semantics unchanged；C unread；
+old D not reconstructed；Final OOS remains `SEALED / UNREAD`；forbidden directory untouched。
+
+当前正式层级仍为 `development candidate`，CRSR 仅为独立 research artifact，不改变 production
+路径或现有 decisions。当前停止标记：`CRSR_RESEARCH_PR_READY_FOR_USER_MERGE_DECISION`；等待
+独立 PR exact-head CI 和用户 merge decision。

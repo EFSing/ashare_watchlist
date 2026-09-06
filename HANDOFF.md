@@ -1473,3 +1473,35 @@ frozen prerequisite 保持 `NOT_READY / PARTIAL_UNVERIFIED`；
   Final OOS remains `SEALED / UNREAD`.
 - terminal state: `VCB_RESEARCH_MERGED_MASTER_VERIFIED`; stop here pending a future explicit user
   request. Forbidden directory remains untouched.
+
+## CRSR V1 research complete — 2026-09-06
+
+- research：用户正式选择的 `NEW_CONTROLLED_RIGHT_SIDE_REVERSAL_V1` 已完成独立
+  `DEVELOPMENT / RECONSTRUCTED_RETROSPECTIVE / DATE_ANCHORED / DIAGNOSTIC_ONLY /
+  NEW_RESEARCH_HYPOTHESIS / NO_VINTAGE_PROOF` research；不是 old D reconstruction、恢复或替代。
+- base/branch：`36f8120651e8f6a0d66e1d97769dc7c6d8a66e7b`；
+  `codex/new-controlled-right-side-reversal-v1`。
+- protocol：pre-outcome semantic commit=`123ef5299ef94411a0b1cb4ec5745ee2c472979e`；
+  signal-only audit 在该 commit 后通过，才读取本候选 DEVELOPMENT outcomes。
+- input/signal：769 sessions、4,041,140 historical PIT identities；
+  `HISTORICAL_T_ANCHOR_PRICE_RAW_VOLUME`；candidate=`121,698`，primary control=`250,506`，
+  full downside-bounce baseline=`372,204`，downside shared-bin dates=`765`；readiness gate PASS。
+- outcome：primary bounce-magnitude-stratified 10D spread=`-0.079350pp`，median=`-0.232037pp`，
+  95% moving-block CI=`[-0.495382,+0.403562]`；continuous reclaim-margin rho mean=`-0.025847`；
+  5D spread=`-0.155740pp`；context interaction mean=`-0.023253`；10-session cooldown mean
+  `+0.047685pp` with CI crossing zero；2023/2024/2025 negative and 2026 positive。
+- coverage：candidate usable 10D=`98.31%`，control=`98.15%`，shared-bin date coverage=`98.69%`；
+  coverage gate PASS。Fixed decision=`CONTROLLED_RIGHT_SIDE_REVERSAL_NO_CLEAR_INCREMENTAL_SIGNAL`。
+- artifacts：signal detail `4,041,140` rows / `304,578,870` bytes / SHA
+  `267995e9098c67759fe6ab401e8f1abedbca4bba452df187b7c36b715be8e203`；outcome detail local-only
+  `1,935,412` rows / `303,828,142` bytes / SHA
+  `e64fc9543e0bb01ccd9454c1a52d42306ae8d0613e93254ca05c0047c21ba3ca`。Summary/manifest/report
+  are under `docs/research/artifacts/`；large detail is not for PR submission。
+- verification：focused tests=`15 passed`；full project pytest=`330 passed` with short basetemp；
+  `py_compile` and schema/hash checks PASS；first long-basetemp full run had one unrelated existing
+  Windows path-length failure and was rerun successfully with a short explicit basetemp。
+- governance：B/B prospective、RS、VCB、Volume-Path、turnover/RV、frozen state unchanged；C unread；
+  old D not reconstructed；Final OOS=`SEALED / UNREAD`；provider unchanged；no tuning、promotion、
+  freeze、production-path change or automatic next candidate；forbidden directory untouched。
+- next：commit final docs/code/artifacts, push independent PR titled
+  `research: controlled right-side reversal V1`, wait exact-head CI, then stop for user merge decision。

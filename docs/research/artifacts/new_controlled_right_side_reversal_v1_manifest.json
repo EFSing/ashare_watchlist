@@ -1,0 +1,27 @@
+{
+  "final_oos_read": false,
+  "forbidden_directory_touched": false,
+  "outcome_detail_artifact": {
+    "bytes": 303828142,
+    "content_sha256": "2ae2996aa79de858cd12bc0897a5a75eb4993df469f4ef80def84b138547a453",
+    "file_sha256": "e64fc9543e0bb01ccd9454c1a52d42306ae8d0613e93254ca05c0047c21ba3ca",
+    "logical_path": "local-only/new_controlled_right_side_reversal_v1_outcomes.jsonl.gz",
+    "path": "data/validation/new_controlled_right_side_reversal_v1/new_controlled_right_side_reversal_v1_outcomes.jsonl.gz",
+    "rows": 1935412
+  },
+  "protocol_commit_sha": "123ef5299ef94411a0b1cb4ec5745ee2c472979e",
+  "report_path": "docs/research/artifacts/new_controlled_right_side_reversal_v1_report.md",
+  "schema_version": "CRSR_RESEARCH_MANIFEST_V1",
+  "signal_artifact": {
+    "bytes": 304578870,
+    "content_sha256": "696d1b72ba5d88080c3548730192d5ae24c9027914767a1d90ad04fe53646027",
+    "file_sha256": "267995e9098c67759fe6ab401e8f1abedbca4bba452df187b7c36b715be8e203",
+    "logical_path": "local-only/new_controlled_right_side_reversal_v1_signal_membership.jsonl.gz",
+    "rows": 4041140,
+    "sort": "date ascending, symbol ascending"
+  },
+  "signal_sort": "date ascending, symbol ascending",
+  "strategy": "NEW_CONTROLLED_RIGHT_SIDE_REVERSAL_V1",
+  "summary_path": "docs/research/artifacts/new_controlled_right_side_reversal_v1_summary.json",
+  "summary_sha256": "139345b96c6634efe9bfb69abd80048b2fb33c42b3a38b9bb377bd53ed3ab9b0"
+}

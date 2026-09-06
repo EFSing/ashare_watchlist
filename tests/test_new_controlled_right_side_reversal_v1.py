@@ -119,6 +119,20 @@ def test_date_and_bin_aggregation_are_equal_weighted():
     assert _stratified_spread(groups, "CANDIDATE", "PRIMARY_CONTROL", "10D")["spread"] == pytest.approx(3.0)
 
 
+def test_context_interaction_is_downside_spread_minus_generic_spread():
+    downside = {
+        "CANDIDATE": [({"bounce_bin": 1}, {"outcomes": {"10D": {"status": "AVAILABLE", "return_pct": 4.0}}})],
+        "PRIMARY_CONTROL": [({"bounce_bin": 1}, {"outcomes": {"10D": {"status": "AVAILABLE", "return_pct": 1.0}}})],
+    }
+    generic = {
+        "GENERIC_RECLAIM": [({"non_downside_bounce_bin": 1}, {"outcomes": {"10D": {"status": "AVAILABLE", "return_pct": 2.0}}})],
+        "GENERIC_BOUNCE_CONTROL": [({"non_downside_bounce_bin": 1}, {"outcomes": {"10D": {"status": "AVAILABLE", "return_pct": 1.0}}})],
+    }
+    downside_spread = _stratified_spread(downside, "CANDIDATE", "PRIMARY_CONTROL", "10D")["spread"]
+    generic_spread = _stratified_spread(generic, "GENERIC_RECLAIM", "GENERIC_BOUNCE_CONTROL", "10D", "non_downside_bounce_bin")["spread"]
+    assert downside_spread - generic_spread == pytest.approx(2.0)
+
+
 def test_moving_block_bootstrap_is_deterministic():
     values = np.linspace(-1.0, 1.0, 40)
     assert _moving_block_bootstrap_ci(values, seed=BOOTSTRAP_SEED) == _moving_block_bootstrap_ci(values, seed=BOOTSTRAP_SEED)
