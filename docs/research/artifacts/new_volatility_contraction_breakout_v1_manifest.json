@@ -1,0 +1,27 @@
+{
+  "final_oos_read": false,
+  "forbidden_directory_touched": false,
+  "outcome_detail_artifact": {
+    "bytes": 44558947,
+    "content_sha256": "03b4e583353bb8b6f18cf0f0dbd722ab3f2726c0bc1d83396a96cd61a0ace7ca",
+    "file_sha256": "be2b7b8b9fd296f20dfd1d111cdc7226ddf2b961117196dac6009b39c6933a31",
+    "logical_path": "local-only/new_volatility_contraction_breakout_v1_outcomes.jsonl.gz",
+    "path": "data/validation/new_volatility_contraction_breakout_v1/new_volatility_contraction_breakout_v1_outcomes.jsonl.gz",
+    "rows": 195464
+  },
+  "protocol_commit_sha": "411c72b1eff27ecb1ecfb125818837b6aa4a313c",
+  "report_path": "docs/research/artifacts/new_volatility_contraction_breakout_v1_report.md",
+  "schema_version": "VCB_RESEARCH_MANIFEST_V1",
+  "signal_artifact": {
+    "bytes": 324287998,
+    "content_sha256": "8879d6a403ad28d3f428013b4bce121f148e201a47115835f5b513da95c960f9",
+    "file_sha256": "9e53503fbd13a3e0b2c358df2716754d696937b8d20f075c96c8d9e7421b68eb",
+    "logical_path": "local-only/new_volatility_contraction_breakout_v1_signal_membership.jsonl.gz",
+    "rows": 4041140,
+    "sort": "date ascending, symbol ascending"
+  },
+  "signal_sort": "date ascending, symbol ascending",
+  "strategy": "NEW_VOLATILITY_CONTRACTION_BREAKOUT_V1",
+  "summary_path": "docs/research/artifacts/new_volatility_contraction_breakout_v1_summary.json",
+  "summary_sha256": "105cc2239172abfb16217cc17fb6a1e9ebbbb07683b42a6b9d3e2d023f434cfc"
+}

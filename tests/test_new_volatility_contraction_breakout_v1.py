@@ -13,7 +13,11 @@ from new_volatility_contraction_breakout_v1 import (
     _feature_from_bars,
     _is_generic_breakout,
     _moving_block_bootstrap_ci,
+    _actual_contraction,
+    _equal_weight_date_mean,
     _rank_ascending,
+    _strong_compression,
+    _true_range_percent,
     run,
 )
 
@@ -39,6 +43,7 @@ def test_tr_exact_formula_and_trp_normalization():
     assert feature["trp_recent10"] == pytest.approx(0.02)
     assert feature["trp_reference40"] == pytest.approx(0.10)
     assert feature["contraction_ratio"] == pytest.approx(0.2)
+    assert _true_range_percent([105.0, 120.0], [95.0, 119.0], [100.0, 100.0]).tolist() == pytest.approx([0.2])
 
 
 def test_compression_excludes_t_and_windows_are_exact_non_overlapping():
@@ -66,6 +71,10 @@ def test_ascending_rank_and_deterministic_symbol_tie_break():
 
 
 def test_actual_contraction_and_candidate_control_exact_complement():
+    assert _actual_contraction(0.999999)
+    assert not _actual_contraction(1.0)
+    assert _strong_compression(0.8, 2, 10)
+    assert not _strong_compression(1.0, 1, 10)
     assert _classify(True, True) == (True, False)
     assert _classify(True, False) == (False, True)
     assert _classify(False, True) == (False, False)
@@ -92,6 +101,10 @@ def test_volume_is_diagnostic_only_and_cannot_change_classification():
 def test_bootstrap_is_deterministic():
     values = np.linspace(-1.0, 1.0, 40)
     assert _moving_block_bootstrap_ci(values, seed=BOOTSTRAP_SEED) == _moving_block_bootstrap_ci(values, seed=BOOTSTRAP_SEED)
+
+
+def test_primary_aggregation_is_equal_weight_by_date():
+    assert _equal_weight_date_mean([1.0, 9.0]) == pytest.approx(5.0)
 
 
 def test_cooldown_is_deterministic_and_uses_signal_sessions():

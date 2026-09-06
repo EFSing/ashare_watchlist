@@ -131,6 +131,29 @@ def _classify(generic_breakout: bool, strong_compression: bool) -> tuple[bool, b
     return bool(generic_breakout and strong_compression), bool(generic_breakout and not strong_compression)
 
 
+def _actual_contraction(ratio: float) -> bool:
+    return float(ratio) < 1.0
+
+
+def _strong_compression(ratio: float, rank: int, valid_n: int) -> bool:
+    return _actual_contraction(ratio) and int(rank) <= _bottom_k(valid_n)
+
+
+def _true_range_percent(highs: Sequence[float], lows: Sequence[float], closes: Sequence[float]) -> np.ndarray:
+    hi, lo, close = np.asarray(highs, dtype=float), np.asarray(lows, dtype=float), np.asarray(closes, dtype=float)
+    if len(hi) != len(lo) or len(hi) != len(close) or len(close) < 2:
+        raise ValueError("OHLC arrays must have equal length >= 2")
+    previous = close[:-1]
+    if (previous <= 0).any() or not np.isfinite(previous).all():
+        raise ValueError("previous close must be finite and positive")
+    tr = np.maximum.reduce((hi[1:] - lo[1:], np.abs(hi[1:] - previous), np.abs(lo[1:] - previous)))
+    return tr / previous
+
+
+def _equal_weight_date_mean(values: Sequence[float]) -> float | None:
+    return float(np.mean(np.asarray(values, dtype=float))) if values else None
+
+
 def _cooldown_retain(events: Sequence[tuple[str, str, str]], session_index: Mapping[str, int], cooldown_sessions: int = 10) -> list[tuple[str, str, str]]:
     retained: list[tuple[str, str, str]] = []
     last_by_symbol: dict[str, int] = {}
@@ -220,11 +243,12 @@ def _feature_from_bars(closes: Sequence[float], highs: Sequence[float], lows: Se
     lo = np.asarray(lows, dtype=float)
     if not np.isfinite(c).all() or not np.isfinite(hi).all() or not np.isfinite(lo).all() or (c <= 0).any() or (hi <= 0).any() or (lo <= 0).any():
         return None
-    tr = np.maximum.reduce((hi[1:] - lo[1:], np.abs(hi[1:] - c[:-1]), np.abs(lo[1:] - c[:-1])))
-    previous_close = c[:-1]
-    if len(tr) < RECENT_RANGE_WINDOW + REFERENCE_RANGE_WINDOW + 1 or (previous_close <= 0).any() or not np.isfinite(tr).all():
+    try:
+        trp = _true_range_percent(hi, lo, c)
+    except ValueError:
         return None
-    trp = tr / previous_close
+    if len(trp) < RECENT_RANGE_WINDOW + REFERENCE_RANGE_WINDOW + 1 or not np.isfinite(trp).all():
+        return None
     recent = trp[-(RECENT_RANGE_WINDOW + 1) : -1]
     reference = trp[-(RECENT_RANGE_WINDOW + REFERENCE_RANGE_WINDOW + 1) : -(RECENT_RANGE_WINDOW + 1)]
     if len(recent) != 10 or len(reference) != 40 or not np.isfinite(recent).all() or not np.isfinite(reference).all():
@@ -345,8 +369,8 @@ def _signal_pass(*, raw_dir: Path, core_manifest_path: Path, core_output_path: P
                     feature = features[symbol]
                     valid = feature["eligibility"] == "VALID_FEATURE"
                     ratio = feature.get("contraction_ratio")
-                    actual = bool(valid and ratio < 1.0)
-                    strong = bool(actual and ranks[symbol] <= bottom_k)
+                    actual = bool(valid and _actual_contraction(ratio))
+                    strong = bool(valid and _strong_compression(ratio, ranks[symbol], len(ratio_values)))
                     breakout = bool(valid and _is_generic_breakout(feature["close_t"], feature["prior_high20"]))
                     candidate, control = _classify(breakout, strong)
                     if breakout:
@@ -459,7 +483,7 @@ def _process_outcomes(*, signal: dict[str, Any], raw_dir: Path, signal_path: Pat
     retained = _cooldown_retain(raw_events, session_index, cooldown_sessions=10)
     cooldown_daily: dict[str, dict[str, list[float]]] = defaultdict(lambda: {"CANDIDATE": [], "PRIMARY_CONTROL": []})
     for date, symbol, name in retained:
-        outcome = outcome_by_pair[(date, symbol)][PRIMARY_HORIZON]
+        outcome = outcome_by_pair[(date, symbol)]["outcomes"][PRIMARY_HORIZON]
         if outcome["status"] == "AVAILABLE":
             cooldown_daily[date][name].append(float(outcome["return_pct"]))
     cooldown_spreads = [float(np.mean(values["CANDIDATE"]) - np.mean(values["PRIMARY_CONTROL"])) for date, values in sorted(cooldown_daily.items()) if values["CANDIDATE"] and values["PRIMARY_CONTROL"]]
@@ -486,7 +510,7 @@ def _process_outcomes(*, signal: dict[str, Any], raw_dir: Path, signal_path: Pat
     for horizon in (5, 10):
         mature = min(last_signal_index, len(session_dates) - 1 - horizon)
         outcome_maturity[f"{horizon}D"] = {"mature_through_signal_date": session_dates[mature], "censored_signal_dates_after_maturity": max(0, last_signal_index - mature)}
-    primary = {"mean_spread_10D": float(np.mean(primary_spreads)) if primary_spreads else None, "median_spread_10D": float(np.median(primary_spreads)) if primary_spreads else None, "moving_block_bootstrap_ci_95": ci, "positive_spread_date_rate_10D": float(np.mean(np.asarray(primary_spreads) > 0)) if primary_spreads else None, "both_group_valid_date_count": len(primary_spreads), "spread_date_count": len(daily_rows)}
+    primary = {"mean_spread_10D": _equal_weight_date_mean(primary_spreads), "median_spread_10D": float(np.median(primary_spreads)) if primary_spreads else None, "moving_block_bootstrap_ci_95": ci, "positive_spread_date_rate_10D": float(np.mean(np.asarray(primary_spreads) > 0)) if primary_spreads else None, "both_group_valid_date_count": len(primary_spreads), "spread_date_count": len(daily_rows)}
     rho_values = [float(item["rho"]) for item in rhos]
     full_generic_state = {horizon: _new_state() for horizon in (SECONDARY_HORIZON, PRIMARY_HORIZON)}
     for name in VALID_CLASSES:
@@ -504,7 +528,7 @@ def _process_outcomes(*, signal: dict[str, Any], raw_dir: Path, signal_path: Pat
         decision = "VOLATILITY_CONTRACTION_BREAKOUT_INCREMENTAL_SUPPORTED_FOR_FURTHER_VALIDATION"
     else:
         decision = "VOLATILITY_CONTRACTION_BREAKOUT_NEEDS_MORE_EVIDENCE"
-    return {"outcome_artifact": outcome_artifact, "primary": primary, "secondary_5D": {"mean_spread_5D": float(np.mean(primary_5d)) if primary_5d else None, "median_spread_5D": float(np.median(primary_5d)) if primary_5d else None, "moving_block_bootstrap_ci_95": ci_5d, "positive_spread_date_rate_5D": float(np.mean(np.asarray(primary_5d) > 0)) if primary_5d else None}, "daily_rows": daily_rows, "continuous": {"mean_daily_rho": float(np.mean(rho_values)) if rho_values else None, "median_daily_rho": float(np.median(rho_values)) if rho_values else None, "positive_rho_date_rate": float(np.mean(np.asarray(rho_values) > 0)) if rho_values else None, "valid_rho_dates": len(rho_values)}, "simple_generic_breakout_baseline": simple_baseline, "execution_coverage": {name: {horizon: _summary_stats(states[name][horizon]["returns"], states[name][horizon]) for horizon in (SECONDARY_HORIZON, PRIMARY_HORIZON)} for name in VALID_CLASSES}, "outcome_status_counts": {name: {horizon: dict(sorted(states[name][horizon]["status_counts"].items())) for horizon in (SECONDARY_HORIZON, PRIMARY_HORIZON)} for name in VALID_CLASSES}, "outcome_maturity": outcome_maturity, "year_diagnostics": years, "board_diagnostics": board_diagnostics, "symbol_concentration": symbol_concentration, "monthly_concentration": dict(sorted(monthly.items())), "cooldown": {"raw_event_counts": {"candidate": sum(name == "CANDIDATE" for _date, _symbol, name in raw_events), "control": sum(name == "PRIMARY_CONTROL" for _date, _symbol, name in raw_events)}, "retained_event_counts": {"candidate": sum(name == "CANDIDATE" for _date, _symbol, name in retained), "control": sum(name == "PRIMARY_CONTROL" for _date, _symbol, name in retained)}, "both_group_valid_dates": len(cooldown_spreads), "mean_spread_10D": float(np.mean(cooldown_spreads)) if cooldown_spreads else None, "moving_block_bootstrap_ci_95": cooldown_ci, "direction_relative_to_primary": "same_sign" if cooldown_spreads and primary_spreads and np.sign(np.mean(cooldown_spreads)) == np.sign(np.mean(primary_spreads)) else "different_or_unavailable"}, "candidate_control_prior_distributions": {name: {"prior_return20": _distribution([float(row["prior_return20"]) for row in rows]), "prior_volatility20_pct": _distribution([float(row["prior_volatility20_pct"]) for row in rows]), "median_traded_amount20": _distribution([float(row["median_traded_amount20"]) for row in rows if row["median_traded_amount20"] is not None])} for name, rows in signal_rows_by_class.items()}, "decision": decision}
+    return {"outcome_artifact": outcome_artifact, "primary": primary, "secondary_5D": {"mean_spread_5D": _equal_weight_date_mean(primary_5d), "median_spread_5D": float(np.median(primary_5d)) if primary_5d else None, "moving_block_bootstrap_ci_95": ci_5d, "positive_spread_date_rate_5D": float(np.mean(np.asarray(primary_5d) > 0)) if primary_5d else None}, "daily_rows": daily_rows, "continuous": {"mean_daily_rho": _equal_weight_date_mean(rho_values), "median_daily_rho": float(np.median(rho_values)) if rho_values else None, "positive_rho_date_rate": float(np.mean(np.asarray(rho_values) > 0)) if rho_values else None, "valid_rho_dates": len(rho_values)}, "simple_generic_breakout_baseline": simple_baseline, "execution_coverage": {name: {horizon: _summary_stats(states[name][horizon]["returns"], states[name][horizon]) for horizon in (SECONDARY_HORIZON, PRIMARY_HORIZON)} for name in VALID_CLASSES}, "outcome_status_counts": {name: {horizon: dict(sorted(states[name][horizon]["status_counts"].items())) for horizon in (SECONDARY_HORIZON, PRIMARY_HORIZON)} for name in VALID_CLASSES}, "outcome_maturity": outcome_maturity, "year_diagnostics": years, "board_diagnostics": board_diagnostics, "symbol_concentration": symbol_concentration, "monthly_concentration": dict(sorted(monthly.items())), "cooldown": {"raw_event_counts": {"candidate": sum(name == "CANDIDATE" for _date, _symbol, name in raw_events), "control": sum(name == "PRIMARY_CONTROL" for _date, _symbol, name in raw_events)}, "retained_event_counts": {"candidate": sum(name == "CANDIDATE" for _date, _symbol, name in retained), "control": sum(name == "PRIMARY_CONTROL" for _date, _symbol, name in retained)}, "both_group_valid_dates": len(cooldown_spreads), "mean_spread_10D": _equal_weight_date_mean(cooldown_spreads), "moving_block_bootstrap_ci_95": cooldown_ci, "direction_relative_to_primary": "same_sign" if cooldown_spreads and primary_spreads and np.sign(np.mean(cooldown_spreads)) == np.sign(np.mean(primary_spreads)) else "different_or_unavailable"}, "candidate_control_prior_distributions": {name: {"prior_return20": _distribution([float(row["prior_return20"]) for row in rows]), "prior_volatility20_pct": _distribution([float(row["prior_volatility20_pct"]) for row in rows]), "median_traded_amount20": _distribution([float(row["median_traded_amount20"]) for row in rows if row["median_traded_amount20"] is not None])} for name, rows in signal_rows_by_class.items()}, "decision": decision}
 
 
 def _render_report(summary: Mapping[str, Any]) -> str:
