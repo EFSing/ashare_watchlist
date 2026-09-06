@@ -9,7 +9,7 @@ Labels: `DEVELOPMENT`, `RECONSTRUCTED_RETROSPECTIVE`, `DATE_ANCHORED`,
 `PREDICTIVE_EVIDENCE_UNTESTED_AT_PROTOCOL`, `MECHANISM_EVIDENCE_HYPOTHESIS`,
 `FINAL_OOS_UNREAD`, `NO_VINTAGE_PROOF`.
 
-`VCB_PRE_OUTCOME_PROTOCOL_COMMIT=177d1b9194c33a09ca619142df772bba4a960103`
+`VCB_PRE_OUTCOME_PROTOCOL_COMMIT=TO_BE_RECORDED_AFTER_COMMIT`
 
 This document fixes the research before any forward outcome for this candidate is
 read. It is an independent evaluator. It does not modify
@@ -77,7 +77,7 @@ the production/prospective generator and of the B/RS outcome artifacts.
 - Raw source: frozen HiThink Financial-API daily-K input,
   `data/validation/core_signal_validation/raw/daily_k.parquet`.
 - Daily-K file SHA-256:
-  `61189a4850e2eb157453e28e5375e502e20d214508bb70ea71066ca3e05e426`.
+  `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426`.
 - Adjustment-factor file SHA-256:
   `a1b7d63c5826ccd3610dc9bdd949d82eeb0ba84ffad451bfb8bb30ca74962716`.
 - Signal OHLC uses the already validated
