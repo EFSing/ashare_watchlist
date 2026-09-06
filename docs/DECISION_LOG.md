@@ -1533,3 +1533,34 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
   production semantics、Final OOS=`SEALED / UNREAD` 与 forbidden-directory boundary 均不变。
 - stop：`CRSR_RESEARCH_PR_READY_FOR_USER_MERGE_DECISION`，等待用户 merge decision；任何
   后续 head 变化都必须重新通过 exact-head CI。
+
+## 2026-09-06 — PR #39 final merge and post-merge durability governance
+
+- classification：`product infrastructure + correctness/provenance + recovery`；不是新的
+  research。用户授权的 PR #39 exact head 为
+  `fdb4640fb8556f7ce86c1d8d1feb7ceb41f9e822`，merge 前 push correctness
+  `34030990704`、pull-request correctness `34030992465` 均为 `success` 且 head exact。
+- merge：PR #39 squash merge 后的 `CRSR_MERGE_SHA` 为
+  `1fdb099926a1172cfebee7001537910d805019e4`；master merge-head correctness run
+  `34031658818` 为 `success`，workflow head SHA exact 匹配 merge SHA。
+- reconciliation：旧 handoff/status/log 中的 `PR #39 open`、`awaiting merge` 和
+  `CRSR_RESEARCH_PR_READY_FOR_USER_MERGE_DECISION` 只作为历史记录保留；当前语义已改为
+  `PR_39_MERGED_AND_VERIFIED`。本次只更新治理文档并加入
+  `data/governance/workstation_durability_manifest.json`，不改 CRSR fixed decision、B、
+  RS、VCB、Volume-Path、turnover/RV、frozen state 或 production semantics。
+- fixed decision：`CONTROLLED_RIGHT_SIDE_REVERSAL_NO_CLEAR_INCREMENTAL_SIGNAL`；它仍是
+  independent DEVELOPMENT research result，不是 production rejection、freeze 或 Final OOS。
+- Drive：项目根 `ashare_watchlist` ID=`13_-tlozdfe1KEtNSMxp6pCroI893g_qH` 保持私有；已
+  fresh-readback `watchlist_20260903.json` SHA=`50f0717e55daaf4435e1d25b4f1d029109c566d72d63a1fc566f263cdf0fb085`。
+  `daily_k.parquet` registry 仍为 `FULLY_RECOVERABLE`，现有 recovery evidence 有效，
+  `NO_REUPLOAD_REQUIRED`。
+- durability：Git 已保存 canonical operational files；RS、VCB、CRSR detail 以 manifest
+  exact SHA 归档并逐片 readback verified。Volume-Path canonical event detail 不存在，记录
+  `LOCAL_ONLY_ARTIFACT_MISSING`；turnover/RV 没有 manifest-confirmed raw/full acquisition
+  bytes，未归档。未创建 fake B prospective data。
+- environment/boundary：live B 所需环境变量名仅为 `HITHINK_FINANCE_API_KEY`，可选数据根
+  override 为 `ASHARE_DATA_ROOT`；不记录值。Final OOS=`SEALED / UNREAD`，C unread，old D
+  not reconstructed，`ACTIVE_NEW_STRATEGY_RESEARCH=NONE`；forbidden directory untouched。
+- next：push this bounded governance reconciliation，等待 governance-head correctness，
+  再执行 clean clone + minimum restore dry run；不自动开启新策略、调参、promotion、freeze
+  或读取 Final OOS。

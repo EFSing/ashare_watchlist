@@ -2,13 +2,37 @@
 
 更新时间：2026-09-06（Asia/Shanghai）
 Formal Delivery Ladder：`development candidate`
-Latest correctness/governance snapshot：`master@547feebb88e7b755785c2ae590ea7e4cca0c7a0d`；
-PR #37 merge-head correctness runs `33987664237` / `33987644452` success（last-verified
-provenance snapshot；本次 docs-only reconciliation 会产生新的 governance HEAD）
+Latest correctness/governance snapshot before this reconciliation：
+`master@1fdb099926a1172cfebee7001537910d805019e4`；PR #39 merge-head correctness run
+`34031658818` success，workflow head SHA exact；本次 governance-only reconciliation 会产生新的
+final canonical master SHA。
 Phase 2E research baseline：PR #6 / `74ccf86dfdea3b9d4b0124fb54346aa429735508`
 职责：记录项目正式处于什么状态，以及哪些研究结论已经成立。长期产品目标和 usable gate 见 [`PRODUCT_CHARTER.md`](PRODUCT_CHARTER.md)，接手动作见 [`HANDOFF.md`](../HANDOFF.md)，决策理由见 [`DECISION_LOG.md`](DECISION_LOG.md)。
 
-## Current live checkpoint — POST-PR37 GOVERNANCE RECONCILIATION
+## Current live checkpoint — PR #39 MERGED + DURABILITY AUDIT — 2026-09-06
+
+这是当前 post-merge、pre-governance-commit 的 authoritative snapshot；下方旧段均为历史
+记录。PR #39 authorized head=`fdb4640fb8556f7ce86c1d8d1feb7ceb41f9e822`，merge SHA=
+`1fdb099926a1172cfebee7001537910d805019e4`，master correctness run=`34031658818`，
+`success` 且 workflow head exact。固定 research decision 为
+`CONTROLLED_RIGHT_SIDE_REVERSAL_NO_CLEAR_INCREMENTAL_SIGNAL`。
+
+- 本轮只做 post-merge governance reconciliation、Drive durability、recovery audit 和
+  clean-workstation resume dry run；不改策略、protocol、evaluator、production semantics 或
+  frozen registry。
+- Drive project root `ashare_watchlist` ID=`13_-tlozdfe1KEtNSMxp6pCroI893g_qH` 已验证为
+  私有 owner-only；watchlist_20260903 exact readback SHA=`50f071…`，daily_k existing
+  recovery remains `FULLY_RECOVERABLE` / `NO_REUPLOAD_REQUIRED`。
+- Git-canonical operational files remain in Git；B prospective datastore 未实例化且未创建
+  fake observation。RS/VCB/CRSR local-only details 已按 manifest 备份并 exact readback；
+  Volume-Path event detail 缺失，turnover/RV raw/full acquisition bytes 未满足 manifest 条件。
+- Formal product state remains `development candidate`。B active strategy 为
+  `B_BREAKOUT_RETEST_LEGACY_V1_1`，B state 为 fixed rule + prospective observation；主动新
+  strategy research=`NONE` / `PAUSED / PHASE_COMPLETE`，不是 production validated。
+- Final OOS=`SEALED / UNREAD`；C=`UNREAD / CANDIDATE INVENTORY ONLY`；old D=`NOT_RECONSTRUCTED`；
+  forbidden directory untouched。
+
+## Historical checkpoint — POST-PR37 GOVERNANCE RECONCILIATION (superseded)
 
 本段是本次最终交接文档提交前的 last-verified live snapshot；文档提交会使 HEAD 前进，
 因此下一台电脑必须重新实时核对 Git/GitHub/CI，而不是把本段静态 SHA 当成不变量。

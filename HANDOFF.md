@@ -2,7 +2,46 @@
 
 > 本文件是下一台电脑、一次新 clone 或一个新 Codex 会话的接手入口；它不是完整 Git 历史。
 
-## LATEST LIVE CHECKPOINT — POST-PR37 GOVERNANCE RECONCILIATION
+## LATEST LIVE CHECKPOINT — PR #39 FINAL MERGE + DURABILITY AUDIT — 2026-09-06
+
+本段 supersede 下方所有旧的 current/open/awaiting-merge 快照；历史段保留作 provenance，
+不再表示 live state。
+
+- task classification：`product infrastructure + correctness/provenance + recovery`；本轮不
+  开新 strategy research，不改 B、RS、VCB、Volume-Path、turnover/RV、production semantics
+  或 frozen registry semantics。
+- PR #39 `research: controlled right-side reversal V1` 的 authorized exact head 为
+  `fdb4640fb8556f7ce86c1d8d1feb7ceb41f9e822`；该 head 在 merge 前为 OPEN/CLEAN/MERGEABLE，
+  push run `34030990704` 和 pull-request run `34030992465` 均 `success` 且 head exact。
+- `CRSR_MERGE_SHA=1fdb099926a1172cfebee7001537910d805019e4`；merge-head correctness run
+  `34031658818` 为 `success`，workflow head SHA exact 匹配 merge SHA。当前本地 master 与
+  `origin/master` 已同步到该 SHA；本段后续的 governance-only commit 会产生新的 final SHA。
+- post-merge reconciliation：只修正 PR #39 stale open/awaiting-merge governance state，并
+  增加小型 durability manifest；不修改 CRSR protocol/evaluator/decision、B、RS、VCB、
+  frozen state 或 production path。
+- Drive root 已 fresh-verified 为私有项目文件夹 `ashare_watchlist`，ID=
+  `13_-tlozdfe1KEtNSMxp6pCroI893g_qH`。已有 `watchlist_20260903.json` exact readback；
+  `daily_k.parquet` registry 仍为 `FULLY_RECOVERABLE`，不重新上传、不制造 v2/copy。
+- Git-canonical operational state：`data/watchlist_history.json`、
+  `data/watchlist_20260820.json`、`data/positions.json`、`data/perf_tracker.json` 和
+  `data/index_pairs.json` 已在 Git；没有重复上传。B prospective store
+  `data/prospective_observation/b_v1_1/` 尚未实例化，未创建 fake observation。
+- research audit archive：RS、VCB、CRSR 的 canonical local-only detail 均按 manifest 以
+  exact bytes 备份；大文件以 40,000,000-byte ordered parts 保存，并逐片 raw-readback SHA
+  verified，重组 identity 等于源文件 SHA。Volume-Path 的 manifest-confirmed event detail
+  当前不存在，记录 `LOCAL_ONLY_ARTIFACT_MISSING`；未用 regenerated file 替代。turnover/RV
+  没有 manifest-confirmed raw/full acquisition bytes，本轮不归档。
+- required credentials：live B 只需本地配置环境变量名 `HITHINK_FINANCE_API_KEY`；可选
+  `ASHARE_DATA_ROOT` 用于数据根覆盖。没有记录或迁移任何值、token、API key 或研究 provider
+  credential。
+- boundaries：Final OOS=`SEALED / UNREAD`；C=`UNREAD / CANDIDATE INVENTORY ONLY`；old
+  D=`NOT_RECONSTRUCTED`；`ACTIVE_NEW_STRATEGY_RESEARCH=NONE`；forbidden
+  `data/validation/continuous_speed_probe/` 未读取、列举内容、stat、hash、修改、删除或上传。
+- next action：完成本文件及 `docs/CURRENT_STATUS.md`、`docs/DECISION_LOG.md` 的 bounded
+  reconciliation，push 后等待 governance-head correctness，再从 final canonical master
+  做 clean-clone minimum-restore dry run；日常运行不依赖 research archive。
+
+## Historical snapshot — POST-PR37 GOVERNANCE RECONCILIATION (superseded)
 
 以下是 PR #37 合并后发现旧治理快照未更新时的 bounded docs-only reconciliation；文档提交和
 推送会产生新的 governance-only HEAD，因此接手时仍必须以实时 Git/GitHub/CI 查询结果为准。

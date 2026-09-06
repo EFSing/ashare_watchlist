@@ -1,0 +1,252 @@
+{
+  "schema_version": "WORKSTATION_DURABILITY_MANIFEST_V1",
+  "created_at_utc": "2026-09-06T12:57:07Z",
+  "canonical_master_before_governance_reconciliation": "1fdb099926a1172cfebee7001537910d805019e4",
+  "crsr_pr": {
+    "number": 39,
+    "authorized_head": "fdb4640fb8556f7ce86c1d8d1feb7ceb41f9e822",
+    "merge_sha": "1fdb099926a1172cfebee7001537910d805019e4",
+    "merge_head_ci": {
+      "workflow": "correctness",
+      "run_id": "34031658818",
+      "head_sha": "1fdb099926a1172cfebee7001537910d805019e4",
+      "conclusion": "success"
+    }
+  },
+  "drive": {
+    "project_root_id": "13_-tlozdfe1KEtNSMxp6pCroI893g_qH",
+    "project_root_title": "ashare_watchlist",
+    "project_root_mime_type": "application/vnd.google-apps.folder",
+    "visibility": "PRIVATE_OWNER_ONLY",
+    "sharing_permissions_changed": false,
+    "public_link_created": false,
+    "research_archive_id": "19bSZV4jI24FmiSzoF3oXUKTzorvYo8av",
+    "family_folders": {
+      "rs_leadership_v1": "1XvlLJBBQxrwQJ9Y578kJE6mWZBZAzXZn",
+      "vcb_v1": "1YdzCGsLQ9vrs85D1DRC1ECXy3XqUtIhH",
+      "crsr_v1": "1NLbcGKD7ajQxW9hONwcKf19wUsh144b7"
+    },
+    "exact_transport_parts_folder_ids": {
+      "rs_leadership_v1": "1P-7WWjFUL7zG87XckzIRYLS9vK8omww7",
+      "vcb_v1": "1hBB57w4F3VGZmkecJMiHF5XBvMSUxZT-",
+      "crsr_v1": "1304-bkNATa0jI4aXJBXjcByl-noUPkp8"
+    },
+    "transport_staging_unverified_folder_ids": {
+      "rs_leadership_v1": "12qApoIO3hRA28GNoxgqYvbITdmjaXpZa",
+      "vcb_v1": "1lj8U-SFu1RcSl0d2q4mWu5yUEoDsr4AX",
+      "crsr_v1": "1ew19Ffsq1-gyMC0Y9zxb6M2Ic8ZtDzEE"
+    }
+  },
+  "operational_git_canonical": [
+    {
+      "logical_path": "data/watchlist_history.json",
+      "bytes": 6448,
+      "records": 3,
+      "local_sha256": "883acf4e1fce8a68180f16acde2cefdc9f39927ce42d38cbb8a3c9bad854a6e8",
+      "git_tracked": true,
+      "drive_backup_required": false,
+      "classification": "GIT_CANONICAL"
+    },
+    {
+      "logical_path": "data/watchlist_20260820.json",
+      "bytes": 3734,
+      "candidate_count": 7,
+      "local_sha256": "c33ec88fd2dded5e657add20d354fbf720c767512ac0194900c69239a50b90ba",
+      "git_tracked": true,
+      "drive_backup_required": false,
+      "classification": "GIT_CANONICAL"
+    },
+    {
+      "logical_path": "data/positions.json",
+      "bytes": 1147,
+      "position_count": 4,
+      "local_sha256": "8e322b0aefcfe1d9311683f413b1b42e293718a1792b57cef0d5edecde2657c1",
+      "git_tracked": true,
+      "drive_backup_required": false,
+      "classification": "GIT_CANONICAL"
+    },
+    {
+      "logical_path": "data/perf_tracker.json",
+      "bytes": 3149,
+      "stock_count": 1,
+      "local_sha256": "73a5b1fd45d12350786bc7eaa88a1a9635cad25d846ff221071cca9a90013683",
+      "git_tracked": true,
+      "drive_backup_required": false,
+      "classification": "GIT_CANONICAL"
+    },
+    {
+      "logical_path": "data/index_pairs.json",
+      "bytes": 60796,
+      "local_sha256": "e80ba960c1dcebd2aa2276b473063955c3682eb36e44c43c22d43e1197a93ee2",
+      "git_tracked": true,
+      "drive_backup_required": false,
+      "classification": "GIT_CANONICAL"
+    }
+  ],
+  "operational_external": [
+    {
+      "logical_path": "data/watchlist_20260903.json",
+      "bytes": 6422,
+      "local_presence": false,
+      "local_sha256": "50f0717e55daaf4435e1d25b4f1d029109c566d72d63a1fc566f263cdf0fb085",
+      "drive_file_ids": ["1N-G0LVvMtotffm5Tdq-2-f4I-fZkuTUq"],
+      "drive_readback_sha256": "50f0717e55daaf4435e1d25b4f1d029109c566d72d63a1fc566f263cdf0fb085",
+      "exact_readback_verified": true,
+      "required_for_daily_operation": false,
+      "required_for_historical_review": true,
+      "classification": "OPERATIONAL_REQUIRED",
+      "status": "ALREADY_PRESENT_DRIVE_CANONICAL"
+    },
+    {
+      "logical_path": "data/validation/core_signal_validation/raw/daily_k.parquet",
+      "bytes": 180203424,
+      "local_sha256": "61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426",
+      "drive_folder_id": "1KjQa8SmorXoHnEpN3WxKrKiYB-TsCTTJ",
+      "drive_file_ids": ["1lLxp0y_csfOczwEBNYo4ysdyItBgF4Ja"],
+      "drive_readback_sha256": "61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426",
+      "exact_readback_verified": true,
+      "readback_basis": "existing registry verified unique private archive member; current Drive file metadata name/size/parent revalidated",
+      "required_for_replay": true,
+      "required_for_daily_operation": false,
+      "classification": "ALREADY_FULLY_RECOVERABLE",
+      "status": "NO_REUPLOAD_REQUIRED"
+    }
+  ],
+  "research_audit_archives": [
+    {
+      "logical_identity": "new_cross_sectional_relative_strength_leadership_v1_signal_membership",
+      "logical_path": "data/validation/new_cross_sectional_relative_strength_leadership_v1/new_cross_sectional_relative_strength_leadership_v1_signal_membership.jsonl.gz",
+      "rows": 808532,
+      "bytes": 42062717,
+      "local_sha256": "ab14ee4435a0666ceac0f845550dc5298875c2b50fa95146f8bf5847b3b6c6bc",
+      "content_sha256": "2fb4d87d05ea2998d06eddf5e6df1811cf640841db38b0fbab1ceae028bc9344",
+      "drive_file_ids": ["1FCaMBV1iOFes-q1l9V6HtxxX-zUIVKFd"],
+      "drive_readback_sha256": "ab14ee4435a0666ceac0f845550dc5298875c2b50fa95146f8bf5847b3b6c6bc",
+      "exact_readback_verified": true,
+      "drive_layout": "single_file",
+      "classification": "RESEARCH_AUDIT_ONLY",
+      "restore_priority": "LOW_DAILY_NOT_REQUIRED"
+    },
+    {
+      "logical_identity": "new_cross_sectional_relative_strength_leadership_v1_outcomes",
+      "logical_path": "data/validation/new_cross_sectional_relative_strength_leadership_v1/new_cross_sectional_relative_strength_leadership_v1_outcomes.jsonl.gz",
+      "rows": 808532,
+      "bytes": 104082918,
+      "local_sha256": "985b073a9c125f2be433f4c4c8ba751f57b2269f98766a94725df8aeea5b6c32",
+      "content_sha256": "b15eacf9f468129864343ca51521276fad5e1812b03380a6376f8b671e6db2f6",
+      "drive_file_ids": ["1FZLA7-hVnjGuynmyfA326Bk_KE8OGBLP", "1OlXCVB_goVygIK3NSmwdAeKV368mtHk_", "1dW2fTJZwJminZ_OvauAZlrMGrCsrDMca"],
+      "drive_readback_sha256": "985b073a9c125f2be433f4c4c8ba751f57b2269f98766a94725df8aeea5b6c32",
+      "exact_readback_verified": true,
+      "drive_layout": "ordered_40000000_byte_parts",
+      "part_count": 3,
+      "part_readback_all_match": true,
+      "classification": "RESEARCH_AUDIT_ONLY",
+      "restore_priority": "LOW_DAILY_NOT_REQUIRED"
+    },
+    {
+      "logical_identity": "new_volatility_contraction_breakout_v1_signal_membership",
+      "logical_path": "data/validation/new_volatility_contraction_breakout_v1/new_volatility_contraction_breakout_v1_signal_membership.jsonl.gz",
+      "rows": 4041140,
+      "bytes": 324287998,
+      "local_sha256": "9e53503fbd13a3e0b2c358df2716754d696937b8d20f075c96c8d9e7421b68eb",
+      "content_sha256": "8879d6a403ad28d3f428013b4bce121f148e201a47115835f5b513da95c960f9",
+      "drive_file_ids": ["1tdRjFUyQNy_2BnPD6gQwKnsWsYR5A4dF", "1cAktkZ-pkx392h--DDUwVCW7Q5F4MkI8", "10nsTqRtLoMOtx_pCWv5IZtcadVHzaW77", "1P2hl3e5WQl3C6tCvER2lgoepEuitcYle", "1T1KQKtZ2_tZLP2xVhVfSezQjzAXsofwS", "1XuwyBZbwhp1cqy540t-FfpAH618dAQr-", "1kgDZYajXkEOpGvHUo9wzM4pCmRWTbDOg", "1fyTl7rXGxHSmHx4D_ZxgbD0t4rltuRoX", "1D52zib1L_0i2pmYwvflLFRAdcjK6LOs7"],
+      "drive_readback_sha256": "9e53503fbd13a3e0b2c358df2716754d696937b8d20f075c96c8d9e7421b68eb",
+      "exact_readback_verified": true,
+      "drive_layout": "ordered_40000000_byte_parts",
+      "part_count": 9,
+      "part_readback_all_match": true,
+      "classification": "RESEARCH_AUDIT_ONLY",
+      "restore_priority": "LOW_DAILY_NOT_REQUIRED"
+    },
+    {
+      "logical_identity": "new_volatility_contraction_breakout_v1_outcomes",
+      "logical_path": "data/validation/new_volatility_contraction_breakout_v1/new_volatility_contraction_breakout_v1_outcomes.jsonl.gz",
+      "rows": 195464,
+      "bytes": 44558947,
+      "local_sha256": "be2b7b8b9fd296f20dfd1d111cdc7226ddf2b961117196dac6009b39c6933a31",
+      "content_sha256": "03b4e583353bb8b6f18cf0f0dbd722ab3f2726c0bc1d83396a96cd61a0ace7ca",
+      "drive_file_ids": ["1mm48agUrQAH_aYO6FOmiOArUSMR44Qkr"],
+      "drive_readback_sha256": "be2b7b8b9fd296f20dfd1d111cdc7226ddf2b961117196dac6009b39c6933a31",
+      "exact_readback_verified": true,
+      "drive_layout": "single_file",
+      "classification": "RESEARCH_AUDIT_ONLY",
+      "restore_priority": "LOW_DAILY_NOT_REQUIRED"
+    },
+    {
+      "logical_identity": "new_controlled_right_side_reversal_v1_signal_membership",
+      "logical_path": "data/validation/new_controlled_right_side_reversal_v1/new_controlled_right_side_reversal_v1_signal_membership.jsonl.gz",
+      "rows": 4041140,
+      "bytes": 304578870,
+      "local_sha256": "267995e9098c67759fe6ab401e8f1abedbca4bba452df187b7c36b715be8e203",
+      "content_sha256": "696d1b72ba5d88080c3548730192d5ae24c9027914767a1d90ad04fe53646027",
+      "drive_file_ids": ["1Isy5a_HdhQPQKEC-c581evw2BDR41ODX", "1xBYm4SfoXKdBWelKNJXrVxbOSjE0YRw8", "1febcUbUoCqfzGRWGYsUbN4aGh2DElC2j", "1FEiLfLMlR92hbSZYh5WUbYlHH5NlQoEF", "1hPpeiSVcByvR-vSBkkTtpZXCzNMkpIEV", "1UHm1dJ42O9Zd8VFNcBw_zIPakrft5ksD", "1_weG9JX_agOtWTyZsSHNkn_Sgk158Dmq", "18li9TirwwefZ9LD7nABPA8nW37XEZUwS"],
+      "drive_readback_sha256": "267995e9098c67759fe6ab401e8f1abedbca4bba452df187b7c36b715be8e203",
+      "exact_readback_verified": true,
+      "drive_layout": "ordered_40000000_byte_parts",
+      "part_count": 8,
+      "part_readback_all_match": true,
+      "classification": "RESEARCH_AUDIT_ONLY",
+      "restore_priority": "LOW_DAILY_NOT_REQUIRED"
+    },
+    {
+      "logical_identity": "new_controlled_right_side_reversal_v1_outcomes",
+      "logical_path": "data/validation/new_controlled_right_side_reversal_v1/new_controlled_right_side_reversal_v1_outcomes.jsonl.gz",
+      "rows": 1935412,
+      "bytes": 303828142,
+      "local_sha256": "e64fc9543e0bb01ccd9454c1a52d42306ae8d0613e93254ca05c0047c21ba3ca",
+      "content_sha256": "2ae2996aa79de858cd12bc0897a5a75eb4993df469f4ef80def84b138547a453",
+      "drive_file_ids": ["1Iwtdf5bsN9rGrZLesqf3H1ogWyA0dr33", "1BE6FS45OZbidWzbXOCK1521bUF-LtFAF", "1u-8P7GGYKqU-xBRvk1gkkaNQIUmbXDxQ", "1xSiSz1f8GW6oVizAQ7wzANvxHOoqxFhy", "1r_krbpr2tTaQMCTjKmdVTLHXRRXj-gu1", "1c3WwdQmMq0WftHU5yccXUhznkg9S9Frk", "1bk3FDBojZG8SgupKwDoeWr2gw_kdNJj9", "134eTQu9gBG6rp-rcbqoSGsqEZ9YFciAP"],
+      "drive_readback_sha256": "e64fc9543e0bb01ccd9454c1a52d42306ae8d0613e93254ca05c0047c21ba3ca",
+      "exact_readback_verified": true,
+      "drive_layout": "ordered_40000000_byte_parts",
+      "part_count": 8,
+      "part_readback_all_match": true,
+      "classification": "RESEARCH_AUDIT_ONLY",
+      "restore_priority": "LOW_DAILY_NOT_REQUIRED"
+    }
+  ],
+  "research_audit_missing": [
+    {
+      "logical_identity": "b_phase_volume_path_diagnostic_v1_events",
+      "logical_path": "data/validation/b_phase_volume_path_diagnostic_v1/events.jsonl.gz",
+      "rows": 573586,
+      "bytes": 143728332,
+      "local_sha256": "4bc5261c6d5329f48eded16caead33ebf0a49c462739f2f43d2dc33f0a88c3fe",
+      "content_sha256": "c04f4147ab68a12096aef83b4646f6b72883b413e5418b616d9023aaab631018",
+      "drive_file_ids": [],
+      "status": "LOCAL_ONLY_ARTIFACT_MISSING",
+      "replacement_used": false,
+      "classification": "RESEARCH_AUDIT_ONLY"
+    }
+  ],
+  "research_not_archived_under_rule": [
+    {
+      "logical_path": "data/validation/b_turnover_x_relative_volume_incremental_v1/cohort_features.jsonl.gz",
+      "status": "NOT_INCLUDED",
+      "reason": "canonical manifest references derived cohort detail, but does not explicitly reference local-only raw/full acquisition bytes"
+    }
+  ],
+  "b_prospective_datastore": {
+    "logical_path": "data/prospective_observation/b_v1_1/",
+    "status": "NOT_INSTANTIATED",
+    "fake_observation_created": false,
+    "historical_reconstruction_used": false
+  },
+  "required_environment_variable_names": {
+    "required_for_live_b_runner": ["HITHINK_FINANCE_API_KEY"],
+    "optional_data_root_override": ["ASHARE_DATA_ROOT"],
+    "values_recorded": false,
+    "research_provider_credentials_migrated": false
+  },
+  "final_boundaries": {
+    "final_oos": "SEALED / UNREAD",
+    "c": "UNREAD / CANDIDATE INVENTORY ONLY",
+    "old_d": "NOT_RECONSTRUCTED",
+    "active_new_strategy_research": "NONE",
+    "no_new_strategy": true,
+    "no_tuning_promotion_or_freeze": true,
+    "forbidden_directory_touched": false,
+    "secrets_recorded": false
+  }
+}
