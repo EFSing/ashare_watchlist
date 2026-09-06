@@ -1505,3 +1505,15 @@ frozen prerequisite 保持 `NOT_READY / PARTIAL_UNVERIFIED`；
   freeze、production-path change or automatic next candidate；forbidden directory untouched。
 - next：commit final docs/code/artifacts, push independent PR titled
   `research: controlled right-side reversal V1`, wait exact-head CI, then stop for user merge decision。
+
+## CRSR V1 PR ready — 2026-09-06
+
+- PR：#39 `research: controlled right-side reversal V1`，URL=`https://github.com/EFSing/ashare_watchlist/pull/39`。
+- live base/head：base=`36f8120651e8f6a0d66e1d97769dc7c6d8a66e7b`；
+  head=`58832ac4b8deeb23e28a165232656d0567df9d81`；branch=
+  `codex/new-controlled-right-side-reversal-v1`。
+- PR state：`OPEN / CLEAN`；push-triggered correctness run=`34030857382`、
+  pull-request-triggered correctness run=`34030876254`，两者均 `success` 且 workflow head SHA
+  exact-match PR head。
+- terminal state：`CRSR_RESEARCH_PR_READY_FOR_USER_MERGE_DECISION`。不要自动 merge；等待用户
+  merge decision。若 PR head 变化，需重新验证 exact-head CI。

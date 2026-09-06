@@ -1268,3 +1268,14 @@ old D not reconstructed；Final OOS remains `SEALED / UNREAD`；forbidden direct
 当前正式层级仍为 `development candidate`，CRSR 仅为独立 research artifact，不改变 production
 路径或现有 decisions。当前停止标记：`CRSR_RESEARCH_PR_READY_FOR_USER_MERGE_DECISION`；等待
 独立 PR exact-head CI 和用户 merge decision。
+
+## CRSR V1 PR exact-head CI verified — 2026-09-06
+
+独立 PR #39（`research: controlled right-side reversal V1`）已创建，live base 为
+`36f8120651e8f6a0d66e1d97769dc7c6d8a66e7b`，live head 为
+`58832ac4b8deeb23e28a165232656d0567df9d81`。push run `34030857382` 与 pull-request run
+`34030876254` 均成功，workflow head SHA 均精确匹配该 PR head；GitHub 状态为 `OPEN / CLEAN`。
+
+正式 research decision 仍为 `CONTROLLED_RIGHT_SIDE_REVERSAL_NO_CLEAR_INCREMENTAL_SIGNAL`，
+不改变 `development candidate` 层级、production path 或其他 preserved strategy。当前终态：
+`CRSR_RESEARCH_PR_READY_FOR_USER_MERGE_DECISION`，不自动 merge，等待用户决定。

@@ -1522,3 +1522,14 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
   C unread；Final OOS=`SEALED / UNREAD`；forbidden directory untouched；没有 provider change、
   parameter tuning、promotion、freeze 或 production path change。下一 gate 是 independent PR
   exact-head CI；终态为 `CRSR_RESEARCH_PR_READY_FOR_USER_MERGE_DECISION`。
+
+## 2026-09-06 — CRSR V1 PR exact-head CI verification
+
+- delivery：独立 PR #39 `research: controlled right-side reversal V1` 已创建；base=
+  `36f8120651e8f6a0d66e1d97769dc7c6d8a66e7b`，head=`58832ac4b8deeb23e28a165232656d0567df9d81`。
+- verification：push correctness run=`34030857382` 与 pull-request correctness run=
+  `34030876254` 均 `success`，workflow head SHA exact-match PR head；GitHub PR state=`OPEN / CLEAN`。
+- authorization boundary：不自动 merge。研究 fixed decision、B/RS/VCB/frozen state、
+  production semantics、Final OOS=`SEALED / UNREAD` 与 forbidden-directory boundary 均不变。
+- stop：`CRSR_RESEARCH_PR_READY_FOR_USER_MERGE_DECISION`，等待用户 merge decision；任何
+  后续 head 变化都必须重新通过 exact-head CI。
