@@ -4,6 +4,14 @@ Decision: `VOLATILITY_CONTRACTION_BREAKOUT_NEEDS_MORE_EVIDENCE`
 
 This is DEVELOPMENT / RECONSTRUCTED_RETROSPECTIVE / DATE_ANCHORED / DIAGNOSTIC_ONLY evidence. It is not production, a frozen candidate, causal mechanism evidence, or Final OOS.
 
+## Delivery metadata
+
+- Branch: `codex/new-volatility-contraction-breakout-v1`.
+- Base: `44544b831dfb12bc03bbc9efab49704f095cce1d` (reconciled master).
+- Research artifact head: `0838b3fa6404babc9fa50aa3a3aeb3e937522d27`.
+- Protocol semantic commit: `411c72b1eff27ecb1ecfb125818837b6aa4a313c`.
+- Changed research files: `docs/research/new_volatility_contraction_breakout_v1_protocol.md`, `scripts/new_volatility_contraction_breakout_v1.py`, `tests/test_new_volatility_contraction_breakout_v1.py`, and the three `new_volatility_contraction_breakout_v1_*` artifacts in `docs/research/artifacts/`.
+
 ## Fixed identity
 
 - Base: `44544b831dfb12bc03bbc9efab49704f095cce1d`; protocol commit: `411c72b1eff27ecb1ecfb125818837b6aa4a313c`.
