@@ -1464,3 +1464,17 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
   JSON/hash/schema and diff checks PASS。
 - next gate：independent research PR exact-head CI；terminal state
   `VCB_RESEARCH_PR_READY_FOR_USER_MERGE_DECISION`，不自动 merge。
+
+## 2026-09-06 — PR #38 squash merge and post-merge verification
+
+- authorization：用户要求仅在 live PR head 精确为
+  `2d5d61f319a2a1af84bbd58c2997ca3b07218e8e` 时 squash-merge；实时检查满足该条件，PR #38
+  为 `OPEN / MERGEABLE / CLEAN`，随后执行 squash merge。
+- merge identity：canonical master merge SHA 为
+  `0571d57d5741faa689922c9f3a7d5c73c04772fb`。master correctness run=`34024991541`，
+  `success`，workflow head SHA exact-matched该 merge SHA。
+- reconciliation：只更新 `HANDOFF.md`、`docs/CURRENT_STATUS.md`、`docs/DECISION_LOG.md`
+  的 stale PR #38 governance state；没有修改 VCB research decision、protocol、artifact、
+  B、RS、frozen state 或 production semantics。
+- stop：不启动另一 candidate，不读取 Final OOS，不调参、不 promotion、不 freeze；终态为
+  `VCB_RESEARCH_MERGED_MASTER_VERIFIED`。

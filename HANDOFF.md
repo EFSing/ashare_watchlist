@@ -1460,3 +1460,16 @@ frozen prerequisite 保持 `NOT_READY / PARTIAL_UNVERIFIED`；
 - preserved boundaries：B/B prospective、RS、Volume-Path、turnover/RV、frozen state unchanged；
   C、controlled reversal、Final OOS=`SEALED / UNREAD`、provider replacement、tuning、promotion、
   freeze 和 automatic follow-up 未运行；forbidden directory untouched。
+
+## Post-merge governance — PR #38 merged and master verified — 2026-09-06
+
+- PR #38 was squash-merged only after live head exact-match verification:
+  `2d5d61f319a2a1af84bbd58c2997ca3b07218e8e`.
+- Canonical master merge SHA: `0571d57d5741faa689922c9f3a7d5c73c04772fb`.
+- Master exact-head correctness run: `34024991541`, `success`, workflow head SHA exact-matched
+  the canonical merge SHA.
+- This post-merge update is governance-only: VCB decision, protocol, signal/outcome artifacts,
+  B, RS, frozen state and production semantics are unchanged. No new candidate was started and
+  Final OOS remains `SEALED / UNREAD`.
+- terminal state: `VCB_RESEARCH_MERGED_MASTER_VERIFIED`; stop here pending a future explicit user
+  request. Forbidden directory remains untouched.

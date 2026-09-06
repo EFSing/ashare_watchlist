@@ -1226,3 +1226,16 @@ compileall、JSON/schema/hash validation 和 `git diff --check` 均通过。当�
 `VCB_RESEARCH_PR_READY_FOR_USER_MERGE_DECISION`；等待独立 PR exact-head CI 和 user merge
 decision。B、B prospective observation、RS、Volume-Path、turnover/RV、frozen state 均不变；
 C、controlled reversal、Final OOS 和受禁目录未读取。
+
+## Post-merge current state — VCB PR #38 merged — 2026-09-06
+
+PR #38 已在 live head 精确为
+`2d5d61f319a2a1af84bbd58c2997ca3b07218e8e` 时 squash-merged。新的 canonical master 为
+`0571d57d5741faa689922c9f3a7d5c73c04772fb`；master correctness run
+`34024991541` 为 `success`，workflow head SHA 与该 merge SHA 精确匹配。
+
+本次仅做 post-merge governance reconciliation。VCB fixed decision
+`VOLATILITY_CONTRACTION_BREAKOUT_NEEDS_MORE_EVIDENCE`、protocol、signal/outcome artifact、
+B、B prospective observation、RS、Volume-Path、turnover/RV、frozen state 均未改变。没有
+启动另一候选、没有读取 Final OOS、没有调参、promotion、freeze 或生产路径变更；受禁目录
+保持 untouched。当前终态：`VCB_RESEARCH_MERGED_MASTER_VERIFIED`。
