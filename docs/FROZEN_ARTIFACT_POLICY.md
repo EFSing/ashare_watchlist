@@ -6,12 +6,15 @@
 
 它不授权重新抓取数据、不改变 strategy/protocol、不读取 Final OOS，也不把 development artifact 提升为 production 或 OOS。
 
-## CI provenance and handoff snapshots
+## CI provenance and handoff state
 
-- `HANDOFF.md` 的 CI 字段是 `last verified CI provenance`，只记录最近一次已经核对过的 run、head SHA、结论和时间。
-- 新会话必须实时查询当前 Git `HEAD`、远端 branch、PR state、PR head SHA 和 exact-head CI；不得把 HANDOFF 快照当作当前状态的替代。
-- 当前 commit 自己产生的 CI 不回写到同一 commit。若 CI 结果改变，只在下一次有实质性治理/状态更新时作为新的 last-verified evidence 回填；不为更新 run ID 建立无限 HANDOFF commit 循环。
-- 已合并 PR 不得继续标作 active PR；实时核验无 active PR 时，HANDOFF 必须写 `PR: NONE`。
+- Git/GitHub live state（branch、`HEAD`、PR state、PR head、exact-head CI）一律以实时
+  查询为准；`HANDOFF.md` 是跨设备最小恢复入口，不保存这些 last-verified CI/PR 字段。
+- 涉及 frozen-artifact recovery / STRICT PATH 的任务，只核验当前任务实际依赖的 PR/CI/
+  head；普通开发不默认执行。
+- 当前 commit 自己产生的 CI 不回写到同一 commit。若 CI 结果改变，只在下一次实质性
+  状态更新时按需回填证据；不为更新 run ID 建立无限 HANDOFF commit 循环。
+- 已合并 PR 不得继续标作 active PR；PR 状态由 GitHub live state 维护，不写入 HANDOFF。
 
 ## Identity rules
 
@@ -41,17 +44,24 @@
 - artifact 与 registry hash 不一致时立即停止，标记 `PROJECT_GOVERNANCE_STATE_CONFLICT` 或 `HASH_MISMATCH`，不得自动修复或重新下载。
 - checkpoint 只能与匹配的 raw input content SHA、strategy spec SHA、protocol SHA 和 dataset version 一起 resume；不可跨 identity 拼接。
 - interrupted output、resume output、final output 和旧 diagnostic 都保留并分别登记；final output 不覆盖 evidence。
-- 任何 phase/task 完成、PR ready/merge、strategy/protocol/dataset/artifact freeze、provider semantics 变化或 research/production status 变化后，更新 HANDOFF 和相关 registry/status。
+- phase/task 完成、PR ready/merge、artifact freeze、provider semantics 变化或
+  research/production status 变化后，按 `AGENTS.md` 的更新节奏处理：HANDOFF 在交接/
+  暂停/checkpoint 前更新；CURRENT_STATUS 仅在可独立交付/PR/merge/release/研究阶段/
+  稳定流水线状态实质变化时更新；registry 只在实际 artifact/freeze identity 变化时更新。
 - secret、API key、token、credential value 永远不得进入 registry、Git、manifest 或日志；只允许记录环境变量名和 presence/empty 等审计摘要。
 
 ## New-device recovery procedure
 
-1. clone/fetch 指定 repo 和 commit；先读取 `HANDOFF.md`、`CURRENT_STATUS.md`、`DECISION_LOG.md`、本 policy 和 registry。
-2. 验证当前 branch/master/PR/exact-head CI；检查 tracked working tree clean。
+1. clone/fetch 指定 repo 和 commit；先读取 `HANDOFF.md`、本 policy 和 registry；仅当
+   当前任务依赖 formal status 或既有决策理由时，再读取 `CURRENT_STATUS.md` /
+   `DECISION_LOG.md`。
+2. 核对当前 branch 与所需 commit/HEAD，检查 tracked working tree clean；只验证本次
+   recovery 实际依赖的 PR/CI（如适用）。
 3. 对 registry 中每个 required artifact 检查 logical path、实际 file SHA、semantic/content SHA 和 status。
 4. 对 external artifact（当前为 `daily_k.parquet`）从受控 Google Drive private backup 读取 exact parquet member bytes，核对 `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426`；不能核对就停止 replay/resume。
 5. 只在所有 required inputs、checkpoint identity 和 producer/runtime dependency 一致时执行 resume；不得重新下载“近似文件”。
-6. 将 recovery evidence、时间和 commit/backup reference 回填 registry / HANDOFF，再声明 `HANDOFF_CURRENT_AND_CONSISTENT`。
+6. 将 recovery evidence、时间和 commit/backup reference 回填 registry；如需要新的
+   恢复 checkpoint 再更新 HANDOFF，并声明 `HANDOFF_CURRENT_AND_CONSISTENT`。
 
 ## Current recovery decision
 

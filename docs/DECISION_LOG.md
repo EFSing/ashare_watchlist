@@ -1,6 +1,29 @@
 # DECISION LOG
 
-职责：长期记录重要项目决策为什么形成。当前操作接手规则不在此重复，见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
+职责：只记录具有长期约束力、未来需要解释“为什么这样设计”的决定（含进入、退出或拒绝
+某项研究/产品决策的理由，以及冻结的契约）；不记录普通 bugfix、测试补充和局部实现细节。
+当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
+[`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
+
+## 2026-09-06 — Adopt FAST/STRICT path and minimal cross-device governance
+
+- context：既有治理要求每个任务默认读取全部治理/protocol 文件并实时核验历史
+  PR/CI/artifact，跨设备恢复成本高；HANDOFF 堆叠大量历史快照造成同步压力。
+- decision：远端 Git 为代码、测试、配置及跨设备可恢复开发状态的事实源。普通开发默认
+  FAST PATH，开始只检查 working tree、branch、HEAD、remote/fetch 并读取 `HANDOFF.md`；
+  仅 STRICT PATH（交易语义、数据口径、universe/样本、look-ahead/OOS、数据污染、正式
+  artifact、不可逆写入、merge/release、资金/生产风险等）验证当前任务真正依赖的
+  PR/CI/artifact/数据血缘/研究证据。HANDOFF 最小化为 7 项恢复字段；CURRENT_STATUS 只在
+  可独立交付/PR/merge/release/研究阶段/稳定流水线状态实质变化时更新；DECISION_LOG 只
+  记录长期约束决定。`REMOTE_RECOVERY_CHECKPOINT` 是状态定义（commit+push+HANDOFF 指向
+  remote branch/HEAD+可无聊天记忆继续），不新增文件/Phase/registry/gate。
+- rationale：降低普通开发的治理验证成本，同时保持跨设备恢复链 remote Git → branch →
+  remote HEAD → HANDOFF → next action 不降级。
+- consequences：历史 PR/CI 快照不再写入 HANDOFF（provenance 保留在 Git 历史与既有
+  status/decision 文档）；governance-only commit 使 HEAD 前进不再构成冲突；
+  `PROJECT_GOVERNANCE_STATE_CONFLICT` 只针对当前任务真正依赖且与 live 状态矛盾的记录，
+  不做无边界历史审计。
+- revisit condition：跨设备恢复能力或普通开发治理验证成本出现实质退化时。
 
 ## 2026-09-06 — PR #37 merge reconciliation and VCB research handoff
 

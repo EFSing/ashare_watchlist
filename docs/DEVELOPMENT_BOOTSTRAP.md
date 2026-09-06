@@ -19,9 +19,11 @@ git status --short --branch
 ```
 
 确认 origin 是 `EFSing/ashare_watchlist`。不要用 `git clean`，不要删除未跟踪文件。
-继续既有治理任务时，先读取 `AGENTS.md`、`HANDOFF.md`、`docs/CURRENT_STATUS.md`、
-`docs/DECISION_LOG.md` 以及任务相关 protocol/governance 文件，再实时核对 active PR、
-PR head、exact-head CI 和 working tree。
+普通开发（FAST PATH）继续任务时只读取 `AGENTS.md` 与 `HANDOFF.md`，并核对 working
+tree、branch、HEAD、remote/fetch；不默认重新核验历史 PR/CI/artifact 或旧 Phase。
+STRICT PATH（交易语义、数据口径、research/live 证据、artifact、不可逆写入、merge/
+release、资金/生产风险等）才按 `AGENTS.md` 指示读取相关 protocol/governance 文件，
+并只验证当前任务实际依赖的 PR head、exact-head CI 和 working tree。
 
 ## 2. Recreate the declared Python runtime
 

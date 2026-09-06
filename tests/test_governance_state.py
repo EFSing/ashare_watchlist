@@ -53,14 +53,16 @@ def test_material_semantic_product_state_mismatch_is_a_conflict():
     assert "semantic_state_mismatch:active_pr" in conflicts
 
 
-def test_governance_documents_use_snapshot_and_milestone_language():
+def test_governance_documents_follow_fast_path_and_minimal_handoff_language():
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
     handoff = (ROOT / "HANDOFF.md").read_text(encoding="utf-8")
     status = (ROOT / "docs" / "CURRENT_STATUS.md").read_text(encoding="utf-8")
     decisions = (ROOT / "docs" / "DECISION_LOG.md").read_text(encoding="utf-8")
 
     assert "PERSISTED GOVERNANCE STATE" in agents
-    assert "last_verified_master_snapshot" in handoff
+    assert "FAST PATH" in agents and "STRICT PATH" in agents
+    assert "REMOTE_RECOVERY_CHECKPOINT" in agents
+    assert "remote HEAD" in handoff and "next action" in handoff
     assert "current live master HEAD" not in handoff
     assert "verified_master_sha" not in handoff
     assert "正式基线：`master@" not in status
