@@ -2,38 +2,26 @@
 
 > 本文件是下一台电脑、一次新 clone 或一个新 Codex 会话的接手入口；它不是完整 Git 历史。
 
-## LATEST LIVE CHECKPOINT — WORKSTATION_TO_HOME_SEAMLESS_HANDOFF
+## LATEST LIVE CHECKPOINT — POST-PR37 GOVERNANCE RECONCILIATION
 
-以下是本次最终交接文档提交前刚核验的 live snapshot；文档提交和推送会产生新的
-governance-only HEAD，因此家用电脑接手时仍必须以实时 Git/GitHub/CI 查询结果为准。
+以下是 PR #37 合并后发现旧治理快照未更新时的 bounded docs-only reconciliation；文档提交和
+推送会产生新的 governance-only HEAD，因此接手时仍必须以实时 Git/GitHub/CI 查询结果为准。
 
-- repository：`EFSing/ashare_watchlist`；branch：
-  `codex/tradable-universe-prelisting-fix-20260902`。
-- last-verified exact HEAD：`e0059ba27dcb92093161200e840d85874504ae8`；
-  `origin/master` / base：`05232677055c67b8b87c8d8c3c3b4139df8c477d`。
-- PR：[#25](https://github.com/EFSing/ashare_watchlist/pull/25)，open，
-  `mergeable=true` / `mergeable_state=clean`；last-verified exact-head correctness CI：
-  run `33624545483`，`success`，head=`e0059ba27dcb92093161200e840d85874504ae8`。
-- tracked working tree：clean；仅保留未跟踪的本机目录
-  `data/validation/continuous_speed_probe/`。本次交接不读取、不修改、不删除、不上传该目录，
-  也不将其纳入提交。
-- current task：`TRADABLE_UNIVERSE_LISTING_ELIGIBILITY`。Sol decision：
-  `USE_EXCHANGE_OFFICIAL_LISTED_ROSTER_VIA_EXISTING_AKSHARE`；architecture 为
-  HiThink broad SH/SZ A-share metadata → official SSE/SZSE current listed roster →
-  Tencent quote/Kline → B → `USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` → final watchlist。
-- exact stop state：SSE adapter、SZSE adapter、listing-date parse、exact six-digit
-  symbol intersection 和 provenance 已完成；focused tests `70 passed`，full pytest
-  `240 passed`，compileall、JSON/hash/governance validation、`git diff --check` 均通过；
-  formal 2026-09-02 fresh capture=`NOT_RERUN`，candidate list=`NOT_EVALUATED`（不是 0）。
-- preserved semantics：`301686` 在官方 roster 证明 T 日未上市/不在 roster 时，必须在
-  acquisition universe 进入 quote/Kline 前排除；已上市但停牌的 `002731` 保留；ST/*ST
-  仍只在 B 后由现有 `USER_TRADABILITY_ELIGIBILITY_NON_ST_V1` 处理；Tencent `p[38]=""`
-  不放宽；B evaluator/spec/threshold/score 不变。
-- home resume first action：先实时执行 `git fetch origin`，再核对当前 branch、exact
-  HEAD、`origin/master`、PR #25、exact-head CI 和 working tree；随后停在 PR #25 的
-  user merge decision，不运行 formal capture，不读取 Final OOS，不启动 Phase 2F/C、
-  promotion 或调参。
-- handoff objective：`WORKSTATION_STATE_DURABLY_PUSHED_AND_HOME_RESUME_READY`。
+- repository：`EFSing/ashare_watchlist`；live base：`origin/master`。
+- last-verified pre-reconciliation master：`547feebb88e7b755785c2ae590ea7e4cca0c7a0d`。
+- PR #37（`research: cross-sectional RS leadership V1`）已 merged；merge-head correctness
+  checks `33987664237` / `33987644452` 均为 `success`，且 head 精确匹配该 merge SHA。
+- 治理冲突仅限旧文档仍把已 merged PR #37 / 前序任务写成 open 或旧 handoff snapshot；本次
+  只更新 `HANDOFF.md`、`docs/CURRENT_STATUS.md`、`docs/DECISION_LOG.md`，不改 strategy、
+  research semantics、artifact、production path 或 frozen state。
+- current task：`NEW_VOLATILITY_CONTRACTION_BREAKOUT_V1`，当前处于 no-outcome input audit；
+  protocol commit 前不得读取该候选 forward outcomes。
+- preserved semantics：`B_BREAKOUT_RETEST_LEGACY_V1_1`、B prospective observation、RS、
+  Volume-Path、turnover/RV、frozen state 和 `Final OOS=SEALED / UNREAD` 不变。
+- next gate：本次 reconciliation 的 master exact-head correctness 通过后，从 reconciled master
+  创建独立 research branch；随后执行 input audit → pre-outcome protocol commit。
+- tracked working tree：除既有本机未跟踪临时目录外保持 clean；
+  `data/validation/continuous_speed_probe/` 永不读取、修改、删除、hash 或上传。
 - secrets：本次未上传 secrets 或凭据。
 
 ## 1. Current Objective

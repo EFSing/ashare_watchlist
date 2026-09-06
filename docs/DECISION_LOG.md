@@ -2,6 +2,21 @@
 
 职责：长期记录重要项目决策为什么形成。当前操作接手规则不在此重复，见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-06 — PR #37 merge reconciliation and VCB research handoff
+
+- live state：PR #37（`research: cross-sectional RS leadership V1`）已在 exact merge SHA
+  `547feebb88e7b755785c2ae590ea7e4cca0c7a0d` 合并；merge-head correctness runs
+  `33987664237` / `33987644452` 均为 `success`。旧治理文档仍描述 PR #37 open/awaiting
+  merge，构成仅限治理快照的 bounded `PROJECT_GOVERNANCE_STATE_CONFLICT`。
+- decision：执行一次 docs-only reconciliation，只更新 `HANDOFF.md`、
+  `docs/CURRENT_STATUS.md`、`docs/DECISION_LOG.md`；不修改 B、RS、Volume-Path、turnover/RV、
+  protocol semantics、research artifacts、production path、frozen state 或 Final OOS。
+- next research：用户正式选择 `NEW_VOLATILITY_CONTRACTION_BREAKOUT_V1`。当前只进入
+  no-outcome input audit；必须在任何该候选 forward outcome access 前完成并 commit 固定 protocol。
+- boundaries：Final OOS=`SEALED / UNREAD`；B prospective outcomes、C、controlled reversal、
+  provider replacement、current-data backfill、parameter tuning、promotion 和 freeze 均未运行；
+  `data/validation/continuous_speed_probe/` 未读取、未修改、未删除、未 hash、未上传。
+
 ## 2026-09-02 — Workstation-to-home seamless handoff checkpoint
 
 - classification：`correctness blocker` follow-up / operational handoff；不新增研究问题，
