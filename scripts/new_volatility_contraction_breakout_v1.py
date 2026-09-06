@@ -385,6 +385,26 @@ def _signal_pass(*, raw_dir: Path, core_manifest_path: Path, core_output_path: P
     return {"audit": audit, "per_date": per_date, "signal_only": signal_only, "signal_artifact": signal_artifact, "b_signal_overlap": b_overlap, "signal_summary": signal_summary}
 
 
+def _reuse_signal_pass(signal_path: Path, audit_path: Path) -> dict[str, Any]:
+    signal_summary = json.loads(audit_path.read_text(encoding="utf-8"))
+    artifact = signal_summary["signal_artifact"]
+    actual = _jsonl_gzip_identity(signal_path)
+    if actual["rows"] != artifact["rows"] or actual["bytes"] != artifact["bytes"] or actual["file_sha256"] != artifact["file_sha256"] or actual["content_sha256"] != artifact["content_sha256"]:
+        raise RuntimeError("VCB_SIGNAL_ARTIFACT_IDENTITY_MISMATCH")
+    per_date: dict[str, dict[str, Any]] = {}
+    with gzip.open(signal_path, "rt", encoding="utf-8", newline="") as handle:
+        for line in handle:
+            row = json.loads(line)
+            if not row.get("candidate") and not row.get("primary_control"):
+                continue
+            date = row["date"]
+            entry = per_date.setdefault(date, {"signal_date": date, "candidate_rows": [], "control_rows": []})
+            entry["candidate_rows" if row["candidate"] else "control_rows"].append(row)
+    for date, entry in per_date.items():
+        entry.update({"eligible_n": None, "valid_feature_n": None, "insufficient_history_n": None, "invalid_ohlc_or_trp_n": None, "generic_breakout_n": len(entry["candidate_rows"]) + len(entry["control_rows"]), "candidate_n": len(entry["candidate_rows"]), "primary_control_n": len(entry["control_rows"])})
+    return {"audit": signal_summary["input_audit"], "per_date": per_date, "signal_only": signal_summary["signal_only"], "signal_artifact": artifact, "b_signal_overlap": signal_summary["b_signal_overlap"], "signal_summary": signal_summary}
+
+
 def _process_outcomes(*, signal: dict[str, Any], raw_dir: Path, signal_path: Path, outcome_path: Path) -> dict[str, Any]:
     index_dates, _index_bars, _index_meta = replay._load_index(raw_dir)
     session_dates = sorted(index_dates)
@@ -502,7 +522,10 @@ def run(*, phase: str, raw_dir: Path, core_manifest_path: Path, core_output_path
     detail_dir.mkdir(parents=True, exist_ok=True)
     signal_path = detail_dir / "new_volatility_contraction_breakout_v1_signal_membership.jsonl.gz"
     signal_audit_path = detail_dir / "new_volatility_contraction_breakout_v1_signal_audit.json"
-    signal = _signal_pass(raw_dir=raw_dir, core_manifest_path=core_manifest_path, core_output_path=core_output_path, b_membership_path=b_membership_path, signal_path=signal_path, audit_path=signal_audit_path)
+    if phase == "full" and signal_path.exists() and signal_audit_path.exists():
+        signal = _reuse_signal_pass(signal_path, signal_audit_path)
+    else:
+        signal = _signal_pass(raw_dir=raw_dir, core_manifest_path=core_manifest_path, core_output_path=core_output_path, b_membership_path=b_membership_path, signal_path=signal_path, audit_path=signal_audit_path)
     if phase == "signal":
         print(json.dumps(signal["signal_summary"], ensure_ascii=False, sort_keys=True))
         return signal["signal_summary"]
