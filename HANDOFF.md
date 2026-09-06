@@ -1434,3 +1434,29 @@ frozen prerequisite 保持 `NOT_READY / PARTIAL_UNVERIFIED`；
   未启动新策略 outcome research、未实现 evaluator、未读取 Final OOS 或受禁目录。
 - B、B observation protocol、methodology intake、四候选 shortlist/recommendation、
   turnover/RV、Volume-Path、frozen state 均保持不变。下一步仍需用户选择新策略候选。
+
+## Final research state — VCB V1 PR ready for user merge decision — 2026-09-06
+
+- research：用户选择的 `NEW_VOLATILITY_CONTRACTION_BREAKOUT_V1` 已完成独立
+  `DEVELOPMENT / RECONSTRUCTED_RETROSPECTIVE / DATE_ANCHORED / DIAGNOSTIC_ONLY /
+  NO_VINTAGE_PROOF` research。reconciled master base=`44544b831dfb12bc03bbc9efab49704f095cce1d`；
+  branch=`codex/new-volatility-contraction-breakout-v1`。
+- protocol：corrected pre-outcome semantic commit=
+  `411c72b1eff27ecb1ecfb125818837b6aa4a313c`。此前 `177d1b9` 版本只含一处 daily-K
+  SHA transcription typo，未读取 outcome，已由 corrected protocol supersede；实际 parquet、
+  frozen registry、CORE manifest 和 eligibility manifest SHA 完全一致。
+- input/signal：input audit PASS；769 sessions、4,041,140 historical PIT identities，
+  valid contraction ratio 4,041,140，generic breakout 195,464，candidate 21,988，
+  primary control 173,476；两组同时 active 751 dates，readiness gate PASS。
+- outcome：primary 10D date-equal spread=`+0.453824pp`，median=`+0.113340pp`，
+  95% 20-session moving-block CI=`[-0.381482,+1.349478]`；continuous rho mean=
+  `+0.110340`；cooldown spread=`+0.046626pp`，CI crosses zero；2023/2024/2025 positive,
+  2026 negative。fixed decision=`VOLATILITY_CONTRACTION_BREAKOUT_NEEDS_MORE_EVIDENCE`。
+- verification：focused tests `13 passed`；full project pytest `315 passed` under the pinned
+  project venv with short task-specific basetemp；compileall、JSON/schema/hash identity 和
+  `git diff --check` PASS。Large signal/outcome detail remains local-only and manifest-hashed。
+- exact stop：next action is push/create independent research PR, wait exact-head CI, then stop at
+  `VCB_RESEARCH_PR_READY_FOR_USER_MERGE_DECISION`; do not merge automatically。
+- preserved boundaries：B/B prospective、RS、Volume-Path、turnover/RV、frozen state unchanged；
+  C、controlled reversal、Final OOS=`SEALED / UNREAD`、provider replacement、tuning、promotion、
+  freeze 和 automatic follow-up 未运行；forbidden directory untouched。

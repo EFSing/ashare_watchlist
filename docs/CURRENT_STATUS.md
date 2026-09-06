@@ -1200,3 +1200,29 @@ Final OOS, or new provider was used.
 Current stop marker: `NEW_STRATEGY_CANDIDATE_SELECTION_REQUIRED`. Frozen state remains
 unchanged; Final OOS remains `SEALED / UNREAD`; the forbidden
 `data/validation/continuous_speed_probe/` directory remains untouched.
+
+## Superseding current state — VCB V1 research complete — 2026-09-06
+
+用户已正式选择 `NEW_VOLATILITY_CONTRACTION_BREAKOUT_V1`，并完成独立 DEVELOPMENT
+retrospective research。研究 branch 为
+`codex/new-volatility-contraction-breakout-v1`，reconciled master base 为
+`44544b831dfb12bc03bbc9efab49704f095cce1d`；pre-outcome protocol semantic commit 为
+`411c72b1eff27ecb1ecfb125818837b6aa4a313c`，Final OOS 保持 `SEALED / UNREAD`。
+
+Input audit PASS：769 个 XSHG sessions、2023-06-30 至 2026-08-28、4,041,140 个 date-symbol
+identities，validated `HISTORICAL_T_ANCHOR_PRICE_RAW_VOLUME`，`NO_VINTAGE_PROOF`。
+固定 signal pass 产生 195,464 generic breakouts、21,988 candidates、173,476 primary
+controls；both-group readiness 751 dates，gate PASS。
+
+固定 DEVELOPMENT outcome 结果：10D date-equal candidate-control spread `+0.453824pp`，
+95% moving-block-bootstrap CI `[-0.381482,+1.349478]`；continuous compression rho
+`+0.110340`；5D spread `+0.326237pp`；10-session cooldown spread `+0.046626pp`
+且 CI 跨零；2023–2025 sign positive、2026 negative。固定 decision 为
+`VOLATILITY_CONTRACTION_BREAKOUT_NEEDS_MORE_EVIDENCE`，不是 promotion、freeze、causal
+mechanism proof 或 production alpha。
+
+Focused tests `13 passed`，full pytest `315 passed`（pinned project venv + short basetemp），
+compileall、JSON/schema/hash validation 和 `git diff --check` 均通过。当前终态为
+`VCB_RESEARCH_PR_READY_FOR_USER_MERGE_DECISION`；等待独立 PR exact-head CI 和 user merge
+decision。B、B prospective observation、RS、Volume-Path、turnover/RV、frozen state 均不变；
+C、controlled reversal、Final OOS 和受禁目录未读取。

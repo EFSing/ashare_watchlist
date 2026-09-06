@@ -1436,3 +1436,31 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
   没有修改 B、observation protocol、shortlist 或推荐。
 - next gate：保持 `NEW_STRATEGY_CANDIDATE_SELECTION_REQUIRED`；只有用户选择后才
   创建下一策略的正式 pre-outcome protocol，不自动进行 outcome research。
+
+## 2026-09-06 — VCB V1 fixed research decision
+
+- classification：`research question`。Materiality 是检验 pre-breakout volatility
+  contraction 在同一 generic breakout baseline 之上的 incremental predictive information，
+  而不是把 breakout 自身的收益误归因给 contraction。
+- protocol/input：用户选择后先完成 no-outcome audit；corrected semantic protocol commit=
+  `411c72b1eff27ecb1ecfb125818837b6aa4a313c`。769 XSHG sessions、4,041,140 PIT identities、
+  frozen daily-K/adjustment hashes 和 T-anchor OHLC semantics 通过；历史 per-bar vintage proof
+  不存在，保留 `NO_VINTAGE_PROOF`。早期 `177d1b9` 仅因 daily-K SHA transcription typo 被
+  corrected protocol supersede，未用于 outcome access。
+- signal：固定 10/40 TRP、ratio `<1`、bottom 20%、strict prior-20 high breakout、无 volume
+  qualification；generic=`195,464`，candidate=`21,988`，control=`173,476`，both-group active
+  dates=`751`，research-readiness PASS。
+- outcome：primary 10D date-equal mean spread=`+0.453824pp`，median=`+0.113340pp`，
+  block-bootstrap CI=`[-0.381482,+1.349478]`；continuous rho mean=`+0.110340`；5D
+  spread=`+0.326237pp`；cooldown mean=`+0.046626pp` with CI crossing zero；year sign
+  coherence is 3/4 positive because 2026 is negative。
+- decision：`VOLATILITY_CONTRACTION_BREAKOUT_NEEDS_MORE_EVIDENCE`。Positive point estimate and
+  positive continuous rho do not satisfy the fixed support rule because primary and cooldown
+  uncertainty intervals cross zero. No parameter tuning, volume/turnover/RV addition, board-only
+  selection, provider replacement or automatic follow-up is allowed。
+- governance：B/B prospective、RS、Volume-Path、turnover/RV、frozen state unchanged；C、
+  controlled reversal、Final OOS=`SEALED / UNREAD` 和 forbidden directory untouched。Focused
+  tests=`13 passed`，full pytest=`315 passed` under pinned venv/short basetemp，compileall、
+  JSON/hash/schema and diff checks PASS。
+- next gate：independent research PR exact-head CI；terminal state
+  `VCB_RESEARCH_PR_READY_FOR_USER_MERGE_DECISION`，不自动 merge。
