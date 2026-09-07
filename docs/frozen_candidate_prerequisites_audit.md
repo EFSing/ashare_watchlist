@@ -415,3 +415,64 @@ Drive upload, and it is not a frozen-candidate recovery attestation. The frozen 
 therefore remains `NOT_READY / PARTIAL_UNVERIFIED`: the 170 historical sidecars with
 `UNKNOWN_ORIGIN` code provenance remain unchanged. No frozen artifact registry record or
 frozen bytes changed, and no freeze/promotion decision is implied.
+
+## 16. 2026-09-07 first candidate-bound V3 instance verified; recovery still incomplete
+
+This is the superseding audit for the stale first-instance blocker. The task classification
+is `correctness/provenance + product-gate audit`, not a new research phase. The question is
+whether the 2026-09-03 package satisfies (A) existence of the first real candidate-bound
+`LIVE_OBSERVED` T-close input instance, and separately whether it satisfies (B) the complete
+frozen prerequisite including `FULLY_RECOVERABLE` provenance.
+
+### A — adopted as verified
+
+The package at
+`data/prospective_inputs/20260903/2026-09-03_eeb700c98a69a98fae3fa220851190a76de88984b0f451cc1ed275b2e487351f.json`
+has schema `CANDIDATE_BOUND_LIVE_INPUT_PACKAGE_V4`, file SHA
+`a2e6da0865ff20316e4d9074f26e2cb3ba53995d2cb3e83a49f8c82988c0b38a`, content SHA
+`0b1216e5c5855343dba02853eb17e9dbc43c97d50120ac7490da43eaa78cdf86`, and generation
+fingerprint `eeb700c98a69a98fae3fa220851190a76de88984b0f451cc1ed275b2e487351f`. It is bound
+to `B_BREAKOUT_RETEST_LEGACY_V1_1`, spec SHA
+`f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`, with T=`2026-09-03`,
+retrieval at `2026-09-03T18:18:51.506757+08:00` after the XSHG 15:00 close, and earliest
+execution `2026-09-04`. The V3 universe, quote, stock/index Kline, sector, symbol identity,
+and generation-manifest checks are `PASS`.
+
+The corrected B evaluator run is
+`quJ3jSEgMJjgzQ1SE2rYP7XcSbBEV7fFFjIgiXKlPBk`, with run-manifest SHA
+`865eeba45974e70ff70b67b1e8422c5e36e65010d5aebb521d7b01ac197d1445`; it produced 12 raw
+legacy-qualified rows, excluded one ST symbol in the existing final eligibility layer, and
+produced the canonical 11-candidate watchlist with SHA
+`50f0717e55daaf4435e1d25b4f1d029109c566d72d63a1fc566f263cdf0fb085`. The 10,597 raw/sidecar
+pairs were independently checked: missing raw=0, content-hash mismatch=0, byte-length
+mismatch=0, JSON parse failure=0.
+
+Decision for A: `ADOPT` — the old
+`P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE` is stale and is closed only for the
+existence question. The 170 `UNKNOWN_ORIGIN` sidecars do not invalidate A because they do
+not show a missing, future-dated, unbound, or malformed input instance; they are a separate
+provenance-completeness limitation.
+
+### B — not ready
+
+The frozen prerequisite remains `NOT_READY / PARTIAL_UNVERIFIED` for two independently
+material reasons:
+
+1. 170 source sidecars retain `code_git_sha=UNKNOWN_ORIGIN`. Their raw bytes and declared
+   lengths verify, but the original runner code identity cannot be retroactively established
+   without inventing history.
+2. The package and source evidence are local-only in the verified workspace. The existing
+   Google Drive item is the 6,422-byte corrected watchlist and its read-back SHA matches;
+   the verified project listing contains no candidate-bound package or raw/sidecar archive.
+   Under V3's recoverable-package boundary and `FROZEN_ARTIFACT_POLICY.md`, this is not
+   objective `PERSISTENT_BACKUP_PRESENT` / `FULLY_RECOVERABLE` evidence.
+
+Decision for B: `NEEDS_MORE_EVIDENCE`. Missing evidence is exact known-origin provenance for
+the formal live package and a persistent package recovery/read-back, or a newly authorized
+post-close capture that produces both. This decision does not change B semantics, strategy
+thresholds, Top-N, universe, evaluator wiring, frozen bytes, Final OOS, C, old D, or the
+forbidden continuous-speed-probe directory.
+
+The 2026-09-07 pre-close runner check returned `PRE_CLOSE_DIAGNOSTIC_READY` with provider
+calls not run. No fresh package was generated. Terminal marker:
+`BLOCKED_REQUIRES_USER_OR_EXTERNAL_DECISION:FROZEN_RECOVERY_PROVENANCE_PARTIAL_UNVERIFIED`.

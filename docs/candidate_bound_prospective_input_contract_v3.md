@@ -1,19 +1,20 @@
 # Candidate-Bound Prospective Input / Provenance Contract V3
 
-更新时间：2026-09-01（Asia/Shanghai）
+更新时间：2026-09-07（Asia/Shanghai）
 
 ## Contract identity
 
 - contract：`CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V3`
-- status：`CONTRACT_DEFINED_NO_LIVE_INSTANCE`
+- status：`FIRST_LIVE_INSTANCE_VERIFIED_A__FROZEN_RECOVERY_NOT_READY_B`
 - bound candidate：`B_BREAKOUT_RETEST_LEGACY_V1_1`
 - strategy spec SHA-256：`f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`
 - supersedes for future live packages：`CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V2`
 
 V1 and V2 remain historical governance evidence and are not rewritten. V3 binds the
 corrected, explicitly versioned B reconstruction created after the exact V0 source
-identity and sector semantics were resolved. It does not create a live package or
-`FROZEN_CANDIDATE_CONTRACT_V1`.
+identity and sector semantics were resolved. The original `CONTRACT_DEFINED_NO_LIVE_INSTANCE`
+status was true at the 2026-09-01 declaration and is superseded by the 2026-09-03 verified
+instance recorded below. This does not create a `FROZEN_CANDIDATE_CONTRACT_V1`.
 
 ## Candidate and source identity
 
@@ -77,3 +78,24 @@ input/generation/output hashes, and recoverable package bytes. Failed acquisitio
 not persist a formal package or canonical output. This contract does not authorize
 Phase 2F, C evaluation, parameter selection/tuning, promotion, Final OOS access, or
 automatic freezing.
+
+## Current instance status — 2026-09-07
+
+Gate A is satisfied by the 2026-09-03 package at
+`data/prospective_inputs/20260903/2026-09-03_eeb700c98a69a98fae3fa220851190a76de88984b0f451cc1ed275b2e487351f.json`.
+The package schema is `CANDIDATE_BOUND_LIVE_INPUT_PACKAGE_V4`, its immutable file SHA-256 is
+`a2e6da0865ff20316e4d9074f26e2cb3ba53995d2cb3e83a49f8c82988c0b38a`, its content SHA is
+`0b1216e5c5855343dba02853eb17e9dbc43c97d50120ac7490da43eaa78cdf86`, and its generation
+fingerprint is `eeb700c98a69a98fae3fa220851190a76de88984b0f451cc1ed275b2e487351f`.
+The package is bound to B spec
+`f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`; T is
+`2026-09-03`, retrieval was after the `15:00` XSHG close, and earliest execution is
+`2026-09-04`. Universe, quote, stock Kline, index Kline, sector resolution, symbol identity,
+and generation-manifest quality checks are all `PASS`.
+
+This proves the existence and timing of the first live candidate-bound input instance. It
+does not prove gate B (`FULLY_RECOVERABLE`): 170 raw/sidecar pairs retain
+`code_git_sha=UNKNOWN_ORIGIN`, and the package/source-evidence bytes have no verified
+persistent external backup/readback. The existing Drive readback is the corrected 11-name
+watchlist only, not the input package. No strategy, threshold, evaluator, or frozen artifact
+identity is changed by this status correction.

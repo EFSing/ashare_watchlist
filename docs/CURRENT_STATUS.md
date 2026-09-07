@@ -1,6 +1,6 @@
 # CURRENT STATUS
 
-更新时间：2026-09-06（Asia/Shanghai）
+更新时间：2026-09-07（Asia/Shanghai）
 Formal Delivery Ladder：`development candidate`
 Latest correctness/governance snapshot before this reconciliation：
 `master@1fdb099926a1172cfebee7001537910d805019e4`；PR #39 merge-head correctness run
@@ -9,7 +9,7 @@ final canonical master SHA。
 Phase 2E research baseline：PR #6 / `74ccf86dfdea3b9d4b0124fb54346aa429735508`
 职责：记录项目正式处于什么状态，以及哪些研究结论已经成立。长期产品目标和 usable gate 见 [`PRODUCT_CHARTER.md`](PRODUCT_CHARTER.md)，接手动作见 [`HANDOFF.md`](../HANDOFF.md)，决策理由见 [`DECISION_LOG.md`](DECISION_LOG.md)。
 
-## Final live checkpoint — WORKSTATION RESUME VERIFIED — 2026-09-06
+## Historical checkpoint — WORKSTATION RESUME VERIFIED — 2026-09-06
 
 本轮 post-merge governance、Drive durability 和 clean-workstation dry run 已完成；下方旧
 checkpoint 是历史静态记录。PR #39 authorized head=`fdb4640fb8556f7ce86c1d8d1feb7ceb41f9e822`，
@@ -30,6 +30,59 @@ governance-head correctness `34034984771=success`，两者 workflow head 均 exa
 - `ACTIVE_NEW_STRATEGY_RESEARCH=NONE` / `PAUSED / PHASE_COMPLETE`；Final OOS=`SEALED / UNREAD`；
   C unread/candidate inventory only；old D not reconstructed；forbidden directory untouched。
 - close marker：`A_SHARE_RESEARCH_PHASE_CLOSED_WORKSTATION_RESUME_READY`。
+
+## Superseding current checkpoint — first candidate-bound T-close input verified — 2026-09-07
+
+本轮任务分类：`correctness/provenance + product-gate audit`，不是新的 research、strategy
+selection、promotion 或 Phase 2F。实时 Git intake 已确认 `origin/master` 为
+`9757a12514e2d423e95ea7de6758ab033803ce2b`；本地原始 `master` 为
+`38322b91f691b23e7ebaa10818a8733169aafab8`，落后 14 commits，故本次治理修正使用隔离
+分支。GitHub API/UI 在当前未认证会话中对 private repository 返回 404，不能把网页读不到
+解释为 PR 状态；PR/CI 在发布前必须重新取得 live evidence。
+
+### Gate A — first real candidate-bound live instance
+
+旧 P1 `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE` 的语义是“尚无首个真实实例”，
+现已不成立，决定为 `STALE_CLOSED_FOR_FIRST_INSTANCE`。可复核身份如下：
+
+| item | verified identity |
+| --- | --- |
+| package | `CANDIDATE_BOUND_LIVE_INPUT_PACKAGE_V4`; file SHA `a2e6da0865ff20316e4d9074f26e2cb3ba53995d2cb3e83a49f8c82988c0b38a` |
+| content / generation | content SHA `0b1216e5c5855343dba02853eb17e9dbc43c97d50120ac7490da43eaa78cdf86`; generation fingerprint `eeb700c98a69a98fae3fa220851190a76de88984b0f451cc1ed275b2e487351f` |
+| candidate binding | `B_BREAKOUT_RETEST_LEGACY_V1_1`; spec SHA `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd` |
+| time | T=`2026-09-03`; XSHG close=`15:00`; retrieved=`2026-09-03T18:18:51.506757+08:00`; earliest execution=`2026-09-04` |
+| live inputs | universe 5,215; quote 5,215; stock Kline 5,215; index bars 109; sector member containers 49; all V3 quality checks `PASS` |
+| corrected B output | run `quJ3jSEgMJjgzQ1SE2rYP7XcSbBEV7fFFjIgiXKlPBk`; run manifest SHA `865eeba45974e70ff70b67b1e8422c5e36e65010d5aebb521d7b01ac197d1445`; raw qualified 12; post-B ST excluded 1; final candidate count 11; canonical watchlist SHA `50f0717e55daaf4435e1d25b4f1d029109c566d72d63a1fc566f263cdf0fb085` |
+
+The raw evidence audit independently verified all 10,597 JSON/raw pairs: missing raw=0,
+hash mismatch=0, byte-length mismatch=0, parse failure=0. Therefore the 170
+`UNKNOWN_ORIGIN` sidecars do not invalidate Gate A: they are provenance-completeness gaps,
+not evidence that the package was not live, candidate-bound, or T-close compliant.
+
+### Gate B — frozen prerequisite remains not ready
+
+`FROZEN_CANDIDATE_PREREQUISITES` remains `NOT_READY / PARTIAL_UNVERIFIED`, but its exact
+reason is now split from the stale first-instance P1:
+
+1. `FROZEN_RECOVERY_PROVENANCE_PARTIAL_UNVERIFIED`: 170 source sidecars retain
+   `code_git_sha=UNKNOWN_ORIGIN` (the content and byte hashes still verify). This cannot be
+   repaired by retroactive attestation or by relabeling old sidecars.
+2. `FROZEN_PACKAGE_PERSISTENT_RECOVERY_UNVERIFIED`: the candidate-bound package and source
+   evidence are present only in the local workspace for this audit. The existing Drive
+   readback is the 6,422-byte corrected watchlist; no package or raw/sidecar archive is in
+   the verified Drive project listing. Under V3 and `FROZEN_ARTIFACT_POLICY.md`, this is not
+   objective `PERSISTENT_BACKUP_PRESENT` / `FULLY_RECOVERABLE` evidence.
+
+The 2026-09-03 package therefore establishes the first live input instance but not frozen
+candidate recoverability. No new package is generated on 2026-09-07 before close. The
+12:01 preflight returned `PRE_CLOSE_DIAGNOSTIC_READY`, credential context `READY`, and
+`provider_calls=NOT_RUN_BEFORE_T_CLOSE`; this is readiness only, not a fresh capture.
+
+Current terminal marker:
+`BLOCKED_REQUIRES_USER_OR_EXTERNAL_DECISION:FROZEN_RECOVERY_PROVENANCE_PARTIAL_UNVERIFIED`.
+The missing decision/evidence is either known-origin evidence plus persistent package
+recovery/readback, or explicit authorization for a new fully attested post-close capture;
+the project does not default to either action.
 
 ## Historical checkpoint — PR #39 MERGED + DURABILITY AUDIT (superseded)
 
@@ -149,9 +202,10 @@ T-close/T+1 semantics are unchanged. No prospective package was run by this corr
 - corrected `B_BREAKOUT_RETEST_LEGACY_V1_1` 已获得
   `CORRECTED_B_CANDIDATE_ELIGIBLE_FOR_FROZEN_PREREQUISITES`；这只是 candidate
   eligibility，不是 frozen strategy、production promotion 或 Final OOS。
-- active candidate-bound contract 为 V3，状态为 `CONTRACT_DEFINED_NO_LIVE_INSTANCE`；
-  尚无首个真实 `LIVE_OBSERVED` T-close input instance，在该实例出现并完成
-  fail-closed audit 前不进入 frozen candidate。
+- active candidate-bound contract 为 V3，Gate A 状态已更新为
+  `FIRST_LIVE_INSTANCE_VERIFIED_A__FROZEN_RECOVERY_NOT_READY_B`；2026-09-03 的首个
+  `LIVE_OBSERVED` T-close input instance 已通过 fail-closed audit，但 Gate B 的 frozen
+  recovery 仍未完成。
 - 本机 Phase 2F diagnostic commit `3eeb5df9f7cf4ef5c30b3380b323f26f2491f873` 尚未 push、无 PR、无 CI；它是 local candidate work，不改变 formal master status。
 - Phase 2F local diagnostic 的研究边界保持不变：它没有修改 legacy strategy、冻结阈值或 Final OOS；其退出 decision 为 `NEEDS_MORE_EVIDENCE`，不能直接形成 production threshold 或 promotion。
 
@@ -161,20 +215,24 @@ T-close/T+1 semantics are unchanged. No prospective package was run by this corr
 
 ## Current blockers and deferred items
 
-1. **唯一当前 blocker：`P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`**。corrected
-   B candidate 已 eligible，V3 已定义，但尚无首个真实 candidate-bound、
-   `LIVE_OBSERVED`、`known_at <= T` 的 T-close input instance。
-2. **Current V3 sector boundary**：missing sector 解析为 `("-", 50, 0.0)` 并继续
+1. **Gate A 已完成**：`P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE` 作为“尚无
+   首个实例”的 blocker 已 stale/closed。2026-09-03 package 是首个真实 candidate-bound、
+   `LIVE_OBSERVED`、`known_at <= T` 的 V3 T-close input instance。
+2. **当前 frozen recovery blocker：`FROZEN_RECOVERY_PROVENANCE_PARTIAL_UNVERIFIED`**。
+   170 个 source sidecars 的 `code_git_sha` 仍为 `UNKNOWN_ORIGIN`；candidate-bound
+   package 与 source evidence 也没有经验证的 persistent external backup/readback，故
+   不能把 B 的 frozen prerequisite 标为 `FULLY_RECOVERABLE`。这不否定 Gate A。
+3. **Current V3 sector boundary**：missing sector 解析为 `("-", 50, 0.0)` 并继续
    B evaluation；multiple memberships 使用
    `LEGACY_PROVIDER_ORDER_LAST_WRITE_WINS_V1`。2026-09-01 coverage/ambiguity counts
    仅为 current-only diagnostic，不是当前 blocker；future package 仍须保留 raw rows、
    traversal order、resolved mapping 和 provenance，并对 provider/invalid/unresolved
    package identity failure fail closed。
-3. **Scope-local correctness blocker — FULL legacy only**：历史新浪行业 membership /
+4. **Scope-local correctness blocker — FULL legacy only**：历史新浪行业 membership /
    effective-date evidence 缺失，阻止 `FULL_LEGACY_OUTPUT_VALIDATION`、完整 85-score
    parity 和 legacy sector report；它不阻止 development-candidate product path 或当前
    candidate-bound gate，不能写成整个系统 blocker。
-4. **Scope-local provenance limitation**：retrospective official dump 没有 per-bar
+5. **Scope-local provenance limitation**：retrospective official dump 没有 per-bar
    historical vintage timestamp，限制历史 known-at 结论的强度；live prospective
    inputs 仍必须按 T 的 observed-at contract 处理。
 

@@ -4,17 +4,34 @@
 > 本文件不是历史归档；历史 provenance 在 Git 历史中，正式状态与长期决策分别见
 > `docs/CURRENT_STATUS.md` 与 `docs/DECISION_LOG.md`（仅当前任务需要时读取）。
 
-- branch: `master`（tracking `origin/master`）
-- remote HEAD: `origin/master`；以下方恢复流程实时解析确认。
-- current task: 无进行中的治理任务；恢复状态已回到项目主线。
-- completed: governance optimization completed —— FAST/STRICT PATH、最小 HANDOFF 与
-  sync-first 恢复流程均已生效；不再把治理优化当作项目恢复终点。
+- branch: `codex/p1-gate-20260907`（bounded governance reconciliation；base
+  `origin/master@9757a12514e2d423e95ea7de6758ab033803ce2b`）
+- source intake: local `master@38322b91f691b23e7ebaa10818a8733169aafab8` was behind
+  `origin/master` by 14 commits; the task is isolated so local untracked evidence is not
+  overwritten.
+- current task: reconcile the stale P1 first-instance status against the verified
+  2026-09-03 candidate-bound V3 input package; do not start a new capture before the
+  2026-09-07 XSHG close.
+- completed: the first real `LIVE_OBSERVED`, candidate-bound, V3-compliant input instance
+  is verified for gate A. This closes the old "no live instance" wording only; it does not
+  freeze B or promote any strategy.
 - formal project state: `development candidate`
 - active new strategy research: `NONE / PAUSED / PHASE_COMPLETE`
-- blockers: `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE`
-- open user decisions: none
-- next action: 从上述正式项目状态继续，或执行用户下一项明确开发任务；不要再次以治理
-  优化作为项目任务。
+- blockers: `FROZEN_RECOVERY_PROVENANCE_PARTIAL_UNVERIFIED` — 170 source sidecars retain
+  `UNKNOWN_ORIGIN`, and no persistent backup/readback of the candidate-bound package and
+  its source evidence is recorded. The 6,422-byte watchlist Drive readback is output
+  evidence only.
+- artifact snapshot: package file SHA
+  `a2e6da0865ff20316e4d9074f26e2cb3ba53995d2cb3e83a49f8c82988c0b38a`, generation
+  fingerprint `eeb700c98a69a98fae3fa220851190a76de88984b0f451cc1ed275b2e487351f`, corrected
+  B watchlist SHA `50f0717e55daaf4435e1d25b4f1d029109c566d72d63a1fc566f263cdf0fb085`,
+  candidate count 11.
+- open user/external decision: provide known-origin evidence plus persistent package
+  recovery/readback, or explicitly authorize a new fully attested post-close capture; no
+  local documentation change can manufacture either evidence.
+- next action: remain pre-close and do not call providers. The verified preflight marker is
+  `PRE_CLOSE_DIAGNOSTIC_READY`; overall terminal marker is
+  `BLOCKED_REQUIRES_USER_OR_EXTERNAL_DECISION:FROZEN_RECOVERY_PROVENANCE_PARTIAL_UNVERIFIED`.
 
 ## New-device / new-session recovery
 

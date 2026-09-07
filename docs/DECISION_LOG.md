@@ -1609,3 +1609,37 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
 - next：push this bounded governance reconciliation，等待 governance-head correctness，
   再执行 clean clone + minimum restore dry run；不自动开启新策略、调参、promotion、freeze
   或读取 Final OOS。
+
+## 2026-09-07 — Adopt first candidate-bound V3 input instance; retain frozen recovery gate
+
+- classification：`correctness/provenance + product-gate audit`；不是新的 research、strategy
+  selection、Phase 2F、promotion 或 freeze。
+- question：分别判断 (A) 首个真实 candidate-bound、`LIVE_OBSERVED`、`known_at <= T` 的
+  V3 T-close input instance 是否已经存在，以及 (B) 该 package 是否已满足 frozen
+  prerequisite 所需的 `FULLY_RECOVERABLE` provenance。A 与 B 不合并判断。
+- evidence：2026-09-03 package schema=`CANDIDATE_BOUND_LIVE_INPUT_PACKAGE_V4`，file SHA=
+  `a2e6da0865ff20316e4d9074f26e2cb3ba53995d2cb3e83a49f8c82988c0b38a`，content SHA=
+  `0b1216e5c5855343dba02853eb17e9dbc43c97d50120ac7490da43eaa78cdf86`，generation
+  fingerprint=`eeb700c98a69a98fae3fa220851190a76de88984b0f451cc1ed275b2e487351f`。T=
+  `2026-09-03`，retrieved=`2026-09-03T18:18:51.506757+08:00`，after XSHG close，earliest
+  execution=`2026-09-04`；candidate binding 为 `B_BREAKOUT_RETEST_LEGACY_V1_1` 与 spec
+  SHA=`f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`。Universe、quote、
+  stock/index Kline、sector、symbol identity、generation manifest checks 均 `PASS`。
+- output evidence：corrected B run=`quJ3jSEgMJjgzQ1SE2rYP7XcSbBEV7fFFjIgiXKlPBk`，run
+  manifest SHA=`865eeba45974e70ff70b67b1e8422c5e36e65010d5aebb521d7b01ac197d1445`，raw
+  qualified=`12`，post-B ST exclusion=`1`，canonical candidate count=`11`，watchlist SHA=
+  `50f0717e55daaf4435e1d25b4f1d029109c566d72d63a1fc566f263cdf0fb085`。All 10,597
+  raw/sidecar pairs passed missing/hash/byte-length/JSON checks.
+- decision A：`ADOPT`。旧 `P1-FC-FIRST-PROSPECTIVE-T-CLOSE-INPUT-INSTANCE` 仅针对“首个
+  实例不存在”，现为 stale/closed；170 `UNKNOWN_ORIGIN` sidecars 不否定 A，因为它们是
+  provenance completeness gap，而非 live/timing/binding/schema failure。
+- decision B：`NEEDS_MORE_EVIDENCE`。170 个 sidecar 仍无法提供 exact runner code origin；
+  且经核验的 Drive readback 只有 6,422-byte watchlist，没有 candidate-bound package 或
+  raw/sidecar archive，故不能声称 `PERSISTENT_BACKUP_PRESENT` / `FULLY_RECOVERABLE`。
+  缺少的 evidence 是 known-origin formal package provenance 与 persistent package
+  recovery/readback，或一个经明确授权的 post-close fully-attested fresh capture；不得用
+  retroactive attestation、回填、重贴 hash 或文档修改伪造。
+- boundary：B strategy/spec/threshold/score/Top-N/universe、evaluator、Final OOS、C、old D、
+  frozen bytes/registry 与 `data/validation/continuous_speed_probe/` 均未读取或修改；
+  2026-09-07 仅执行 pre-close diagnostic，provider calls=`NOT_RUN_BEFORE_T_CLOSE`。
+- terminal：`BLOCKED_REQUIRES_USER_OR_EXTERNAL_DECISION:FROZEN_RECOVERY_PROVENANCE_PARTIAL_UNVERIFIED`。
