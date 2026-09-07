@@ -1,13 +1,98 @@
 # CURRENT STATUS
 
 更新时间：2026-09-07（Asia/Shanghai）
-Formal Delivery Ladder：`development candidate`
+Formal Delivery Ladder（当前 freeze branch / merge 后拟定）：`frozen candidate`
+`master` 在 freeze PR 合并前仍为 `development candidate`；本文件的当前段落以该 bounded
+freeze branch 为准。
 Latest correctness/governance snapshot before this reconciliation：
 `master@1fdb099926a1172cfebee7001537910d805019e4`；PR #39 merge-head correctness run
 `34031658818` success，workflow head SHA exact；本次 governance-only reconciliation 会产生新的
 final canonical master SHA。
 Phase 2E research baseline：PR #6 / `74ccf86dfdea3b9d4b0124fb54346aa429735508`
 职责：记录项目正式处于什么状态，以及哪些研究结论已经成立。长期产品目标和 usable gate 见 [`PRODUCT_CHARTER.md`](PRODUCT_CHARTER.md)，接手动作见 [`HANDOFF.md`](../HANDOFF.md)，决策理由见 [`DECISION_LOG.md`](DECISION_LOG.md)。
+
+## Current checkpoint — B candidate freeze pending bounded PR merge — 2026-09-07
+
+本次是用户明确授权的 candidate freeze reconciliation，不是新的 research、promotion、
+production approval、Final OOS unseal、C/D 评估或 B 语义变更。freeze 仅绑定并冻结以下
+已经通过 frozen prerequisites 的 B candidate identity；在该 bounded PR 合并前，不能声称
+`master` 已正式 frozen。
+
+- strategy：`B_BREAKOUT_RETEST_LEGACY_V1_1`
+- spec SHA-256：`f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`
+- formal capture code SHA：`39cbd7cf2335ebee1cc7a81faee47c744c737fc3`
+- package SHA-256：`63fa8effea45cc329035dd97dbe64dfe9d84e899fbb24623190143811e08cc3a`
+- generation fingerprint：`fe54be9be5c5959bd3d690adab2423e7a89f19e4498fb1df927c142f8dab9e4c`
+- watchlist SHA-256：`5a99273b6304621acbf7bba2423a6e372668348a31ac436021caf5f5855db100`
+- B output：raw qualified=26，ST excluded=1，final non-ST=25
+
+Immutable identity was independently matched against the authorized private Drive chunks40
+manifest: package SHA, generation fingerprint, strategy/spec SHA, watchlist SHA, and B counts
+all match exactly. The target folder is
+`ashare_watchlist/t_close_20260907_v3_39cbd7cf`; its listing contains 46 objects: the formal
+inventory is 14 package chunks + 15 source-evidence chunks + 1 chunks40 manifest, while 16
+retained early intermediate chunks are explicitly outside that formal inventory. The prior
+29-binary-object raw readback and manifest readback remain `PASS`; this reconciliation did not
+re-upload or re-read the full archives, and did not change package/source/watchlist bytes.
+
+Recovery truth is the remote branch `origin/codex/hithink-http-transient-20260907`; runtime
+recovery must verify `git rev-parse HEAD == git rev-parse @{u}`. A governance commit SHA is not
+used as the recovery pointer. Final OOS remains `SEALED / UNREAD`, C remains unread, old D is not
+reconstructed, and `data/validation/continuous_speed_probe/` remains untouched.
+
+The proposed post-merge Delivery Ladder is `frozen candidate`. Bounded PR #41 is open to master
+and its current head has successful exact-head correctness CI; only the user merge decision
+remains. No automatic merge. The current terminal marker is
+`B_FROZEN_CANDIDATE_PR_READY_FOR_USER_MERGE_DECISION`.
+
+## Historical pre-freeze checkpoint — 2026-09-07 T-close fresh package and recovery
+
+本轮分类为 `correctness/provenance + product-gate audit`，不是新的 research、strategy
+selection、promotion、Phase 2F 或 freeze。HiThink `000002.SZ` 的已持久化失败 evidence
+显示 HTTP status=`429`，endpoint=`/api/a-share/prices/historical`，logical request identity
+为 `thscode=000002.SZ&interval=1d&start=1740355200000&end=1788739200000&adjust=forward`，
+实际收到 64 response bytes，脱敏 body 摘要为 `{"code":429,"message":"request limit exceeded","data":null}`。
+这属于 transient HTTP failure；此前 HiThink transient classification 漏掉 408/429/5xx，
+已在单一 bounded branch 中以共享 helper 最小修复。408、429、5xx 现在 retry，普通 4xx
+仍 non-transient；HiThink max attempts=3、provider priority、backoff、Tencent fallback
+contract、B strategy/spec/threshold/score 均未改变。focused tests=`33 passed, 52 deselected`；
+safe full suite=`260 passed, 2 existing environmental/temp failures`，两项环境测试单独重跑
+均 `2 passed`，compile/import 与 diff check 均 PASS。
+
+正式 fresh capture 使用 acquisition code SHA
+`39cbd7cf2335ebee1cc7a81faee47c744c737fc3`，并从旧的失败 partial root
+`data/t_close_evidence/20260907` 重新建立 clean evidence root：
+`data/t_close_evidence/20260907_clean_39cbd7cf2335ebee1cc7a81faee47c744c737fc3/20260907`。
+旧 partial attempt 保留为 FAILED audit evidence，不与新 SHA 的 source evidence 混合。新
+root 有 10,677 raw/sidecar pairs（21,354 files），missing/hash/byte-length/failure 均为 0，
+所有 sidecar code SHA 均为 `39cbd7cf2335ebee1cc7a81faee47c744c737fc3`，新
+`UNKNOWN_ORIGIN=0`。
+
+Gate A 的 fresh package 为
+`data/prospective_inputs/20260907/2026-09-07_fe54be9be5c5959bd3d690adab2423e7a89f19e4498fb1df927c142f8dab9e4c.json`，
+schema=`CANDIDATE_BOUND_LIVE_INPUT_PACKAGE_V4`，status=`READY_FOR_STRATEGY_EVALUATION`，
+file SHA=`63fa8effea45cc329035dd97dbe64dfe9d84e899fbb24623190143811e08cc3a`，content SHA=
+`792442ff35b5f1e5858180d3e6fc8965c661e4fd6e0c3abd5f9247d90dd6e31e`，generation fingerprint=
+`fe54be9be5c5959bd3d690adab2423e7a89f19e4498fb1df927c142f8dab9e4c`。B
+`B_BREAKOUT_RETEST_LEGACY_V1_1` run succeeded：raw qualified=26，ST excluded=1，final
+non-ST=25；canonical watchlist SHA=
+`5a99273b6304621acbf7bba2423a6e372668348a31ac436021caf5f5855db100`。
+
+Gate B 的 persistent recovery 已完成独立核验。私有 Drive target 为
+`ashare_watchlist/t_close_20260907_v3_39cbd7cf`；formal inventory 是 14 package archive
+chunks、15 source-evidence archive chunks 和 1 chunks40 manifest，共 30 项。每项均通过
+独立 raw fetch、decoded byte length 与 SHA-256 exact match；manifest 本身也 exact readback。
+原始 package-output archive 为 555,823,686 bytes / SHA
+`b089e21da3ac4d0ef5f3f9e252161f48e264a897d7d19a2fc6152b3cae9b99cf`，source-evidence archive
+为 564,307,360 bytes / SHA
+`411240bb96536484664c7ec288c033e32a6ec86b24862e6b90d70df17cdf14ea`。目标中保留的早期
+80MB 中间 chunks 未删除，且不属于上述 formal inventory。
+
+因此 `FROZEN_CANDIDATE_PREREQUISITES` 当前为 `PASS / READY_FOR_USER_DECISION`，但本轮
+不自动 freeze；Final OOS=`SEALED / UNREAD`，C=`UNREAD / CANDIDATE INVENTORY ONLY`，old
+D=`NOT_RECONSTRUCTED`，`data/validation/continuous_speed_probe/` 未触碰，复盘旧项目脚本
+未修改。当前 terminal marker：
+`FROZEN_CANDIDATE_READY_FOR_USER_DECISION`。
 
 ## Historical checkpoint — WORKSTATION RESUME VERIFIED — 2026-09-06
 

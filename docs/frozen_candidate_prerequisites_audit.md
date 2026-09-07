@@ -476,3 +476,89 @@ forbidden continuous-speed-probe directory.
 The 2026-09-07 pre-close runner check returned `PRE_CLOSE_DIAGNOSTIC_READY` with provider
 calls not run. No fresh package was generated. Terminal marker:
 `BLOCKED_REQUIRES_USER_OR_EXTERNAL_DECISION:FROZEN_RECOVERY_PROVENANCE_PARTIAL_UNVERIFIED`.
+
+## 17. 2026-09-07 fresh candidate-bound V3 capture and exact persistent recovery completed
+
+This is the superseding audit for the post-close recovery run. The task classification is
+`correctness/provenance + product-gate audit`, not new research, strategy selection, promotion,
+Phase 2F, or freeze. The old 2026-09-07 partial attempt remains preserved at
+`data/t_close_evidence/20260907` as FAILED audit evidence and is not combined with the new
+runner origin.
+
+### HiThink failure diagnosis and bounded correction
+
+The persisted raw response, sidecar, and failure evidence for `000002.SZ` were sufficient; no
+diagnostic request was sent to the provider. The response had HTTP status `429`, endpoint
+`/api/a-share/prices/historical`, and logical request identity
+`thscode=000002.SZ&interval=1d&start=1740355200000&end=1788739200000&adjust=forward`.
+Response bytes were received: 64 bytes with SHA-256
+`79efc51a20bd6bfcd443fb464242eb18461a224c23d62b815906884abfff18ce`; the redacted body
+summary is `{"code":429,"message":"request limit exceeded","data":null}`. This is a
+transient HTTP failure, specifically the `429` class.
+
+The existing HiThink transient classification had a correctness gap: it covered connection and
+timeout failures but not transient HTTP statuses, so bounded retry and the existing Tencent
+fallback could not be reached. Acquisition code SHA
+`39cbd7cf2335ebee1cc7a81faee47c744c737fc3` adds one shared classifier for `408`, `429`, and
+`500–599`; ordinary `4xx` remains non-transient. HiThink max attempts remains `3`, and provider
+priority, backoff, fallback contract, data semantics, B, and all strategy thresholds remain
+unchanged. Focused tests passed (`33 passed, 52 deselected`); safe full-suite result was
+`260 passed, 2 existing environmental/temp failures`, with those two tests separately rerun
+successfully (`2 passed`). Compile/import and `git diff --check` passed.
+
+### Fresh package and candidate-bound outputs
+
+The formal post-close runner used only code SHA
+`39cbd7cf2335ebee1cc7a81faee47c744c737fc3` and created the clean root
+`data/t_close_evidence/20260907_clean_39cbd7cf2335ebee1cc7a81faee47c744c737fc3/20260907`.
+It contains 10,677 raw/sidecar pairs (21,354 files): missing raw/sidecar=0, byte-length
+mismatch=0, hash mismatch=0, failure evidence=0, all sidecars `COMPLETE`, all sidecar code
+SHA values equal the formal runner SHA, and new `UNKNOWN_ORIGIN=0`.
+
+The package is
+`data/prospective_inputs/20260907/2026-09-07_fe54be9be5c5959bd3d690adab2423e7a89f19e4498fb1df927c142f8dab9e4c.json`:
+
+- schema=`CANDIDATE_BOUND_LIVE_INPUT_PACKAGE_V4`;
+- status=`READY_FOR_STRATEGY_EVALUATION`;
+- file SHA-256=`63fa8effea45cc329035dd97dbe64dfe9d84e899fbb24623190143811e08cc3a`;
+- content SHA-256=`792442ff35b5f1e5858180d3e6fc8965c661e4fd6e0c3abd5f9247d90dd6e31e`;
+- generation fingerprint=`fe54be9be5c5959bd3d690adab2423e7a89f19e4498fb1df927c142f8dab9e4c`.
+
+The existing B evaluator `B_BREAKOUT_RETEST_LEGACY_V1_1` completed successfully: raw
+qualified=26, ST excluded=1, final non-ST=25. The canonical watchlist is
+`data/watchlist_20260907.json`, SHA-256
+`5a99273b6304621acbf7bba2423a6e372668348a31ac436021caf5f5855db100`.
+
+### Persistent backup and independent Drive readback
+
+The authorized private target is
+`ashare_watchlist/t_close_20260907_v3_39cbd7cf` (folder ID
+`1W6newZ0Uo0pHLi1NqVvxbQoVU1cCYNpH`). The formal recovery inventory is defined by
+`data/t_close_external_backup_20260907_v3_39cbd7cf2335ebee1cc7a81faee47c744c737fc3_backup_manifest_chunks40.json`
+(local SHA-256
+`d08a0d1a260a425d9d0dbd47b29f3796fefd366ec60add6dc568969e9b094a96`, Drive ID
+`1qU6VC-_hCs59ZHHHxhQ9hv9z4y-2PHBs`). It contains 14 package-output chunks, 15
+source-evidence chunks, and the manifest itself: 30 formal objects.
+
+Each of the 29 binary chunks was independently fetched through the Drive raw-file path,
+decoded, and checked for Drive-reported size, decoded byte length, and SHA-256 against the
+manifest; all 29 were exact. The chunks40 manifest was independently fetched and its complete
+base64 content matched the local manifest exactly. The formal Drive inventory had 30/30
+expected objects present, 30/30 exact sizes, no duplicate formal names, and no unrelated object
+was overwritten. The source archive is 564,307,360 bytes with SHA-256
+`411240bb96536484664c7ec288c033e32a6ec86b24862e6b90d70df17cdf14ea`; the package-output
+archive is 555,823,686 bytes with SHA-256
+`b089e21da3ac4d0ef5f3f9e252161f48e264a897d7d19a2fc6152b3cae9b99cf`. Earlier related 80MB
+intermediate chunks remain untouched in the folder and are excluded from the formal inventory.
+
+### Decision and boundary
+
+Decision: `ADOPT` the fresh 2026-09-07 package as the current candidate-bound live instance and
+mark the frozen prerequisite recovery checks `PASS / READY_FOR_USER_DECISION`. This is not an
+automatic freeze. The old failed partial evidence remains unchanged; no source-content rewrite,
+retroactive provenance relabel, strategy/spec/threshold/score change, Final OOS read, C read,
+old D reconstruction, review-system cleanup, or access to
+`data/validation/continuous_speed_probe/` occurred.
+
+Terminal marker:
+`FROZEN_CANDIDATE_READY_FOR_USER_DECISION`.
