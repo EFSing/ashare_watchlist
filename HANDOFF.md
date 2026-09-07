@@ -54,7 +54,8 @@ git rev-parse @{u}
 随后读取本文件，确认 branch、HEAD 与 current task 状态一致后直接继续。不一致时只核对
 该任务实际依赖的 live Git/GitHub 状态，不执行完整项目审计。
 
-`REMOTE_RECOVERY_CHECKPOINT`：bounded branch and its governance checkpoint must be pushed to
-the matching remote branch before this task is paused. The generated evidence remains locally
-recoverable from the recorded paths and externally recoverable from the private Drive target;
-the formal recovery inventory is recorded in the audit and chunks40 manifest.
+`REMOTE_RECOVERY_CHECKPOINT`：bounded branch `codex/hithink-http-transient-20260907` is pushed
+to `origin/codex/hithink-http-transient-20260907` at governance HEAD `e1b9775`. The generated
+evidence remains locally recoverable from the recorded paths and externally recoverable from the
+private Drive target; the formal recovery inventory is recorded in the audit and chunks40
+manifest.
