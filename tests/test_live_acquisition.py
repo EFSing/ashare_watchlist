@@ -5,6 +5,7 @@ from datetime import date, datetime, time, timedelta, timezone
 from types import SimpleNamespace
 
 import pytest
+import requests
 
 import live_acquisition as live
 from b_breakout_retest_v1_1 import evaluate_candidate as evaluate_b_candidate
@@ -184,6 +185,14 @@ class FakeResponse:
 
     def raise_for_status(self):
         return None
+
+
+def _hithink_http_error_response(status_code):
+    response = requests.Response()
+    response.status_code = status_code
+    response.url = "https://fuyao.aicubes.cn/api/a-share/prices/historical"
+    response._content = b'{"code": 1, "message": "redacted test response", "data": null}'
+    return response
 
 
 def _bars(last_date: str = AS_OF, count: int = 21):
@@ -667,6 +676,181 @@ def test_hithink_stock_failure_is_fail_closed_when_fallback_is_disabled():
         )
 
     assert caught.value.status == live.PROVIDER_FAILURE
+
+
+@pytest.mark.parametrize("status_code", [408, 429, 500, 503])
+def test_hithink_transient_http_status_retries_within_bounded_attempts(status_code, monkeypatch):
+    sleeps = []
+    calls = []
+    monkeypatch.setattr(live.time, "sleep", sleeps.append)
+
+    def request_get(url, timeout, headers):
+        del timeout, headers
+        calls.append(url)
+        return _hithink_http_error_response(status_code)
+
+    client = live.HiThinkClient(api_key="test-only-key", request_get=request_get)
+
+    with pytest.raises(live._HiThinkReadFailure) as caught:
+        client._read(
+            live.HITHINK_STOCK_KLINE_API,
+            live.HITHINK_STOCK_KLINE_API,
+            {"thscode": "000002.SZ", "interval": "1d"},
+            timeout=1.0,
+        )
+
+    assert caught.value.attempts == live.HITHINK_MAX_ATTEMPTS
+    assert len(calls) == live.HITHINK_MAX_ATTEMPTS
+    assert sleeps == [
+        live.HITHINK_RETRY_BACKOFF_SECONDS,
+        live.HITHINK_RETRY_BACKOFF_SECONDS * 2,
+    ]
+
+
+@pytest.mark.parametrize("status_code", [400, 401, 403, 404])
+def test_hithink_regular_http_4xx_does_not_retry_or_fallback(status_code, monkeypatch):
+    sleeps = []
+    hithink_calls = []
+    tencent_calls = []
+    monkeypatch.setattr(live.time, "sleep", sleeps.append)
+
+    def request_get(url, timeout, headers=None):
+        del timeout
+        if headers is None:
+            tencent_calls.append(url)
+            provider_symbol = url.split("param=", 1)[1].split(",", 1)[0]
+            return FakeResponse({"data": {provider_symbol: {"qfqday": _bars()}}})
+        hithink_calls.append(url)
+        return _hithink_http_error_response(status_code)
+
+    client = live.HiThinkClient(api_key="test-only-key", request_get=request_get)
+
+    with pytest.raises(live.LiveAcquisitionError) as caught:
+        live._resolve_market_bars(
+            client,
+            SYMBOL,
+            requested_count=21,
+            minimum_acceptable_history=1,
+            as_of_date=AS_OF,
+            timeout=1.0,
+            retries=1,
+            request_get=request_get,
+            index=False,
+            allow_tencent_fallback=True,
+        )
+
+    assert caught.value.status == live.PROVIDER_FAILURE
+    assert len(hithink_calls) == 1
+    assert tencent_calls == []
+    assert sleeps == []
+
+
+@pytest.mark.parametrize(
+    "failure_type",
+    [ConnectionError, TimeoutError, requests.exceptions.ConnectionError, requests.exceptions.Timeout],
+)
+def test_hithink_connection_and_timeout_failures_keep_bounded_retry(failure_type, monkeypatch):
+    sleeps = []
+    calls = []
+    monkeypatch.setattr(live.time, "sleep", sleeps.append)
+    responses = [failure_type("temporary"), FakeResponse({"code": 0, "data": {}})]
+
+    def request_get(url, timeout, headers):
+        del url, timeout, headers
+        calls.append(True)
+        result = responses.pop(0)
+        if isinstance(result, BaseException):
+            raise result
+        return result
+
+    client = live.HiThinkClient(api_key="test-only-key", request_get=request_get)
+
+    assert client._read(
+        live.HITHINK_STOCK_KLINE_API,
+        live.HITHINK_STOCK_KLINE_API,
+        {"thscode": "000002.SZ", "interval": "1d"},
+        timeout=1.0,
+    ) == {}
+    assert len(calls) == 2
+    assert sleeps == [live.HITHINK_RETRY_BACKOFF_SECONDS]
+
+
+def test_hithink_transient_http_exhaustion_enters_existing_tencent_fallback(monkeypatch):
+    sleeps = []
+    hithink_calls = []
+    tencent_calls = []
+    monkeypatch.setattr(live.time, "sleep", sleeps.append)
+
+    def request_get(url, timeout, headers=None):
+        del timeout
+        if headers is not None:
+            hithink_calls.append(url)
+            return _hithink_http_error_response(503)
+        tencent_calls.append(url)
+        provider_symbol = url.split("param=", 1)[1].split(",", 1)[0]
+        return FakeResponse({"data": {provider_symbol: {"qfqday": _bars()}}})
+
+    client = live.HiThinkClient(api_key="test-only-key", request_get=request_get)
+    bars, resolution = live._resolve_market_bars(
+        client,
+        SYMBOL,
+        requested_count=21,
+        minimum_acceptable_history=1,
+        as_of_date=AS_OF,
+        timeout=1.0,
+        retries=1,
+        request_get=request_get,
+        index=False,
+        allow_tencent_fallback=True,
+    )
+
+    assert len(bars) == 21
+    assert resolution["provider"] == "Tencent"
+    assert resolution["selection"] == "EXPLICIT_FALLBACK"
+    assert len(hithink_calls) == live.HITHINK_MAX_ATTEMPTS
+    assert len(tencent_calls) == 1
+    assert sleeps == [
+        live.HITHINK_RETRY_BACKOFF_SECONDS,
+        live.HITHINK_RETRY_BACKOFF_SECONDS * 2,
+    ]
+
+
+def test_hithink_transient_http_exhaustion_remains_fail_closed_when_fallback_disabled(monkeypatch):
+    sleeps = []
+    hithink_calls = []
+    tencent_calls = []
+    monkeypatch.setattr(live.time, "sleep", sleeps.append)
+
+    def request_get(url, timeout, headers=None):
+        del timeout
+        if headers is not None:
+            hithink_calls.append(url)
+            return _hithink_http_error_response(429)
+        tencent_calls.append(url)
+        raise AssertionError("Tencent fallback must remain disabled")
+
+    client = live.HiThinkClient(api_key="test-only-key", request_get=request_get)
+    with pytest.raises(live.LiveAcquisitionError) as caught:
+        live._resolve_market_bars(
+            client,
+            SYMBOL,
+            requested_count=21,
+            minimum_acceptable_history=1,
+            as_of_date=AS_OF,
+            timeout=1.0,
+            retries=1,
+            request_get=request_get,
+            index=False,
+            allow_tencent_fallback=False,
+        )
+
+    assert caught.value.status == live.PROVIDER_FAILURE
+    assert len(hithink_calls) == live.HITHINK_MAX_ATTEMPTS
+    assert tencent_calls == []
+    assert sleeps == [
+        live.HITHINK_RETRY_BACKOFF_SECONDS,
+        live.HITHINK_RETRY_BACKOFF_SECONDS * 2,
+    ]
 
 
 def test_retry_attempts_are_not_part_of_package_identity(monkeypatch):

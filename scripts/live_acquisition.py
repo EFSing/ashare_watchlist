@@ -157,10 +157,10 @@ MIN_INDEX_BARS_FOR_MARKET_ENV = 21
 
 _BJT = timezone(timedelta(hours=8))
 
-# AkShare reads are provider calls, not input semantics.  Keep the retry
-# policy deliberately small and fixed: a transient transport failure may be
-# retried for the same read, but a malformed/empty/conflicting response is
-# validated exactly once and is never hidden by another provider call.
+# Provider reads are not input semantics.  Keep the retry policy deliberately
+# small and fixed: a transient read failure may be retried for the same read,
+# but a malformed/empty/conflicting response is validated exactly once and is
+# never hidden by another provider call.
 AKSHARE_MAX_ATTEMPTS = 3
 AKSHARE_RETRY_BACKOFF_SECONDS = 0.25
 HITHINK_MAX_ATTEMPTS = 3
@@ -911,15 +911,7 @@ class HiThinkClient:
 
     @staticmethod
     def _is_transient_read_error(exc: Exception) -> bool:
-        return isinstance(
-            exc,
-            (
-                ConnectionError,
-                TimeoutError,
-                requests.exceptions.ConnectionError,
-                requests.exceptions.Timeout,
-            ),
-        )
+        return _is_hithink_transient(exc)
 
     def _read(
         self,
@@ -1866,7 +1858,7 @@ def _fetch_qfq_bars(
 
 
 def _is_hithink_transient(exc: Exception) -> bool:
-    return isinstance(
+    if isinstance(
         exc,
         (
             ConnectionError,
@@ -1874,7 +1866,12 @@ def _is_hithink_transient(exc: Exception) -> bool:
             requests.exceptions.ConnectionError,
             requests.exceptions.Timeout,
         ),
-    )
+    ):
+        return True
+    if not isinstance(exc, requests.exceptions.HTTPError):
+        return False
+    status_code = getattr(getattr(exc, "response", None), "status_code", None)
+    return status_code in {408, 429} or isinstance(status_code, int) and 500 <= status_code <= 599
 
 
 def _validate_historical_bars(
