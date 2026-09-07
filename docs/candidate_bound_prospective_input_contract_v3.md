@@ -5,7 +5,7 @@
 ## Contract identity
 
 - contract：`CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V3`
-- status：`FIRST_LIVE_INSTANCE_VERIFIED_A__FROZEN_RECOVERY_NOT_READY_B`
+- status：`FRESH_T_CLOSE_INSTANCE_VERIFIED_A__FROZEN_PREREQUISITES_READY_FOR_USER_DECISION`
 - bound candidate：`B_BREAKOUT_RETEST_LEGACY_V1_1`
 - strategy spec SHA-256：`f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`
 - supersedes for future live packages：`CANDIDATE_BOUND_PROSPECTIVE_INPUT_PROVENANCE_CONTRACT_V2`
@@ -99,3 +99,29 @@ does not prove gate B (`FULLY_RECOVERABLE`): 170 raw/sidecar pairs retain
 persistent external backup/readback. The existing Drive readback is the corrected 11-name
 watchlist only, not the input package. No strategy, threshold, evaluator, or frozen artifact
 identity is changed by this status correction.
+
+## Superseding current instance status — 2026-09-07 fresh post-close capture
+
+The 2026-09-07 XSHG post-close run is the current candidate-bound `LIVE_OBSERVED` instance. It
+uses acquisition code SHA `39cbd7cf2335ebee1cc7a81faee47c744c737fc3` and the clean evidence root
+`data/t_close_evidence/20260907_clean_39cbd7cf2335ebee1cc7a81faee47c744c737fc3/20260907`.
+All 10,677 raw/sidecar pairs are complete and byte/hash exact; all sidecars carry that exact
+runner SHA; new `UNKNOWN_ORIGIN=0`. The old 2026-09-07 partial root remains preserved as failed
+audit evidence and is not mixed into this package.
+
+The package is
+`data/prospective_inputs/20260907/2026-09-07_fe54be9be5c5959bd3d690adab2423e7a89f19e4498fb1df927c142f8dab9e4c.json`,
+schema `CANDIDATE_BOUND_LIVE_INPUT_PACKAGE_V4`, status `READY_FOR_STRATEGY_EVALUATION`, file
+SHA-256 `63fa8effea45cc329035dd97dbe64dfe9d84e899fbb24623190143811e08cc3`, content SHA-256
+`792442ff35b5f1e5858180d3e6fc8965c661e4fd6e0c3abd5f9247d90dd6e31e`, and generation
+fingerprint `fe54be9be5c5959bd3d690adab2423e7a89f19e4498fb1df927c142f8dab9e4c`. B remains
+`B_BREAKOUT_RETEST_LEGACY_V1_1`; raw qualified=26, ST excluded=1, final non-ST=25; the
+2026-09-07 watchlist SHA-256 is
+`5a99273b6304621acbf7bba2423a6e372668348a31ac436021caf5f5855db100`.
+
+The package and source-evidence archives are persistently backed up in the authorized private
+Drive target `ashare_watchlist/t_close_20260907_v3_39cbd7cf`. Its formal chunks40 inventory
+contains 14 package chunks, 15 source-evidence chunks, and one manifest. Every binary chunk was
+independently raw-fetched and matched manifest byte length and SHA-256; the manifest itself was
+also exact-readback verified. Thus the recovery checks are `PASS / READY_FOR_USER_DECISION`.
+This does not create `FROZEN_CANDIDATE_CONTRACT_V1` or automatically freeze the candidate.

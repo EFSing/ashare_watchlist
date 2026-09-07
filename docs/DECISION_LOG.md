@@ -1643,3 +1643,35 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
   frozen bytes/registry 与 `data/validation/continuous_speed_probe/` 均未读取或修改；
   2026-09-07 仅执行 pre-close diagnostic，provider calls=`NOT_RUN_BEFORE_T_CLOSE`。
 - terminal：`BLOCKED_REQUIRES_USER_OR_EXTERNAL_DECISION:FROZEN_RECOVERY_PROVENANCE_PARTIAL_UNVERIFIED`。
+
+## 2026-09-07 — Resolve HiThink transient HTTP gap; adopt fresh T-close package for user freeze decision
+
+- classification：`correctness/provenance + product-gate audit`；不是新的 research、strategy
+  selection、promotion、Phase 2F 或 freeze。
+- diagnosis：已持久化 evidence 足以确定 `000002.SZ` HiThink historical 请求返回 HTTP
+  `429`，endpoint=`/api/a-share/prices/historical`，request identity=
+  `thscode=000002.SZ&interval=1d&start=1740355200000&end=1788739200000&adjust=forward`，
+  收到 64 response bytes，脱敏 body 为 `{"code":429,"message":"request limit exceeded","data":null}`。
+  该请求不因诊断重复访问 provider。
+- correctness fix：旧 HiThink transient classifier 漏掉 408/429/5xx；在 bounded branch
+  `codex/hithink-http-transient-20260907` 的 code SHA
+  `39cbd7cf2335ebee1cc7a81faee47c744c737fc3` 中以共享 helper 覆盖这些 status，普通 4xx
+  仍 non-transient。max attempts=3、priority/backoff、Tencent fallback、B semantics 与
+  strategy thresholds 未变；focused tests、必要 full suite、compile/import、diff check 均
+  按本轮 audit 记录完成。
+- fresh evidence：旧 `data/t_close_evidence/20260907` partial attempt 原样保留；新 clean
+  root 为 `data/t_close_evidence/20260907_clean_39cbd7cf2335ebee1cc7a81faee47c744c737fc3/20260907`，
+  10,677 pairs / 21,354 files 全部 complete、byte/hash exact，runner SHA 统一且新
+  `UNKNOWN_ORIGIN=0`。package file SHA=
+  `63fa8effea45cc329035dd97dbe64dfe9d84e899fbb24623190143811e08cc3`，generation
+  fingerprint=`fe54be9be5c5959bd3d690adab2423e7a89f19e4498fb1df927c142f8dab9e4c`。
+- output：B `B_BREAKOUT_RETEST_LEGACY_V1_1` raw qualified=26，ST excluded=1，final
+  non-ST=25；watchlist SHA=`5a99273b6304621acbf7bba2423a6e372668348a31ac436021caf5f5855db100`。
+- recovery：用户已明确授权私有 Drive target
+  `ashare_watchlist/t_close_20260907_v3_39cbd7cf`。formal inventory 为 14 package chunks、
+  15 source-evidence chunks 与 1 chunks40 manifest；29 binary objects 和 manifest 均独立
+  raw-readback 并 exact-matched inventory、byte length、SHA-256。
+- decision：`ADOPT` fresh package；frozen prerequisite recovery checks 为
+  `PASS / READY_FOR_USER_DECISION`。不自动 freeze；Final OOS/C/old D 与 forbidden
+  continuous-speed-probe boundary 保持不变。
+- terminal：`FROZEN_CANDIDATE_READY_FOR_USER_DECISION`。
