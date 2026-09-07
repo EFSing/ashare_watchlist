@@ -14,7 +14,7 @@
 
 - canonical `data/watchlist_YYYYMMDD.json` 观察名单及其 `candidates` / `trigger` schema；
 - 每交易日轻量状态 `scripts/review_after.py`（`scripts/eod_review.py` 仅为兼容入口）；
-- `scripts/track_perf.py` 的 signal identity / XSHG 交易日节点跟踪：T+3 短线评价、T+5 主评价、T+10 延伸观察并结案；正式复盘不消费旧持仓模板或配对指标流程；
+- `scripts/track_perf.py` 的 signal identity / XSHG 交易日节点跟踪：T+3 短线评价、T+5 主评价、T+10 延伸观察并结案；每个节点有 deterministic snapshot identity，fixed-horizon observation 与 execution/path result 分离；正式复盘不消费旧持仓模板或配对指标流程；
 - `Asia/Shanghai`、T 日收盘输入和 XSHG T+1 执行边界的 generation contract；
 - `A_PLATFORM_BREAKOUT_LEGACY_V1`、CORE replay 和 DEVELOPMENT returns V2 作为有 provenance 的 research / development harness；
 - 冻结 artifact registry、输入/输出 hash、恢复和交接治理。

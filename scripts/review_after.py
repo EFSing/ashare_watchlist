@@ -45,21 +45,29 @@ def review_watchlist(cands: list[dict[str, Any]], quotes: dict[str, dict[str, An
         stop = candidate["stop"]
         target = candidate["target"]
         status_parts = []
-        if quote["low"] <= trigger <= quote["high"]:
+        trigger_touched = quote["low"] <= trigger <= quote["high"]
+        stop_touched = quote["low"] <= stop or price_now <= stop
+        target_touched = quote["high"] >= target or price_now >= target
+        ambiguous_same_bar = (trigger_touched and (stop_touched or target_touched)) or (
+            stop_touched and target_touched
+        )
+        if ambiguous_same_bar:
+            status_parts.append("AMBIGUOUS_SAME_BAR（盘中顺序未知）")
+        elif trigger_touched:
             status_parts.append(f"已触发入场(触发价{trigger})")
         elif price_now >= trigger:
             status_parts.append(f"现价≥触发价{trigger}，可介入")
         else:
             status_parts.append(f"未触发(现价{price_now}<触发{trigger})")
-        if price_now <= stop:
+        if not ambiguous_same_bar and price_now <= stop:
             status_parts.append(f"⚠️跌破止损{stop}")
-        if price_now >= target:
+        if not ambiguous_same_bar and price_now >= target:
             status_parts.append(f"✅已到目标{target}")
         rows.append({
             "代码": code,
             "名称": quote["name"],
             "买点": candidate["buy_type"],
-            "昨日评分": candidate["score"],
+            "名单评分": candidate["score"],
             "今日涨跌%": round(quote["chg_pct"], 2),
             "现价": round(price_now, 2),
             "触发价": trigger,
@@ -102,6 +110,7 @@ def main(argv: list[str] | None = None) -> int:
         f"# {title}（名单日期 {watchlist['date']}）",
         f"> 行情日期：{quote_date}（运行当日行情；--date 仅选择名单，不是 historical replay）",
         "> 本报告只记录当日名单状态；跨日正式绩效由 signal-level tracker 按 XSHG 交易日节点维护。",
+        "> 历史逐日路径：MISSING_HISTORICAL_OBSERVATION / UNVERIFIED（本入口只读取当日行情，不回填过去 trigger/stop/target）。",
         "",
         "## 观察名单状态",
     ]

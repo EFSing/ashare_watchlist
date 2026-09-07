@@ -1,13 +1,9 @@
 # CURRENT STATUS
 
 更新时间：2026-09-07（Asia/Shanghai）
-Formal Delivery Ladder（当前 freeze branch / merge 后拟定）：`frozen candidate`
-`master` 在 freeze PR 合并前仍为 `development candidate`；本文件的当前段落以该 bounded
-freeze branch 为准。
-Latest correctness/governance snapshot before this reconciliation：
-`master@1fdb099926a1172cfebee7001537910d805019e4`；PR #39 merge-head correctness run
-`34031658818` success，workflow head SHA exact；本次 governance-only reconciliation 会产生新的
-final canonical master SHA。
+Formal Delivery Ladder：`frozen candidate`
+Live `master@3308c7ab8e403d459baf1bbfe873e7320d750317`；PR #41 已合并。post-merge
+correctness run `34133269448` 为 `completed / success` 且 head exact。
 Phase 2E research baseline：PR #6 / `74ccf86dfdea3b9d4b0124fb54346aa429735508`
 职责：记录项目正式处于什么状态，以及哪些研究结论已经成立。长期产品目标和 usable gate 见 [`PRODUCT_CHARTER.md`](PRODUCT_CHARTER.md)，接手动作见 [`HANDOFF.md`](../HANDOFF.md)，决策理由见 [`DECISION_LOG.md`](DECISION_LOG.md)。
 

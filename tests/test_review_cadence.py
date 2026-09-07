@@ -1,18 +1,23 @@
 import json
+from copy import deepcopy
 from datetime import date
+
+import pytest
 
 from data_paths import DataPaths
 from test_watchlist_schema import payload
 from track_perf import (
+    PRIMARY_REVIEW_HORIZON,
     REVIEW_POINT_CAPTURED,
     REVIEW_POINT_NOT_CAPTURED,
     REVIEW_POINT_PENDING,
     ingest,
     new_tracker,
     report,
+    review_snapshot_id,
     update,
 )
-from trading_calendar import TradingCalendar
+from trading_calendar import CalendarUnavailable, TradingCalendar
 
 
 def quote(quote_date: str, *, price: float, high: float, low: float) -> dict[str, object]:
@@ -51,6 +56,13 @@ def test_review_points_use_xshg_sessions_not_calendar_days(tmp_path):
     assert points["T+3"]["scheduled_date"] == "2026-08-27"
     assert points["T+5"]["scheduled_date"] == "2026-08-31"
     assert points["T+10"]["scheduled_date"] == "2026-09-07"
+    assert PRIMARY_REVIEW_HORIZON == "T+5"
+    point = points["T+5"]
+    assert point["signal_id"] == signal["signal_id"]
+    assert point["signal_date"] == "2026-08-21"
+    assert point["horizon"] == "T+5"
+    assert point["review_trading_date"] == "2026-08-31"
+    assert point["snapshot_id"] == review_snapshot_id(signal["signal_id"], "T+5", "2026-08-31")
 
 
 def test_early_target_keeps_terminal_status_and_captures_later_fixed_point(tmp_path):
@@ -82,8 +94,91 @@ def test_early_target_keeps_terminal_status_and_captures_later_fixed_point(tmp_p
     assert signal["days_tracked"] == 2
     assert signal["review_points"]["T+3"]["status"] == REVIEW_POINT_CAPTURED
     assert signal["review_points"]["T+3"]["signal_status"] == "win"
+    assert signal["review_points"]["T+3"]["path_status"] == "win"
     assert signal["review_points"]["T+3"]["quote_date"] == "2026-08-27"
+    assert signal["review_points"]["T+3"]["return_pct"] == 5.833333
     assert signal["review_points"]["T+5"]["status"] == REVIEW_POINT_PENDING
+
+
+def test_early_stop_path_is_not_overwritten_by_later_fixed_horizon_return(tmp_path):
+    calendar = TradingCalendar(holidays={date(2026, 8, 24)})
+    tracker = make_tracker(tmp_path, "2026-08-21", calendar)
+
+    update(
+        tracker,
+        quotes={"600519": quote("2026-08-25", price=119.0, high=121.0, low=116.0)},
+        today="2026-08-25",
+        calendar=calendar,
+    )
+    update(
+        tracker,
+        quotes={"600519": quote("2026-08-26", price=114.0, high=119.0, low=114.0)},
+        today="2026-08-26",
+        calendar=calendar,
+    )
+    update(
+        tracker,
+        quotes={"600519": quote("2026-08-27", price=117.0, high=118.0, low=116.0)},
+        today="2026-08-27",
+        calendar=calendar,
+    )
+
+    signal = next(iter(tracker["signals"].values()))
+    assert signal["status"] == "loss"
+    assert signal["close_date"] == "2026-08-26"
+    assert signal["result_price"] == signal["stop"]
+    assert signal["review_points"]["T+3"]["path_status"] == "loss"
+    assert signal["review_points"]["T+3"]["return_pct"] == -2.5
+    assert signal["review_points"]["T+3"]["quote_date"] == "2026-08-27"
+
+
+def test_ten_session_point_closes_untriggered_signal_and_marks_missed_nodes(tmp_path):
+    calendar = TradingCalendar(holidays={date(2026, 8, 24)})
+    tracker = make_tracker(tmp_path, "2026-08-21", calendar)
+
+    update(
+        tracker,
+        quotes={"600519": quote("2026-09-07", price=118.0, high=119.0, low=117.0)},
+        today="2026-09-07",
+        calendar=calendar,
+    )
+
+    signal = next(iter(tracker["signals"].values()))
+    assert signal["status"] == "expired"
+    assert signal["days_tracked"] == 10
+    assert signal["review_points"]["T+3"]["status"] == REVIEW_POINT_NOT_CAPTURED
+    assert signal["review_points"]["T+5"]["status"] == REVIEW_POINT_NOT_CAPTURED
+    assert signal["review_points"]["T+10"]["status"] == REVIEW_POINT_CAPTURED
+    assert signal["review_points"]["T+10"]["path_status"] == "expired"
+    assert signal["review_points"]["T+10"]["return_pct"] is None
+    assert "unverified" in signal["review_points"]["T+10"]["reason"]
+
+
+def test_same_snapshot_update_is_idempotent(tmp_path):
+    calendar = TradingCalendar(holidays={date(2026, 8, 24)})
+    tracker = make_tracker(tmp_path, "2026-08-21", calendar)
+    fixed_quote = {"600519": quote("2026-08-27", price=118.0, high=119.0, low=117.0)}
+
+    assert update(tracker, quotes=fixed_quote, today="2026-08-27", calendar=calendar) > 0
+    before = deepcopy(next(iter(tracker["signals"].values()))["review_points"])
+    assert update(tracker, quotes=fixed_quote, today="2026-08-27", calendar=calendar) == 0
+    after = next(iter(tracker["signals"].values()))["review_points"]
+
+    assert after == before
+    assert after["T+3"]["snapshot_id"] == before["T+3"]["snapshot_id"]
+
+
+def test_update_rejects_non_trading_session_instead_of_using_natural_days(tmp_path):
+    calendar = TradingCalendar(holidays={date(2026, 8, 24)})
+    tracker = make_tracker(tmp_path, "2026-08-21", calendar)
+
+    with pytest.raises(CalendarUnavailable):
+        update(
+            tracker,
+            quotes={"600519": quote("2026-08-24", price=118.0, high=119.0, low=117.0)},
+            today="2026-08-24",
+            calendar=calendar,
+        )
 
 
 def test_missed_fixed_point_is_explicit_and_never_backfilled(tmp_path):
@@ -112,6 +207,9 @@ def test_report_exposes_formal_nodes_without_legacy_claims(tmp_path):
     assert "T+3" in text
     assert "T+5" in text
     assert "T+10" in text
+    assert "PRIMARY REVIEW HORIZON" in text
+    assert "延伸观察并结案" in text
+    assert "MISSING_HISTORICAL_OBSERVATION" in report(tracker, calendar=calendar, as_of="2026-08-28")
     assert "配对指标" not in text
     assert "持仓" not in text
     assert "体系可盈利" not in text

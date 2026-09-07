@@ -1,6 +1,6 @@
 #!/usr/bin/env python3.11
 # -*- coding: utf-8 -*-
-"""观察名单验证闭环跟踪器。
+"""Prospective watchlist signal-level review tracker。
 
 Tracker v2 stores one record per candidate event in ``signals``.  A code is
 never used as the identity of a signal, so the same stock can be measured
@@ -32,6 +32,7 @@ WATCH_DIR = PATHS.root
 TRACK_FILE = PATHS.perf_tracker_file()
 REPORT_FILE = PATHS.reports_dir() / "perf_report.md"
 REVIEW_HORIZONS = (("T+3", 3), ("T+5", 5), ("T+10", 10))
+PRIMARY_REVIEW_HORIZON = "T+5"
 TRACK_DAYS = REVIEW_HORIZONS[-1][1]
 REVIEW_POINT_PENDING = "PENDING"
 REVIEW_POINT_CAPTURED = "CAPTURED"
@@ -94,16 +95,41 @@ def review_date(
     return current.isoformat()
 
 
-def _new_review_points(signal_date: str, calendar: TradingCalendar) -> dict[str, dict[str, Any]]:
+def review_snapshot_id(signal_id: str, horizon: str, review_trading_date: date | datetime | str) -> str:
+    """Return the deterministic identity for one signal/horizon observation."""
+
+    known_horizons = dict(REVIEW_HORIZONS)
+    if horizon not in known_horizons:
+        raise ValueError(f"unsupported review horizon: {horizon!r}")
+    return f"{signal_id}|{horizon}|{parse_date(review_trading_date).isoformat()}"
+
+
+def _new_review_points(
+    signal_id: str,
+    signal_date: str,
+    calendar: TradingCalendar,
+) -> dict[str, dict[str, Any]]:
+    normalized_signal_date = parse_date(signal_date).isoformat()
     return {
         label: {
+            "signal_id": signal_id,
+            "signal_date": normalized_signal_date,
+            "horizon": label,
             "offset": offset,
-            "scheduled_date": review_date(signal_date, offset, calendar),
+            "scheduled_date": review_date(normalized_signal_date, offset, calendar),
+            "review_trading_date": review_date(normalized_signal_date, offset, calendar),
+            "snapshot_id": review_snapshot_id(
+                signal_id,
+                label,
+                review_date(normalized_signal_date, offset, calendar),
+            ),
             "status": REVIEW_POINT_PENDING,
             "quote_date": None,
             "price": None,
             "high": None,
             "low": None,
+            "return_pct": None,
+            "path_status": None,
             "signal_status": None,
             "reason": None,
         }
@@ -111,15 +137,21 @@ def _new_review_points(signal_date: str, calendar: TradingCalendar) -> dict[str,
     }
 
 
-def _ensure_review_points(signal: dict[str, Any], calendar: TradingCalendar) -> dict[str, dict[str, Any]]:
+def _ensure_review_points(
+    signal: dict[str, Any],
+    calendar: TradingCalendar,
+) -> dict[str, dict[str, Any]]:
     """Add/validate fixed review dates without rewriting captured outcomes."""
 
+    signal_id = str(signal["signal_id"])
+    signal_date = parse_date(signal["date"]).isoformat()
     points = signal.get("review_points")
     if not isinstance(points, dict):
         points = {}
         signal["review_points"] = points
     for label, offset in REVIEW_HORIZONS:
-        expected_date = review_date(signal["date"], offset, calendar)
+        expected_date = review_date(signal_date, offset, calendar)
+        expected_snapshot_id = review_snapshot_id(signal_id, label, expected_date)
         point = points.get(label)
         if not isinstance(point, dict):
             point = {}
@@ -130,13 +162,29 @@ def _ensure_review_points(signal: dict[str, Any], calendar: TradingCalendar) -> 
                 f"signal {signal['signal_id']} review date mismatch for {label}: "
                 f"{existing_date!r} != {expected_date!r}"
             )
-        point.setdefault("offset", offset)
+        for field, expected in (
+            ("signal_id", signal_id),
+            ("signal_date", signal_date),
+            ("horizon", label),
+            ("offset", offset),
+            ("review_trading_date", expected_date),
+            ("snapshot_id", expected_snapshot_id),
+        ):
+            existing = point.get(field)
+            if existing is not None and existing != expected:
+                raise TrackerSchemaError(
+                    f"signal {signal_id} review identity mismatch for {label}: "
+                    f"{field}={existing!r} != {expected!r}"
+                )
+            point.setdefault(field, expected)
         point.setdefault("scheduled_date", expected_date)
         point.setdefault("status", REVIEW_POINT_PENDING)
         point.setdefault("quote_date", None)
         point.setdefault("price", None)
         point.setdefault("high", None)
         point.setdefault("low", None)
+        point.setdefault("return_pct", None)
+        point.setdefault("path_status", point.get("signal_status"))
         point.setdefault("signal_status", None)
         point.setdefault("reason", None)
     return points
@@ -240,7 +288,7 @@ def _signal_from_candidate(
         "close_date": None,
         "ambiguity_reason": None,
         "observations": [],
-        "review_points": _new_review_points(signal_date, calendar),
+        "review_points": _new_review_points(signal_id, signal_date, calendar),
     }
 
 
@@ -333,6 +381,22 @@ def _append_observation(signal: dict[str, Any], quote: dict[str, Any]) -> None:
     signal["observations"].append(observation)
 
 
+def _snapshot_return_pct(signal: dict[str, Any], price: float | None) -> float | None:
+    """Calculate a fixed-point return only when a confirmed entry exists."""
+
+    entry_price = signal.get("entry_price")
+    if entry_price is None or price is None:
+        return None
+    try:
+        entry_value = float(entry_price)
+        price_value = float(price)
+    except (TypeError, ValueError):
+        return None
+    if entry_value <= 0:
+        return None
+    return round((price_value / entry_value - 1.0) * 100.0, 6)
+
+
 def _capture_review_points(
     signal: dict[str, Any],
     quote: dict[str, Any],
@@ -343,7 +407,6 @@ def _capture_review_points(
 
     points = _ensure_review_points(signal, calendar)
     changed = 0
-    today_text = today_date.isoformat()
     for point in points.values():
         if point["status"] != REVIEW_POINT_PENDING:
             continue
@@ -357,14 +420,17 @@ def _capture_review_points(
             })
             changed += 1
             continue
+        return_pct = _snapshot_return_pct(signal, quote["price"])
         point.update({
             "status": REVIEW_POINT_CAPTURED,
             "quote_date": quote["quote_date"],
             "price": quote["price"],
             "high": quote["high"],
             "low": quote["low"],
+            "return_pct": return_pct,
+            "path_status": signal["status"],
             "signal_status": signal["status"],
-            "reason": None,
+            "reason": None if return_pct is not None else "confirmed entry unavailable; return is unverified",
         })
         changed += 1
     return changed
@@ -459,23 +525,42 @@ def update(
     return changed
 
 
-def _review_point_text(signal: dict[str, Any], label: str) -> str:
+def _review_point_text(
+    signal: dict[str, Any],
+    label: str,
+    as_of_date: date | datetime | str | None = None,
+) -> str:
     point = signal.get("review_points", {}).get(label)
     if not isinstance(point, dict):
         return "未初始化"
     status = point.get("status", REVIEW_POINT_PENDING)
     if status == REVIEW_POINT_CAPTURED:
-        return f"已采集 {point.get('quote_date')} / {point.get('price')} / {point.get('signal_status')}"
+        return_pct = point.get("return_pct")
+        return_text = f"{return_pct:.2f}%" if isinstance(return_pct, (int, float)) else "UNVERIFIED"
+        path_status = point.get("path_status") or point.get("signal_status") or "UNVERIFIED"
+        return f"已采集 {point.get('quote_date')} / return={return_text} / path={path_status}"
+    scheduled_date = point.get("review_trading_date") or point.get("scheduled_date")
     if status == REVIEW_POINT_NOT_CAPTURED:
-        return "未采集（不回填）"
+        return "MISSING_HISTORICAL_OBSERVATION（节点未采集，不回填）"
+    if (
+        as_of_date is not None
+        and scheduled_date is not None
+        and parse_date(as_of_date) >= parse_date(scheduled_date)
+    ):
+        return "MISSING_HISTORICAL_OBSERVATION（节点未采集，不回填）"
     return f"待 {point.get('scheduled_date', '—')}"
 
 
-def report(tracker: dict[str, Any], calendar: TradingCalendar | None = None) -> str:
+def report(
+    tracker: dict[str, Any],
+    calendar: TradingCalendar | None = None,
+    as_of: date | datetime | str | None = None,
+) -> str:
     """Render the formal signal-level review cadence without outcome overclaiming."""
 
     _validate_tracker(tracker)
     cal = calendar or default_calendar()
+    as_of_date = parse_date(as_of or datetime.now().date())
     signals = list(tracker["signals"].values())
     for signal in signals:
         _ensure_review_points(signal, cal)
@@ -489,8 +574,11 @@ def report(tracker: dict[str, Any], calendar: TradingCalendar | None = None) -> 
         "# 信号复盘 · XSHG 交易日节点",
         "",
         f"> 数据更新：{tracker.get('updated', '—')}　|　signal-level 信号：{total}",
-        "> 每交易日由 tracker 维护状态；T+3 为短线评价，T+5 为主评价，T+10 为延伸观察并结案。",
+        "> 每交易日由 tracker 维护状态；T+3 为短线评价，T+5 为 PRIMARY REVIEW "
+        "HORIZON（主评价），T+10 为延伸观察并结案。",
         "> 节点按信号日 T 后第 3/5/10 个真实 XSHG session 计算，不按自然日；历史节点不做行情回填。",
+        "> fixed-horizon snapshot 与 execution/path result 分离；缺少真实节点 observation "
+        "或确认入场价时标记 MISSING_HISTORICAL_OBSERVATION / UNVERIFIED。",
         "",
         "## 一、节点状态",
     ]
@@ -521,8 +609,10 @@ def report(tracker: dict[str, Any], calendar: TradingCalendar | None = None) -> 
         lines.append(
             f"| {signal['signal_id']} | {signal['strategy_version']} | {signal['date']} | {signal['code']} | "
             f"{signal['setup']} | {signal.get('trigger')} | {signal.get('stop')} | {signal.get('target')} | "
-            f"{_review_point_text(signal, 'T+3')} | {_review_point_text(signal, 'T+5')} | "
-            f"{_review_point_text(signal, 'T+10')} | {signal['status']} | {signal.get('close_date') or ''} |"
+            f"{_review_point_text(signal, 'T+3', as_of_date)} | "
+            f"{_review_point_text(signal, 'T+5', as_of_date)} | "
+            f"{_review_point_text(signal, 'T+10', as_of_date)} | "
+            f"{signal['status']} | {signal.get('close_date') or ''} |"
         )
     if not signals:
         lines.append("*暂无样本*")

@@ -4,49 +4,34 @@
 > 本文件不是历史归档；历史 provenance 在 Git 历史中，正式状态与长期决策分别见
 > `docs/CURRENT_STATUS.md` 与 `docs/DECISION_LOG.md`（仅当前任务需要时读取）。
 
-- branch: `codex/freeze-reconciliation-20260907`; this bounded freeze branch starts from the
-  live recovery branch `codex/hithink-http-transient-20260907`. Formal capture code SHA is
-  `39cbd7cf2335ebee1cc7a81faee47c744c737fc3` (`fix: retry transient HiThink HTTP failures`).
+- branch: `codex/review-report-project-boundary-cleanup-20260907`; this bounded cleanup branch
+  is based on live `master@3308c7ab8e403d459baf1bbfe873e7320d750317`.
 - recovery pointer: `origin/codex/hithink-http-transient-20260907` is the authoritative Git
   recovery branch. At recovery time, run `git rev-parse HEAD` and `git rev-parse @{u}` and
   require the two values to be equal; do not use this file's or any governance commit's SHA
   as the recovery truth.
-- source intake: the bounded acquisition fix was committed from the verified baseline
-  `9e2a32911433242df6cb4a963f78fe8868071a64`; tracked source files remain clean apart from
-  the committed fix and this governance checkpoint. Generated T-close evidence is kept
-  untracked and is not used to alter source files.
-- current task: reconcile the exact candidate-bound identity and freeze the approved B candidate
-  on this bounded branch; do not promote, approve production, unseal Final OOS, read C, rebuild
-  old D, tune B, change strategy semantics, or start new research.
-- completed: HiThink `000002.SZ` diagnostic evidence was sufficient to classify the failure as
-  HTTP 429 (`request limit exceeded`) with response bytes received. The shared transient
-  classifier now covers 408/429/5xx while preserving the existing three-attempt and Tencent
-  fallback contracts. A new clean evidence root was captured at the new code SHA.
-- completed: package `data/prospective_inputs/20260907/2026-09-07_fe54be9be5c5959bd3d690adab2423e7a89f19e4498fb1df927c142f8dab9e4c.json` is
-  `READY_FOR_STRATEGY_EVALUATION`; source evidence is 10,677 raw/sidecar pairs, all complete,
-  all code SHA `39cbd7cf2335ebee1cc7a81faee47c744c737fc3`, and zero new `UNKNOWN_ORIGIN`.
-- completed: B `B_BREAKOUT_RETEST_LEGACY_V1_1` succeeded with raw qualified=26, ST excluded=1,
-  final non-ST=25; canonical watchlist is `data/watchlist_20260907.json`.
-- completed: formal Drive recovery inventory (14 package chunks + 15 source chunks + one
-  chunks40 manifest) was independently raw-fetched; every file matched its manifest byte length
-  and SHA-256. Target folder is
-  `ashare_watchlist/t_close_20260907_v3_39cbd7cf`.
-- formal project state on this branch: `frozen candidate` pending the bounded freeze PR merge;
-  `master` remains `development candidate` until that PR is merged.
+- current task: `REVIEW_REPORT_PROJECT_BOUNDARY_CLEANUP`. The post-merge governance conflict is
+  closed: PR #41 is merged at `3308c7ab8e403d459baf1bbfe873e7320d750317`, correctness run
+  `34133269448` is `completed / success` with exact head, and formal Delivery Ladder is
+  `frozen candidate`.
+- frozen candidate identity: strategy `B_BREAKOUT_RETEST_LEGACY_V1_1`; spec SHA
+  `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`; package SHA
+  `63fa8effea45cc329035dd97dbe64dfe9d84e899fbb24623190143811e08cc3a`; fingerprint
+  `fe54be9be5c5959bd3d690adab2423e7a89f19e4498fb1df927c142f8dab9e4c`; watchlist SHA
+  `5a99273b6304621acbf7bba2423a6e372668348a31ac436021caf5f5855db100`.
+- completed: the review cleanup checkpoint was replayed onto the new master without replaying
+  the old recovery/acquisition ancestry. Current changes remain limited to review scripts,
+  focused tests, README and review governance documentation.
+- boundaries: do not promote, approve production, unseal/read Final OOS, read C, rebuild old D,
+  tune B, change strategy semantics, start new research, or touch
+  `data/validation/continuous_speed_probe/`. Package/source/watchlist bytes and Drive
+  backup/readback are unchanged and remain exact.
 - active new strategy research: `NONE / PAUSED / PHASE_COMPLETE`
-- blockers: none for the current package, evidence, B output, or persistent recovery. The
-  explicit freeze decision is recorded; bounded PR #41 is open and the current PR head has
-  successful exact-head correctness CI. Only the user merge decision remains.
-- artifact snapshot: package file SHA
-  `63fa8effea45cc329035dd97dbe64dfe9d84e899fbb24623190143811e08cc3a`, generation fingerprint
-  `fe54be9be5c5959bd3d690adab2423e7a89f19e4498fb1df927c142f8dab9e4c`, content SHA
-  `792442ff35b5f1e5858180d3e6fc8965c661e4fd6e0c3abd5f9247d90dd6e31e`, watchlist SHA
-  `5a99273b6304621acbf7bba2423a6e372668348a31ac436021caf5f5855db100`, candidate count 25.
-- next action: user merge decision on bounded PR #41. Do not auto-merge. Keep Final OOS
-  sealed/unread, C unread, old D not reconstructed, and the forbidden continuous-speed-probe
-  directory untouched.
-- terminal marker: `B_FROZEN_CANDIDATE_PR_READY_FOR_USER_MERGE_DECISION`; exact-head CI is
-  successful and the PR remains unmerged.
+- blockers: none for the frozen candidate or recovery. Review cleanup implementation and focused
+  verification are in progress on this branch; no freeze blocker remains.
+- next action: finish focused review tests plus compile/diff checks, commit and push this bounded
+  cleanup, create one PR to `master`, and wait for exact-head CI. Do not auto-merge.
+- terminal marker: `REVIEW_REPORT_PROJECT_BOUNDARY_CLEANUP_IN_PROGRESS`.
 
 ## New-device / new-session recovery
 

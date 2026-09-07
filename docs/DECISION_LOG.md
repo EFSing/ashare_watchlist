@@ -1716,9 +1716,11 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
   watchlist 轻量状态；由 signal-level `track_perf.py` 按信号日 T 后真实 XSHG session
   记录 T+3 短线评价、T+5 主评价、T+10 延伸观察并结案。`eod_review.py` 仅保留为每日
   轻量状态的兼容入口。
-- correctness boundary：节点使用 XSHG 交易日历，不按自然日；提前 target/stop 的真实
-  terminal 状态和结案日不被覆盖，后续固定节点仍可记录 snapshot；错过节点不做历史
-  行情回填；same-bar ambiguity 继续 fail-safe。既有历史 research 的 10D outcome 不被
+- correctness boundary：节点使用 XSHG 交易日历，不按自然日；每个
+  `signal_id × horizon × review_trading_date` 使用 deterministic、可重复的 snapshot
+  identity；fixed-horizon observation/return 与 execution/path result 分离。提前 target/stop
+  的真实 terminal 状态和结案日不被覆盖，后续固定节点仍可记录 snapshot；错过节点不做
+  历史行情回填；same-bar ambiguity 继续 fail-safe。既有历史 research 的 10D outcome 不被
   回写或重新定义。
 - scope：报告不再消费旧持仓/配对指标流程；B、frozen candidate、Final OOS、C、old D
   和 `data/validation/continuous_speed_probe/` 均不触碰。

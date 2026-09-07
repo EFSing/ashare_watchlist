@@ -14,7 +14,7 @@ A 股观察名单与 signal-level 复盘量化工具。用于维护 canonical �
 .
 ├── scripts/                # Python 脚本
 │   ├── preopen_review.py   # 开盘状态查看（非正式跨日复盘）
-│   ├── review_after.py     # 盘后/午盘复盘
+│   ├── review_after.py     # 每日轻量状态查看
 │   ├── track_perf.py       # 表现追踪器
 │   └── eod_review.py       # review_after 的兼容入口
 ├── data/                   # 名单、tracker 与报告（可由 ASHARE_DATA_ROOT 覆盖）
@@ -53,9 +53,9 @@ python3.11 scripts/track_perf.py
 
 ## 正式复盘制度
 
-复盘分为四个固定层次：每个真实 XSHG 交易日生成一份每日轻量状态记录；对每个 signal-level 信号，以信号日 T 后第 3 个交易日做 T+3 短线评价，第 5 个交易日做 T+5 主评价，第 10 个交易日做 T+10 延伸观察并结案。节点使用 XSHG 交易日历，不按自然日；信号最早执行日仍是 T+1。
+复盘分为四个固定层次：每个真实 XSHG 交易日生成一份每日轻量状态记录；对每个 signal-level 信号，以信号日 T 后第 3 个交易日做 T+3 短线评价，第 5 个交易日做 T+5 PRIMARY REVIEW HORIZON（主评价），第 10 个交易日做 T+10 延伸观察并结案。节点使用 XSHG 交易日历，不按自然日；信号最早执行日仍是 T+1。每个节点保存 signal/list date、review trading date、horizon 和 deterministic snapshot identity。
 
-跨日评价由 `track_perf.py` 负责，不回写历史研究的 10D outcome。信号若提前触发 target/stop，保留真实结案日和状态，并在后续固定节点允许记录快照；错过节点时不进行历史行情回填。same-bar 同时触发多个边界时保留 `AMBIGUOUS_SAME_BAR`，不猜测盘中顺序。`eod_review.py` 仅作为每日轻量状态的兼容入口。
+跨日评价由 `track_perf.py` 负责，不回写历史研究的 10D outcome。fixed-horizon snapshot 的 observation/return 与 execution/path result 分离；信号若提前触发 target/stop，保留真实结案日和状态，并在后续固定节点允许记录快照。缺少真实节点 observation 或确认入场价时明确标记 missing/unverified，错过节点时不进行历史行情回填。same-bar 同时触发多个边界时保留 `AMBIGUOUS_SAME_BAR`，不猜测盘中顺序。`eod_review.py` 仅作为每日轻量状态的兼容入口。
 
 观察名单必须使用 `watchlist_YYYYMMDD.json` 文件名，payload 必须包含 `date`、`mode`、`market_env`、`sectors`、`candidates`；旧的 `items` / `trig` 结构会直接报错，不会静默转换。生产扫描只读取 `data/` 根目录下的 canonical 文件；`data/legacy_invalid/` 中的历史/非法文件保留供审计但不会参与 ingest。
 
