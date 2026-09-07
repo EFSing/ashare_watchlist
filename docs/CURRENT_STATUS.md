@@ -37,8 +37,11 @@ governance-head correctness `34034984771=success`，两者 workflow head 均 exa
 selection、promotion 或 Phase 2F。实时 Git intake 已确认 `origin/master` 为
 `9757a12514e2d423e95ea7de6758ab033803ce2b`；本地原始 `master` 为
 `38322b91f691b23e7ebaa10818a8733169aafab8`，落后 14 commits，故本次治理修正使用隔离
-分支。GitHub API/UI 在当前未认证会话中对 private repository 返回 404，不能把网页读不到
-解释为 PR 状态；PR/CI 在发布前必须重新取得 live evidence。
+分支。本次 intake 已取得 GitHub live evidence：remote branch
+`codex/p1-gate-20260907` 与 exact HEAD `916c11934a2b76aa9cf3019154cb858978833bbb` 已存在；
+push-triggered correctness run `34082842448` 为 `success`，且 workflow head SHA exact-matched
+该 commit；PR 尚未创建。创建 successor commit/PR 后，必须以最终 PR head 重新核对 PR
+base/head、mergeability 与 exact-head CI。
 
 ### Gate A — first real candidate-bound live instance
 
