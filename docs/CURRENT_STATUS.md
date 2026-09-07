@@ -1,7 +1,9 @@
 # CURRENT STATUS
 
 更新时间：2026-09-07（Asia/Shanghai）
-Formal Delivery Ladder：`development candidate`
+Formal Delivery Ladder（当前 freeze branch / merge 后拟定）：`frozen candidate`
+`master` 在 freeze PR 合并前仍为 `development candidate`；本文件的当前段落以该 bounded
+freeze branch 为准。
 Latest correctness/governance snapshot before this reconciliation：
 `master@1fdb099926a1172cfebee7001537910d805019e4`；PR #39 merge-head correctness run
 `34031658818` success，workflow head SHA exact；本次 governance-only reconciliation 会产生新的
@@ -9,7 +11,40 @@ final canonical master SHA。
 Phase 2E research baseline：PR #6 / `74ccf86dfdea3b9d4b0124fb54346aa429735508`
 职责：记录项目正式处于什么状态，以及哪些研究结论已经成立。长期产品目标和 usable gate 见 [`PRODUCT_CHARTER.md`](PRODUCT_CHARTER.md)，接手动作见 [`HANDOFF.md`](../HANDOFF.md)，决策理由见 [`DECISION_LOG.md`](DECISION_LOG.md)。
 
-## Superseding current checkpoint — 2026-09-07 T-close fresh package and recovery
+## Current checkpoint — B candidate freeze pending bounded PR merge — 2026-09-07
+
+本次是用户明确授权的 candidate freeze reconciliation，不是新的 research、promotion、
+production approval、Final OOS unseal、C/D 评估或 B 语义变更。freeze 仅绑定并冻结以下
+已经通过 frozen prerequisites 的 B candidate identity；在该 bounded PR 合并前，不能声称
+`master` 已正式 frozen。
+
+- strategy：`B_BREAKOUT_RETEST_LEGACY_V1_1`
+- spec SHA-256：`f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`
+- formal capture code SHA：`39cbd7cf2335ebee1cc7a81faee47c744c737fc3`
+- package SHA-256：`63fa8effea45cc329035dd97dbe64dfe9d84e899fbb24623190143811e08cc3a`
+- generation fingerprint：`fe54be9be5c5959bd3d690adab2423e7a89f19e4498fb1df927c142f8dab9e4c`
+- watchlist SHA-256：`5a99273b6304621acbf7bba2423a6e372668348a31ac436021caf5f5855db100`
+- B output：raw qualified=26，ST excluded=1，final non-ST=25
+
+Immutable identity was independently matched against the authorized private Drive chunks40
+manifest: package SHA, generation fingerprint, strategy/spec SHA, watchlist SHA, and B counts
+all match exactly. The target folder is
+`ashare_watchlist/t_close_20260907_v3_39cbd7cf`; its listing contains 46 objects: the formal
+inventory is 14 package chunks + 15 source-evidence chunks + 1 chunks40 manifest, while 16
+retained early intermediate chunks are explicitly outside that formal inventory. The prior
+29-binary-object raw readback and manifest readback remain `PASS`; this reconciliation did not
+re-upload or re-read the full archives, and did not change package/source/watchlist bytes.
+
+Recovery truth is the remote branch `origin/codex/hithink-http-transient-20260907`; runtime
+recovery must verify `git rev-parse HEAD == git rev-parse @{u}`. A governance commit SHA is not
+used as the recovery pointer. Final OOS remains `SEALED / UNREAD`, C remains unread, old D is not
+reconstructed, and `data/validation/continuous_speed_probe/` remains untouched.
+
+The proposed post-merge Delivery Ladder is `frozen candidate`. Remaining steps are one bounded
+PR to master, exact-head CI success, and user merge decision; no automatic merge. Terminal marker
+after those checks is `B_FROZEN_CANDIDATE_PR_READY_FOR_USER_MERGE_DECISION`.
+
+## Historical pre-freeze checkpoint — 2026-09-07 T-close fresh package and recovery
 
 本轮分类为 `correctness/provenance + product-gate audit`，不是新的 research、strategy
 selection、promotion、Phase 2F 或 freeze。HiThink `000002.SZ` 的已持久化失败 evidence
@@ -35,7 +70,7 @@ root 有 10,677 raw/sidecar pairs（21,354 files），missing/hash/byte-length/f
 Gate A 的 fresh package 为
 `data/prospective_inputs/20260907/2026-09-07_fe54be9be5c5959bd3d690adab2423e7a89f19e4498fb1df927c142f8dab9e4c.json`，
 schema=`CANDIDATE_BOUND_LIVE_INPUT_PACKAGE_V4`，status=`READY_FOR_STRATEGY_EVALUATION`，
-file SHA=`63fa8effea45cc329035dd97dbe64dfe9d84e899fbb24623190143811e08cc3`，content SHA=
+file SHA=`63fa8effea45cc329035dd97dbe64dfe9d84e899fbb24623190143811e08cc3a`，content SHA=
 `792442ff35b5f1e5858180d3e6fc8965c661e4fd6e0c3abd5f9247d90dd6e31e`，generation fingerprint=
 `fe54be9be5c5959bd3d690adab2423e7a89f19e4498fb1df927c142f8dab9e4c`。B
 `B_BREAKOUT_RETEST_LEGACY_V1_1` run succeeded：raw qualified=26，ST excluded=1，final

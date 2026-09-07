@@ -1663,7 +1663,7 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
   root 为 `data/t_close_evidence/20260907_clean_39cbd7cf2335ebee1cc7a81faee47c744c737fc3/20260907`，
   10,677 pairs / 21,354 files 全部 complete、byte/hash exact，runner SHA 统一且新
   `UNKNOWN_ORIGIN=0`。package file SHA=
-  `63fa8effea45cc329035dd97dbe64dfe9d84e899fbb24623190143811e08cc3`，generation
+  `63fa8effea45cc329035dd97dbe64dfe9d84e899fbb24623190143811e08cc3a`，generation
   fingerprint=`fe54be9be5c5959bd3d690adab2423e7a89f19e4498fb1df927c142f8dab9e4c`。
 - output：B `B_BREAKOUT_RETEST_LEGACY_V1_1` raw qualified=26，ST excluded=1，final
   non-ST=25；watchlist SHA=`5a99273b6304621acbf7bba2423a6e372668348a31ac436021caf5f5855db100`。
@@ -1675,3 +1675,32 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
   `PASS / READY_FOR_USER_DECISION`。不自动 freeze；Final OOS/C/old D 与 forbidden
   continuous-speed-probe boundary 保持不变。
 - terminal：`FROZEN_CANDIDATE_READY_FOR_USER_DECISION`。
+
+## 2026-09-07 — Freeze B candidate pending bounded PR merge
+
+- classification：`product governance + correctness/provenance reconciliation`；不是新的
+  research、promotion、production approval、Final OOS unseal、C/D 评估或 B 语义变更。
+- governance reconciliation：当前任务相关记录中的 package SHA 截断错误已统一修正为
+  `63fa8effea45cc329035dd97dbe64dfe9d84e899fbb24623190143811e08cc3a`。HANDOFF 不再把
+  治理 commit SHA 当作 recovery truth；authoritative pointer 是
+  `origin/codex/hithink-http-transient-20260907`，恢复时必须运行
+  `git rev-parse HEAD` 与 `git rev-parse @{u}` 并要求两者相等。
+- identity：冻结对象为 strategy=`B_BREAKOUT_RETEST_LEGACY_V1_1`，spec SHA=
+  `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`，formal capture
+  code SHA=`39cbd7cf2335ebee1cc7a81faee47c744c737fc3`，package SHA=
+  `63fa8effea45cc329035dd97dbe64dfe9d84e899fbb24623190143811e08cc3a`，generation
+  fingerprint=`fe54be9be5c5959bd3d690adab2423e7a89f19e4498fb1df927c142f8dab9e4c`，watchlist
+  SHA=`5a99273b6304621acbf7bba2423a6e372668348a31ac436021caf5f5855db100`。
+- recovery verification：Drive target
+  `ashare_watchlist/t_close_20260907_v3_39cbd7cf` 的 chunks40 manifest readback 与
+  persisted prior raw readback 共同确认 package/spec/strategy/watchlist identity、B raw
+  qualified=26、ST excluded=1、final non-ST=25，recovery=`PASS`。本次未重传、未全量
+  readback、未修改 package/source/watchlist bytes；folder listing 中的 16 个早期中间
+  chunks 不纳入 30 项 formal inventory。
+- decision：用户明确决定 freeze 当前 B candidate。freeze 只冻结 candidate 规则和上述
+  formal identity，不表示 promotion、production approval 或 Final OOS unseal；Final OOS
+  仍为 `SEALED / UNREAD`，C 未读，old D 未重建，forbidden directory 未触碰。
+- delivery：bounded freeze branch merge 后拟将 Formal Delivery Ladder 记录为
+  `frozen candidate`；在 PR 合并前，live `master` 仍为 `development candidate`。不自动
+  merge，等待 exact-head CI 和 user merge decision。
+- terminal：`B_FROZEN_CANDIDATE_PR_READY_FOR_USER_MERGE_DECISION`。

@@ -112,7 +112,7 @@ audit evidence and is not mixed into this package.
 The package is
 `data/prospective_inputs/20260907/2026-09-07_fe54be9be5c5959bd3d690adab2423e7a89f19e4498fb1df927c142f8dab9e4c.json`,
 schema `CANDIDATE_BOUND_LIVE_INPUT_PACKAGE_V4`, status `READY_FOR_STRATEGY_EVALUATION`, file
-SHA-256 `63fa8effea45cc329035dd97dbe64dfe9d84e899fbb24623190143811e08cc3`, content SHA-256
+SHA-256 `63fa8effea45cc329035dd97dbe64dfe9d84e899fbb24623190143811e08cc3a`, content SHA-256
 `792442ff35b5f1e5858180d3e6fc8965c661e4fd6e0c3abd5f9247d90dd6e31e`, and generation
 fingerprint `fe54be9be5c5959bd3d690adab2423e7a89f19e4498fb1df927c142f8dab9e4c`. B remains
 `B_BREAKOUT_RETEST_LEGACY_V1_1`; raw qualified=26, ST excluded=1, final non-ST=25; the
