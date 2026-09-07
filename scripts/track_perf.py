@@ -12,13 +12,13 @@ from __future__ import annotations
 import argparse
 import json
 import warnings
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 from data_paths import DataPaths
 from tencent_quotes import QuoteDataError, fetch_quotes, validate_quotes
-from trading_calendar import CalendarUnavailable, TradingCalendar, default_calendar, trading_days_between
+from trading_calendar import CalendarUnavailable, TradingCalendar, default_calendar
 from watchlist_schema import (
     WatchlistSchemaError,
     load_watchlist,
@@ -31,7 +31,11 @@ BASE = PATHS.root
 WATCH_DIR = PATHS.root
 TRACK_FILE = PATHS.perf_tracker_file()
 REPORT_FILE = PATHS.reports_dir() / "perf_report.md"
-TRACK_DAYS = 10
+REVIEW_HORIZONS = (("T+3", 3), ("T+5", 5), ("T+10", 10))
+TRACK_DAYS = REVIEW_HORIZONS[-1][1]
+REVIEW_POINT_PENDING = "PENDING"
+REVIEW_POINT_CAPTURED = "CAPTURED"
+REVIEW_POINT_NOT_CAPTURED = "NOT_CAPTURED"
 
 
 class TrackerSchemaError(ValueError):
@@ -51,6 +55,91 @@ def parse_date(value: date | datetime | str) -> date:
     if len(text) != 8 or not text.isdigit():
         raise ValueError(f"invalid date: {value!r}")
     return datetime.strptime(text, "%Y%m%d").date()
+
+
+def trading_days_after(
+    start: date | datetime | str,
+    end: date | datetime | str,
+    calendar: TradingCalendar,
+) -> int:
+    """Count XSHG sessions strictly after ``start`` and through ``end``."""
+
+    first, last = parse_date(start), parse_date(end)
+    if last <= first:
+        return 0
+    current = first + timedelta(days=1)
+    count = 0
+    while current <= last:
+        if calendar.is_trading_day(current):
+            count += 1
+        current += timedelta(days=1)
+    return count
+
+
+def review_date(
+    signal_date: date | datetime | str,
+    offset: int,
+    calendar: TradingCalendar,
+) -> str:
+    """Return the XSHG session ``offset`` sessions after the signal date."""
+
+    if offset <= 0:
+        raise ValueError("review horizon offset must be positive")
+    current = parse_date(signal_date)
+    remaining = offset
+    while remaining:
+        current += timedelta(days=1)
+        if calendar.is_trading_day(current):
+            remaining -= 1
+    return current.isoformat()
+
+
+def _new_review_points(signal_date: str, calendar: TradingCalendar) -> dict[str, dict[str, Any]]:
+    return {
+        label: {
+            "offset": offset,
+            "scheduled_date": review_date(signal_date, offset, calendar),
+            "status": REVIEW_POINT_PENDING,
+            "quote_date": None,
+            "price": None,
+            "high": None,
+            "low": None,
+            "signal_status": None,
+            "reason": None,
+        }
+        for label, offset in REVIEW_HORIZONS
+    }
+
+
+def _ensure_review_points(signal: dict[str, Any], calendar: TradingCalendar) -> dict[str, dict[str, Any]]:
+    """Add/validate fixed review dates without rewriting captured outcomes."""
+
+    points = signal.get("review_points")
+    if not isinstance(points, dict):
+        points = {}
+        signal["review_points"] = points
+    for label, offset in REVIEW_HORIZONS:
+        expected_date = review_date(signal["date"], offset, calendar)
+        point = points.get(label)
+        if not isinstance(point, dict):
+            point = {}
+            points[label] = point
+        existing_date = point.get("scheduled_date")
+        if existing_date is not None and parse_date(existing_date) != parse_date(expected_date):
+            raise TrackerSchemaError(
+                f"signal {signal['signal_id']} review date mismatch for {label}: "
+                f"{existing_date!r} != {expected_date!r}"
+            )
+        point.setdefault("offset", offset)
+        point.setdefault("scheduled_date", expected_date)
+        point.setdefault("status", REVIEW_POINT_PENDING)
+        point.setdefault("quote_date", None)
+        point.setdefault("price", None)
+        point.setdefault("high", None)
+        point.setdefault("low", None)
+        point.setdefault("signal_status", None)
+        point.setdefault("reason", None)
+    return points
 
 
 def migrate_legacy_tracker(legacy: dict[str, Any]) -> dict[str, Any]:
@@ -123,12 +212,17 @@ def save_tracker(data: dict[str, Any], path: str | Path | None = None) -> None:
     tracker_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def _signal_from_candidate(watchlist: dict[str, Any], candidate: dict[str, Any]) -> dict[str, Any]:
+def _signal_from_candidate(
+    watchlist: dict[str, Any],
+    candidate: dict[str, Any],
+    calendar: TradingCalendar,
+) -> dict[str, Any]:
     signal_id = candidate["signal_id"]
+    signal_date = watchlist["date"]
     return {
         "signal_id": signal_id,
         "strategy_version": candidate["strategy_version"],
-        "date": watchlist["date"],
+        "date": signal_date,
         "code": candidate["code"],
         "setup": candidate["setup"],
         "name": candidate["name"],
@@ -146,14 +240,20 @@ def _signal_from_candidate(watchlist: dict[str, Any], candidate: dict[str, Any])
         "close_date": None,
         "ambiguity_reason": None,
         "observations": [],
+        "review_points": _new_review_points(signal_date, calendar),
     }
 
 
-def ingest(tracker: dict[str, Any], paths: DataPaths | None = None) -> int:
+def ingest(
+    tracker: dict[str, Any],
+    paths: DataPaths | None = None,
+    calendar: TradingCalendar | None = None,
+) -> int:
     """Ingest validated daily watchlists into one record per signal event."""
 
     _validate_tracker(tracker)
     resolver = paths or PATHS
+    cal = calendar or default_calendar()
     added = 0
     for path in resolver.watchlist_files():
         watchlist = load_watchlist(path)
@@ -161,7 +261,7 @@ def ingest(tracker: dict[str, Any], paths: DataPaths | None = None) -> int:
             signal_id = candidate["signal_id"]
             if signal_id in tracker["signals"]:
                 continue
-            tracker["signals"][signal_id] = _signal_from_candidate(watchlist, candidate)
+            tracker["signals"][signal_id] = _signal_from_candidate(watchlist, candidate, cal)
             added += 1
     return added
 
@@ -233,19 +333,53 @@ def _append_observation(signal: dict[str, Any], quote: dict[str, Any]) -> None:
     signal["observations"].append(observation)
 
 
+def _capture_review_points(
+    signal: dict[str, Any],
+    quote: dict[str, Any],
+    today_date: date,
+    calendar: TradingCalendar,
+) -> int:
+    """Capture due fixed-point snapshots without historical backfill."""
+
+    points = _ensure_review_points(signal, calendar)
+    changed = 0
+    today_text = today_date.isoformat()
+    for point in points.values():
+        if point["status"] != REVIEW_POINT_PENDING:
+            continue
+        scheduled = parse_date(point["scheduled_date"])
+        if today_date < scheduled:
+            continue
+        if today_date > scheduled:
+            point.update({
+                "status": REVIEW_POINT_NOT_CAPTURED,
+                "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
+            })
+            changed += 1
+            continue
+        point.update({
+            "status": REVIEW_POINT_CAPTURED,
+            "quote_date": quote["quote_date"],
+            "price": quote["price"],
+            "high": quote["high"],
+            "low": quote["low"],
+            "signal_status": signal["status"],
+            "reason": None,
+        })
+        changed += 1
+    return changed
+
+
 def update(
     tracker: dict[str, Any],
     quotes: dict[str, dict[str, Any]] | None = None,
     today: date | datetime | str | None = None,
     calendar: TradingCalendar | None = None,
 ) -> int:
-    """Update active signals with complete, date-validated quote data."""
+    """Update signals and due XSHG review points with validated quote data."""
 
     _validate_tracker(tracker)
-    active = [signal for signal in tracker["signals"].values() if signal["status"] in ("pending", "triggered")]
-    if not active:
-        return 0
-    codes = [signal["code"] for signal in active]
+    cal = calendar or default_calendar()
 
     if today is None and quotes:
         dates = {quote.get("quote_date") for quote in quotes.values()}
@@ -253,102 +387,146 @@ def update(
             raise QuoteDataError("injected quotes must have exactly one quote_date")
         today = next(iter(dates))
     today_date = parse_date(today or datetime.now().date())
+    if not cal.is_trading_day(today_date):
+        raise CalendarUnavailable(f"{today_date} is not an XSHG trading session")
+
+    signals = list(tracker["signals"].values())
+    for signal in signals:
+        _ensure_review_points(signal, cal)
+    due_or_active = [
+        signal
+        for signal in signals
+        if signal["status"] in ("pending", "triggered")
+        or any(
+            point["status"] == REVIEW_POINT_PENDING
+            and today_date >= parse_date(point["scheduled_date"])
+            for point in signal["review_points"].values()
+        )
+    ]
+    if not due_or_active:
+        return 0
+    codes = list(dict.fromkeys(signal["code"] for signal in due_or_active))
     if quotes is None:
         quotes = fetch_quotes(codes, expected_date=today_date)
     else:
         validate_quotes(quotes, expected_codes=codes, expected_date=today_date)
 
-    cal = calendar or default_calendar()
     changed = 0
     today_text = today_date.isoformat()
-    for signal in active:
+    for signal in due_or_active:
         quote = quotes[signal["code"]]
-        list_date = parse_date(signal["date"])
-        signal["days_tracked"] = trading_days_between(list_date, today_date, calendar=cal)
-        _append_observation(signal, quote)
-        decision = classify_signal_bar(
-            status=signal["status"],
-            trigger=signal.get("trigger"),
-            stop=signal.get("stop"),
-            target=signal.get("target"),
-            high=quote.get("high"),
-            low=quote.get("low"),
-            price=quote.get("price"),
-        )
-        next_status = decision["status"]
-        if next_status == "triggered" and signal["status"] == "pending":
-            signal["status"] = "triggered"
-            signal["entry_price"] = signal.get("trigger")
-            signal["first_trigger_date"] = today_text
-            changed += 1
-        elif next_status in ("win", "loss", "AMBIGUOUS_SAME_BAR"):
-            signal["status"] = next_status
-            signal["close_date"] = today_text
-            signal["ambiguity_reason"] = decision.get("reason") if next_status == "AMBIGUOUS_SAME_BAR" else None
-            if next_status == "win":
-                signal["result_price"] = signal.get("target")
-            elif next_status == "loss":
-                signal["result_price"] = signal.get("stop")
-            changed += 1
-        elif signal["status"] == "pending" and signal["days_tracked"] >= TRACK_DAYS:
-            signal["status"] = "expired"
-            signal["close_date"] = today_text
-            changed += 1
-        elif signal["status"] == "triggered" and signal["days_tracked"] >= TRACK_DAYS:
-            signal["status"] = "expired"
-            signal["result_price"] = quote["price"]
-            signal["close_date"] = today_text
-            changed += 1
+        if signal["status"] in ("pending", "triggered"):
+            list_date = parse_date(signal["date"])
+            signal["days_tracked"] = trading_days_after(list_date, today_date, calendar=cal)
+            _append_observation(signal, quote)
+            decision = classify_signal_bar(
+                status=signal["status"],
+                trigger=signal.get("trigger"),
+                stop=signal.get("stop"),
+                target=signal.get("target"),
+                high=quote.get("high"),
+                low=quote.get("low"),
+                price=quote.get("price"),
+            )
+            next_status = decision["status"]
+            if next_status == "triggered" and signal["status"] == "pending":
+                signal["status"] = "triggered"
+                signal["entry_price"] = signal.get("trigger")
+                signal["first_trigger_date"] = today_text
+                changed += 1
+                if signal["days_tracked"] >= TRACK_DAYS:
+                    signal["status"] = "expired"
+                    signal["result_price"] = quote["price"]
+                    signal["close_date"] = today_text
+                    changed += 1
+            elif next_status in ("win", "loss", "AMBIGUOUS_SAME_BAR"):
+                signal["status"] = next_status
+                signal["close_date"] = today_text
+                signal["ambiguity_reason"] = decision.get("reason") if next_status == "AMBIGUOUS_SAME_BAR" else None
+                if next_status == "win":
+                    signal["result_price"] = signal.get("target")
+                elif next_status == "loss":
+                    signal["result_price"] = signal.get("stop")
+                changed += 1
+            elif signal["days_tracked"] >= TRACK_DAYS:
+                signal["status"] = "expired"
+                signal["close_date"] = today_text
+                if next_status == "triggered":
+                    signal["result_price"] = quote["price"]
+                changed += 1
+        changed += _capture_review_points(signal, quote, today_date, cal)
     tracker["updated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     return changed
 
 
-def report(tracker: dict[str, Any]) -> str:
-    """Generate unchanged performance definitions over independent signals."""
+def _review_point_text(signal: dict[str, Any], label: str) -> str:
+    point = signal.get("review_points", {}).get(label)
+    if not isinstance(point, dict):
+        return "未初始化"
+    status = point.get("status", REVIEW_POINT_PENDING)
+    if status == REVIEW_POINT_CAPTURED:
+        return f"已采集 {point.get('quote_date')} / {point.get('price')} / {point.get('signal_status')}"
+    if status == REVIEW_POINT_NOT_CAPTURED:
+        return "未采集（不回填）"
+    return f"待 {point.get('scheduled_date', '—')}"
+
+
+def report(tracker: dict[str, Any], calendar: TradingCalendar | None = None) -> str:
+    """Render the formal signal-level review cadence without outcome overclaiming."""
 
     _validate_tracker(tracker)
+    cal = calendar or default_calendar()
     signals = list(tracker["signals"].values())
+    for signal in signals:
+        _ensure_review_points(signal, cal)
     total = len(signals)
     triggered = [s for s in signals if s["status"] in ("triggered", "win", "loss", "AMBIGUOUS_SAME_BAR")]
-    closed = [s for s in signals if s["status"] in ("win", "loss")]
-    wins = [s for s in signals if s["status"] == "win"]
-    losses = [s for s in signals if s["status"] == "loss"]
+    closed = [s for s in signals if s["status"] in ("win", "loss", "expired")]
     pending = [s for s in signals if s["status"] in ("pending", "triggered")]
-    expired = [s for s in signals if s["status"] == "expired"]
     ambiguous = [s for s in signals if s["status"] == "AMBIGUOUS_SAME_BAR"]
 
-    lines = ["# 观察名单验证闭环 · 胜率统计报表", "",
-             f"> 数据更新：{tracker.get('updated', '—')}　|　跟踪库信号：{total}", "",
-             "## 一、概览", f"- 累计入库：**{total}** 个信号",
-             f"- 已触发入场：**{len(triggered)}** 个（触发率 {len(triggered)/total*100:.1f}%）" if total else "- 已触发入场：0",
-             f"- 已分胜负：**{len(closed)}** 个", f"- 仍在跟踪：{len(pending)} 个　|　到期未决：{len(expired)} 个",
-             f"- 同 bar 歧义：**{len(ambiguous)}** 个（未计入胜率）", "", "## 二、核心指标"]
-    if closed:
-        win_rate = len(wins) / len(closed) * 100
-        lines.append(f"- **触发后胜率**：{len(wins)}/{len(closed)} = **{win_rate:.1f}%**")
-        total_rr = sum((signal.get("rr") or 0) for signal in wins)
-        if wins:
-            lines.append(f"- 盈利端平均 RR（理论盈亏比）：**{total_rr / len(wins):.2f}**")
-        p_win = len(wins) / len(closed)
-        p_loss = len(losses) / len(closed)
-        avg_win_rr = total_rr / len(wins) if wins else 0
-        ev = p_win * avg_win_rr - p_loss
-        lines += [f"- **期望值 EV**（每承担 1 单位风险）：**{ev:+.2f}**",
-                  f"- 结论：**{'正期望，体系可盈利' if ev > 0 else '负期望，体系需优化'}**"]
-    else:
-        lines.append("> 尚无已分胜负的样本，胜率/期望值待积累。")
-    lines += ["", "## 三、逐信号跟踪明细",
-              "| 信号ID | 策略版本 | 信号日 | 代码 | setup | 触发价 | 止损 | 目标 | RR | 状态 | 结果价 | 跟踪天数 |",
-              "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    lines = [
+        "# 信号复盘 · XSHG 交易日节点",
+        "",
+        f"> 数据更新：{tracker.get('updated', '—')}　|　signal-level 信号：{total}",
+        "> 每交易日由 tracker 维护状态；T+3 为短线评价，T+5 为主评价，T+10 为延伸观察并结案。",
+        "> 节点按信号日 T 后第 3/5/10 个真实 XSHG session 计算，不按自然日；历史节点不做行情回填。",
+        "",
+        "## 一、节点状态",
+    ]
+    for label, _ in REVIEW_HORIZONS:
+        counts = {status: 0 for status in (REVIEW_POINT_PENDING, REVIEW_POINT_CAPTURED, REVIEW_POINT_NOT_CAPTURED)}
+        for signal in signals:
+            point = signal.get("review_points", {}).get(label, {})
+            counts[point.get("status", REVIEW_POINT_PENDING)] = counts.get(
+                point.get("status", REVIEW_POINT_PENDING), 0
+            ) + 1
+        lines.append(
+            f"- **{label}**：已采集 {counts[REVIEW_POINT_CAPTURED]}，待到期 {counts[REVIEW_POINT_PENDING]}，"
+            f"未采集 {counts[REVIEW_POINT_NOT_CAPTURED]}。"
+        )
+
+    lines += [
+        "",
+        "## 二、信号状态摘要",
+        f"- 累计入库：**{total}** 个；已触发：**{len(triggered)}** 个。",
+        f"- 已结案：**{len(closed)}** 个；仍在跟踪：**{len(pending)}** 个。",
+        f"- same-bar 歧义：**{len(ambiguous)}** 个；保持 `AMBIGUOUS_SAME_BAR`，不猜测盘中顺序。",
+        "",
+        "## 三、逐信号节点明细",
+        "| 信号ID | 策略版本 | 信号日 T | 代码 | setup | 触发价 | 止损 | 目标 | T+3 | T+5 | T+10 | 当前状态 | 结案日 |",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+    ]
     for signal in sorted(signals, key=lambda item: (item["date"], item["signal_id"])):
         lines.append(
             f"| {signal['signal_id']} | {signal['strategy_version']} | {signal['date']} | {signal['code']} | "
             f"{signal['setup']} | {signal.get('trigger')} | {signal.get('stop')} | {signal.get('target')} | "
-            f"{signal.get('rr', '')} | {signal['status']} | {signal.get('result_price', '')} | {signal.get('days_tracked', 0)} |"
+            f"{_review_point_text(signal, 'T+3')} | {_review_point_text(signal, 'T+5')} | "
+            f"{_review_point_text(signal, 'T+10')} | {signal['status']} | {signal.get('close_date') or ''} |"
         )
     if not signals:
         lines.append("*暂无样本*")
-    lines += ["", "---", "*量化信号，仅供研究参考，不构成投资建议。*"]
+    lines += ["", "---", "*量化信号，仅供研究参考；本报告不构成策略有效性或生产结论。*"]
     return "\n".join(lines)
 
 
@@ -362,13 +540,14 @@ def main(argv: list[str] | None = None) -> int:
             print(f"[ingest] 新增入库 {ingest(tracker)} 个信号", flush=True)
         if args.action in ("update", "all"):
             print(f"[update] 状态变更 {update(tracker)} 个", flush=True)
-        save_tracker(tracker)
+        text = None
         if args.action in ("report", "all"):
             text = report(tracker)
             print(text)
             REPORT_FILE.parent.mkdir(parents=True, exist_ok=True)
             REPORT_FILE.write_text(text, encoding="utf-8")
             print(f"\n报表已存：{REPORT_FILE}", flush=True)
+        save_tracker(tracker)
     except (OSError, ValueError, CalendarUnavailable, WatchlistSchemaError, QuoteDataError, TrackerSchemaError) as exc:
         print(f"数据完整性失败: {exc}")
         return 2

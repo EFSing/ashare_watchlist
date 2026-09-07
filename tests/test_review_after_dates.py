@@ -2,6 +2,7 @@ import json
 from datetime import date, datetime
 
 import review_after
+import eod_review
 from test_watchlist_schema import payload
 
 
@@ -26,7 +27,6 @@ def quote(**overrides):
 def test_explicit_date_is_list_date_only_and_report_keeps_runtime_quote_date(tmp_path, monkeypatch):
     paths_file = tmp_path / "watchlist_20260820.json"
     paths_file.write_text(json.dumps(payload()), encoding="utf-8")
-    (tmp_path / "positions.json").write_text(json.dumps({"positions": []}), encoding="utf-8")
     observed = {}
 
     def fake_fetch(codes, expected_date):
@@ -50,7 +50,12 @@ def test_explicit_date_is_list_date_only_and_report_keeps_runtime_quote_date(tmp
     report = (tmp_path / "reports" / "review_close.md").read_text(encoding="utf-8")
     assert "名单日期 2026-08-20" in report
     assert "行情日期：2026-08-27" in report
-    assert "--date 仅表示名单日期" in report
+    assert "--date 仅选择名单" in report
+    assert "每日轻量状态记录" in report
+    assert "持仓" not in report
+    assert "配对指标" not in report
+    assert "14:45" not in report
+    assert "09:25" not in report
 
 
 def test_review_after_help_describes_date_as_list_date_only(capsys):
@@ -62,3 +67,16 @@ def test_review_after_help_describes_date_as_list_date_only(capsys):
     help_text = capsys.readouterr().out
     assert "仅选择名单" in help_text
     assert "不是历史行情 as-of 日期" in help_text
+
+
+def test_eod_review_is_only_a_compatibility_entrypoint(monkeypatch):
+    observed = {}
+
+    def fake_main(argv):
+        observed["argv"] = argv
+        return 7
+
+    monkeypatch.setattr(eod_review, "_review_after_main", fake_main)
+
+    assert eod_review.main() == 7
+    assert observed["argv"] == ["--mode", "close"]
