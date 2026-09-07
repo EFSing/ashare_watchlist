@@ -1,6 +1,6 @@
 #!/usr/bin/env python3.11
 # -*- coding: utf-8 -*-
-"""盘前/早盘观察名单复核。"""
+"""开盘观察状态查看（不参与跨日正式绩效评价）。"""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from watchlist_schema import WatchlistSchemaError, load_watchlist
 
 
 def review_one(item: dict[str, Any], quote: dict[str, Any]) -> dict[str, Any]:
-    """对单只个股做竞价重分析，返回一行结果 dict。"""
+    """对单只个股生成开盘状态，返回一行结果 dict。"""
 
     code = item["code"]
     name = item["name"]
@@ -63,7 +63,7 @@ def review_one(item: dict[str, Any], quote: dict[str, Any]) -> dict[str, Any]:
         "现价": price,
         "vs 入场触发": dist,
         "量比": vol_ratio,
-        "重分析标签": label,
+        "开盘状态": label,
         "_reason": reason,
     }
 
@@ -92,7 +92,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     candidates = watchlist["candidates"]
-    print(f"========== 竞价重分析 · {watchlist['date']} ==========")
+    print(f"========== 开盘状态查看 · {watchlist['date']} ==========")
     print(f"名单数量：{len(candidates)}")
     print()
 
@@ -111,7 +111,7 @@ def main(argv: list[str] | None = None) -> int:
         )
     print()
 
-    header = f"{'代码':<8}{'名称':<10}{'今开涨%':>8}{'现价':>8}{'vs触发%':>9}{'量比':>7}  {'重分析标签'}"
+    header = f"{'代码':<8}{'名称':<10}{'今开涨%':>8}{'现价':>8}{'vs触发%':>9}{'量比':>7}  {'开盘状态'}"
     print(header)
     print("-" * len(header))
 
@@ -123,12 +123,12 @@ def main(argv: list[str] | None = None) -> int:
             f"{result['code']:<8}{result['name']:<10}"
             f"{_fmt(result['今开涨%']):>8}{_fmt(result['现价']):>8}"
             f"{_fmt(result['vs 入场触发']):>9}{_fmt(result['量比']):>7}"
-            f"  {result['重分析标签']}"
+            f"  {result['开盘状态']}"
         )
 
     print()
     print("---------- 汇总 ----------")
-    for label, count in Counter(result["重分析标签"] for result in results).most_common():
+    for label, count in Counter(result["开盘状态"] for result in results).most_common():
         print(f"  {label}: {count} 只")
     print()
     print("量化筛选信号，仅供研究参考，不构成投资建议。")

@@ -1,31 +1,25 @@
 # ashare_watchlist
 
-A 股观察名单与复盘量化工具。用于维护「观察名单」、盘前/盘后复盘、持仓风控追踪与配对指标分析。
+A 股观察名单与 signal-level 复盘量化工具。用于维护 canonical 观察名单、每日轻量状态和跨日节点评价。
 
 ## 功能
 
 - **观察名单管理**（生产目录 `data/watchlist_*.json`）：每日盘前产出的候选股票名单，含买点/止损/目标位；canonical 字段为 `candidates` / `trigger`。
-- **盘前复盘**（`scripts/preopen_review.py`）：开盘前回顾观察名单与持仓。
-- **盘后/午盘复盘**（`scripts/review_after.py`）：复盘前一交易日观察名单与持仓股走势、风控信号。数据源为腾讯行情快照 `qt.gtimg.cn`（GBK）。
-- **表现追踪**（`scripts/track_perf.py` + `data/perf_tracker.json`）：按稳定 `signal_id` 把选股事件沉淀为可统计的胜率/盈亏比数据。
-- **配对指标**（`scripts/index_pairs.py` + `scripts/pairs_module.py` + `data/index_pairs.json`）：指数/个股配对比值分析。
-- **持仓清单**（`data/positions.json`）：持仓股及成本/止损信息，由系统维护。
+- **每日轻量状态**（`scripts/review_after.py`）：使用 canonical watchlist 与当日腾讯行情快照记录名单状态；不读取旧持仓或配对指标流程。
+- **正式跨日复盘**（`scripts/track_perf.py` + `data/perf_tracker.json`）：按稳定 `signal_id` 记录真实 XSHG 交易日的 T+3、T+5、T+10 节点；提前触发 target/stop 的真实结案状态会保留。
 
 ## 目录结构
 
 ```
 .
 ├── scripts/                # Python 脚本
-│   ├── preopen_review.py   # 盘前复盘
-│   ├── review_after.py     # 盘后/午盘复盘
+│   ├── preopen_review.py   # 开盘状态查看（非正式跨日复盘）
+│   ├── review_after.py     # 每日轻量状态查看
 │   ├── track_perf.py       # 表现追踪器
-│   ├── index_pairs.py      # 配对指标（指数）
-│   └── pairs_module.py     # 配对指标公共模块
-├── data/                   # 名单与持仓数据（可由 ASHARE_DATA_ROOT 覆盖）
+│   └── eod_review.py       # review_after 的兼容入口
+├── data/                   # 名单、tracker 与报告（可由 ASHARE_DATA_ROOT 覆盖）
 │   ├── watchlist_*.json    # 每日观察名单
 │   ├── legacy_invalid/     # 隔离的历史/非法名单，不参与生产扫描
-│   ├── positions.json      # 持仓清单
-│   ├── index_pairs.json    # 配对数据
 │   └── perf_tracker.json   # 表现统计
 └── 资产库使用指南.pdf        # 使用说明
 ```
@@ -41,22 +35,27 @@ python -m pip install -e ".[test]"
 
 ## 用法
 
-脚本默认数据目录为仓库内的 `data/`。部署时统一设置 `ASHARE_DATA_ROOT`，所有脚本通过同一个 resolver 读写名单、持仓、配对数据、跟踪库和报告。
+脚本默认数据目录为仓库内的 `data/`。部署时统一设置 `ASHARE_DATA_ROOT`，正式复盘脚本通过同一个 resolver 读写名单、跟踪库和报告。
 
 ```bash
-# 盘后复盘（自动取前一交易日）
+# 每日轻量状态（自动取前一交易日名单）
 python3.11 scripts/review_after.py --mode close
 
 # 午盘复盘
 python3.11 scripts/review_after.py --mode midday
 
-# 指定名单/list 日期复盘；行情仍取运行当日，不是历史行情 as-of
+# 指定名单/list 日期查看；行情仍取运行当日，不是历史行情 as-of
 python3.11 scripts/review_after.py --mode close --date 20260821
 
-# 表现追踪 / 配对指标
+# 跨日正式复盘（每日运行，自动维护节点）
 python3.11 scripts/track_perf.py
-python3.11 scripts/index_pairs.py
 ```
+
+## 正式复盘制度
+
+复盘分为四个固定层次：每个真实 XSHG 交易日生成一份每日轻量状态记录；对每个 signal-level 信号，以信号日 T 后第 3 个交易日做 T+3 短线评价，第 5 个交易日做 T+5 PRIMARY REVIEW HORIZON（主评价），第 10 个交易日做 T+10 延伸观察并结案。节点使用 XSHG 交易日历，不按自然日；信号最早执行日仍是 T+1。每个节点保存 signal/list date、review trading date、horizon 和 deterministic snapshot identity。
+
+跨日评价由 `track_perf.py` 负责，不回写历史研究的 10D outcome。fixed-horizon snapshot 的 observation/return 与 execution/path result 分离；信号若提前触发 target/stop，保留真实结案日和状态，并在后续固定节点允许记录快照。缺少真实节点 observation 或确认入场价时明确标记 missing/unverified，错过节点时不进行历史行情回填。same-bar 同时触发多个边界时保留 `AMBIGUOUS_SAME_BAR`，不猜测盘中顺序。`eod_review.py` 仅作为每日轻量状态的兼容入口。
 
 观察名单必须使用 `watchlist_YYYYMMDD.json` 文件名，payload 必须包含 `date`、`mode`、`market_env`、`sectors`、`candidates`；旧的 `items` / `trig` 结构会直接报错，不会静默转换。生产扫描只读取 `data/` 根目录下的 canonical 文件；`data/legacy_invalid/` 中的历史/非法文件保留供审计但不会参与 ingest。
 

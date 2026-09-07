@@ -1676,31 +1676,52 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
   continuous-speed-probe boundary 保持不变。
 - terminal：`FROZEN_CANDIDATE_READY_FOR_USER_DECISION`。
 
-## 2026-09-07 — Freeze B candidate pending bounded PR merge
+## 2026-09-07 — Freeze B candidate; adopt the formal review report project boundary
 
 - classification：`product governance + correctness/provenance reconciliation`；不是新的
   research、promotion、production approval、Final OOS unseal、C/D 评估或 B 语义变更。
-- governance reconciliation：当前任务相关记录中的 package SHA 截断错误已统一修正为
-  `63fa8effea45cc329035dd97dbe64dfe9d84e899fbb24623190143811e08cc3a`。HANDOFF 不再把
-  治理 commit SHA 当作 recovery truth；authoritative pointer 是
-  `origin/codex/hithink-http-transient-20260907`，恢复时必须运行
-  `git rev-parse HEAD` 与 `git rev-parse @{u}` 并要求两者相等。
-- identity：冻结对象为 strategy=`B_BREAKOUT_RETEST_LEGACY_V1_1`，spec SHA=
-  `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`，formal capture
-  code SHA=`39cbd7cf2335ebee1cc7a81faee47c744c737fc3`，package SHA=
+- post-merge truth：PR #41 已合并到 `master`，merge SHA=
+  `3308c7ab8e403d459baf1bbfe873e7320d750317`；post-merge correctness run
+  `34133269448=completed / success` 且 head exact。Formal Delivery Ladder 当前为
+  `frozen candidate`，B `B_BREAKOUT_RETEST_LEGACY_V1_1` 已冻结；无当前 freeze blocker。
+- identity：冻结对象的 spec SHA=`f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`，
+  formal capture code SHA=`39cbd7cf2335ebee1cc7a81faee47c744c737fc3`，package SHA=
   `63fa8effea45cc329035dd97dbe64dfe9d84e899fbb24623190143811e08cc3a`，generation
   fingerprint=`fe54be9be5c5959bd3d690adab2423e7a89f19e4498fb1df927c142f8dab9e4c`，watchlist
   SHA=`5a99273b6304621acbf7bba2423a6e372668348a31ac436021caf5f5855db100`。
-- recovery verification：Drive target
-  `ashare_watchlist/t_close_20260907_v3_39cbd7cf` 的 chunks40 manifest readback 与
-  persisted prior raw readback 共同确认 package/spec/strategy/watchlist identity、B raw
-  qualified=26、ST excluded=1、final non-ST=25，recovery=`PASS`。本次未重传、未全量
-  readback、未修改 package/source/watchlist bytes；folder listing 中的 16 个早期中间
-  chunks 不纳入 30 项 formal inventory。
-- decision：用户明确决定 freeze 当前 B candidate。freeze 只冻结 candidate 规则和上述
-  formal identity，不表示 promotion、production approval 或 Final OOS unseal；Final OOS
-  仍为 `SEALED / UNREAD`，C 未读，old D 未重建，forbidden directory 未触碰。
-- delivery：bounded PR #41 已创建并保持 open；其 current head 的 exact-head correctness CI
-  已成功。PR 合并后拟将 Formal Delivery Ladder 记录为 `frozen candidate`；在 PR 合并前，
-  live `master` 仍为 `development candidate`。不自动 merge，等待 user merge decision。
-- terminal：`B_FROZEN_CANDIDATE_PR_READY_FOR_USER_MERGE_DECISION`。
+- recovery：私有 Drive target
+  `ashare_watchlist/t_close_20260907_v3_39cbd7cf` 的 manifest identity 与此前 exact
+  inventory/readback 均为 `PASS`；本次未重传、未全量 readback、未修改 package/source/
+  watchlist bytes。Final OOS=`SEALED / UNREAD`，C 未读，old D 未重建，forbidden directory
+  未触碰。
+- review boundary decision：`ADOPT` 当前 A 股 prospective watchlist 的正式复盘边界。
+  每交易日由 `review_after.py` 记录 current-day lightweight status；
+  `eod_review.py` 仅保留兼容入口；signal-level `track_perf.py` 使用真实 XSHG sessions
+  记录 T+3 short-term、T+5 primary、T+10 extension/closure。path result 与 fixed-horizon
+  snapshot 分离，提前 target/stop、same-bar ambiguity 和缺失 historical observation
+  均 fail-safe；不 fabricated replay，不回写历史 B 10D outcome。
+- scope：用户可见正式报告不再默认渲染旧持仓、pairs、旧 market grading/rotation 或旧调度
+  话术；底层 legacy modules 不因本次边界清理被盲目删除。B identity、Final OOS、C、old D
+  和 strategy semantics 均不变。
+- terminal：freeze 已在 master verified；review cleanup bounded PR #42 已创建并等待用户
+  merge decision，不自动 merge。
+
+## 2026-09-07 — Adopt the formal review report project boundary
+
+- classification：`product infrastructure + correctness`；不是新的 research、strategy
+  selection、参数调整、promotion 或 frozen-candidate 语义变更。
+- problem：当前用户可见复盘输出仍包含未被当前 A 股系统正式重新采纳的旧持仓模板、配对
+  指标段落和固定 14:45/09:25 调度话术；tracker 只有一个 10D 到期路径，不能表达正式的
+  多节点复盘口径。
+- decision：`ADOPT` 四层正式复盘制度：每交易日由 `review_after.py` 生成 canonical
+  watchlist 轻量状态；由 signal-level `track_perf.py` 按信号日 T 后真实 XSHG session
+  记录 T+3 短线评价、T+5 主评价、T+10 延伸观察并结案。`eod_review.py` 仅保留为每日
+  轻量状态的兼容入口。
+- correctness boundary：节点使用 XSHG 交易日历，不按自然日；每个
+  `signal_id × horizon × review_trading_date` 使用 deterministic、可重复的 snapshot
+  identity；fixed-horizon observation/return 与 execution/path result 分离。提前 target/stop
+  的真实 terminal 状态和结案日不被覆盖，后续固定节点仍可记录 snapshot；错过节点不做
+  历史行情回填；same-bar ambiguity 继续 fail-safe。既有历史 research 的 10D outcome 不被
+  回写或重新定义。
+- scope：报告不再消费旧持仓/配对指标流程；B、frozen candidate、Final OOS、C、old D
+  和 `data/validation/continuous_speed_probe/` 均不触碰。

@@ -1,24 +1,19 @@
 # CURRENT STATUS
 
 更新时间：2026-09-07（Asia/Shanghai）
-Formal Delivery Ladder（当前 freeze branch / merge 后拟定）：`frozen candidate`
-`master` 在 freeze PR 合并前仍为 `development candidate`；本文件的当前段落以该 bounded
-freeze branch 为准。
-Latest correctness/governance snapshot before this reconciliation：
-`master@1fdb099926a1172cfebee7001537910d805019e4`；PR #39 merge-head correctness run
-`34031658818` success，workflow head SHA exact；本次 governance-only reconciliation 会产生新的
-final canonical master SHA。
+Formal Delivery Ladder：`frozen candidate`
+Live `master@3308c7ab8e403d459baf1bbfe873e7320d750317`；PR #41 已合并。post-merge
+correctness run `34133269448` 为 `completed / success` 且 head exact。
 Phase 2E research baseline：PR #6 / `74ccf86dfdea3b9d4b0124fb54346aa429735508`
 职责：记录项目正式处于什么状态，以及哪些研究结论已经成立。长期产品目标和 usable gate 见 [`PRODUCT_CHARTER.md`](PRODUCT_CHARTER.md)，接手动作见 [`HANDOFF.md`](../HANDOFF.md)，决策理由见 [`DECISION_LOG.md`](DECISION_LOG.md)。
 
-## Current checkpoint — B candidate freeze pending bounded PR merge — 2026-09-07
+## Current checkpoint — post-merge frozen candidate and review cleanup — 2026-09-07
 
-本次是用户明确授权的 candidate freeze reconciliation，不是新的 research、promotion、
-production approval、Final OOS unseal、C/D 评估或 B 语义变更。freeze 仅绑定并冻结以下
-已经通过 frozen prerequisites 的 B candidate identity；在该 bounded PR 合并前，不能声称
-`master` 已正式 frozen。
+PR #41 已在 live `master` 合并为 `3308c7ab8e403d459baf1bbfe873e7320d750317`，post-merge
+correctness run `34133269448` 为 `completed / success` 且 head exact。Formal Delivery Ladder
+当前为 `frozen candidate`；B `B_BREAKOUT_RETEST_LEGACY_V1_1` 已冻结。该 freeze 只绑定
+candidate 规则和 formal identity，不表示 promotion、production approval 或 Final OOS unseal。
 
-- strategy：`B_BREAKOUT_RETEST_LEGACY_V1_1`
 - spec SHA-256：`f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`
 - formal capture code SHA：`39cbd7cf2335ebee1cc7a81faee47c744c737fc3`
 - package SHA-256：`63fa8effea45cc329035dd97dbe64dfe9d84e899fbb24623190143811e08cc3a`
@@ -26,26 +21,40 @@ production approval、Final OOS unseal、C/D 评估或 B 语义变更。freeze �
 - watchlist SHA-256：`5a99273b6304621acbf7bba2423a6e372668348a31ac436021caf5f5855db100`
 - B output：raw qualified=26，ST excluded=1，final non-ST=25
 
-Immutable identity was independently matched against the authorized private Drive chunks40
-manifest: package SHA, generation fingerprint, strategy/spec SHA, watchlist SHA, and B counts
-all match exactly. The target folder is
-`ashare_watchlist/t_close_20260907_v3_39cbd7cf`; its listing contains 46 objects: the formal
-inventory is 14 package chunks + 15 source-evidence chunks + 1 chunks40 manifest, while 16
-retained early intermediate chunks are explicitly outside that formal inventory. The prior
-29-binary-object raw readback and manifest readback remain `PASS`; this reconciliation did not
-re-upload or re-read the full archives, and did not change package/source/watchlist bytes.
+The authorized private Drive target remains
+`ashare_watchlist/t_close_20260907_v3_39cbd7cf`; its manifest identity and prior exact
+inventory/readback are `PASS`. Package/source/watchlist bytes were not changed. Recovery truth
+remains the remote recovery branch, with runtime verification requiring
+`git rev-parse HEAD == git rev-parse @{u}`. Final OOS remains `SEALED / UNREAD`, C remains
+unread, old D is not reconstructed, and `data/validation/continuous_speed_probe/` remains
+untouched. There is no current freeze blocker.
 
-Recovery truth is the remote branch `origin/codex/hithink-http-transient-20260907`; runtime
-recovery must verify `git rev-parse HEAD == git rev-parse @{u}`. A governance commit SHA is not
-used as the recovery pointer. Final OOS remains `SEALED / UNREAD`, C remains unread, old D is not
-reconstructed, and `data/validation/continuous_speed_probe/` remains untouched.
+本次独立 bounded review cleanup 叠加在 frozen candidate 之上，只处理当前 A 股 prospective
+watchlist 的用户可见复盘边界与评价节奏。`review_after.py` 是 current-day lightweight status
+review；`eod_review.py` 仅为兼容入口；signal-level `track_perf.py` 负责 T+3/T+5/T+10
+正式跨日复盘。节点使用真实 XSHG trading sessions，T+5 是 primary horizon；path result
+与 fixed-horizon snapshot 分离，提前 target/stop、same-bar ambiguity 和缺失 historical
+observation 均保持 fail-safe，不做 fabricated replay，也不回写历史 B 10D outcome。
 
-The proposed post-merge Delivery Ladder is `frozen candidate`. Bounded PR #41 is open to master
-and its current head has successful exact-head correctness CI; only the user merge decision
-remains. No automatic merge. The current terminal marker is
-`B_FROZEN_CANDIDATE_PR_READY_FOR_USER_MERGE_DECISION`.
+review cleanup implementation 已提交并推送至 PR #42（base=`master`）；focused review tests、
+full pytest、compileall 与 diff check 均通过。PR #42 的 exact-head CI 必须保持成功；本段不
+改变已冻结 B identity、Final OOS 或 C/D 边界，当前只等待用户 merge decision。
 
-## Historical pre-freeze checkpoint — 2026-09-07 T-close fresh package and recovery
+## Superseding current checkpoint — formal review report boundary cleanup — 2026-09-07
+
+本次独立 bounded task 只处理复盘用户可见输出与既定评价节奏，不改变 B、frozen
+candidate、Final OOS、C、历史 research outcome 或任何策略语义。`review_after.py` 现在只
+生成每个真实 XSHG 交易日的 canonical watchlist 轻量状态；`eod_review.py` 仅保留为该
+入口的兼容调用，不再生成独立的旧持仓/大盘/配对报告。正式跨日绩效由
+`track_perf.py` 的 signal-level tracker 维护，不消费旧持仓模板或配对指标流程。
+
+每个 signal 以信号日 T 后第 3 个真实 XSHG session 记录 T+3 短线评价，第 5 个 session
+记录 T+5 主评价，第 10 个 session 做 T+10 延伸观察并结案；节点不按自然日计算。信号
+若提前触发 target/stop，真实 terminal 状态与结案日保留，后续固定节点仍可记录快照；
+错过节点不做历史行情回填。same-bar 同时触碰多个边界继续 fail-safe 为
+`AMBIGUOUS_SAME_BAR`。这只是复盘边界清理，不回写既有历史 10D outcome。
+
+## Superseding current checkpoint — 2026-09-07 T-close fresh package and recovery
 
 本轮分类为 `correctness/provenance + product-gate audit`，不是新的 research、strategy
 selection、promotion、Phase 2F 或 freeze。HiThink `000002.SZ` 的已持久化失败 evidence
