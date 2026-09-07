@@ -40,9 +40,10 @@ recovery must verify `git rev-parse HEAD == git rev-parse @{u}`. A governance co
 used as the recovery pointer. Final OOS remains `SEALED / UNREAD`, C remains unread, old D is not
 reconstructed, and `data/validation/continuous_speed_probe/` remains untouched.
 
-The proposed post-merge Delivery Ladder is `frozen candidate`. Remaining steps are one bounded
-PR to master, exact-head CI success, and user merge decision; no automatic merge. Terminal marker
-after those checks is `B_FROZEN_CANDIDATE_PR_READY_FOR_USER_MERGE_DECISION`.
+The proposed post-merge Delivery Ladder is `frozen candidate`. Bounded PR #41 is open to master
+and its current head has successful exact-head correctness CI; only the user merge decision
+remains. No automatic merge. The current terminal marker is
+`B_FROZEN_CANDIDATE_PR_READY_FOR_USER_MERGE_DECISION`.
 
 ## Historical pre-freeze checkpoint — 2026-09-07 T-close fresh package and recovery
 

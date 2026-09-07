@@ -1700,7 +1700,7 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
 - decision：用户明确决定 freeze 当前 B candidate。freeze 只冻结 candidate 规则和上述
   formal identity，不表示 promotion、production approval 或 Final OOS unseal；Final OOS
   仍为 `SEALED / UNREAD`，C 未读，old D 未重建，forbidden directory 未触碰。
-- delivery：bounded freeze branch merge 后拟将 Formal Delivery Ladder 记录为
-  `frozen candidate`；在 PR 合并前，live `master` 仍为 `development candidate`。不自动
-  merge，等待 exact-head CI 和 user merge decision。
+- delivery：bounded PR #41 已创建并保持 open；其 current head 的 exact-head correctness CI
+  已成功。PR 合并后拟将 Formal Delivery Ladder 记录为 `frozen candidate`；在 PR 合并前，
+  live `master` 仍为 `development candidate`。不自动 merge，等待 user merge decision。
 - terminal：`B_FROZEN_CANDIDATE_PR_READY_FOR_USER_MERGE_DECISION`。

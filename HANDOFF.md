@@ -35,19 +35,18 @@
   `master` remains `development candidate` until that PR is merged.
 - active new strategy research: `NONE / PAUSED / PHASE_COMPLETE`
 - blockers: none for the current package, evidence, B output, or persistent recovery. The
-  explicit freeze decision is recorded; remaining work is bounded PR creation, exact-head CI,
-  and user merge decision.
+  explicit freeze decision is recorded; bounded PR #41 is open and the current PR head has
+  successful exact-head correctness CI. Only the user merge decision remains.
 - artifact snapshot: package file SHA
   `63fa8effea45cc329035dd97dbe64dfe9d84e899fbb24623190143811e08cc3a`, generation fingerprint
   `fe54be9be5c5959bd3d690adab2423e7a89f19e4498fb1df927c142f8dab9e4c`, content SHA
   `792442ff35b5f1e5858180d3e6fc8965c661e4fd6e0c3abd5f9247d90dd6e31e`, watchlist SHA
   `5a99273b6304621acbf7bba2423a6e372668348a31ac436021caf5f5855db100`, candidate count 25.
-- next action: run focused correctness/acquisition/identity checks, compileall and diff check;
-  commit and push the freeze branch, create one bounded PR to master, and wait for exact-head CI.
-  Keep Final OOS sealed/unread, C unread, old D not reconstructed, and the forbidden
-  continuous-speed-probe directory untouched.
-- terminal marker: `B_FROZEN_CANDIDATE_PR_READY_FOR_USER_MERGE_DECISION` after exact-head CI;
-  do not auto-merge.
+- next action: user merge decision on bounded PR #41. Do not auto-merge. Keep Final OOS
+  sealed/unread, C unread, old D not reconstructed, and the forbidden continuous-speed-probe
+  directory untouched.
+- terminal marker: `B_FROZEN_CANDIDATE_PR_READY_FOR_USER_MERGE_DECISION`; exact-head CI is
+  successful and the PR remains unmerged.
 
 ## New-device / new-session recovery
 
