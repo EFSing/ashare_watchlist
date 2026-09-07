@@ -1703,7 +1703,8 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
 - scope：用户可见正式报告不再默认渲染旧持仓、pairs、旧 market grading/rotation 或旧调度
   话术；底层 legacy modules 不因本次边界清理被盲目删除。B identity、Final OOS、C、old D
   和 strategy semantics 均不变。
-- terminal：freeze 已在 master verified；review cleanup 仍等待其独立 bounded PR。
+- terminal：freeze 已在 master verified；review cleanup bounded PR #42 已创建并等待用户
+  merge decision，不自动 merge。
 
 ## 2026-09-07 — Adopt the formal review report project boundary
 

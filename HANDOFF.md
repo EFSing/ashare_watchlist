@@ -20,18 +20,20 @@
   `fe54be9be5c5959bd3d690adab2423e7a89f19e4498fb1df927c142f8dab9e4c`; watchlist SHA
   `5a99273b6304621acbf7bba2423a6e372668348a31ac436021caf5f5855db100`.
 - completed: the review cleanup checkpoint was replayed onto the new master without replaying
-  the old recovery/acquisition ancestry. Current changes remain limited to review scripts,
-  focused tests, README and review governance documentation.
+  the old recovery/acquisition ancestry. The bounded implementation is committed and pushed
+  in PR #42; its changes remain limited to review scripts, focused tests, README and review
+  governance documentation.
 - boundaries: do not promote, approve production, unseal/read Final OOS, read C, rebuild old D,
   tune B, change strategy semantics, start new research, or touch
   `data/validation/continuous_speed_probe/`. Package/source/watchlist bytes and Drive
   backup/readback are unchanged and remain exact.
 - active new strategy research: `NONE / PAUSED / PHASE_COMPLETE`
-- blockers: none for the frozen candidate or recovery. Review cleanup implementation and focused
-  verification are in progress on this branch; no freeze blocker remains.
-- next action: finish focused review tests plus compile/diff checks, commit and push this bounded
-  cleanup, create one PR to `master`, and wait for exact-head CI. Do not auto-merge.
-- terminal marker: `REVIEW_REPORT_PROJECT_BOUNDARY_CLEANUP_IN_PROGRESS`.
+- blockers: none for the frozen candidate, recovery, or review cleanup. Focused review tests,
+  full pytest, compileall and diff checks passed; PR #42 is open against `master` and its
+  exact-head CI must remain successful. No freeze blocker remains.
+- next action: user merge decision on PR #42 after live exact-head CI verification. Do not
+  auto-merge.
+- terminal marker: `REVIEW_REPORT_PROJECT_BOUNDARY_CLEANUP_PR_READY_FOR_USER_MERGE_DECISION`.
 
 ## New-device / new-session recovery
 

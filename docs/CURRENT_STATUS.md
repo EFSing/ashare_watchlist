@@ -36,8 +36,9 @@ review；`eod_review.py` 仅为兼容入口；signal-level `track_perf.py` 负�
 与 fixed-horizon snapshot 分离，提前 target/stop、same-bar ambiguity 和缺失 historical
 observation 均保持 fail-safe，不做 fabricated replay，也不回写历史 B 10D outcome。
 
-当前 review cleanup 仍需在该 branch 上完成 focused verification、push 和独立 bounded PR；
-本段不改变已冻结 B identity、Final OOS 或 C/D 边界。
+review cleanup implementation 已提交并推送至 PR #42（base=`master`）；focused review tests、
+full pytest、compileall 与 diff check 均通过。PR #42 的 exact-head CI 必须保持成功；本段不
+改变已冻结 B identity、Final OOS 或 C/D 边界，当前只等待用户 merge decision。
 
 ## Superseding current checkpoint — formal review report boundary cleanup — 2026-09-07
 
