@@ -34,15 +34,79 @@ from live_acquisition import (
     persist_live_input_package,
 )
 from trading_calendar import CalendarUnavailable, default_calendar
+from upload_daily_checkpoint import (
+    CLOUD_CHECKPOINT_FAILED,
+    CheckpointError,
+    prepare_local_checkpoint,
+    upload_checkpoint,
+)
 
 
 _BJT = timezone(timedelta(hours=8))
 RUNNABLE_STATUSES = {RUN_SUCCESS, RUN_ALREADY_CURRENT, RUN_NO_CANDIDATES}
 
+# The desktop app can inject its authenticated Drive adapter here. The
+# standalone runner deliberately has no credentials or second Drive SDK.
+DAILY_CLOUD_CHECKPOINT_CLIENT: Any | None = None
+DAILY_CLOUD_ROOT_FOLDER_ID_ENV = "ASHARE_DAILY_CLOUD_ROOT_FOLDER_ID"
+
 
 def _bounded_process_detail(completed: subprocess.CompletedProcess[str]) -> str:
     detail = "\n".join(part.strip() for part in (completed.stdout or "", completed.stderr or "") if part.strip())
     return detail[:2000] or f"process exited with code {completed.returncode}"
+
+
+def _daily_cloud_checkpoint(as_of_date: str, data_root: Path, *, tracker_failure: str | None) -> dict[str, Any]:
+    """Prepare the local checkpoint and optionally use the injected Drive adapter."""
+
+    if tracker_failure:
+        return {
+            "status": CLOUD_CHECKPOINT_FAILED,
+            "reason": "TRACKER_NOT_READY",
+            "detail": tracker_failure,
+            "message": "[CLOUD] FAILED TRACKER_NOT_READY",
+        }
+    try:
+        prepared = prepare_local_checkpoint(as_of_date, data_root=data_root)
+    except (CheckpointError, OSError, ValueError) as exc:
+        reason = str(exc)[:1000]
+        return {
+            "status": CLOUD_CHECKPOINT_FAILED,
+            "reason": reason,
+            "message": f"[CLOUD] FAILED {reason}",
+        }
+
+    root_folder_id = os.environ.get(DAILY_CLOUD_ROOT_FOLDER_ID_ENV, "").strip()
+    if DAILY_CLOUD_CHECKPOINT_CLIENT is None or not root_folder_id:
+        reason = "DRIVE_CONNECTOR_NOT_CONFIGURED"
+        return {
+            "status": CLOUD_CHECKPOINT_FAILED,
+            "reason": reason,
+            "manifest_path": prepared["manifest_path"],
+            "manifest_sha256": prepared["persist"]["sha256"],
+            "message": f"[CLOUD] FAILED {reason}",
+        }
+    try:
+        result = upload_checkpoint(
+            prepared["manifest"],
+            data_root=data_root,
+            client=DAILY_CLOUD_CHECKPOINT_CLIENT,
+            root_folder_id=root_folder_id,
+            manifest_path=Path(prepared["manifest_path"]),
+        )
+    except (CheckpointError, OSError, ValueError) as exc:
+        reason = str(exc)[:1000]
+        return {
+            "status": CLOUD_CHECKPOINT_FAILED,
+            "reason": reason,
+            "manifest_path": prepared["manifest_path"],
+            "manifest_sha256": prepared["persist"]["sha256"],
+            "message": f"[CLOUD] FAILED {reason}",
+        }
+    result["manifest_path"] = prepared["manifest_path"]
+    result["manifest_sha256"] = prepared["persist"]["sha256"]
+    result["message"] = "[CLOUD] VERIFIED"
+    return result
 
 
 def _run_daily_close_reporting(as_of_date: str, data_root: Path) -> dict[str, Any]:
@@ -132,6 +196,15 @@ def _run_daily_close_reporting(as_of_date: str, data_root: Path) -> dict[str, An
         bundle_status = "REVIEW_OBSERVATION_INCOMPLETE_REPORT_READY"
     else:
         bundle_status = "READY"
+    cloud_checkpoint = (
+        _daily_cloud_checkpoint(as_of_date, data_root, tracker_failure=tracker_failure)
+        if renderer_run.returncode == 0
+        else {
+            "status": CLOUD_CHECKPOINT_FAILED,
+            "reason": "HTML_NOT_READY",
+            "message": "[CLOUD] FAILED HTML_NOT_READY",
+        }
+    )
     return {
         "status": bundle_status,
         "track_perf": {
@@ -145,6 +218,7 @@ def _run_daily_close_reporting(as_of_date: str, data_root: Path) -> dict[str, An
             "detail": renderer_detail,
             "exit_code": renderer_run.returncode,
         },
+        "cloud_checkpoint": cloud_checkpoint,
         "dated_html": str(data_root / "reports" / f"daily_close_{str(as_of_date).replace('-', '')}.html"),
         "latest_html": str(data_root / "reports" / "latest.html"),
     }
