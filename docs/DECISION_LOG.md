@@ -1725,3 +1725,18 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
   回写或重新定义。
 - scope：报告不再消费旧持仓/配对指标流程；B、frozen candidate、Final OOS、C、old D
   和 `data/validation/continuous_speed_probe/` 均不触碰。
+
+## 2026-09-08 — Reconcile governance and add daily close bundle HTML
+
+- live truth：`master=52484a82e4a2700372c85c47991f62717d4b1196`；PR #41 与 review-cleanup
+  PR #42 均已合并；post-merge correctness run `34140697889` 为 `completed / success` 且
+  exact-head。旧的 PR #42 open/awaiting-merge snapshot 仅为 stale governance metadata，现已
+  由 `HANDOFF.md` 与本状态记录最小纠正；不重写历史 checkpoint。
+- decision：`ADOPT_DAILY_CLOSE_BUNDLE_HTML_REPORT`。独立 renderer 读取 canonical
+  watchlist 与 `track_perf.py` tracker，输出 self-contained dated HTML 与完整的
+  `latest.html`；T+3/T+5/T+10 继续使用真实 XSHG sessions，path result 与 fixed-horizon
+  snapshot 分离，review failure fail-soft，HTML 写入 atomic。
+- boundary：不修改 B strategy semantics、阈值、score、target、ST、provider、acquisition、
+  package schema、frozen identity 或历史 B 10D outcome；不读 Final OOS/C/old D，不做历史 replay，
+  不访问 `data/validation/continuous_speed_probe/`。daily HTML 是 operational generated
+  artifact，不作为每日 Git source commit 内容。

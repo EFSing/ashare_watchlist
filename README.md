@@ -49,7 +49,23 @@ python3.11 scripts/review_after.py --mode close --date 20260821
 
 # 跨日正式复盘（每日运行，自动维护节点）
 python3.11 scripts/track_perf.py
+
+# 从正式 canonical watchlist 渲染离线每日收盘 bundle
+python3.11 scripts/render_daily_close_html.py --date YYYYMMDD
 ```
+
+## 每日收盘 bundle
+
+每日 T-close 成功后，系统会在 `data/reports/latest.html` 生成最新的完整离线报告；历史报告保存在
+`data/reports/daily_close_YYYYMMDD.html`。报告固定包含 Daily、T+3、T+5 PRIMARY 和 T+10
+EXTENSION / CLOSURE，并从 canonical watchlist 与 `perf_tracker` 读取真实状态。也可以手工运行：
+
+```bash
+python3.11 scripts/render_daily_close_html.py --date YYYYMMDD
+```
+
+`t_close_runner.py` 的正式成功路径会在 canonical watchlist 写入后尝试运行 `track_perf.py`，再渲染
+bundle；复盘失败不会阻断名单 HTML 交付，报告会明确显示 `REVIEW_FAILED` 及失败原因。
 
 ## 正式复盘制度
 

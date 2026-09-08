@@ -1480,3 +1480,16 @@ old D not reconstructed；Final OOS remains `SEALED / UNREAD`；forbidden direct
 正式 research decision 仍为 `CONTROLLED_RIGHT_SIDE_REVERSAL_NO_CLEAR_INCREMENTAL_SIGNAL`，
 不改变 `development candidate` 层级、production path 或其他 preserved strategy。当前终态：
 `CRSR_RESEARCH_PR_READY_FOR_USER_MERGE_DECISION`，不自动 merge，等待用户决定。
+
+## Superseding current status — daily close bundle HTML report — 2026-09-08
+
+Live master is `52484a82e4a2700372c85c47991f62717d4b1196`. PR #41 and review-cleanup PR #42
+are merged; post-merge correctness run `34140697889` is `completed / success` with exact head.
+The formal Delivery Ladder is `frozen candidate`, with B
+`B_BREAKOUT_RETEST_LEGACY_V1_1` unchanged. This bounded task adds only a read-only daily HTML
+renderer, fail-soft report delivery, focused tests and usage documentation; it does not change
+B semantics, acquisition, package schema, frozen identity or historical research outcomes.
+
+Final OOS remains `SEALED / UNREAD`; C is unread; old D is not reconstructed; and
+`data/validation/continuous_speed_probe/` remains untouched. The current task is
+`DAILY_CLOSE_BUNDLE_HTML_REPORT`, stopping after exact-head CI at the user merge decision.

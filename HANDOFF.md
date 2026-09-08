@@ -4,36 +4,34 @@
 > 本文件不是历史归档；历史 provenance 在 Git 历史中，正式状态与长期决策分别见
 > `docs/CURRENT_STATUS.md` 与 `docs/DECISION_LOG.md`（仅当前任务需要时读取）。
 
-- branch: `codex/review-report-project-boundary-cleanup-20260907`; this bounded cleanup branch
-  is based on live `master@3308c7ab8e403d459baf1bbfe873e7320d750317`.
-- recovery pointer: `origin/codex/hithink-http-transient-20260907` is the authoritative Git
-  recovery branch. At recovery time, run `git rev-parse HEAD` and `git rev-parse @{u}` and
-  require the two values to be equal; do not use this file's or any governance commit's SHA
-  as the recovery truth.
-- current task: `REVIEW_REPORT_PROJECT_BOUNDARY_CLEANUP`. The post-merge governance conflict is
-  closed: PR #41 is merged at `3308c7ab8e403d459baf1bbfe873e7320d750317`, correctness run
-  `34133269448` is `completed / success` with exact head, and formal Delivery Ladder is
+- branch: `codex/daily-close-bundle-html-report`; based on live `master@52484a82e4a2700372c85c47991f62717d4b1196`.
+- recovery pointer: this task's pushed `origin/codex/daily-close-bundle-html-report` is the
+  authoritative recovery branch after the source commit is pushed. At recovery time, run
+  `git rev-parse HEAD` and `git rev-parse @{u}` and require the two values to be equal; do not
+  use this file's or any governance commit's SHA as the recovery truth.
+- current task: `DAILY_CLOSE_BUNDLE_HTML_REPORT`. Live governance reconciliation is closed:
+  PR #41 is merged, review cleanup PR #42 is merged into master, post-merge correctness run
+  `34140697889` is `completed / success` with exact head, and formal Delivery Ladder is
   `frozen candidate`.
 - frozen candidate identity: strategy `B_BREAKOUT_RETEST_LEGACY_V1_1`; spec SHA
   `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`; package SHA
-  `63fa8effea45cc329035dd97dbe64dfe9d84e899fbb24623190143811e08cc3a`; fingerprint
-  `fe54be9be5c5959bd3d690adab2423e7a89f19e4498fb1df927c142f8dab9e4c`; watchlist SHA
-  `5a99273b6304621acbf7bba2423a6e372668348a31ac436021caf5f5855db100`.
-- completed: the review cleanup checkpoint was replayed onto the new master without replaying
-  the old recovery/acquisition ancestry. The bounded implementation is committed and pushed
-  in PR #42; its changes remain limited to review scripts, focused tests, README and review
-  governance documentation.
+  `d3bbdc7275fe32fd8763eba03fb987fad2308eb43d6149919829b0d5ec462ba4`; fingerprint
+  `93882eecb2f37d4c0653864bd54dbbe80c19334b7913439ef3f6939a69ef5db8`; watchlist SHA
+  `f58059cd5269f8ac5cd10da357a2bd008a76ef84feaa399846d74ad7daa4b5fc`.
+- completed: the stale PR #42/open review-cleanup snapshot is superseded by live master truth;
+  this bounded task now adds only the daily-close renderer, fail-soft reporting integration,
+  focused tests, README usage and the minimum governance reconciliation.
 - boundaries: do not promote, approve production, unseal/read Final OOS, read C, rebuild old D,
   tune B, change strategy semantics, start new research, or touch
   `data/validation/continuous_speed_probe/`. Package/source/watchlist bytes and Drive
   backup/readback are unchanged and remain exact.
 - active new strategy research: `NONE / PAUSED / PHASE_COMPLETE`
-- blockers: none for the frozen candidate, recovery, or review cleanup. Focused review tests,
-  full pytest, compileall and diff checks passed; PR #42 is open against `master` and its
-  exact-head CI must remain successful. No freeze blocker remains.
-- next action: user merge decision on PR #42 after live exact-head CI verification. Do not
-  auto-merge.
-- terminal marker: `REVIEW_REPORT_PROJECT_BOUNDARY_CLEANUP_PR_READY_FOR_USER_MERGE_DECISION`.
+- blockers: none for the frozen candidate or daily-close bundle. Final OOS remains
+  `SEALED / UNREAD`; C remains unread; old D is not reconstructed; forbidden validation data
+  remains untouched.
+- next action: finish the bounded daily-close PR, verify exact-head CI, and stop for the user's
+  merge decision. Do not auto-merge.
+- terminal marker: `DAILY_CLOSE_BUNDLE_HTML_REPORT_IN_PROGRESS`.
 
 ## New-device / new-session recovery
 
@@ -51,8 +49,7 @@ git rev-parse @{u}
 该任务实际依赖的 live Git/GitHub 状态，不执行完整项目审计。
 
 `REMOTE_RECOVERY_CHECKPOINT`: the authoritative Git recovery pointer is the pushed remote branch
-`origin/codex/hithink-http-transient-20260907`, not a governance commit SHA. Recovery is valid
+`origin/codex/daily-close-bundle-html-report`, not a governance commit SHA. Recovery is valid
 only when runtime verification shows `git rev-parse HEAD == git rev-parse @{u}`. The formal
-capture code SHA, package SHA, generation fingerprint, watchlist SHA, and private Drive target
-below provide artifact identity; the generated evidence is externally recoverable from the
-recorded private Drive inventory and chunks40 manifest.
+package SHA, generation fingerprint and watchlist SHA above provide artifact identity; the
+daily HTML is reproducible from canonical data and is intentionally not a source commit.
