@@ -28,7 +28,7 @@ from track_perf import (
     parse_date,
     review_date,
 )
-from trading_calendar import TradingCalendar, default_calendar
+from trading_calendar import TradingCalendar, default_calendar, previous_trading_day
 from watchlist_schema import load_watchlist
 
 
@@ -49,6 +49,8 @@ class ReportModel:
     daily_summary: dict[str, int | str]
     review_sections: dict[str, list[dict[str, Any]]]
     active_signals: list[dict[str, Any]]
+    previous_signals: list[dict[str, Any]]
+    closed_today: list[dict[str, Any]]
     anomalies: list[str]
     summary_text: str
     review_status: str
@@ -299,75 +301,59 @@ def _review_rows(
     return sections, issues, missing_count
 
 
-def _active_signal_rows(
-    tracker: Mapping[str, Any] | None,
-    report_date: str,
-    calendar: TradingCalendar,
-) -> list[dict[str, Any]]:
-    signals = tracker.get("signals", {}) if isinstance(tracker, Mapping) else {}
-    signals = signals if isinstance(signals, Mapping) else {}
-    rows: list[dict[str, Any]] = []
+def _daily_collections(tracker, report_date, previous_date, paths, failures):
+    """Join yesterday's complete identities; use only dated tracker evidence.
+
+    Earlier signals closed today remain visible in their own section. They must
+    not disappear merely because today's tracker update made them terminal.
+    """
+    signals = dict(tracker.get('signals', {})) if tracker else {}
+    previous_path = paths.watchlist_file(previous_date)
+    if previous_path.exists():
+        try:
+            previous = load_watchlist(previous_path)
+        except Exception as exc:
+            failures.append(f'{_REVIEW_FAILURE}: previous watchlist: {type(exc).__name__}: {exc}')
+            previous = {'candidates': []}
+        for candidate in previous['candidates']:
+            signals.setdefault(candidate['signal_id'], {**candidate, 'date': previous_date})
+    groups = ([], [], [])
     for signal in signals.values():
-        if not isinstance(signal, Mapping) or signal.get("status") not in {"pending", "triggered"}:
-            continue
-        if parse_date(signal["date"]) > parse_date(report_date):
+        list_date = _normalize_date(signal['date'])
+        if list_date >= report_date:
             continue
         observation = _observation_for_date(signal, report_date)
-        next_horizon = "CLOSED"
-        for horizon, _offset in REVIEW_HORIZONS:
-            point = _point_for_signal(signal, horizon, calendar)
-            if str(point.get("status")) == "PENDING" and parse_date(point["review_trading_date"]) > parse_date(report_date):
-                next_horizon = f"{horizon} ({point['review_trading_date']})"
-                break
-        rows.append(
-            {
-                "code": signal.get("code"),
-                "name": signal.get("name"),
-                "signal_id": signal.get("signal_id"),
-                "list_date": signal.get("date"),
-                "original_trigger": signal.get("trigger"),
-                "stop": signal.get("stop"),
-                "target": signal.get("target"),
-                "today_close": observation.get("price") if observation else None,
-                "today_high": observation.get("high") if observation else None,
-                "today_low": observation.get("low") if observation else None,
-                "path_status": _status_text(signal.get("status")),
-                "days_tracked": signal.get("days_tracked"),
-                "next_formal_horizon": next_horizon,
-            }
-        )
-    rows.sort(key=lambda row: (str(row.get("code", "")), str(row.get("signal_id", ""))))
-    return rows
-
-
-def _daily_summary(
-    tracker: Mapping[str, Any] | None,
-    report_date: str,
-    review_sections: Mapping[str, list[Mapping[str, Any]]],
-    missing_count: int,
-) -> dict[str, int | str]:
-    signals = tracker.get("signals", {}) if isinstance(tracker, Mapping) else {}
-    signals = signals if isinstance(signals, Mapping) else {}
-    values = [signal for signal in signals.values() if isinstance(signal, Mapping)]
-    active = [
-        signal for signal in values
-        if signal.get("status") in {"pending", "triggered"}
-        and parse_date(signal["date"]) <= parse_date(report_date)
-    ]
-    return {
-        "active_signals": len(active),
-        "new_triggered": sum(1 for signal in values if signal.get("first_trigger_date") == report_date),
-        "target_hits": sum(1 for signal in values if signal.get("status") == "win" and signal.get("close_date") == report_date),
-        "stop_hits": sum(1 for signal in values if signal.get("status") == "loss" and signal.get("close_date") == report_date),
-        "ambiguous": sum(
-            1 for signal in values
-            if signal.get("status") == "AMBIGUOUS_SAME_BAR" and signal.get("close_date") == report_date
-        ),
-        "missing_observations": missing_count,
-        "t3_count": len(review_sections.get("T+3", [])),
-        "t5_count": len(review_sections.get("T+5", [])),
-        "t10_count": len(review_sections.get("T+10", [])),
-    }
+        raw_status = signal.get('status')
+        # A later terminal/entry state cannot be asserted for an earlier report.
+        future_state = any(signal.get(key) and signal[key] > report_date
+                           for key in ('close_date', 'first_trigger_date'))
+        verified = observation is not None and not future_state
+        status = raw_status if verified else _MISSING
+        closed_today = verified and signal.get('close_date') == report_date
+        row = {
+            'code': signal.get('code'), 'name': signal.get('name'),
+            'signal_id': signal.get('signal_id'), 'list_date': list_date,
+            'score': signal.get('score'), 'original_trigger': signal.get('trigger'),
+            'today_open': observation.get('open') if observation else None,
+            'today_high': observation.get('high') if observation else None,
+            'today_low': observation.get('low') if observation else None,
+            'today_close': observation.get('price') if observation else None,
+            'path_status': status, 'raw_status': raw_status, 'observed': verified,
+            'new_triggered': verified and signal.get('first_trigger_date') == report_date,
+            'closed_today': closed_today,
+            'note': ('缺少当日真实记录或当日状态未核验' if not verified else
+                     '日内先后顺序无法确认' if raw_status == 'AMBIGUOUS_SAME_BAR' else
+                     '今日结束跟踪' if closed_today else '按当日真实记录展示'),
+        }
+        if list_date == previous_date:
+            groups[0].append(row)
+        elif raw_status in {'pending', 'triggered'}:
+            groups[1].append(row)
+        elif closed_today:
+            groups[2].append(row)
+    for rows in groups:
+        rows.sort(key=lambda row: (row['list_date'], str(row['code']), str(row['signal_id'])))
+    return groups
 
 
 def build_report_model(
@@ -391,11 +377,17 @@ def build_report_model(
     cal = calendar or default_calendar()
     tracker, review_failures = _load_review_tracker(resolver, review_failure)
     review_sections, review_issues, missing_count = _review_rows(tracker, normalized_date, cal)
-    active_signals = _active_signal_rows(tracker, normalized_date, cal)
+    previous_date = _normalize_date(previous_trading_day(normalized_date, cal))
+    previous_signals, active_signals, closed_today = _daily_collections(
+        tracker, normalized_date, previous_date, resolver, review_failures
+    )
     watchlist_rows = _watchlist_rows(watchlist, tracker)
 
     anomalies = list(review_failures)
     anomalies.extend(review_issues)
+    daily_rows = previous_signals + active_signals + closed_today
+    if any(row['path_status'] == _MISSING for row in daily_rows):
+        anomalies.append(_MISSING)
     if tracker is not None:
         for signal in tracker.get("signals", {}).values():
             if not isinstance(signal, Mapping):
@@ -412,17 +404,30 @@ def build_report_model(
         generated = generated.replace(tzinfo=_BJT)
     generated = generated.astimezone(_BJT)
     review_status = _REVIEW_FAILURE if review_failures else "READY"
-    summary = _daily_summary(tracker, normalized_date, review_sections, missing_count)
+    summary = {
+        'tracked': len(daily_rows),
+        'active_signals': sum(row['raw_status'] in {'pending', 'triggered'} and row['observed'] for row in daily_rows),
+        'new_triggered': sum(row['new_triggered'] for row in daily_rows),
+        'target_hits': sum(row['closed_today'] and row['raw_status'] == 'win' for row in daily_rows),
+        'stop_hits': sum(row['closed_today'] and row['raw_status'] == 'loss' for row in daily_rows),
+        'ambiguous': sum(row['closed_today'] and row['raw_status'] == 'AMBIGUOUS_SAME_BAR' for row in daily_rows),
+        'expired': sum(row['closed_today'] and row['raw_status'] == 'expired' for row in daily_rows),
+        'daily_missing': sum(not row['observed'] for row in daily_rows),
+        'missing_observations': missing_count,
+        't3_count': len(review_sections['T+3']),
+        't5_count': len(review_sections['T+5']),
+        't10_count': len(review_sections['T+10']),
+    }
     summary_text = (
-        f"今日新名单 {len(watchlist_rows)} 个；最高 score "
-        f"{watchlist_rows[0]['score'] if watchlist_rows else '—'}；"
-        f"active signal {summary['active_signals']} 个；"
-        f"target / stop {summary['target_hits']} / {summary['stop_hits']}；"
-        f"今日到期 T+5 {summary['t5_count']} 个；"
-        f"missing {summary['missing_observations']}。"
+        f"今日复盘 {summary['tracked']} 个历史信号，其中新触发 {summary['new_triggered']} 个、"
+        f"目标达成 {summary['target_hits']} 个、止损 {summary['stop_hits']} 个、"
+        f"仍观察 {summary['active_signals']} 个、已过期 {summary['expired']} 个、"
+        f"同日顺序不明 {summary['ambiguous']} 个、数据缺失 {summary['daily_missing']} 个。"
+        + (f"今日 T+5 PRIMARY 到期 {summary['t5_count']} 个。" if summary['t5_count'] else "今日无 T+5 PRIMARY 到期信号。")
     )
     metadata = {
         "list_date": normalized_date,
+        "previous_date": previous_date,
         "review_date": normalized_date,
         "earliest_execution": earliest_execution,
         "strategy": watchlist.get("strategy_version", "UNVERIFIED"),
@@ -439,6 +444,8 @@ def build_report_model(
         daily_summary=summary,
         review_sections={label: list(rows) for label, rows in review_sections.items()},
         active_signals=active_signals,
+        previous_signals=previous_signals,
+        closed_today=closed_today,
         anomalies=display_anomalies,
         summary_text=summary_text,
         review_status=review_status,
@@ -449,95 +456,77 @@ def _esc(value: Any) -> str:
     return html.escape(_text(value), quote=True)
 
 
-def _badge(value: Any) -> str:
-    text = _status_text(value)
-    return f'<span class="badge { _status_class(text) }">{_esc(text)}</span>'
+def _display_status(value):
+    return {
+        'pending': '未触发', 'PENDING': '未触发',
+        'triggered': '已触发', 'TRIGGERED': '已触发',
+        'win': '目标达成', 'WIN / TARGET_HIT': '目标达成',
+        'loss': '止损', 'LOSS / STOP_HIT': '止损',
+        'expired': '已过期', 'EXPIRED': '已过期',
+        'AMBIGUOUS_SAME_BAR': '同日顺序不明',
+        'CAPTURED': '已记录', 'NOT_CAPTURED': '数据缺失',
+        _MISSING: '数据缺失', _UNVERIFIED: '待核验',
+    }.get(value, value or '数据缺失')
 
 
-def _table_empty(colspan: int) -> str:
-    return f'<tr><td class="empty" colspan="{colspan}">NONE / 当前报告日没有到期记录</td></tr>'
+def _ui_badge(value):
+    return f'<span class="badge {_status_class(value)}">{_esc(_display_status(value))}</span>'
 
 
-def _review_table(rows: list[Mapping[str, Any]]) -> str:
+def _simple_table(headers, body, table_id=''):
+    return (f'<div class="table-wrap"><table id="{table_id}"><thead><tr>'
+            + ''.join(f'<th>{_esc(h)}</th>' for h in headers)
+            + '</tr></thead><tbody>' + ''.join(body) + '</tbody></table></div>')
+
+
+def _review_table(rows):
+    body = []
+    for row in rows:
+        values = [_esc(row.get(k)) for k in ('code', 'name', 'list_date')]
+        values += [_esc('—' if row['horizon_return'] == _UNVERIFIED else row['horizon_return']),
+                   _ui_badge(row['path_status']), _ui_badge(row['snapshot_status'])]
+        body.append('<tr>' + ''.join(f'<td>{v}</td>' for v in values) + '</tr>')
+    return _simple_table(('代码', '名称', '名单日期', '节点收益', '路径结果', '节点快照状态'), body)
+
+
+def _position(distance):
+    if distance is None:
+        return '—'
+    if distance < 0:
+        return '已在 Trigger 上方'
+    if abs(distance) <= 1:
+        return '贴近 Trigger'
+    return '等待触发'
+
+
+def _watchlist_table(rows):
+    body = []
+    for row in rows:
+        values = [_esc(row.get(k)) for k in ('rank', 'code', 'name', 'score')]
+        values += [_esc(_number(row.get(k))) for k in ('close', 'trigger')]
+        distance = row['distance_to_trigger_pct']
+        values += [_esc(_percent(distance, signed=True) if distance is not None else '—')
+                   + '<br><small>' + _esc(_position(distance)) + '</small>']
+        values += [_esc(_number(row.get(k))) for k in ('stop', 'target', 'rr')]
+        values += [_esc(row.get('sector'))]
+        search = ' '.join(str(row.get(k, '')) for k in ('code', 'name', 'sector')).lower()
+        body.append(f'<tr data-search="{_esc(search)}">' + ''.join(f'<td>{v}</td>' for v in values) + '</tr>')
+    return _simple_table(('排名', '代码', '名称', 'Score', '收盘', 'Trigger', '距 Trigger',
+                          'Stop', 'Target', 'RR', '行业'), body, 'watchlist-table')
+
+
+def _daily_table(rows):
     if not rows:
-        return f"<table class=\"review-table\"><thead><tr><th>Code</th><th>Name</th><th>Signal ID</th><th>List Date</th><th>Review Date</th><th>Fixed Horizon Snapshot Return</th><th>Execution / Path Result</th><th>Fixed Horizon Snapshot Status</th></tr></thead><tbody>{_table_empty(8)}</tbody></table>"
+        return '<p class="note">暂无符合条件的记录。</p>'
     body = []
     for row in rows:
-        body.append(
-            "<tr>"
-            f"<td>{_esc(row.get('code'))}</td>"
-            f"<td>{_esc(row.get('name'))}</td>"
-            f"<td class=\"signal-id\">{_esc(row.get('signal_id'))}</td>"
-            f"<td>{_esc(row.get('list_date'))}</td>"
-            f"<td>{_esc(row.get('review_date'))}</td>"
-            f"<td>{_esc(row.get('horizon_return'))}</td>"
-            f"<td>{_badge(row.get('path_status'))}</td>"
-            f"<td>{_badge(row.get('snapshot_status'))}</td>"
-            "</tr>"
-        )
-    return (
-        '<table class="review-table"><thead><tr>'
-        "<th>Code</th><th>Name</th><th>Signal ID</th><th>List Date</th><th>Review Date</th>"
-        "<th>Fixed Horizon Snapshot Return</th><th>Execution / Path Result</th>"
-        "<th>Fixed Horizon Snapshot Status</th>"
-        f"</tr></thead><tbody>{''.join(body)}</tbody></table>"
-    )
-
-
-def _watchlist_table(rows: list[Mapping[str, Any]]) -> str:
-    body = []
-    for row in rows:
-        search = " ".join(str(row.get(key, "")) for key in ("code", "name", "sector")).lower()
-        body.append(
-            f'<tr data-search="{_esc(search)}">'
-            f'<td data-sort-value="{row["rank"]}">{row["rank"]}</td>'
-            f'<td data-sort-value="{_esc(row.get("code"))}">{_esc(row.get("code"))}</td>'
-            f'<td data-sort-value="{_esc(row.get("name"))}">{_esc(row.get("name"))}</td>'
-            f'<td data-sort-value="{row.get("score", "")}">{_esc(row.get("score"))}</td>'
-            f'<td data-sort-value="{row.get("close", "")}">{_esc(_number(row.get("close")))}</td>'
-            f'<td data-sort-value="{row.get("trigger", "")}">{_esc(_number(row.get("trigger")))}</td>'
-            f'<td data-sort-value="{row.get("stop", "")}">{_esc(_number(row.get("stop")))}</td>'
-            f'<td data-sort-value="{row.get("target", "")}">{_esc(_number(row.get("target")))}</td>'
-            f'<td data-sort-value="{row.get("rr", "")}">{_esc(_number(row.get("rr")))}</td>'
-            f'<td data-sort-value="{row.get("distance_to_trigger_pct", "")}">{_esc(_percent(row.get("distance_to_trigger_pct"), signed=True))}</td>'
-            f'<td data-sort-value="{_esc(row.get("setup"))}">{_esc(row.get("setup"))}</td>'
-            f'<td data-sort-value="{_esc(row.get("sector"))}">{_esc(row.get("sector"))}</td>'
-            f'<td>{_badge(row.get("status"))}</td>'
-            "</tr>"
-        )
-    return (
-        '<table id="watchlist-table"><thead><tr>'
-        '<th data-sort-key="rank">Rank</th><th data-sort-key="code">Code</th>'
-        '<th data-sort-key="name">Name</th><th data-sort-key="score">Score</th>'
-        '<th data-sort-key="close">今日收盘</th><th data-sort-key="trigger">Trigger</th>'
-        '<th data-sort-key="stop">Stop</th><th data-sort-key="target">Target</th>'
-        '<th data-sort-key="rr">RR</th><th data-sort-key="distance">距 Trigger %</th>'
-        '<th data-sort-key="setup">Setup</th><th data-sort-key="sector">Sector</th><th>Status</th>'
-        f"</tr></thead><tbody>{''.join(body)}</tbody></table>"
-    )
-
-
-def _active_table(rows: list[Mapping[str, Any]]) -> str:
-    headers = (
-        "Code", "Name", "Signal ID", "List Date", "Original Trigger", "Stop", "Target",
-        "Today Close", "Today High", "Today Low", "Path Status", "Days Tracked", "Next Formal Horizon",
-    )
-    if not rows:
-        return f'<table class="active-table"><thead><tr>{"".join(f"<th>{header}</th>" for header in headers)}</tr></thead><tbody>{_table_empty(len(headers))}</tbody></table>'
-    body = []
-    for row in rows:
-        body.append(
-            "<tr>"
-            f"<td>{_esc(row.get('code'))}</td><td>{_esc(row.get('name'))}</td>"
-            f"<td class=\"signal-id\">{_esc(row.get('signal_id'))}</td><td>{_esc(row.get('list_date'))}</td>"
-            f"<td>{_esc(_number(row.get('original_trigger')))}</td><td>{_esc(_number(row.get('stop')))}</td>"
-            f"<td>{_esc(_number(row.get('target')))}</td><td>{_esc(_number(row.get('today_close'), fallback=_UNVERIFIED))}</td>"
-            f"<td>{_esc(_number(row.get('today_high'), fallback=_UNVERIFIED))}</td><td>{_esc(_number(row.get('today_low'), fallback=_UNVERIFIED))}</td>"
-            f"<td>{_badge(row.get('path_status'))}</td><td>{_esc(row.get('days_tracked'))}</td>"
-            f"<td>{_esc(row.get('next_formal_horizon'))}</td>"
-            "</tr>"
-        )
-    return f'<table class="active-table"><thead><tr>{"".join(f"<th>{header}</th>" for header in headers)}</tr></thead><tbody>{"".join(body)}</tbody></table>'
+        values = [_esc(row.get(k)) for k in ('code', 'name', 'list_date', 'score')]
+        values += [_esc(_number(row.get(k))) for k in
+                   ('original_trigger', 'today_open', 'today_high', 'today_low', 'today_close')]
+        values += [_ui_badge(row['path_status']), _esc(row['note'])]
+        body.append('<tr>' + ''.join(f'<td>{v}</td>' for v in values) + '</tr>')
+    return _simple_table(('代码', '名称', '名单日期', 'Score', 'Trigger', '今日开盘',
+                          '今日最高', '今日最低', '今日收盘', '状态', '结果/说明'), body)
 
 
 def render_html(model: ReportModel) -> str:
@@ -546,57 +535,37 @@ def render_html(model: ReportModel) -> str:
     metadata = model.metadata
     summary = model.daily_summary
     cards = [
-        ("Candidates", metadata["candidate_count"], "normal"),
-        ("Active Signals", summary["active_signals"], "warning"),
-        ("New Triggered", summary["new_triggered"], "target"),
-        ("Target Hits", summary["target_hits"], "target"),
-        ("Stop Hits", summary["stop_hits"], "loss"),
-        ("Ambiguous", summary["ambiguous"], "warning"),
-        ("Missing Observations", summary["missing_observations"], "missing"),
-        ("Review Status", model.review_status, _status_class(model.review_status)),
+        ('今日新名单', metadata['candidate_count']), ('昨日/近期复盘信号数', summary['tracked']),
+        ('今日新触发', summary['new_triggered']), ('今日目标', summary['target_hits']),
+        ('今日止损', summary['stop_hits']), ('今日仍观察', summary['active_signals']),
+        ('T+5 PRIMARY 到期数', summary['t5_count']),
+        ('异常数', len([a for a in model.anomalies if a != 'NONE'])),
     ]
-    card_html = "".join(
-        f'<div class="card {kind}"><div class="card-label">{_esc(label)}</div><div class="card-value">{_esc(value)}</div></div>'
-        for label, value, kind in cards
-    )
-    metadata_html = "".join(
-        f'<div class="meta-item"><span>{_esc(label)}</span><strong>{_esc(value)}</strong></div>'
-        for label, value in (
-            ("list date", metadata["list_date"]),
-            ("review date", metadata["review_date"]),
-            ("earliest execution", metadata["earliest_execution"]),
-            ("strategy", metadata["strategy"]),
-            ("frozen candidate", metadata["frozen_candidate"]),
-            ("package SHA", metadata["package_sha"]),
-            ("generation fingerprint", metadata["generation_fingerprint"]),
-            ("watchlist SHA", metadata["watchlist_sha"]),
-            ("candidate count", metadata["candidate_count"]),
-            ("report generated_at", metadata["report_generated_at"]),
-        )
-    )
-    anomaly_html = "".join(
-        f'<li class="{_status_class(item)}"><code>{_esc(item)}</code></li>' for item in model.anomalies
-    )
-    failure_html = ""
-    failures = [item for item in model.anomalies if item.startswith(f"{_REVIEW_FAILURE}:")]
-    if failures:
-        failure_html = (
-            '<div class="callout warning"><strong>REVIEW_FAILED</strong>'
-            f"<p>{_esc('；'.join(failures))}</p></div>"
-        )
-    horizon_notes = {
-        "T+3": "T+3 · short-term evaluation",
-        "T+5": "T+5 PRIMARY REVIEW · primary review horizon",
-        "T+10": "T+10 EXTENSION / CLOSURE · routine extension and closure",
-    }
+    card_html = ''.join(f'<div class="card"><div class="card-label">{label}</div>'
+                        f'<div class="card-value">{value}</div></div>' for label, value in cards)
+    metadata_html = ''.join(f'<div class="meta-item"><span>{_esc(k)}</span>'
+                            f'<strong>{_esc(v)}</strong></div>' for k, v in metadata.items())
+    audit_rows = model.watchlist_rows + model.previous_signals + model.active_signals + model.closed_today
+    audit_rows += [r for rows in model.review_sections.values() for r in rows]
+    audit_html = ''.join('<tr>' + ''.join(f'<td>{_esc(row.get(k))}</td>' for k in
+                        ('code', 'signal_id', 'setup', 'status', 'raw_status', 'path_status', 'snapshot_status'))
+                        + '</tr>' for row in audit_rows)
+    audit_html = _simple_table(('代码', 'signal_id', 'Setup', 'technical status', 'raw status',
+                               'Execution / Path Result', 'Fixed Horizon Snapshot'), [audit_html])
+    issues = [a for a in model.anomalies if a != 'NONE']
+    labels = {_MISSING: '数据缺失：历史节点或今日记录缺失',
+              'AMBIGUOUS_SAME_BAR': '同日顺序不明', _UNVERIFIED: '数据待核验'}
+    anomaly_html = ('<ul>' + ''.join('<li>' + _esc(labels.get(a, '复盘失败：' + a)) + '</li>' for a in issues)
+                    + '</ul>') if issues else '<p>数据状态：正常</p>'
     review_html = []
-    for horizon, _offset in REVIEW_HORIZONS:
-        review_html.append(
-            f'<section><h2>{_esc(horizon_notes[horizon])}</h2>'
-            '<p class="note">只显示 review_trading_date 等于本报告 review date 的正式节点；'
-            'Execution / Path Result 与 Fixed Horizon Snapshot 分开。</p>'
-            f"{_review_table(model.review_sections[horizon])}</section>"
-        )
+    for horizon, label in (('T+5', 'T+5 PRIMARY REVIEW'), ('T+3', 'T+3 短期复盘'),
+                           ('T+10', 'T+10 EXTENSION / CLOSURE')):
+        rows = model.review_sections[horizon]
+        if rows:
+            review_html.append(f'<div class="horizon {"primary" if horizon == "T+5" else ""}">'
+                               f'<h3>{label}</h3>{_review_table(rows)}</div>')
+        else:
+            review_html.append(f'<p class="note" aria-label="{label}">今日无 {horizon} 到期信号</p>')
 
     return f"""<!doctype html>
 <html lang="zh-CN">
@@ -608,7 +577,7 @@ def render_html(model: ReportModel) -> str:
 :root {{ color-scheme: light; --ink:#17212b; --muted:#5d6b78; --line:#dce3e8; --surface:#fff; --bg:#f4f7f9; --accent:#1f6feb; --warn:#9a6700; --loss:#b42318; --target:#087443; --missing:#7a3e00; }}
 * {{ box-sizing:border-box; }}
 body {{ margin:0; background:var(--bg); color:var(--ink); font-family:Arial,"Microsoft YaHei",sans-serif; line-height:1.45; }}
-main {{ max-width:1700px; margin:0 auto; padding:24px; }}
+main {{ max-width:1500px; margin:0 auto; padding:24px; }}
 h1 {{ margin:0 0 6px; font-size:clamp(24px,4vw,36px); }}
 h2 {{ margin:28px 0 8px; font-size:22px; }}
 h3 {{ margin:18px 0 8px; }}
@@ -625,6 +594,9 @@ section {{ background:var(--surface); border:1px solid var(--line); border-radiu
 .toolbar {{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:12px 0; }}
 input[type=search] {{ width:min(420px,100%); padding:10px 12px; border:1px solid #aebbc5; border-radius:6px; font-size:15px; }}
 .table-wrap {{ overflow-x:auto; }}
+td {{ font-variant-numeric:tabular-nums; }}
+.primary {{ border-left:4px solid var(--accent); padding-left:14px; }}
+summary {{ cursor:pointer; padding:14px 0; }}
 table {{ border-collapse:collapse; width:100%; min-width:1050px; font-size:13px; }}
 th,td {{ border-bottom:1px solid var(--line); padding:8px 9px; text-align:left; vertical-align:top; white-space:nowrap; }}
 th {{ background:#eef3f6; color:#33404c; position:sticky; top:0; z-index:1; cursor:pointer; }}
@@ -645,38 +617,40 @@ footer {{ color:var(--muted); font-size:12px; padding:18px 0 4px; }}
 <body>
 <main>
 <header>
-<h1>A股交易系统 — 每日收盘报告</h1>
-<p class="subtitle">明日观察名单 + 今日复盘 · offline self-contained report</p>
-<div class="meta-grid">{metadata_html}</div>
+<h1>A股交易系统 · {metadata['review_date']} 收盘</h1>
+<p class="subtitle">明日执行日：{metadata['earliest_execution']}</p>
+<p class="note">策略：{_esc(metadata['strategy'])} · {'FROZEN CANDIDATE' if metadata['frozen_candidate'] == 'YES' else '状态待核验'}</p>
 </header>
+<h2>今日总览</h2>
 <div class="cards">{card_html}</div>
-<section>
+<p class="callout">{_esc(model.summary_text)}</p>
+<section id="daily-review">
+<h2>今日复盘</h2>
+<h3>昨日名单今日表现 · {metadata['previous_date']}</h3>
+{_daily_table(model.previous_signals)}
+<h3>历史仍在观察</h3>
+{_daily_table(model.active_signals)}
+{('<h3>历史名单今日结束</h3>' + _daily_table(model.closed_today)) if model.closed_today else ''}
+</section>
+<section id="tomorrow-watchlist">
 <h2>明日观察名单</h2>
-<p class="note">数据源：正式 canonical watchlist；默认 Score DESC。距 Trigger % = (trigger / close - 1) × 100%，仅用于展示，不改变 frozen B semantics。</p>
-<div class="toolbar"><label for="watchlist-search">搜索 code / name / sector：</label><input id="watchlist-search" type="search" placeholder="输入代码、名称或行业" autocomplete="off"></div>
-<div class="table-wrap">{_watchlist_table(model.watchlist_rows)}</div>
+<p class="note">共 {metadata['candidate_count']} 个 · 按 Score 从高到低排列。位置标签仅供阅读，不改变筛选或交易规则。</p>
+<div class="toolbar"><label for="watchlist-search">搜索：</label><input id="watchlist-search" type="search" placeholder="输入代码、名称或行业" autocomplete="off"></div>
+{_watchlist_table(model.watchlist_rows)}
 </section>
-<section>
-<h2>今日复盘总览</h2>
-<p class="note">Summary 只来自 tracker 状态；不使用当前 quote 反推过去路径。</p>
-{failure_html}
-<div class="table-wrap"><table class="summary-table"><thead><tr><th>Active Signals</th><th>New Triggered</th><th>Target Hits</th><th>Stop Hits</th><th>Ambiguous</th><th>Missing Observations</th><th>T+3</th><th>T+5 PRIMARY</th><th>T+10</th></tr></thead><tbody><tr><td>{summary['active_signals']}</td><td>{summary['new_triggered']}</td><td>{summary['target_hits']}</td><td>{summary['stop_hits']}</td><td>{summary['ambiguous']}</td><td>{summary['missing_observations']}</td><td>{summary['t3_count']}</td><td>{summary['t5_count']}</td><td>{summary['t10_count']}</td></tr></tbody></table></div>
-</section>
+<section id="formal-review">
+<h2>正式节点复盘</h2>
+<p class="note">节点收益是固定期限快照，与触发、目标及止损等路径结果分开记录。</p>
 {''.join(review_html)}
-<section>
-<h2>Active Signals 今日状态</h2>
-<p class="note">today close / high / low 只接受 tracker 中 quote_date 等于本报告 review date 的真实 observation；缺失显示 UNVERIFIED。</p>
-<div class="table-wrap">{_active_table(model.active_signals)}</div>
 </section>
-<section>
-<h2>异常 / 数据缺失</h2>
-<ul class="anomalies">{anomaly_html}</ul>
-</section>
-<section>
-<h2>今日总结</h2>
-<p>{_esc(model.summary_text)}</p>
-</section>
-<footer>本报告仅整理 canonical watchlist 与正式 tracker 数据；不包含主观荐股、新闻解释或未经 formal contract 定义的市场判断。</footer>
+<section id="anomalies"><h2>异常</h2>{anomaly_html}</section>
+<details id="audit"><summary>审计详情</summary>
+<div class="meta-grid">{metadata_html}</div>
+<p>review status: {_esc(model.review_status)}</p>
+<p>{_esc('；'.join(model.anomalies))}</p>
+{audit_html}
+</details>
+<footer>本报告仅整理正式观察名单与 tracker 的真实记录。缺少记录显示 —，不回填历史行情。</footer>
 </main>
 <script>
 (function () {{
@@ -689,20 +663,6 @@ footer {{ color:var(--muted); font-size:12px; padding:18px 0 4px; }}
     const query = search.value.trim().toLowerCase();
     rows().forEach(function (row) {{
       row.hidden = query !== '' && !(row.dataset.search || '').includes(query);
-    }});
-  }});
-  table.querySelectorAll('th[data-sort-key]').forEach(function (header, index) {{
-    let direction = index === 3 ? -1 : 1;
-    header.addEventListener('click', function () {{
-      const sorted = rows().sort(function (left, right) {{
-        const a = left.cells[index].dataset.sortValue || left.cells[index].textContent.trim();
-        const b = right.cells[index].dataset.sortValue || right.cells[index].textContent.trim();
-        const na = Number(a), nb = Number(b);
-        if (Number.isFinite(na) && Number.isFinite(nb)) return (na - nb) * direction;
-        return a.localeCompare(b, 'zh-Hans-CN') * direction;
-      }});
-      sorted.forEach(function (row) {{ body.appendChild(row); }});
-      direction *= -1;
     }});
   }});
 }})();

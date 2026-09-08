@@ -185,8 +185,9 @@ def test_same_bar_and_missing_observation_are_explicit(tmp_path):
 
 
 def test_active_status_does_not_use_a_later_quote_as_historical_data(tmp_path):
-    watchlist = _write_watchlist(tmp_path, "20260827", [_candidate("600018", "观察信号", 60)])
+    watchlist = _write_watchlist(tmp_path, "20260825", [_candidate("600018", "观察信号", 60)])
     tracker = _write_tracker(tmp_path, watchlist)
+    _write_watchlist(tmp_path, "20260827", [_candidate("600019", "新名单", 60)])
     signal = next(iter(tracker["signals"].values()))  # type: ignore[union-attr]
     signal.update({"status": "triggered", "entry_price": 10.2})
     signal["observations"] = [{"date": "2026-08-28", "price": 11.0, "high": 11.2, "low": 10.8}]
@@ -255,3 +256,128 @@ def test_t_close_reporting_runs_renderer_after_track_failure(monkeypatch, tmp_pa
     assert len(calls) == 2
     assert any("--review-failure" == item for item in calls[1])
     assert "provider failure" in calls[1][-1]
+
+@pytest.mark.parametrize('status', ['pending', 'triggered', 'win', 'loss', 'AMBIGUOUS_SAME_BAR', 'expired'])
+def test_complete_previous_session_includes_terminal_states(tmp_path, status):
+    old = _write_watchlist(tmp_path, '20260826', [_candidate('600001', 'Yesterday', 60)])
+    tracker = _write_tracker(tmp_path, old)
+    signal = next(iter(tracker['signals'].values()))
+    signal.update(status=status, observations=[{'date': '2026-08-27', 'price': 11, 'high': 12, 'low': 9}])
+    if status not in {'pending', 'triggered'}:
+        signal['close_date'] = '2026-08-27'
+    (tmp_path / 'data/perf_tracker.json').write_text(json.dumps(tracker), encoding='utf-8')
+    _write_watchlist(tmp_path, '20260827', [_candidate('600002', 'Tomorrow', 80)])
+    model = renderer.build_report_model('20260827', paths=_paths(tmp_path), calendar=CALENDAR)
+    assert len(model.previous_signals) == 1
+    assert model.previous_signals[0]['path_status'] == status
+    assert model.previous_signals[0]['today_open'] is None
+    assert model.daily_summary['tracked'] == 1
+    assert [r['code'] for r in model.watchlist_rows] == ['600002']
+    assert not model.active_signals
+    text = renderer.render_html(model)
+    main = text.split('<details id="audit">')[0]
+    assert signal['signal_id'] not in main
+    assert renderer._display_status(status) in main
+    assert 'package_sha' not in main
+    assert '<details id="audit" open' not in text
+    assert text.index('id="daily-review"') < text.index('id="tomorrow-watchlist"') < text.index('id="formal-review"')
+
+
+def test_previous_watchlist_missing_tracker_identity_is_not_dropped(tmp_path):
+    old = _write_watchlist(tmp_path, '20260826', [_candidate('600001', 'Missing', 60), _candidate('600002', 'Missing2', 55)])
+    _write_watchlist(tmp_path, '20260827', [_candidate('600003', 'New', 80)])
+    model = renderer.build_report_model('20260827', paths=_paths(tmp_path), calendar=CALENDAR)
+    assert {r['signal_id'] for r in model.previous_signals} == {r['signal_id'] for r in old['candidates']}
+    assert all(r['path_status'] == renderer._MISSING and r['today_close'] is None for r in model.previous_signals)
+    assert model.review_status == 'REVIEW_FAILED'
+
+
+def test_older_active_and_closed_today_are_separate(tmp_path):
+    old = _write_watchlist(tmp_path, '20260820', [_candidate(str(600001+i), 'Old', 60) for i in range(4)])
+    tracker = _write_tracker(tmp_path, old)
+    signals = list(tracker['signals'].values())
+    for signal, status in zip(signals, ['pending', 'triggered', 'win', 'loss']):
+        signal.update(status=status, observations=[{'date': '2026-08-27', 'price': 11, 'high': 12, 'low': 9}])
+    signals[2]['close_date'] = '2026-08-27'
+    signals[3]['close_date'] = '2026-08-26'
+    (tmp_path / 'data/perf_tracker.json').write_text(json.dumps(tracker), encoding='utf-8')
+    _write_watchlist(tmp_path, '20260827', [_candidate('600005', 'New', 80)])
+    model = renderer.build_report_model('20260827', paths=_paths(tmp_path), calendar=CALENDAR)
+    assert [r['raw_status'] for r in model.active_signals] == ['pending', 'triggered']
+    assert [r['raw_status'] for r in model.closed_today] == ['win']
+    assert model.daily_summary['tracked'] == 3
+    assert model.daily_summary['target_hits'] == 1
+
+
+def test_formal_empty_has_no_table_and_primary_is_first(tmp_path):
+    watchlist = _write_watchlist(tmp_path, '20260827', [_candidate('600001', 'New', 60)])
+    _write_tracker(tmp_path, watchlist)
+    model = renderer.build_report_model('20260827', paths=_paths(tmp_path), calendar=CALENDAR)
+    text = renderer.render_html(model).split('<section id="formal-review">')[1].split('</section>')[0]
+    assert '<table' not in text
+    assert '今日无 T+5 到期信号' in text
+    row = dict(code='600001', name='Old', list_date='2026-08-20', horizon_return='+2.00%', path_status='loss', snapshot_status='CAPTURED', signal_id='hidden')
+    model.review_sections['T+5'].append(row)
+    model.review_sections['T+3'].append(row)
+    text = renderer.render_html(model).split('<section id="formal-review">')[1].split('</section>')[0]
+    assert text.index('T+5 PRIMARY REVIEW') < text.index('T+3')
+    assert '止损' in text and '已记录' in text and '+2.00%' in text
+    assert 'hidden' not in text
+
+
+@pytest.mark.parametrize('distance,label', [(-2, '已在 Trigger 上方'), (-0.1, '已在 Trigger 上方'), (0, '贴近 Trigger'), (1, '贴近 Trigger'), (1.01, '等待触发'), (None, '—')])
+def test_position_labels_are_display_only(distance, label):
+    assert renderer._position(distance) == label
+
+
+def test_34_candidates_preserve_exact_identity_and_values(tmp_path):
+    candidates = [_candidate(str(600000+i), f'Candidate {i}', i) for i in range(34)]
+    watchlist = _write_watchlist(tmp_path, '20260908', candidates)
+    path = tmp_path / 'data/watchlist_20260908.json'
+    before = path.read_bytes()
+    _write_tracker(tmp_path, watchlist)
+    model, dated, latest = renderer.render_daily_close('20260908', paths=_paths(tmp_path), calendar=CALENDAR)
+    assert len(model.watchlist_rows) == 34
+    expected = {r['signal_id']: r for r in watchlist['candidates']}
+    assert {r['signal_id'] for r in model.watchlist_rows} == set(expected)
+    for row in model.watchlist_rows:
+        for key in ('code', 'name', 'score', 'trigger', 'stop', 'target', 'rr'):
+            assert row[key] == expected[row['signal_id']][key]
+    assert path.read_bytes() == before
+    assert dated.read_bytes() == latest.read_bytes()
+    assert not model.previous_signals and not model.active_signals and not model.closed_today
+    assert model.daily_summary['tracked'] == 0
+
+
+def test_corrupt_previous_watchlist_is_fail_soft(tmp_path):
+    _write_watchlist(tmp_path, '20260827', [_candidate('600001', 'New', 60)])
+    (tmp_path / 'data/watchlist_20260826.json').write_text('{broken', encoding='utf-8')
+    model, _, latest = renderer.render_daily_close('20260827', paths=_paths(tmp_path), calendar=CALENDAR)
+    assert model.review_status == 'REVIEW_FAILED'
+    assert len(model.watchlist_rows) == 1 and latest.exists()
+
+
+def test_later_terminal_state_is_not_backfilled_into_previous_day(tmp_path):
+    old = _write_watchlist(tmp_path, '20260826', [_candidate('600001', 'Old', 60)])
+    tracker = _write_tracker(tmp_path, old)
+    signal = next(iter(tracker['signals'].values()))
+    signal.update(status='win', close_date='2026-08-28', observations=[{'date': '2026-08-27', 'price': 11, 'high': 12, 'low': 9}])
+    (tmp_path / 'data/perf_tracker.json').write_text(json.dumps(tracker), encoding='utf-8')
+    _write_watchlist(tmp_path, '20260827', [_candidate('600002', 'New', 80)])
+    model = renderer.build_report_model('20260827', paths=_paths(tmp_path), calendar=CALENDAR)
+    assert model.previous_signals[0]['path_status'] == renderer._MISSING
+    assert model.previous_signals[0]['today_close'] == 11
+    assert model.daily_summary['target_hits'] == 0
+    assert model.daily_summary['daily_missing'] == 1
+
+
+def test_current_watchlist_events_do_not_enter_historical_summary(tmp_path):
+    current = _write_watchlist(tmp_path, '20260908', [_candidate('600001', 'New', 60)])
+    tracker = _write_tracker(tmp_path, current)
+    signal = next(iter(tracker['signals'].values()))
+    signal.update(status='AMBIGUOUS_SAME_BAR', close_date='2026-09-08', first_trigger_date='2026-09-08', observations=[{'date': '2026-09-08', 'price': 11, 'high': 12, 'low': 9}])
+    (tmp_path / 'data/perf_tracker.json').write_text(json.dumps(tracker), encoding='utf-8')
+    model = renderer.build_report_model('20260908', paths=_paths(tmp_path), calendar=CALENDAR)
+    assert model.daily_summary['tracked'] == 0
+    assert model.daily_summary['new_triggered'] == 0
+    assert model.daily_summary['ambiguous'] == 0

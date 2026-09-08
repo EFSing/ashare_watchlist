@@ -9,7 +9,7 @@
   authoritative recovery branch after the source commit is pushed. At recovery time, run
   `git rev-parse HEAD` and `git rev-parse @{u}` and require the two values to be equal; do not
   use this file's or any governance commit's SHA as the recovery truth.
-- current task: `DAILY_CLOSE_BUNDLE_HTML_REPORT`. Live governance reconciliation is closed:
+- current task: `DAILY_CLOSE_HTML_USER_FACING_REDESIGN`. Live governance reconciliation is closed:
   PR #41 is merged, review cleanup PR #42 is merged into master, post-merge correctness run
   `34140697889` is `completed / success` with exact head, and formal Delivery Ladder is
   `frozen candidate`.
@@ -18,10 +18,20 @@
   `d3bbdc7275fe32fd8763eba03fb987fad2308eb43d6149919829b0d5ec462ba4`; fingerprint
   `93882eecb2f37d4c0653864bd54dbbe80c19334b7913439ef3f6939a69ef5db8`; watchlist SHA
   `f58059cd5269f8ac5cd10da357a2bd008a76ef84feaa399846d74ad7daa4b5fc`.
-- completed: the stale PR #42/open review-cleanup snapshot is superseded by live master truth;
-  this bounded task adds only the daily-close renderer, fail-soft reporting integration,
-  focused tests, README usage and the minimum governance reconciliation. Source commit
-  `9162c0ef73ad07adc7533b85e0b78248c539b6ff` is pushed in PR #43.
+- completed: PR #43 now separates today's new watchlist from historical daily review.
+  Previous-XSHG-session identities remain complete across pending/triggered/win/loss/
+  ambiguous/expired/missing states; older active and older closed-today rows are separate.
+  The Chinese report prioritizes daily review, tomorrow's simplified list, then T+5/T+3/T+10;
+  empty horizons are compact and audit identities/metadata are collapsed at the bottom.
+- validation: 28 focused renderer tests and 383 full pytest tests passed; compileall and
+  scoped diff check passed. Classification remained product blocker / FAST PATH;
+  real 20260908 smoke preserves exact 34 candidates and recorded watchlist SHA. Twelve older
+  signals have real 20260908 observations and expired that day; no prior-session list
+  or T+5 due rows exist in the local inputs. No historical replay was performed.
+  HTML paths: `data/reports/daily_close_20260908.html`, `data/reports/latest.html`.
+- local input boundary: the pre-existing modified `data/perf_tracker.json` and untracked
+  canonical/runtime artifacts are read-only inputs and are not part of the source commit.
+  Tracker SHA at smoke: `72bb256d625373b870f259dda204fb737131e9fa8758d47086c56db0202c877e`.
 - boundaries: do not promote, approve production, unseal/read Final OOS, read C, rebuild old D,
   tune B, change strategy semantics, start new research, or touch
   `data/validation/continuous_speed_probe/`. Package/source/watchlist bytes and Drive
@@ -34,7 +44,7 @@
 - exact-head CI must always be re-read live for the current remote head; the previously
   verified implementation head passed both push and pull-request correctness checks before
   this governance-only handoff update.
-- terminal marker: `DAILY_CLOSE_BUNDLE_HTML_REPORT_PR_READY_FOR_USER_MERGE_DECISION`.
+- terminal marker: `DAILY_CLOSE_HTML_USER_FACING_REDESIGN_PR_READY_FOR_USER_MERGE_DECISION`.
 
 ## New-device / new-session recovery
 
