@@ -19,8 +19,9 @@
   `93882eecb2f37d4c0653864bd54dbbe80c19334b7913439ef3f6939a69ef5db8`; watchlist SHA
   `f58059cd5269f8ac5cd10da357a2bd008a76ef84feaa399846d74ad7daa4b5fc`.
 - completed: the stale PR #42/open review-cleanup snapshot is superseded by live master truth;
-  this bounded task now adds only the daily-close renderer, fail-soft reporting integration,
-  focused tests, README usage and the minimum governance reconciliation.
+  this bounded task adds only the daily-close renderer, fail-soft reporting integration,
+  focused tests, README usage and the minimum governance reconciliation. Source commit
+  `9162c0ef73ad07adc7533b85e0b78248c539b6ff` is pushed in PR #43.
 - boundaries: do not promote, approve production, unseal/read Final OOS, read C, rebuild old D,
   tune B, change strategy semantics, start new research, or touch
   `data/validation/continuous_speed_probe/`. Package/source/watchlist bytes and Drive
@@ -29,9 +30,10 @@
 - blockers: none for the frozen candidate or daily-close bundle. Final OOS remains
   `SEALED / UNREAD`; C remains unread; old D is not reconstructed; forbidden validation data
   remains untouched.
-- next action: finish the bounded daily-close PR, verify exact-head CI, and stop for the user's
-  merge decision. Do not auto-merge.
-- terminal marker: `DAILY_CLOSE_BUNDLE_HTML_REPORT_IN_PROGRESS`.
+- next action: user merge decision on PR #43 after exact-head CI verification. Do not auto-merge.
+- exact-head CI: push run `34223205850` and pull-request run `34223225997` both completed
+  `success` for head `9162c0ef73ad07adc7533b85e0b78248c539b6ff`.
+- terminal marker: `DAILY_CLOSE_BUNDLE_HTML_REPORT_PR_READY_FOR_USER_MERGE_DECISION`.
 
 ## New-device / new-session recovery
 
