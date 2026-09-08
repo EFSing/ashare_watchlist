@@ -242,6 +242,14 @@ def _validate_tracker(data: Any) -> dict[str, Any]:
         expected = stable_signal_id(signal['strategy_version'], signal['date'], signal['code'], signal['setup'])
         if key != expected:
             raise TrackerSchemaError(f"TRACKER_IDENTITY_CONFLICT: {key} != {expected}")
+        if is_current_prospective_signal(signal):
+            signal_date = parse_date(signal['date'])
+            for field in ('first_trigger_date', 'close_date'):
+                if signal.get(field) and parse_date(signal[field]) <= signal_date:
+                    raise TrackerSchemaError(f'PRE_T_PLUS_1_STATE_VIOLATION: {key}: {field}')
+            for observation in signal.get('observations', []):
+                if parse_date(observation['date']) <= signal_date:
+                    raise TrackerSchemaError(f'PRE_T_PLUS_1_STATE_VIOLATION: {key}: observation.date')
     data.setdefault("updated", None)
     return data
 
@@ -526,6 +534,8 @@ def update(
 
     signals = [s for s in tracker["signals"].values() if is_current_prospective_signal(s)]
     for signal in signals:
+        if parse_date(signal['date']) >= today_date:
+            continue
         _ensure_review_points(signal, cal)
     due_or_active = [
         signal

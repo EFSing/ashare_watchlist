@@ -164,3 +164,68 @@ def test_exact_local_canonical_continuity_when_available():
     tracker = perf.new_tracker()
     assert perf.ingest(tracker, paths, CAL) == 70
     assert len(tracker['signals']) == 70
+
+
+@pytest.mark.parametrize('field', ['first_trigger_date', 'close_date', 'observation'])
+@pytest.mark.parametrize('bad_date', ['2026-09-07', '2026-09-08'])
+def test_pre_t_plus_1_state_rejected(tmp_path, field, bad_date):
+    write_list(tmp_path, '20260908')
+    paths = DataPaths(tmp_path / 'data')
+    tracker = perf.new_tracker()
+    perf.ingest(tracker, paths, CAL)
+    signal = next(iter(tracker['signals'].values()))
+    if field == 'observation':
+        signal['observations'] = [{'date': bad_date, 'price': 11, 'high': 12, 'low': 10}]
+    else:
+        signal[field] = bad_date
+    before = deepcopy(tracker)
+    with pytest.raises(perf.TrackerSchemaError, match='PRE_T_PLUS_1_STATE_VIOLATION'):
+        perf.update(tracker, today='2026-09-09', calendar=CAL)
+    assert tracker == before
+    with pytest.raises(perf.TrackerSchemaError, match='PRE_T_PLUS_1_STATE_VIOLATION'):
+        perf.save_tracker(tracker, paths.perf_tracker_file())
+
+
+def test_34_same_day_noop_then_t_plus_1_fetch(tmp_path, monkeypatch):
+    write_list(tmp_path, '20260908', 34)
+    paths = DataPaths(tmp_path / 'data')
+    tracker = perf.new_tracker()
+    perf.ingest(tracker, paths, CAL)
+    before = deepcopy(tracker)
+    calls = []
+    def fetch(codes, expected_date):
+        calls.append((codes, expected_date))
+        assert expected_date.isoformat() == '2026-09-09'
+        result = {}
+        for code in codes:
+            q = quote('2026-09-09', price=11, high=11.5, low=10.5)
+            q['code'] = code
+            result[code] = q
+        return result
+    monkeypatch.setattr(perf, 'fetch_quotes', fetch)
+    assert perf.update(tracker, today='2026-09-08', calendar=CAL) == 0
+    assert tracker == before and calls == []
+    assert perf.update(tracker, today='2026-09-09', calendar=CAL) > 0
+    assert len(calls) == 1 and len(calls[0][0]) == 34
+    assert all(s['status'] == 'triggered' and s['first_trigger_date'] == '2026-09-09'
+               and [o['date'] for o in s['observations']] == ['2026-09-09']
+               for s in tracker['signals'].values())
+    perf.save_tracker(tracker, paths.perf_tracker_file())
+
+
+def test_committed_908_tracker_is_pre_execution():
+    paths = DataPaths(Path(__file__).resolve().parents[1] / 'data')
+    tracker = perf.load_tracker(paths.perf_tracker_file())
+    counts = {d: sum(s['date'] == d for s in tracker['signals'].values())
+              for d in ('2026-09-03', '2026-09-07', '2026-09-08')}
+    assert counts == {'2026-09-03': 11, '2026-09-07': 25, '2026-09-08': 34}
+    assert len(tracker['signals']) == 70
+    for signal in tracker['signals'].values():
+        if signal['date'] == '2026-09-08':
+            assert signal['status'] == 'pending'
+            assert signal['observations'] == [] and signal['days_tracked'] == 0
+            assert all(signal[k] is None for k in ('entry_price', 'result_price', 'first_trigger_date', 'close_date', 'ambiguity_reason'))
+    model = renderer.build_report_model('20260908', paths=paths, calendar=CAL)
+    assert len(model.watchlist_rows) == 34
+    assert all(r['status'] == 'PENDING' for r in model.watchlist_rows)
+    assert all(r['list_date'] < '2026-09-08' for r in model.previous_signals + model.active_signals + model.closed_today)
