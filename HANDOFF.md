@@ -31,8 +31,9 @@
   `SEALED / UNREAD`; C remains unread; old D is not reconstructed; forbidden validation data
   remains untouched.
 - next action: user merge decision on PR #43 after exact-head CI verification. Do not auto-merge.
-- exact-head CI: push run `34223205850` and pull-request run `34223225997` both completed
-  `success` for head `9162c0ef73ad07adc7533b85e0b78248c539b6ff`.
+- exact-head CI must always be re-read live for the current remote head; the previously
+  verified implementation head passed both push and pull-request correctness checks before
+  this governance-only handoff update.
 - terminal marker: `DAILY_CLOSE_BUNDLE_HTML_REPORT_PR_READY_FOR_USER_MERGE_DECISION`.
 
 ## New-device / new-session recovery
