@@ -24,12 +24,15 @@ from track_perf import (
     REVIEW_HORIZONS,
     REVIEW_POINT_CAPTURED,
     REVIEW_POINT_NOT_CAPTURED,
+    REVIEW_OBSERVATION_INCOMPLETE,
     load_tracker,
     parse_date,
     review_date,
     current_prospective_tracker,
     is_current_prospective_signal,
     CURRENT_PROSPECTIVE_STRATEGY,
+    PATH_UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH,
+    SOURCE_MODE_EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1,
 )
 from trading_calendar import TradingCalendar, default_calendar, previous_trading_day
 from watchlist_schema import load_watchlist
@@ -57,6 +60,7 @@ class ReportModel:
     anomalies: list[str]
     summary_text: str
     review_status: str
+    review_coverage: dict[str, Any] | None = None
 
 
 def _normalize_date(value: date | datetime | str) -> str:
@@ -131,6 +135,7 @@ def _status_text(status: Any) -> str:
         "loss": "LOSS / STOP_HIT",
         "expired": "EXPIRED",
         "AMBIGUOUS_SAME_BAR": "AMBIGUOUS_SAME_BAR",
+        PATH_UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH: "UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH",
         REVIEW_POINT_CAPTURED: "CAPTURED",
         REVIEW_POINT_NOT_CAPTURED: _MISSING,
     }
@@ -283,6 +288,15 @@ def _review_rows(
             return_value = point.get("return_pct") if captured else None
             path_status = point.get("path_status") if captured else None
             snapshot_status = _status_text(status) if captured else _MISSING
+            source_mode = point.get("source_mode")
+            if source_mode is None and isinstance(point.get("provenance"), Mapping):
+                source_mode = point["provenance"].get("source_mode")
+            if status != REVIEW_POINT_CAPTURED:
+                snapshot_source = "数据缺失"
+            elif source_mode == SOURCE_MODE_EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1:
+                snapshot_source = "已恢复（不可变证据）"
+            else:
+                snapshot_source = "已记录"
             if captured and return_value is None:
                 issues.append(_UNVERIFIED)
             if status == REVIEW_POINT_NOT_CAPTURED:
@@ -297,6 +311,12 @@ def _review_rows(
                     "horizon_return": _percent(return_value, signed=True),
                     "path_status": _status_text(path_status),
                     "snapshot_status": snapshot_status,
+                    "node_open": point.get("open"),
+                    "node_high": point.get("high"),
+                    "node_low": point.get("low"),
+                    "node_close": point.get("price"),
+                    "snapshot_source": snapshot_source,
+                    "source_mode": source_mode,
                 }
             )
     for rows in sections.values():
@@ -343,6 +363,19 @@ def _daily_collections(tracker, report_date, previous_date, paths, failures):
             'today_high': observation.get('high') if observation else None,
             'today_low': observation.get('low') if observation else None,
             'today_close': observation.get('price') if observation else None,
+            'observation_source_mode': observation.get('source_mode') if observation else None,
+            'source_mode': observation.get('source_mode') if observation else None,
+            'observation_source': (
+                '已恢复（不可变证据）'
+                if observation and (
+                    observation.get('source_mode') == SOURCE_MODE_EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1
+                    or (
+                        isinstance(observation.get('provenance'), Mapping)
+                        and observation['provenance'].get('source_mode') == SOURCE_MODE_EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1
+                    )
+                )
+                else '已记录' if observation else '数据缺失'
+            ),
             'close_vs_trigger_pct': (
                 (observation['price'] / signal['trigger'] - 1) * 100
                 if observation and observation.get('price') is not None and signal.get('trigger') else None
@@ -354,6 +387,8 @@ def _daily_collections(tracker, report_date, previous_date, paths, failures):
                      '日内先后顺序无法确认' if raw_status == 'AMBIGUOUS_SAME_BAR' else
                      '今日结束跟踪' if closed_today else '按当日真实记录展示'),
         }
+        if row['observation_source'] == '已恢复（不可变证据）' and verified:
+            row['note'] = '当日不可变证据恢复；按原有路径规则展示'
         if list_date == previous_date:
             groups[0].append(row)
         elif raw_status in {'pending', 'triggered'}:
@@ -389,6 +424,13 @@ def build_report_model(
     cal = calendar or default_calendar()
     tracker, review_failures = _load_review_tracker(resolver, review_failure)
     review_sections, review_issues, missing_count = _review_rows(tracker, normalized_date, cal)
+    review_coverage = (
+        tracker.get('review_coverage')
+        if isinstance(tracker, Mapping)
+        and isinstance(tracker.get('review_coverage'), Mapping)
+        and tracker['review_coverage'].get('report_date') == normalized_date
+        else None
+    )
     previous_date = _normalize_date(previous_trading_day(normalized_date, cal))
     previous_signals, active_signals, closed_today = _daily_collections(
         tracker, normalized_date, previous_date, resolver, review_failures
@@ -406,6 +448,8 @@ def build_report_model(
                 continue
             if signal.get("status") == "AMBIGUOUS_SAME_BAR" or signal.get("ambiguity_reason"):
                 anomalies.append("AMBIGUOUS_SAME_BAR")
+    if review_coverage and review_coverage.get('status') == REVIEW_OBSERVATION_INCOMPLETE:
+        anomalies.append(REVIEW_OBSERVATION_INCOMPLETE)
     anomalies = _dedupe(anomalies)
     display_anomalies = anomalies or ["NONE"]
 
@@ -415,7 +459,12 @@ def build_report_model(
     if generated.tzinfo is None:
         generated = generated.replace(tzinfo=_BJT)
     generated = generated.astimezone(_BJT)
-    review_status = _REVIEW_FAILURE if review_failures else "READY"
+    if review_failures:
+        review_status = _REVIEW_FAILURE
+    elif review_coverage and review_coverage.get('status') == REVIEW_OBSERVATION_INCOMPLETE:
+        review_status = REVIEW_OBSERVATION_INCOMPLETE
+    else:
+        review_status = "READY"
     summary = {
         'tracked': len(daily_rows),
         'active_signals': sum(row['raw_status'] in {'pending', 'triggered'} and row['observed'] for row in daily_rows),
@@ -437,6 +486,16 @@ def build_report_model(
         f"同日顺序不明 {summary['ambiguous']} 个、数据缺失 {summary['daily_missing']} 个。"
         + (f"今日 T+5 PRIMARY 到期 {summary['t5_count']} 个。" if summary['t5_count'] else "今日无 T+5 PRIMARY 到期信号。")
     )
+    if review_coverage and review_coverage.get('status') == REVIEW_OBSERVATION_INCOMPLETE:
+        summary_text = (
+            f"复盘数据不完整：execution expected={review_coverage.get('execution_expected', 0)}, "
+            f"captured={review_coverage.get('execution_captured', 0)}, "
+            f"missing={review_coverage.get('execution_missing', 0)}；horizon "
+            f"expected={review_coverage.get('horizon_expected', 0)}, "
+            f"captured={review_coverage.get('horizon_captured', 0)}, "
+            f"missing={review_coverage.get('horizon_missing', 0)}。"
+            + summary_text
+        )
     metadata = {
         "list_date": normalized_date,
         "previous_date": previous_date,
@@ -450,6 +509,28 @@ def build_report_model(
         "candidate_count": len(watchlist_rows),
         "report_generated_at": generated.isoformat(),
     }
+    if review_coverage:
+        metadata.update({
+            "review_guard": review_coverage.get("status", "UNVERIFIED"),
+            "execution_coverage": (
+                f"expected={review_coverage.get('execution_expected', 0)};"
+                f"captured={review_coverage.get('execution_captured', 0)};"
+                f"missing={review_coverage.get('execution_missing', 0)}"
+            ),
+            "horizon_coverage": (
+                f"expected={review_coverage.get('horizon_expected', 0)};"
+                f"captured={review_coverage.get('horizon_captured', 0)};"
+                f"missing={review_coverage.get('horizon_missing', 0)}"
+            ),
+        })
+    if isinstance(tracker, Mapping) and isinstance(tracker.get('recovery_audit'), Mapping):
+        recovery_audit = tracker['recovery_audit']
+        metadata.update({
+            "recovery_policy": recovery_audit.get("policy", "UNVERIFIED"),
+            "recovery_evidence_root": recovery_audit.get("evidence_root", "UNVERIFIED"),
+            "recovery_integrity": recovery_audit.get("integrity_status", "UNVERIFIED"),
+            "recovery_provider_calls": recovery_audit.get("provider_calls", "UNVERIFIED"),
+        })
     return ReportModel(
         metadata=metadata,
         watchlist_rows=watchlist_rows,
@@ -461,6 +542,7 @@ def build_report_model(
         anomalies=display_anomalies,
         summary_text=summary_text,
         review_status=review_status,
+        review_coverage=dict(review_coverage) if review_coverage else None,
     )
 
 
@@ -476,6 +558,7 @@ def _display_status(value):
         'loss': '止损', 'LOSS / STOP_HIT': '止损',
         'expired': '已过期', 'EXPIRED': '已过期',
         'AMBIGUOUS_SAME_BAR': '同日顺序不明',
+        PATH_UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH: '路径未完整验证',
         'CAPTURED': '已记录', 'NOT_CAPTURED': '数据缺失',
         _MISSING: '数据缺失', _UNVERIFIED: '待核验',
     }.get(value, value or '数据缺失')
@@ -495,10 +578,21 @@ def _review_table(rows):
     body = []
     for row in rows:
         values = [_esc(row.get(k)) for k in ('code', 'name', 'list_date')]
-        values += [_esc('—' if row['horizon_return'] == _UNVERIFIED else row['horizon_return']),
-                   _ui_badge(row['path_status']), _ui_badge(row['snapshot_status'])]
+        node_ohlc = row.get('node_ohlc')
+        if node_ohlc is None:
+            node_ohlc = (
+                f"O={_number(row.get('node_open'))} "
+                f"H={_number(row.get('node_high'))} "
+                f"L={_number(row.get('node_low'))} "
+                f"C={_number(row.get('node_close'))}"
+                if any(row.get(key) is not None for key in ('node_open', 'node_high', 'node_low', 'node_close'))
+                else _UNVERIFIED
+            )
+        values += [_esc(node_ohlc), _esc(row.get('horizon_return', _UNVERIFIED)),
+                   _ui_badge(row.get('path_status')), _ui_badge(row.get('snapshot_status')),
+                   _esc(row.get('snapshot_source', '已记录'))]
         body.append('<tr>' + ''.join(f'<td>{v}</td>' for v in values) + '</tr>')
-    return _simple_table(('代码', '名称', '名单日期', '节点收益', '路径结果', '节点快照状态'), body)
+    return _simple_table(('代码', '名称', '名单日期', '节点 O/H/L/C', '节点收益', '路径结果', '节点快照状态', '节点来源'), body)
 
 
 def _position(distance):
@@ -537,10 +631,10 @@ def _daily_table(rows):
                    ('original_trigger', 'today_open', 'today_high', 'today_low', 'today_close')]
         values += [_esc(_percent(row['close_vs_trigger_pct'], signed=True)
                         if row['close_vs_trigger_pct'] is not None else '—')]
-        values += [_ui_badge(row['path_status']), _esc(row['note'])]
+        values += [_ui_badge(row['path_status']), _esc(row.get('observation_source', '数据缺失')), _esc(row['note'])]
         body.append('<tr>' + ''.join(f'<td>{v}</td>' for v in values) + '</tr>')
     return _simple_table(('代码', '名称', '名单日期', 'Score', 'Trigger', '今日开盘',
-                          '今日最高', '今日最低', '今日收盘', '收盘较 Trigger %', '今日状态', '结果说明'), body)
+                          '今日最高', '今日最低', '今日收盘', '收盘较 Trigger %', '今日状态', '记录来源', '结果说明'), body)
 
 
 def render_html(model: ReportModel) -> str:
@@ -566,13 +660,16 @@ def render_html(model: ReportModel) -> str:
         audit_by_id.setdefault(row['signal_id'], {}).update({k: v for k, v in row.items() if v is not None})
     audit_rows = list(audit_by_id.values())
     audit_html = ''.join('<tr>' + ''.join(f'<td>{_esc(row.get(k))}</td>' for k in
-                        ('code', 'signal_id', 'setup', 'status', 'raw_status', 'path_status', 'snapshot_status'))
+                        ('code', 'signal_id', 'setup', 'status', 'raw_status', 'path_status',
+                         'snapshot_status', 'snapshot_source', 'observation_source', 'source_mode'))
                         + '</tr>' for row in audit_rows)
     audit_html = _simple_table(('代码', 'signal_id', 'Setup', 'technical status', 'raw status',
-                               'Execution / Path Result', 'Fixed Horizon Snapshot'), [audit_html])
+                               'Execution / Path Result', 'Fixed Horizon Snapshot', 'Snapshot Source',
+                               'Execution Source', 'Source Mode'), [audit_html])
     issues = [a for a in model.anomalies if a != 'NONE']
     labels = {_MISSING: '数据缺失：历史节点或今日记录缺失',
-              'AMBIGUOUS_SAME_BAR': '同日顺序不明', _UNVERIFIED: '数据待核验'}
+              'AMBIGUOUS_SAME_BAR': '同日顺序不明', _UNVERIFIED: '数据待核验',
+              REVIEW_OBSERVATION_INCOMPLETE: '复盘数据不完整：执行观察或固定节点覆盖不足'}
     anomaly_html = ('<ul>' + ''.join('<li>' + _esc(labels.get(a, '复盘失败：' + a)) + '</li>' for a in issues)
                     + '</ul>') if issues else '<p>数据状态：正常</p>'
     review_html = []
@@ -584,6 +681,13 @@ def render_html(model: ReportModel) -> str:
                                f'<h3>{label}</h3>{_review_table(rows)}</div>')
         else:
             review_html.append(f'<p class="note" aria-label="{label}">今日无 {horizon} 到期信号</p>')
+
+    callout_class = (
+        ' warning'
+        if model.review_status == REVIEW_OBSERVATION_INCOMPLETE
+        or (model.review_coverage and model.review_coverage.get('status') == REVIEW_OBSERVATION_INCOMPLETE)
+        else ''
+    )
 
     return f"""<!doctype html>
 <html lang="zh-CN">
@@ -641,7 +745,7 @@ footer {{ color:var(--muted); font-size:12px; padding:18px 0 4px; }}
 </header>
 <h2>今日总览</h2>
 <div class="cards">{card_html}</div>
-<p class="callout">{_esc(model.summary_text)}</p>
+<p class="callout{callout_class}">{_esc(model.summary_text)}</p>
 <section id="daily-review">
 <h2>今日复盘</h2>
 <h3>昨日名单今日表现 · {metadata['previous_date']}</h3>

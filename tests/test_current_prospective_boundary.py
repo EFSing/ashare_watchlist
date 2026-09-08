@@ -135,7 +135,10 @@ def test_observation_open_is_prospective_and_t_close_is_not_execution(tmp_path):
     q.update(quote_date='2026-09-08', open=10.6)
     perf.update(tracker, {'600000': q}, today='2026-09-08', calendar=CAL)
     obs = tracker['signals'][key]['observations'][0]
-    assert obs == {'date': '2026-09-08', 'open': 10.6, 'high': 11.5, 'low': 10.5, 'price': 11}
+    assert {field: obs[field] for field in ('date', 'open', 'high', 'low', 'price')} == {
+        'date': '2026-09-08', 'open': 10.6, 'high': 11.5, 'low': 10.5, 'price': 11,
+    }
+    assert obs['source_mode'] == perf.SOURCE_MODE_LIVE_DAILY_TRACKER_QUOTE
     save(tmp_path, tracker)
     write_list(tmp_path, '20260908')
     model = renderer.build_report_model('20260908', paths=paths, calendar=CAL)

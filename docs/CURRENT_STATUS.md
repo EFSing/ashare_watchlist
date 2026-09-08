@@ -1,5 +1,30 @@
 # CURRENT STATUS
 
+## Exact-date immutable review recovery and completeness guard — PR #43 (unmerged) — 2026-09-08
+
+本轮从 PR #43 起始 head `945b0fc16c0dde80aa4d795f049781834a7689a8` 继续，保持不 merge。
+只使用本机不可变 evidence root
+`data/t_close_evidence/20260908/20260908`；10,598/10,598 raw/sidecar 配对通过 SHA、
+schema、retrieved-at、provider/source、code SHA 和完整性审计，`UNKNOWN_ORIGIN=0`，恢复过程
+`provider_calls=0`。没有调用 HiThink、Tencent、AkShare 或任何 historical API，也没有读取、
+生成或修改 `data/validation/continuous_speed_probe/`。
+
+正式策略为 `EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1`：9/7 的 25 个信号只按 exact
+2026-09-08 Tencent quote 写入 execution observation，并复用既有 `classify_signal_bar`；
+9/3 的 11 个信号只写入 exact T+3 fixed snapshot（open/high/low/close），不重建 9/4、
+9/7 execution/path。因没有此前确认入场，11 个节点均为 `return_pct=UNVERIFIED`、
+`reason=CONFIRMED_ENTRY_UNAVAILABLE`、`path=UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH`。
+
+当前 canonical tracker 仍为 70 个 identity，日期计数为 11 / 25 / 34；9/7 execution
+recovery=25/25，9/3 T+3 snapshot=11/11，9/8 current list 34 个保持 pending。每日 guard
+已冻结为“更新前计算 execution/horizon expected，更新后要求 exact-date coverage”，本次
+`execution expected=36, captured=25, missing=11；horizon expected=11, captured=11, missing=0`，
+因此状态是 `REVIEW_OBSERVATION_INCOMPLETE` 的 fail-soft，而不是伪造 9/3 的历史执行。
+HTML 同时展示 9/7 的 25 行当日 OHLC/trigger/status/close-vs-trigger、9/3 的恢复节点与
+路径未验证，并在顶部显示 coverage warning。B strategy/threshold/scoring/target、provider
+priority、T+5 primary、Final OOS/C/old D 边界均未改变。下一步是推送新 head、实时核对 PR #43
+exact-head CI，并等待用户 merge decision。
+
 ## Current prospective review boundary correction — PR #43 (unmerged)
 
 The user-facing prospective epoch starts on 2026-09-03, the first verified
@@ -17,7 +42,7 @@ candidate, path/snapshot semantics, or research conclusions. PR #43 remains unme
 read its exact head and CI live before any user merge decision.
 
 
-更新时间：2026-09-07（Asia/Shanghai）
+更新时间：2026-09-08（Asia/Shanghai）
 Formal Delivery Ladder：`frozen candidate`
 Live `master@3308c7ab8e403d459baf1bbfe873e7320d750317`；PR #41 已合并。post-merge
 correctness run `34133269448` 为 `completed / success` 且 head exact。

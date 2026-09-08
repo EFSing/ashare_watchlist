@@ -58,7 +58,13 @@ def _run_daily_close_reporting(as_of_date: str, data_root: Path) -> dict[str, An
     environment = os.environ.copy()
     environment[DATA_ROOT_ENV] = str(data_root)
     python = sys.executable
-    tracker_command = [python, str(project_root / "scripts" / "track_perf.py"), "all"]
+    tracker_command = [
+        python,
+        str(project_root / "scripts" / "track_perf.py"),
+        "all",
+        "--date",
+        str(as_of_date),
+    ]
     try:
         tracker_run = subprocess.run(
             tracker_command,
@@ -75,6 +81,19 @@ def _run_daily_close_reporting(as_of_date: str, data_root: Path) -> dict[str, An
         tracker_failure = None if tracker_run.returncode == 0 else (
             f"track_perf exit {tracker_run.returncode}: {_bounded_process_detail(tracker_run)}"
         )
+
+    coverage: dict[str, Any] | None = None
+    tracker_path = data_root / "perf_tracker.json"
+    if tracker_path.exists():
+        try:
+            tracker_payload = json.loads(tracker_path.read_text(encoding="utf-8"))
+            raw_coverage = tracker_payload.get("review_coverage")
+            normalized_as_of = str(as_of_date).replace("-", "")
+            coverage_date = str(raw_coverage.get("report_date", "")).replace("-", "") if isinstance(raw_coverage, dict) else ""
+            if isinstance(raw_coverage, dict) and coverage_date == normalized_as_of:
+                coverage = raw_coverage
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            coverage = None
 
     renderer_command = [
         python,
@@ -109,6 +128,8 @@ def _run_daily_close_reporting(as_of_date: str, data_root: Path) -> dict[str, An
         bundle_status = "REPORT_FAILED"
     elif tracker_failure:
         bundle_status = "REVIEW_FAILED_REPORT_READY"
+    elif coverage and coverage.get("status") == "REVIEW_OBSERVATION_INCOMPLETE":
+        bundle_status = "REVIEW_OBSERVATION_INCOMPLETE_REPORT_READY"
     else:
         bundle_status = "READY"
     return {
@@ -117,6 +138,7 @@ def _run_daily_close_reporting(as_of_date: str, data_root: Path) -> dict[str, An
             "status": "FAILED" if tracker_failure else "SUCCESS",
             "detail": tracker_failure or _bounded_process_detail(tracker_run),
             "exit_code": tracker_run.returncode if tracker_run is not None else None,
+            "review_coverage": coverage,
         },
         "renderer": {
             "status": "SUCCESS" if renderer_run.returncode == 0 else "FAILED",

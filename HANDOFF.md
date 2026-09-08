@@ -9,7 +9,10 @@
   authoritative recovery branch after the source commit is pushed. At recovery time, run
   `git rev-parse HEAD` and `git rev-parse @{u}` and require the two values to be equal; do not
   use this file's or any governance commit's SHA as the recovery truth.
-- current task: `REPAIR_PRE_T_PLUS_1_TRACKER_STATE`. Live governance reconciliation is closed:
+- current task: `EXACT_DATE_IMMUTABLE_REVIEW_RECOVERY_AND_COMPLETENESS_GUARD`. PR #43 is still
+  open and unmerged; the task started from exact head
+  `945b0fc16c0dde80aa4d795f049781834a7689a8` and must keep the no-merge boundary.
+  Live governance reconciliation is closed:
   PR #41 is merged, review cleanup PR #42 is merged into master, post-merge correctness run
   `34140697889` is `completed / success` with exact head, and formal Delivery Ladder is
   `frozen candidate`.
@@ -18,6 +21,12 @@
   `d3bbdc7275fe32fd8763eba03fb987fad2308eb43d6149919829b0d5ec462ba4`; fingerprint
   `93882eecb2f37d4c0653864bd54dbbe80c19334b7913439ef3f6939a69ef5db8`; watchlist SHA
   `f58059cd5269f8ac5cd10da357a2bd008a76ef84feaa399846d74ad7daa4b5fc`.
+- exact-date recovery policy: `EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1`; evidence root
+  `data/t_close_evidence/20260908/20260908`; integrity `PASS`, raw/sidecar pairs `10598/10598`,
+  `UNKNOWN_ORIGIN=0`, provider calls `0`. 9/7 execution `25/25`; 9/3 T+3 snapshot `11/11`;
+  9/3 prior execution remains unavailable and is not reconstructed. Review guard is
+  `REVIEW_OBSERVATION_INCOMPLETE` with execution `36 expected / 25 captured / 11 missing` and
+  horizon `11 expected / 11 captured / 0 missing`.
 - T+1 correction: 34 eligible 20260908 signals contained invalid same-list-day execution
   observations/state (58 violating fields/observation categories). Reset all 34 to pending,
   null execution fields, zero days and empty observations. Earlier 11/25 signals and all
@@ -41,16 +50,19 @@
   `1PPHCZfD-B7f5vRHhJ75NwFvF2NCgHPZK`. The chunk SHA was verified, then only its
   `watchlist/watchlist_20260907.json` ZIP member was extracted and exact-SHA checked.
 - smoke: `data/reports/daily_close_20260908.html` and `data/reports/latest.html` show
-  34 new candidates, 25 exact previous-session signals, 11 older active signals and
-  11 due T+3 snapshots. The 36 historical signals lack 9/8 observations: OHLC remains
-  missing, no historical quotes or observations were fabricated. No 8/20 or duplicate
-  signal IDs appear. The migration plan/removed-record audit is local operational output
-  at `data/reports/prospective_cleanup_20260908.json`.
-- observation compatibility: future observations preserve quote open; old observations
-  without open remain missing. Update does not execute a signal on its list day (T+1).
-- validation: 51 focused tests and 398 full pytest tests passed; compileall, diff check,
-  exact-byte continuity and structured HTML smoke passed. Exact-head CI must be read live
-  for the pushed head. Classification remained correctness blocker / STRICT PATH.
+  34 new candidates, 25 exact previous-session signals with 9/8 OHLC, 11 exact T+3 snapshots
+  with `UNVERIFIED` return/path, and the top completeness warning. The 9/3 execution path is
+  intentionally still missing; no historical quotes or observations were fabricated. No 8/20
+  or duplicate signal IDs appear.
+- observation compatibility: future observations preserve quote open and normal observations
+  carry `LIVE_DAILY_TRACKER_QUOTE`; recovered observations carry the exact immutable recovery
+  provenance. Old observations without provenance remain readable. Update does not execute a
+  signal on its list day (T+1).
+- validation: latest recovery/renderer/runner-focused set is 77 passed; the full repository
+  suite is 423 passed when run with the repository `.venv` and a short Windows basetemp;
+  compileall, diff check, exact-byte continuity and structured HTML smoke passed. Exact-head
+  CI must be read live for the pushed head. Classification remained correctness blocker /
+  STRICT PATH.
 - boundaries: do not promote, approve production, unseal/read Final OOS, read C, rebuild old D,
   tune B, change strategy semantics, start new research, or touch
   `data/validation/continuous_speed_probe/`. Package/source/watchlist bytes and Drive
@@ -59,11 +71,13 @@
 - blockers: none for the frozen candidate or daily-close bundle. Final OOS remains
   `SEALED / UNREAD`; C remains unread; old D is not reconstructed; forbidden validation data
   remains untouched.
-- next action: user merge decision on PR #43 after exact-head CI verification. Do not auto-merge.
+- next action: push the new implementation head, re-read PR #43 exact-head CI live, then wait for
+  user merge decision. Do not auto-merge.
 - exact-head CI must always be re-read live for the current remote head; the previously
   verified implementation head passed both push and pull-request correctness checks before
   this governance-only handoff update.
-- terminal marker: `T_PLUS_1_TRACKER_STATE_REPAIRED_PR_READY_FOR_USER_MERGE_DECISION`.
+- terminal marker after the new head and CI are verified:
+  `EXACT_DATE_REVIEW_RECOVERY_AND_COMPLETENESS_GUARD_PR_READY_FOR_USER_MERGE_DECISION`.
 
 ## New-device / new-session recovery
 

@@ -39,7 +39,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:000753:B_BREAKOUT_RETEST",
@@ -57,7 +60,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:000753:B_BREAKOUT_RETEST",
@@ -75,7 +81,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -117,7 +126,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:001217:B_BREAKOUT_RETEST",
@@ -135,7 +147,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:001217:B_BREAKOUT_RETEST",
@@ -153,7 +168,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -195,7 +213,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:001236:B_BREAKOUT_RETEST",
@@ -213,7 +234,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:001236:B_BREAKOUT_RETEST",
@@ -231,7 +255,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -273,7 +300,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:001322:B_BREAKOUT_RETEST",
@@ -291,7 +321,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:001322:B_BREAKOUT_RETEST",
@@ -309,7 +342,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -351,7 +387,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:002099:B_BREAKOUT_RETEST",
@@ -369,7 +408,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:002099:B_BREAKOUT_RETEST",
@@ -387,7 +429,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -429,7 +474,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:002124:B_BREAKOUT_RETEST",
@@ -447,7 +495,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:002124:B_BREAKOUT_RETEST",
@@ -465,7 +516,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -507,7 +561,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:002278:B_BREAKOUT_RETEST",
@@ -525,7 +582,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:002278:B_BREAKOUT_RETEST",
@@ -543,7 +603,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -585,7 +648,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:002537:B_BREAKOUT_RETEST",
@@ -603,7 +669,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:002537:B_BREAKOUT_RETEST",
@@ -621,7 +690,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -663,7 +735,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:002543:B_BREAKOUT_RETEST",
@@ -681,7 +756,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:002543:B_BREAKOUT_RETEST",
@@ -699,7 +777,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -741,7 +822,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:002690:B_BREAKOUT_RETEST",
@@ -759,7 +843,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:002690:B_BREAKOUT_RETEST",
@@ -777,7 +864,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -819,7 +909,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:002761:B_BREAKOUT_RETEST",
@@ -837,7 +930,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:002761:B_BREAKOUT_RETEST",
@@ -855,7 +951,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -897,7 +996,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:002809:B_BREAKOUT_RETEST",
@@ -915,7 +1017,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:002809:B_BREAKOUT_RETEST",
@@ -933,7 +1038,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -975,7 +1083,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:300133:B_BREAKOUT_RETEST",
@@ -993,7 +1104,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:300133:B_BREAKOUT_RETEST",
@@ -1011,7 +1125,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -1053,7 +1170,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:300256:B_BREAKOUT_RETEST",
@@ -1071,7 +1191,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:300256:B_BREAKOUT_RETEST",
@@ -1089,7 +1212,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -1131,7 +1257,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:300268:B_BREAKOUT_RETEST",
@@ -1149,7 +1278,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:300268:B_BREAKOUT_RETEST",
@@ -1167,7 +1299,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -1209,7 +1344,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:300318:B_BREAKOUT_RETEST",
@@ -1227,7 +1365,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:300318:B_BREAKOUT_RETEST",
@@ -1245,7 +1386,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -1287,7 +1431,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:300673:B_BREAKOUT_RETEST",
@@ -1305,7 +1452,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:300673:B_BREAKOUT_RETEST",
@@ -1323,7 +1473,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -1365,7 +1518,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:300765:B_BREAKOUT_RETEST",
@@ -1383,7 +1539,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:300765:B_BREAKOUT_RETEST",
@@ -1401,7 +1560,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -1443,7 +1605,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:300945:B_BREAKOUT_RETEST",
@@ -1461,7 +1626,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:300945:B_BREAKOUT_RETEST",
@@ -1479,7 +1647,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -1521,7 +1692,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:300962:B_BREAKOUT_RETEST",
@@ -1539,7 +1713,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:300962:B_BREAKOUT_RETEST",
@@ -1557,7 +1734,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -1599,7 +1779,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:301207:B_BREAKOUT_RETEST",
@@ -1617,7 +1800,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:301207:B_BREAKOUT_RETEST",
@@ -1635,7 +1821,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -1677,7 +1866,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:600018:B_BREAKOUT_RETEST",
@@ -1695,7 +1887,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:600018:B_BREAKOUT_RETEST",
@@ -1713,7 +1908,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -1755,7 +1953,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:600278:B_BREAKOUT_RETEST",
@@ -1773,7 +1974,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:600278:B_BREAKOUT_RETEST",
@@ -1791,7 +1995,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -1833,7 +2040,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:600916:B_BREAKOUT_RETEST",
@@ -1851,7 +2061,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:600916:B_BREAKOUT_RETEST",
@@ -1869,7 +2082,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -1911,7 +2127,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:603323:B_BREAKOUT_RETEST",
@@ -1929,7 +2148,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:603323:B_BREAKOUT_RETEST",
@@ -1947,7 +2169,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -1989,7 +2214,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:603406:B_BREAKOUT_RETEST",
@@ -2007,7 +2235,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:603406:B_BREAKOUT_RETEST",
@@ -2025,7 +2256,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -2067,7 +2301,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:603676:B_BREAKOUT_RETEST",
@@ -2085,7 +2322,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:603676:B_BREAKOUT_RETEST",
@@ -2103,7 +2343,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -2145,7 +2388,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:605001:B_BREAKOUT_RETEST",
@@ -2163,7 +2409,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:605001:B_BREAKOUT_RETEST",
@@ -2181,7 +2430,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -2223,7 +2475,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:688060:B_BREAKOUT_RETEST",
@@ -2241,7 +2496,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:688060:B_BREAKOUT_RETEST",
@@ -2259,7 +2517,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -2301,7 +2562,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:688137:B_BREAKOUT_RETEST",
@@ -2319,7 +2583,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:688137:B_BREAKOUT_RETEST",
@@ -2337,7 +2604,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -2379,7 +2649,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:688333:B_BREAKOUT_RETEST",
@@ -2397,7 +2670,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:688333:B_BREAKOUT_RETEST",
@@ -2415,7 +2691,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -2457,7 +2736,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:688543:B_BREAKOUT_RETEST",
@@ -2475,7 +2757,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:688543:B_BREAKOUT_RETEST",
@@ -2493,7 +2778,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -2535,7 +2823,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:688575:B_BREAKOUT_RETEST",
@@ -2553,7 +2844,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:688575:B_BREAKOUT_RETEST",
@@ -2571,7 +2865,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -2613,7 +2910,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:688613:B_BREAKOUT_RETEST",
@@ -2631,7 +2931,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:688613:B_BREAKOUT_RETEST",
@@ -2649,7 +2952,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -2683,15 +2989,30 @@
           "scheduled_date": "2026-09-08",
           "review_trading_date": "2026-09-08",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:002543:B_BREAKOUT_RETEST|T+3|2026-09-08",
-          "status": "PENDING",
-          "quote_date": null,
-          "price": null,
-          "high": null,
-          "low": null,
+          "status": "CAPTURED",
+          "quote_date": "2026-09-08",
+          "price": 7.43,
+          "high": 7.45,
+          "low": 7.29,
           "return_pct": null,
-          "path_status": null,
-          "signal_status": null,
-          "reason": null
+          "path_status": "UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH",
+          "signal_status": "pending",
+          "reason": "CONFIRMED_ENTRY_UNAVAILABLE",
+          "open": 7.33,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "a77af04894a12eea7ca770f157036a12b96ef1f6e7a9d5551c40f3e5c2b38705",
+            "source_capture_sha256": "a77af04894a12eea7ca770f157036a12b96ef1f6e7a9d5551c40f3e5c2b38705",
+            "capture_path": "tencent_quote/4de08e72bef72bf9336f555c6678057932afbe0cd336608f6c028b600e06ccf5.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:23.966412+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:002543:B_BREAKOUT_RETEST",
@@ -2709,7 +3030,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:002543:B_BREAKOUT_RETEST",
@@ -2727,7 +3051,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -2761,15 +3088,30 @@
           "scheduled_date": "2026-09-08",
           "review_trading_date": "2026-09-08",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:300546:B_BREAKOUT_RETEST|T+3|2026-09-08",
-          "status": "PENDING",
-          "quote_date": null,
-          "price": null,
-          "high": null,
-          "low": null,
+          "status": "CAPTURED",
+          "quote_date": "2026-09-08",
+          "price": 17.91,
+          "high": 18.3,
+          "low": 17.62,
           "return_pct": null,
-          "path_status": null,
-          "signal_status": null,
-          "reason": null
+          "path_status": "UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH",
+          "signal_status": "pending",
+          "reason": "CONFIRMED_ENTRY_UNAVAILABLE",
+          "open": 17.86,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "a02ac40fb748d2f49844b0c5f6ceb2856a91153edf2b68892bad0b395a60b727",
+            "source_capture_sha256": "a02ac40fb748d2f49844b0c5f6ceb2856a91153edf2b68892bad0b395a60b727",
+            "capture_path": "tencent_quote/d9c8390c30c8364a7b997fd4d16375f4dc74251e36838663dcabed2af26cbff3.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:25.233251+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:300546:B_BREAKOUT_RETEST",
@@ -2787,7 +3129,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:300546:B_BREAKOUT_RETEST",
@@ -2805,7 +3150,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -2839,15 +3187,30 @@
           "scheduled_date": "2026-09-08",
           "review_trading_date": "2026-09-08",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:301223:B_BREAKOUT_RETEST|T+3|2026-09-08",
-          "status": "PENDING",
-          "quote_date": null,
-          "price": null,
-          "high": null,
-          "low": null,
+          "status": "CAPTURED",
+          "quote_date": "2026-09-08",
+          "price": 17.64,
+          "high": 17.71,
+          "low": 17.52,
           "return_pct": null,
-          "path_status": null,
-          "signal_status": null,
-          "reason": null
+          "path_status": "UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH",
+          "signal_status": "pending",
+          "reason": "CONFIRMED_ENTRY_UNAVAILABLE",
+          "open": 17.61,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "4fc1d142522b8efb5296fb6f2f5d138a1280e2908eba721e2e3e5104b4097741",
+            "source_capture_sha256": "4fc1d142522b8efb5296fb6f2f5d138a1280e2908eba721e2e3e5104b4097741",
+            "capture_path": "tencent_quote/bd0b84b8de0a1654ae2d3144ad44451b6b3991e3ec0813e45c4a06ca0c8e5f46.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:26.137715+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:301223:B_BREAKOUT_RETEST",
@@ -2865,7 +3228,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:301223:B_BREAKOUT_RETEST",
@@ -2883,7 +3249,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -2917,15 +3286,30 @@
           "scheduled_date": "2026-09-08",
           "review_trading_date": "2026-09-08",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:600108:B_BREAKOUT_RETEST|T+3|2026-09-08",
-          "status": "PENDING",
-          "quote_date": null,
-          "price": null,
-          "high": null,
-          "low": null,
+          "status": "CAPTURED",
+          "quote_date": "2026-09-08",
+          "price": 5.28,
+          "high": 5.28,
+          "low": 5.28,
           "return_pct": null,
-          "path_status": null,
-          "signal_status": null,
-          "reason": null
+          "path_status": "UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH",
+          "signal_status": "pending",
+          "reason": "CONFIRMED_ENTRY_UNAVAILABLE",
+          "open": 5.28,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "c6f8ef7c29ca9fc69180695ebf1a93b1799d0930f3c29b9ce9a8500adc17dc42",
+            "source_capture_sha256": "c6f8ef7c29ca9fc69180695ebf1a93b1799d0930f3c29b9ce9a8500adc17dc42",
+            "capture_path": "tencent_quote/9352819ff7599aefd2c03107bd4ff8d7654687555ff922200d66a231fb527941.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:26.586053+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:600108:B_BREAKOUT_RETEST",
@@ -2943,7 +3327,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:600108:B_BREAKOUT_RETEST",
@@ -2961,7 +3348,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -2995,15 +3385,30 @@
           "scheduled_date": "2026-09-08",
           "review_trading_date": "2026-09-08",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:600739:B_BREAKOUT_RETEST|T+3|2026-09-08",
-          "status": "PENDING",
-          "quote_date": null,
-          "price": null,
-          "high": null,
-          "low": null,
+          "status": "CAPTURED",
+          "quote_date": "2026-09-08",
+          "price": 10.8,
+          "high": 10.85,
+          "low": 10.72,
           "return_pct": null,
-          "path_status": null,
-          "signal_status": null,
-          "reason": null
+          "path_status": "UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH",
+          "signal_status": "pending",
+          "reason": "CONFIRMED_ENTRY_UNAVAILABLE",
+          "open": 10.77,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "2549f10f8cc0814dd9b43093d2e8ae696581d7005baba7f9d597fa73cedf29a1",
+            "source_capture_sha256": "2549f10f8cc0814dd9b43093d2e8ae696581d7005baba7f9d597fa73cedf29a1",
+            "capture_path": "tencent_quote/5f4c3f80981325d250aeedc67129c5bf62f7003aa754ccb6630475d49e57d837.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:27.244122+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:600739:B_BREAKOUT_RETEST",
@@ -3021,7 +3426,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:600739:B_BREAKOUT_RETEST",
@@ -3039,7 +3447,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -3073,15 +3484,30 @@
           "scheduled_date": "2026-09-08",
           "review_trading_date": "2026-09-08",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:601512:B_BREAKOUT_RETEST|T+3|2026-09-08",
-          "status": "PENDING",
-          "quote_date": null,
-          "price": null,
-          "high": null,
-          "low": null,
+          "status": "CAPTURED",
+          "quote_date": "2026-09-08",
+          "price": 8.78,
+          "high": 8.82,
+          "low": 8.52,
           "return_pct": null,
-          "path_status": null,
-          "signal_status": null,
-          "reason": null
+          "path_status": "UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH",
+          "signal_status": "pending",
+          "reason": "CONFIRMED_ENTRY_UNAVAILABLE",
+          "open": 8.56,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "cfa983d466e4ecf8190b0e42e70bc016541d5d3e516f85de88509c7f4ff0eb0d",
+            "source_capture_sha256": "cfa983d466e4ecf8190b0e42e70bc016541d5d3e516f85de88509c7f4ff0eb0d",
+            "capture_path": "tencent_quote/3e52d53a3d047ed1629411e3ffc29d81745ea92bbb5df2a18c5a95bbfe7992d8.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:27.722973+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:601512:B_BREAKOUT_RETEST",
@@ -3099,7 +3525,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:601512:B_BREAKOUT_RETEST",
@@ -3117,7 +3546,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -3151,15 +3583,30 @@
           "scheduled_date": "2026-09-08",
           "review_trading_date": "2026-09-08",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603323:B_BREAKOUT_RETEST|T+3|2026-09-08",
-          "status": "PENDING",
-          "quote_date": null,
-          "price": null,
-          "high": null,
-          "low": null,
+          "status": "CAPTURED",
+          "quote_date": "2026-09-08",
+          "price": 4.58,
+          "high": 4.59,
+          "low": 4.49,
           "return_pct": null,
-          "path_status": null,
-          "signal_status": null,
-          "reason": null
+          "path_status": "UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH",
+          "signal_status": "pending",
+          "reason": "CONFIRMED_ENTRY_UNAVAILABLE",
+          "open": 4.5,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "677f2147a5908ac6acf8c5c72f5b13cc1a50dd3d4f0ad1aa693f6d7538d4afca",
+            "source_capture_sha256": "677f2147a5908ac6acf8c5c72f5b13cc1a50dd3d4f0ad1aa693f6d7538d4afca",
+            "capture_path": "tencent_quote/97b5052f6d6248db45592f797e121a5323fd1a8a24ae62e36c322f50a937bde5.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:28.232913+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603323:B_BREAKOUT_RETEST",
@@ -3177,7 +3624,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603323:B_BREAKOUT_RETEST",
@@ -3195,7 +3645,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -3229,15 +3682,30 @@
           "scheduled_date": "2026-09-08",
           "review_trading_date": "2026-09-08",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603406:B_BREAKOUT_RETEST|T+3|2026-09-08",
-          "status": "PENDING",
-          "quote_date": null,
-          "price": null,
-          "high": null,
-          "low": null,
+          "status": "CAPTURED",
+          "quote_date": "2026-09-08",
+          "price": 30.2,
+          "high": 30.49,
+          "low": 29.77,
           "return_pct": null,
-          "path_status": null,
-          "signal_status": null,
-          "reason": null
+          "path_status": "UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH",
+          "signal_status": "pending",
+          "reason": "CONFIRMED_ENTRY_UNAVAILABLE",
+          "open": 30.39,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "fec71bd992fec6fc5d236af109d2daef00cfa319eb24bda46aaf996fa28b8708",
+            "source_capture_sha256": "fec71bd992fec6fc5d236af109d2daef00cfa319eb24bda46aaf996fa28b8708",
+            "capture_path": "tencent_quote/01e6d5b83db741f723042a543a6fc58e5d8d9a02bc01ab57b0e9bf9dfacd048c.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:28.292493+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603406:B_BREAKOUT_RETEST",
@@ -3255,7 +3723,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603406:B_BREAKOUT_RETEST",
@@ -3273,7 +3744,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -3307,15 +3781,30 @@
           "scheduled_date": "2026-09-08",
           "review_trading_date": "2026-09-08",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603995:B_BREAKOUT_RETEST|T+3|2026-09-08",
-          "status": "PENDING",
-          "quote_date": null,
-          "price": null,
-          "high": null,
-          "low": null,
+          "status": "CAPTURED",
+          "quote_date": "2026-09-08",
+          "price": 24.3,
+          "high": 24.53,
+          "low": 23.58,
           "return_pct": null,
-          "path_status": null,
-          "signal_status": null,
-          "reason": null
+          "path_status": "UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH",
+          "signal_status": "pending",
+          "reason": "CONFIRMED_ENTRY_UNAVAILABLE",
+          "open": 23.87,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "016d9b501cb0d1411eda5d37e94f7fe317d9e8cf6a26bfa34d5c6d6bcaf21421",
+            "source_capture_sha256": "016d9b501cb0d1411eda5d37e94f7fe317d9e8cf6a26bfa34d5c6d6bcaf21421",
+            "capture_path": "tencent_quote/daa9fa361223918f93de4a374404a97841f857e024e868ffe26f70bbc63f5c20.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:28.706213+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603995:B_BREAKOUT_RETEST",
@@ -3333,7 +3822,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603995:B_BREAKOUT_RETEST",
@@ -3351,7 +3843,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -3385,15 +3880,30 @@
           "scheduled_date": "2026-09-08",
           "review_trading_date": "2026-09-08",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:688002:B_BREAKOUT_RETEST|T+3|2026-09-08",
-          "status": "PENDING",
-          "quote_date": null,
-          "price": null,
-          "high": null,
-          "low": null,
+          "status": "CAPTURED",
+          "quote_date": "2026-09-08",
+          "price": 178.7,
+          "high": 183.0,
+          "low": 178.02,
           "return_pct": null,
-          "path_status": null,
-          "signal_status": null,
-          "reason": null
+          "path_status": "UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH",
+          "signal_status": "pending",
+          "reason": "CONFIRMED_ENTRY_UNAVAILABLE",
+          "open": 181.0,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "6715b8cd26ebedd0b78a8ab585690858fff3a214621af5eceefca23b91c19fc3",
+            "source_capture_sha256": "6715b8cd26ebedd0b78a8ab585690858fff3a214621af5eceefca23b91c19fc3",
+            "capture_path": "tencent_quote/53153b3aa3713397954a7ddc105210f74d1e7b902f1bd800593445b8678a96f1.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:28.910537+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:688002:B_BREAKOUT_RETEST",
@@ -3411,7 +3921,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:688002:B_BREAKOUT_RETEST",
@@ -3429,7 +3942,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -3463,15 +3979,30 @@
           "scheduled_date": "2026-09-08",
           "review_trading_date": "2026-09-08",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:688621:B_BREAKOUT_RETEST|T+3|2026-09-08",
-          "status": "PENDING",
-          "quote_date": null,
-          "price": null,
-          "high": null,
-          "low": null,
+          "status": "CAPTURED",
+          "quote_date": "2026-09-08",
+          "price": 70.23,
+          "high": 72.34,
+          "low": 68.26,
           "return_pct": null,
-          "path_status": null,
-          "signal_status": null,
-          "reason": null
+          "path_status": "UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH",
+          "signal_status": "pending",
+          "reason": "CONFIRMED_ENTRY_UNAVAILABLE",
+          "open": 70.75,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "d38a421f2d7820ec93bffd3fd646652f1b55c9e36bf7ca62a7837b8f40357a70",
+            "source_capture_sha256": "d38a421f2d7820ec93bffd3fd646652f1b55c9e36bf7ca62a7837b8f40357a70",
+            "capture_path": "tencent_quote/4fee14049453417830cdefbc81cfe0345fde709d71de0eeb44a66aa22408fbc3.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:29.508350+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:688621:B_BREAKOUT_RETEST",
@@ -3489,7 +4020,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:688621:B_BREAKOUT_RETEST",
@@ -3507,7 +4041,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -3524,14 +4061,36 @@
       "stop": 5.04,
       "target": 6.702,
       "rr": 5.392307692307697,
-      "status": "pending",
-      "entry_price": null,
+      "status": "triggered",
+      "entry_price": 5.14,
       "result_price": null,
-      "days_tracked": 0,
-      "first_trigger_date": null,
+      "days_tracked": 1,
+      "first_trigger_date": "2026-09-08",
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-08",
+          "open": 5.33,
+          "price": 5.83,
+          "high": 5.83,
+          "low": 5.33,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "d2f9266061150bf69e44c9973b53d810afcb6415af9fa63836ee4f421cac1bbf",
+            "source_capture_sha256": "d2f9266061150bf69e44c9973b53d810afcb6415af9fa63836ee4f421cac1bbf",
+            "capture_path": "tencent_quote/1293cc0bc4372489805e0b53342539e04cee8c079f973ed736559a493f289809.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:23.065392+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:000930:B_BREAKOUT_RETEST",
@@ -3549,7 +4108,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:000930:B_BREAKOUT_RETEST",
@@ -3567,7 +4129,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:000930:B_BREAKOUT_RETEST",
@@ -3585,7 +4150,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -3602,14 +4170,36 @@
       "stop": 10.14,
       "target": 11.02,
       "rr": 2.519999999999996,
-      "status": "pending",
-      "entry_price": null,
+      "status": "triggered",
+      "entry_price": 10.5,
       "result_price": null,
-      "days_tracked": 0,
-      "first_trigger_date": null,
+      "days_tracked": 1,
+      "first_trigger_date": "2026-09-08",
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-08",
+          "open": 10.4,
+          "price": 10.7,
+          "high": 10.77,
+          "low": 10.39,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "08650f16a3547569a63e3999abc84c4e9423239349de747beda28263be505fc9",
+            "source_capture_sha256": "08650f16a3547569a63e3999abc84c4e9423239349de747beda28263be505fc9",
+            "capture_path": "tencent_quote/a2410f1bfbe9ce4fe5a7e3785068c0969e00a7d335352638409a0e3ec4671b83.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:23.124881+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:001217:B_BREAKOUT_RETEST",
@@ -3627,7 +4217,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:001217:B_BREAKOUT_RETEST",
@@ -3645,7 +4238,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:001217:B_BREAKOUT_RETEST",
@@ -3663,7 +4259,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -3683,11 +4282,33 @@
       "status": "pending",
       "entry_price": null,
       "result_price": null,
-      "days_tracked": 0,
+      "days_tracked": 1,
       "first_trigger_date": null,
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-08",
+          "open": 5.84,
+          "price": 5.88,
+          "high": 5.9,
+          "low": 5.82,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "65278a93c4710cb60dd301186dd72de6fbd82fbddb249a4e185b1c28eccbc354",
+            "source_capture_sha256": "65278a93c4710cb60dd301186dd72de6fbd82fbddb249a4e185b1c28eccbc354",
+            "capture_path": "tencent_quote/9dbbc87214667a4757933761b939cb9e2a6d7c2465749d74a4dabae17ca48d7e.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:23.446113+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002073:B_BREAKOUT_RETEST",
@@ -3705,7 +4326,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002073:B_BREAKOUT_RETEST",
@@ -3723,7 +4347,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002073:B_BREAKOUT_RETEST",
@@ -3741,7 +4368,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -3761,11 +4391,33 @@
       "status": "pending",
       "entry_price": null,
       "result_price": null,
-      "days_tracked": 0,
+      "days_tracked": 1,
       "first_trigger_date": null,
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-08",
+          "open": 5.45,
+          "price": 5.46,
+          "high": 5.55,
+          "low": 5.39,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "65278a93c4710cb60dd301186dd72de6fbd82fbddb249a4e185b1c28eccbc354",
+            "source_capture_sha256": "65278a93c4710cb60dd301186dd72de6fbd82fbddb249a4e185b1c28eccbc354",
+            "capture_path": "tencent_quote/9dbbc87214667a4757933761b939cb9e2a6d7c2465749d74a4dabae17ca48d7e.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:23.446113+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002099:B_BREAKOUT_RETEST",
@@ -3783,7 +4435,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002099:B_BREAKOUT_RETEST",
@@ -3801,7 +4456,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002099:B_BREAKOUT_RETEST",
@@ -3819,7 +4477,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -3836,14 +4497,36 @@
       "stop": 5.68,
       "target": 6.25,
       "rr": 3.071428571428557,
-      "status": "pending",
-      "entry_price": null,
+      "status": "triggered",
+      "entry_price": 5.9,
       "result_price": null,
-      "days_tracked": 0,
-      "first_trigger_date": null,
+      "days_tracked": 1,
+      "first_trigger_date": "2026-09-08",
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-08",
+          "open": 5.86,
+          "price": 5.88,
+          "high": 5.94,
+          "low": 5.78,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "94e098e8283914fe0a096c37cb04e301f9bf18c61a9abec82744adf55782b2fe",
+            "source_capture_sha256": "94e098e8283914fe0a096c37cb04e301f9bf18c61a9abec82744adf55782b2fe",
+            "capture_path": "tencent_quote/c4a4aaee8ad78fd6d4b358c00df3603ff7c312271255ec00cf78894deae64e4b.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:23.713548+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002291:B_BREAKOUT_RETEST",
@@ -3861,7 +4544,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002291:B_BREAKOUT_RETEST",
@@ -3879,7 +4565,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002291:B_BREAKOUT_RETEST",
@@ -3897,7 +4586,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -3914,14 +4606,36 @@
       "stop": 3.33,
       "target": 3.93,
       "rr": 2.5294117647058845,
-      "status": "pending",
-      "entry_price": null,
+      "status": "triggered",
+      "entry_price": 3.42,
       "result_price": null,
-      "days_tracked": 0,
-      "first_trigger_date": null,
+      "days_tracked": 1,
+      "first_trigger_date": "2026-09-08",
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-08",
+          "open": 3.49,
+          "price": 3.61,
+          "high": 3.67,
+          "low": 3.46,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "21300387e427c0b6f79e129c0743336a283fe5976ce6ad84b73cd51d4aeb3230",
+            "source_capture_sha256": "21300387e427c0b6f79e129c0743336a283fe5976ce6ad84b73cd51d4aeb3230",
+            "capture_path": "tencent_quote/023d8cf97574d86e40cb7d36d1e4d6aac82ed1d16e3488e7ba0e92f655a2b262.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:23.772887+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002385:B_BREAKOUT_RETEST",
@@ -3939,7 +4653,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002385:B_BREAKOUT_RETEST",
@@ -3957,7 +4674,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002385:B_BREAKOUT_RETEST",
@@ -3975,7 +4695,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -3992,14 +4715,36 @@
       "stop": 5.26,
       "target": 5.95,
       "rr": 4.3076923076923155,
-      "status": "pending",
-      "entry_price": null,
+      "status": "triggered",
+      "entry_price": 5.41,
       "result_price": null,
-      "days_tracked": 0,
-      "first_trigger_date": null,
+      "days_tracked": 1,
+      "first_trigger_date": "2026-09-08",
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-08",
+          "open": 5.4,
+          "price": 5.58,
+          "high": 5.59,
+          "low": 5.36,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "b08296ae5c29be600fe206a8440582987118749b935329f0144746a370fa779b",
+            "source_capture_sha256": "b08296ae5c29be600fe206a8440582987118749b935329f0144746a370fa779b",
+            "capture_path": "tencent_quote/bbffe43fad9aced2cbac1f6fd0575be73c76e47870026d9040ccae43a8b4d15e.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:23.840568+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002391:B_BREAKOUT_RETEST",
@@ -4017,7 +4762,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002391:B_BREAKOUT_RETEST",
@@ -4035,7 +4783,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002391:B_BREAKOUT_RETEST",
@@ -4053,7 +4804,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -4070,14 +4824,36 @@
       "stop": 10.29,
       "target": 13.389000000000001,
       "rr": 4.847169811320746,
-      "status": "pending",
-      "entry_price": null,
+      "status": "triggered",
+      "entry_price": 10.86,
       "result_price": null,
-      "days_tracked": 0,
-      "first_trigger_date": null,
+      "days_tracked": 1,
+      "first_trigger_date": "2026-09-08",
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-08",
+          "open": 10.71,
+          "price": 10.8,
+          "high": 10.9,
+          "low": 10.71,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "b08296ae5c29be600fe206a8440582987118749b935329f0144746a370fa779b",
+            "source_capture_sha256": "b08296ae5c29be600fe206a8440582987118749b935329f0144746a370fa779b",
+            "capture_path": "tencent_quote/bbffe43fad9aced2cbac1f6fd0575be73c76e47870026d9040ccae43a8b4d15e.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:23.840568+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002394:B_BREAKOUT_RETEST",
@@ -4095,7 +4871,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002394:B_BREAKOUT_RETEST",
@@ -4113,7 +4892,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002394:B_BREAKOUT_RETEST",
@@ -4131,7 +4913,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -4148,14 +4933,36 @@
       "stop": 5.19,
       "target": 5.934,
       "rr": 2.2347826086956575,
-      "status": "pending",
-      "entry_price": null,
+      "status": "triggered",
+      "entry_price": 5.36,
       "result_price": null,
-      "days_tracked": 0,
-      "first_trigger_date": null,
+      "days_tracked": 1,
+      "first_trigger_date": "2026-09-08",
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-08",
+          "open": 5.42,
+          "price": 5.6,
+          "high": 5.69,
+          "low": 5.41,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "5298b60c330b4356781dcbdd6d41bfc96f3b75dbd0c5175fe2b11183858d579d",
+            "source_capture_sha256": "5298b60c330b4356781dcbdd6d41bfc96f3b75dbd0c5175fe2b11183858d579d",
+            "capture_path": "tencent_quote/3744b091990c664f5865dfb9693e7887500c8b33785a83e3bf74c69954670df1.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:24.029618+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002556:B_BREAKOUT_RETEST",
@@ -4173,7 +4980,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002556:B_BREAKOUT_RETEST",
@@ -4191,7 +5001,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002556:B_BREAKOUT_RETEST",
@@ -4209,7 +5022,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -4226,14 +5042,36 @@
       "stop": 9.56,
       "target": 11.058,
       "rr": 2.404545454545457,
-      "status": "pending",
-      "entry_price": null,
+      "status": "triggered",
+      "entry_price": 9.79,
       "result_price": null,
-      "days_tracked": 0,
-      "first_trigger_date": null,
+      "days_tracked": 1,
+      "first_trigger_date": "2026-09-08",
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-08",
+          "open": 10.0,
+          "price": 10.38,
+          "high": 10.44,
+          "low": 9.9,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "48b13c365aa0dd7e1969fceb5a8569356fa069744463b9f1e9a8cda1cc3976bb",
+            "source_capture_sha256": "48b13c365aa0dd7e1969fceb5a8569356fa069744463b9f1e9a8cda1cc3976bb",
+            "capture_path": "tencent_quote/322a94bd977ac4dff297b700b691c0b8760f80b8418543add6927d0d311ab1b6.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:24.303245+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002825:B_BREAKOUT_RETEST",
@@ -4251,7 +5089,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002825:B_BREAKOUT_RETEST",
@@ -4269,7 +5110,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002825:B_BREAKOUT_RETEST",
@@ -4287,7 +5131,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -4307,11 +5154,33 @@
       "status": "pending",
       "entry_price": null,
       "result_price": null,
-      "days_tracked": 0,
+      "days_tracked": 1,
       "first_trigger_date": null,
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-08",
+          "open": 8.49,
+          "price": 8.68,
+          "high": 8.7,
+          "low": 8.44,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "74c437bb95a9a0116395ffa19d6e795e722f2e62ea84b079ac71bf5de9e0f350",
+            "source_capture_sha256": "74c437bb95a9a0116395ffa19d6e795e722f2e62ea84b079ac71bf5de9e0f350",
+            "capture_path": "tencent_quote/49847089da982bef0cb8ff87ad75ee67ab9850659b478c7a2bdcc8790373426f.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:24.637645+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300016:B_BREAKOUT_RETEST",
@@ -4329,7 +5198,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300016:B_BREAKOUT_RETEST",
@@ -4347,7 +5219,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300016:B_BREAKOUT_RETEST",
@@ -4365,7 +5240,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -4382,14 +5260,36 @@
       "stop": 7.52,
       "target": 8.18,
       "rr": 2.666666666666655,
-      "status": "pending",
-      "entry_price": null,
+      "status": "triggered",
+      "entry_price": 7.67,
       "result_price": null,
-      "days_tracked": 0,
-      "first_trigger_date": null,
+      "days_tracked": 1,
+      "first_trigger_date": "2026-09-08",
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-08",
+          "open": 7.7,
+          "price": 7.73,
+          "high": 7.87,
+          "low": 7.59,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "d918ee4cd69b247038328b487664eb62b65584d2c9a2ae981a46116d2126e571",
+            "source_capture_sha256": "d918ee4cd69b247038328b487664eb62b65584d2c9a2ae981a46116d2126e571",
+            "capture_path": "tencent_quote/2355f6405710ad650c3571bdccd998360904f48517aa1e19b63015965f066b41.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:24.770080+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300133:B_BREAKOUT_RETEST",
@@ -4407,7 +5307,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300133:B_BREAKOUT_RETEST",
@@ -4425,7 +5328,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300133:B_BREAKOUT_RETEST",
@@ -4443,7 +5349,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -4460,14 +5369,36 @@
       "stop": 3.52,
       "target": 4.336,
       "rr": 4.099999999999997,
-      "status": "pending",
-      "entry_price": null,
+      "status": "triggered",
+      "entry_price": 3.61,
       "result_price": null,
-      "days_tracked": 0,
-      "first_trigger_date": null,
+      "days_tracked": 1,
+      "first_trigger_date": "2026-09-08",
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-08",
+          "open": 3.67,
+          "price": 3.8,
+          "high": 3.83,
+          "low": 3.67,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "d918ee4cd69b247038328b487664eb62b65584d2c9a2ae981a46116d2126e571",
+            "source_capture_sha256": "d918ee4cd69b247038328b487664eb62b65584d2c9a2ae981a46116d2126e571",
+            "capture_path": "tencent_quote/2355f6405710ad650c3571bdccd998360904f48517aa1e19b63015965f066b41.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:24.770080+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300148:B_BREAKOUT_RETEST",
@@ -4485,7 +5416,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300148:B_BREAKOUT_RETEST",
@@ -4503,7 +5437,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300148:B_BREAKOUT_RETEST",
@@ -4521,7 +5458,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -4538,14 +5478,36 @@
       "stop": 12.77,
       "target": 13.7025,
       "rr": 2.330357142857133,
-      "status": "pending",
-      "entry_price": null,
+      "status": "triggered",
+      "entry_price": 13.03,
       "result_price": null,
-      "days_tracked": 0,
-      "first_trigger_date": null,
+      "days_tracked": 1,
+      "first_trigger_date": "2026-09-08",
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-08",
+          "open": 13.06,
+          "price": 13.07,
+          "high": 13.29,
+          "low": 13.01,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "1930e0c63bf9b00300a8ab80eb246b5b13f6aa61f822c13ffdc68e08fb0c4ba9",
+            "source_capture_sha256": "1930e0c63bf9b00300a8ab80eb246b5b13f6aa61f822c13ffdc68e08fb0c4ba9",
+            "capture_path": "tencent_quote/40b4b0c8b5815a1829901aed17fb885a9b57fcb80db85a8548f364efba6fdbe9.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:24.888225+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300268:B_BREAKOUT_RETEST",
@@ -4563,7 +5525,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300268:B_BREAKOUT_RETEST",
@@ -4581,7 +5546,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300268:B_BREAKOUT_RETEST",
@@ -4599,7 +5567,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -4616,14 +5587,36 @@
       "stop": 4.71,
       "target": 5.8919999999999995,
       "rr": 2.194594594594592,
-      "status": "pending",
-      "entry_price": null,
+      "status": "triggered",
+      "entry_price": 5.16,
       "result_price": null,
-      "days_tracked": 0,
-      "first_trigger_date": null,
+      "days_tracked": 1,
+      "first_trigger_date": "2026-09-08",
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-08",
+          "open": 5.08,
+          "price": 5.17,
+          "high": 5.18,
+          "low": 5.03,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "6207696840593b394bc15ef6dadf97aad0c585ee8f237c45f29cdd9f125d919b",
+            "source_capture_sha256": "6207696840593b394bc15ef6dadf97aad0c585ee8f237c45f29cdd9f125d919b",
+            "capture_path": "tencent_quote/a1dbfffbe4f13ae95de2c6e6ad142947eeae07ddfed0d5ba1ae87639c09396d5.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:24.967205+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300318:B_BREAKOUT_RETEST",
@@ -4641,7 +5634,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300318:B_BREAKOUT_RETEST",
@@ -4659,7 +5655,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300318:B_BREAKOUT_RETEST",
@@ -4677,7 +5676,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -4694,14 +5696,36 @@
       "stop": 43.81,
       "target": 50.316,
       "rr": 3.0409937888198773,
-      "status": "pending",
-      "entry_price": null,
+      "status": "triggered",
+      "entry_price": 44.52,
       "result_price": null,
-      "days_tracked": 0,
-      "first_trigger_date": null,
+      "days_tracked": 1,
+      "first_trigger_date": "2026-09-08",
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-08",
+          "open": 44.98,
+          "price": 45.14,
+          "high": 46.23,
+          "low": 43.86,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "16c9827be6518d25687df3f7c3e7cbddf2d67fe0735ac0abca3a43517955ab65",
+            "source_capture_sha256": "16c9827be6518d25687df3f7c3e7cbddf2d67fe0735ac0abca3a43517955ab65",
+            "capture_path": "tencent_quote/1d4cae52cb56aa7d39efbe5164780e1b36f1d7fb377aeebc52d240c9007ec2e7.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:25.585227+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300765:B_BREAKOUT_RETEST",
@@ -4719,7 +5743,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300765:B_BREAKOUT_RETEST",
@@ -4737,7 +5764,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300765:B_BREAKOUT_RETEST",
@@ -4755,7 +5785,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -4772,14 +5805,36 @@
       "stop": 6.44,
       "target": 7.229,
       "rr": 3.9312500000000212,
-      "status": "pending",
-      "entry_price": null,
+      "status": "triggered",
+      "entry_price": 6.57,
       "result_price": null,
-      "days_tracked": 0,
-      "first_trigger_date": null,
+      "days_tracked": 1,
+      "first_trigger_date": "2026-09-08",
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-08",
+          "open": 6.6,
+          "price": 6.64,
+          "high": 6.67,
+          "low": 6.6,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "d9741d9b8b7c91c8ae0f7855a432bad1bfca157dc2c570e4a01797b9e609ddf6",
+            "source_capture_sha256": "d9741d9b8b7c91c8ae0f7855a432bad1bfca157dc2c570e4a01797b9e609ddf6",
+            "capture_path": "tencent_quote/df7d88043dbc0989ce4d9db3935ec7334e91d51233c518036bddd22707c19c5e.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:26.794156+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:600278:B_BREAKOUT_RETEST",
@@ -4797,7 +5852,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:600278:B_BREAKOUT_RETEST",
@@ -4815,7 +5873,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:600278:B_BREAKOUT_RETEST",
@@ -4833,7 +5894,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -4850,14 +5914,36 @@
       "stop": 8.18,
       "target": 10.0496,
       "rr": 4.341714285714292,
-      "status": "pending",
-      "entry_price": null,
+      "status": "triggered",
+      "entry_price": 8.5,
       "result_price": null,
-      "days_tracked": 0,
-      "first_trigger_date": null,
+      "days_tracked": 1,
+      "first_trigger_date": "2026-09-08",
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-08",
+          "open": 8.56,
+          "price": 8.78,
+          "high": 8.82,
+          "low": 8.52,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "cfa983d466e4ecf8190b0e42e70bc016541d5d3e516f85de88509c7f4ff0eb0d",
+            "source_capture_sha256": "cfa983d466e4ecf8190b0e42e70bc016541d5d3e516f85de88509c7f4ff0eb0d",
+            "capture_path": "tencent_quote/3e52d53a3d047ed1629411e3ffc29d81745ea92bbb5df2a18c5a95bbfe7992d8.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:27.722973+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:601512:B_BREAKOUT_RETEST",
@@ -4875,7 +5961,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:601512:B_BREAKOUT_RETEST",
@@ -4893,7 +5982,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:601512:B_BREAKOUT_RETEST",
@@ -4911,7 +6003,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -4931,11 +6026,33 @@
       "status": "pending",
       "entry_price": null,
       "result_price": null,
-      "days_tracked": 0,
+      "days_tracked": 1,
       "first_trigger_date": null,
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-08",
+          "open": 22.41,
+          "price": 22.75,
+          "high": 22.78,
+          "low": 22.31,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "ee627b5a514c6c692a118ef5864aade730f6181ac1dca74f8b7e7d28c7fbf7da",
+            "source_capture_sha256": "ee627b5a514c6c692a118ef5864aade730f6181ac1dca74f8b7e7d28c7fbf7da",
+            "capture_path": "tencent_quote/dc18a2b999f887f77e790b3d35b54dcccbc9bf2f3058eac7fcbe685620b404a5.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:28.075973+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603205:B_BREAKOUT_RETEST",
@@ -4953,7 +6070,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603205:B_BREAKOUT_RETEST",
@@ -4971,7 +6091,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603205:B_BREAKOUT_RETEST",
@@ -4989,7 +6112,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -5006,14 +6132,36 @@
       "stop": 29.2,
       "target": 32.85,
       "rr": 3.1011235955056176,
-      "status": "pending",
-      "entry_price": null,
+      "status": "triggered",
+      "entry_price": 30.47,
       "result_price": null,
-      "days_tracked": 0,
-      "first_trigger_date": null,
+      "days_tracked": 1,
+      "first_trigger_date": "2026-09-08",
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-08",
+          "open": 30.39,
+          "price": 30.2,
+          "high": 30.49,
+          "low": 29.77,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "fec71bd992fec6fc5d236af109d2daef00cfa319eb24bda46aaf996fa28b8708",
+            "source_capture_sha256": "fec71bd992fec6fc5d236af109d2daef00cfa319eb24bda46aaf996fa28b8708",
+            "capture_path": "tencent_quote/01e6d5b83db741f723042a543a6fc58e5d8d9a02bc01ab57b0e9bf9dfacd048c.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:28.292493+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603406:B_BREAKOUT_RETEST",
@@ -5031,7 +6179,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603406:B_BREAKOUT_RETEST",
@@ -5049,7 +6200,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603406:B_BREAKOUT_RETEST",
@@ -5067,7 +6221,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -5084,14 +6241,36 @@
       "stop": 386.9,
       "target": 450.49500000000006,
       "rr": 2.5000000000000018,
-      "status": "pending",
-      "entry_price": null,
+      "status": "triggered",
+      "entry_price": 394.8,
       "result_price": null,
-      "days_tracked": 0,
-      "first_trigger_date": null,
+      "days_tracked": 1,
+      "first_trigger_date": "2026-09-08",
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-08",
+          "open": 405.15,
+          "price": 402.87,
+          "high": 409.73,
+          "low": 400.11,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "f7a432fc170a8da25864540c71f2a6abd4accf1c8455b2d5e1ae0c8f2463fe3d",
+            "source_capture_sha256": "f7a432fc170a8da25864540c71f2a6abd4accf1c8455b2d5e1ae0c8f2463fe3d",
+            "capture_path": "tencent_quote/74405f2166ea7418c72c39fc8f22b5cfbb8e38db96c98254d9d9f690f64d2b35.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:28.363395+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603444:B_BREAKOUT_RETEST",
@@ -5109,7 +6288,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603444:B_BREAKOUT_RETEST",
@@ -5127,7 +6309,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603444:B_BREAKOUT_RETEST",
@@ -5145,7 +6330,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -5162,14 +6350,36 @@
       "stop": 10.47,
       "target": 11.75,
       "rr": 3.129032258064531,
-      "status": "pending",
-      "entry_price": null,
+      "status": "triggered",
+      "entry_price": 10.88,
       "result_price": null,
-      "days_tracked": 0,
-      "first_trigger_date": null,
+      "days_tracked": 1,
+      "first_trigger_date": "2026-09-08",
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-08",
+          "open": 10.75,
+          "price": 11.13,
+          "high": 11.15,
+          "low": 10.71,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "71b1d98bab28ddaa83188a32e367c7681fe1cfcc08d9534bb837ef8aeb05d4a7",
+            "source_capture_sha256": "71b1d98bab28ddaa83188a32e367c7681fe1cfcc08d9534bb837ef8aeb05d4a7",
+            "capture_path": "tencent_quote/42bae71b1b5ed1d24cdbacd7d1a97f2b9bc7a3b10212d57907b6d96b93ed36c6.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:28.455127+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603585:B_BREAKOUT_RETEST",
@@ -5187,7 +6397,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603585:B_BREAKOUT_RETEST",
@@ -5205,7 +6418,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603585:B_BREAKOUT_RETEST",
@@ -5223,7 +6439,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -5240,14 +6459,36 @@
       "stop": 11.19,
       "target": 12.331999999999999,
       "rr": 2.3588235294117643,
-      "status": "pending",
-      "entry_price": null,
+      "status": "triggered",
+      "entry_price": 11.42,
       "result_price": null,
-      "days_tracked": 0,
-      "first_trigger_date": null,
+      "days_tracked": 1,
+      "first_trigger_date": "2026-09-08",
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-08",
+          "open": 11.62,
+          "price": 11.9,
+          "high": 12.13,
+          "low": 11.49,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "016d9b501cb0d1411eda5d37e94f7fe317d9e8cf6a26bfa34d5c6d6bcaf21421",
+            "source_capture_sha256": "016d9b501cb0d1411eda5d37e94f7fe317d9e8cf6a26bfa34d5c6d6bcaf21421",
+            "capture_path": "tencent_quote/daa9fa361223918f93de4a374404a97841f857e024e868ffe26f70bbc63f5c20.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:28.706213+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603970:B_BREAKOUT_RETEST",
@@ -5265,7 +6506,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603970:B_BREAKOUT_RETEST",
@@ -5283,7 +6527,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603970:B_BREAKOUT_RETEST",
@@ -5301,7 +6548,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -5318,14 +6568,36 @@
       "stop": 9.34,
       "target": 10.67,
       "rr": 2.8000000000000043,
-      "status": "pending",
-      "entry_price": null,
+      "status": "triggered",
+      "entry_price": 9.67,
       "result_price": null,
-      "days_tracked": 0,
-      "first_trigger_date": null,
+      "days_tracked": 1,
+      "first_trigger_date": "2026-09-08",
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-08",
+          "open": 9.72,
+          "price": 9.83,
+          "high": 9.85,
+          "low": 9.68,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "fb49e6f502438e9407b5ad2edcb01efe29b67e243ce90ceb4e43fd24587b8d2b",
+            "source_capture_sha256": "fb49e6f502438e9407b5ad2edcb01efe29b67e243ce90ceb4e43fd24587b8d2b",
+            "capture_path": "tencent_quote/ac0b1e6c0c8b0863284a48812f364a16b15c5144183cf9274593c9f9361931c1.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:28.850473+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:605567:B_BREAKOUT_RETEST",
@@ -5343,7 +6615,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:605567:B_BREAKOUT_RETEST",
@@ -5361,7 +6636,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:605567:B_BREAKOUT_RETEST",
@@ -5379,7 +6657,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     },
@@ -5396,14 +6677,36 @@
       "stop": 171.34,
       "target": 206.82999999999996,
       "rr": 2.5,
-      "status": "pending",
-      "entry_price": null,
+      "status": "triggered",
+      "entry_price": 180.77,
       "result_price": null,
-      "days_tracked": 0,
-      "first_trigger_date": null,
+      "days_tracked": 1,
+      "first_trigger_date": "2026-09-08",
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-08",
+          "open": 181.0,
+          "price": 178.7,
+          "high": 183.0,
+          "low": 178.02,
+          "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+          "provenance": {
+            "source_mode": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+            "provider": "Tencent",
+            "source_identity": "qt.gtimg.cn",
+            "provider_version": "requests/2.32.3",
+            "capture_sha256": "6715b8cd26ebedd0b78a8ab585690858fff3a214621af5eceefca23b91c19fc3",
+            "source_capture_sha256": "6715b8cd26ebedd0b78a8ab585690858fff3a214621af5eceefca23b91c19fc3",
+            "capture_path": "tencent_quote/53153b3aa3713397954a7ddc105210f74d1e7b902f1bd800593445b8678a96f1.json",
+            "source_retrieved_at_bjt": "2026-09-08T18:26:28.910537+08:00",
+            "target_date": "2026-09-08",
+            "code_git_sha": "52484a82e4a2700372c85c47991f62717d4b1196",
+            "evidence_access": "LOCAL_IMMUTABLE_FILES_ONLY"
+          }
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:688002:B_BREAKOUT_RETEST",
@@ -5421,7 +6724,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+5": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:688002:B_BREAKOUT_RETEST",
@@ -5439,7 +6745,10 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         },
         "T+10": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:688002:B_BREAKOUT_RETEST",
@@ -5457,10 +6766,401 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null
+          "reason": null,
+          "open": null,
+          "source_mode": null,
+          "provenance": null
         }
       }
     }
   },
-  "updated": "2026-09-08 18:50:38"
+  "updated": "2026-09-08 23:46:34",
+  "review_coverage": {
+    "status": "REVIEW_OBSERVATION_INCOMPLETE",
+    "report_date": "2026-09-08",
+    "failure_reason": "REVIEW_OBSERVATION_INCOMPLETE",
+    "execution_expected": 36,
+    "execution_captured": 25,
+    "execution_missing": 11,
+    "execution_expected_signal_ids": [
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:002543:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:300546:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:301223:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:600108:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:600739:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:601512:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603323:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603406:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603995:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:688002:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:688621:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:000930:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:001217:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002073:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002099:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002291:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002385:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002391:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002394:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002556:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002825:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300016:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300133:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300148:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300268:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300318:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300765:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:600278:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:601512:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603205:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603406:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603444:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603585:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603970:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:605567:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:688002:B_BREAKOUT_RETEST"
+    ],
+    "execution_captured_signal_ids": [
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:000930:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:001217:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002073:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002099:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002291:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002385:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002391:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002394:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002556:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002825:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300016:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300133:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300148:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300268:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300318:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300765:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:600278:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:601512:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603205:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603406:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603444:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603585:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603970:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:605567:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:688002:B_BREAKOUT_RETEST"
+    ],
+    "execution_missing_signal_ids": [
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:002543:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:300546:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:301223:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:600108:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:600739:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:601512:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603323:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603406:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603995:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:688002:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:688621:B_BREAKOUT_RETEST"
+    ],
+    "horizon_expected": 11,
+    "horizon_captured": 11,
+    "horizon_missing": 0,
+    "horizon_expected_point_ids": [
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:002543:B_BREAKOUT_RETEST|T+3|2026-09-08",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:300546:B_BREAKOUT_RETEST|T+3|2026-09-08",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:301223:B_BREAKOUT_RETEST|T+3|2026-09-08",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:600108:B_BREAKOUT_RETEST|T+3|2026-09-08",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:600739:B_BREAKOUT_RETEST|T+3|2026-09-08",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:601512:B_BREAKOUT_RETEST|T+3|2026-09-08",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603323:B_BREAKOUT_RETEST|T+3|2026-09-08",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603406:B_BREAKOUT_RETEST|T+3|2026-09-08",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603995:B_BREAKOUT_RETEST|T+3|2026-09-08",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:688002:B_BREAKOUT_RETEST|T+3|2026-09-08",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:688621:B_BREAKOUT_RETEST|T+3|2026-09-08"
+    ],
+    "horizon_captured_point_ids": [
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:002543:B_BREAKOUT_RETEST|T+3|2026-09-08",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:300546:B_BREAKOUT_RETEST|T+3|2026-09-08",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:301223:B_BREAKOUT_RETEST|T+3|2026-09-08",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:600108:B_BREAKOUT_RETEST|T+3|2026-09-08",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:600739:B_BREAKOUT_RETEST|T+3|2026-09-08",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:601512:B_BREAKOUT_RETEST|T+3|2026-09-08",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603323:B_BREAKOUT_RETEST|T+3|2026-09-08",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603406:B_BREAKOUT_RETEST|T+3|2026-09-08",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603995:B_BREAKOUT_RETEST|T+3|2026-09-08",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:688002:B_BREAKOUT_RETEST|T+3|2026-09-08",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:688621:B_BREAKOUT_RETEST|T+3|2026-09-08"
+    ],
+    "horizon_missing_points": [],
+    "horizon_expected_signal_ids": [
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:002543:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:300546:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:301223:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:600108:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:600739:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:601512:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603323:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603406:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603995:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:688002:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:688621:B_BREAKOUT_RETEST"
+    ]
+  },
+  "recovery_audit": {
+    "status": "RECOVERY_APPLIED",
+    "policy": "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1",
+    "target_date": "2026-09-08",
+    "evidence_root": "C:\\Users\\soush\\Documents\\ChatGPT\\A股交易系统\\ashare_watchlist\\data\\t_close_evidence\\20260908\\20260908",
+    "integrity_status": "PASS",
+    "evidence_pair_count": 10598,
+    "valid_pair_count": 10598,
+    "unknown_origin_count": 0,
+    "provider_calls": 0,
+    "source_access_mode": "LOCAL_IMMUTABLE_FILES_ONLY",
+    "package": {
+      "path": "C:\\Users\\soush\\Documents\\ChatGPT\\A股交易系统\\ashare_watchlist\\data\\prospective_inputs\\20260908\\2026-09-08_93882eecb2f37d4c0653864bd54dbbe80c19334b7913439ef3f6939a69ef5db8.json",
+      "file_sha256": "d3bbdc7275fe32fd8763eba03fb987fad2308eb43d6149919829b0d5ec462ba4",
+      "content_sha256": "142efea5385d22781f94b6d43cb836e01901e863081c1ec4f49283ae93972df9",
+      "generation_fingerprint": "93882eecb2f37d4c0653864bd54dbbe80c19334b7913439ef3f6939a69ef5db8",
+      "strategy_version": "B_BREAKOUT_RETEST_LEGACY_V1_1"
+    },
+    "watchlists": {
+      "2026-09-03": {
+        "count": 11,
+        "sha256": "50f0717e55daaf4435e1d25b4f1d029109c566d72d63a1fc566f263cdf0fb085"
+      },
+      "2026-09-07": {
+        "count": 25,
+        "sha256": "5a99273b6304621acbf7bba2423a6e372668348a31ac436021caf5f5855db100"
+      },
+      "2026-09-08": {
+        "count": 34,
+        "sha256": "f58059cd5269f8ac5cd10da357a2bd008a76ef84feaa399846d74ad7daa4b5fc"
+      }
+    },
+    "price_semantics": {
+      "status": "PARTIAL",
+      "target_date": "2026-09-08",
+      "codes_expected": 57,
+      "codes_compatible": 33,
+      "codes_missing": 24,
+      "codes_incompatible": 0,
+      "compatible_codes": [
+        "000930",
+        "001217",
+        "002073",
+        "002099",
+        "002291",
+        "002385",
+        "002391",
+        "002394",
+        "002543",
+        "002556",
+        "002825",
+        "300016",
+        "300133",
+        "300148",
+        "300268",
+        "300318",
+        "300546",
+        "300765",
+        "301223",
+        "600108",
+        "600278",
+        "600739",
+        "601512",
+        "603205",
+        "603323",
+        "603406",
+        "603444",
+        "603585",
+        "603970",
+        "603995",
+        "605567",
+        "688002",
+        "688621"
+      ],
+      "missing_codes": {
+        "000753": "QFQ_COMPATIBILITY_BAR_MISSING",
+        "001236": "QFQ_COMPATIBILITY_BAR_MISSING",
+        "001322": "QFQ_COMPATIBILITY_BAR_MISSING",
+        "002124": "QFQ_COMPATIBILITY_BAR_MISSING",
+        "002278": "QFQ_COMPATIBILITY_BAR_MISSING",
+        "002537": "QFQ_COMPATIBILITY_BAR_MISSING",
+        "002690": "QFQ_COMPATIBILITY_BAR_MISSING",
+        "002761": "QFQ_COMPATIBILITY_BAR_MISSING",
+        "002809": "QFQ_COMPATIBILITY_BAR_MISSING",
+        "300256": "QFQ_COMPATIBILITY_BAR_MISSING",
+        "300673": "QFQ_COMPATIBILITY_BAR_MISSING",
+        "300945": "QFQ_COMPATIBILITY_BAR_MISSING",
+        "300962": "QFQ_COMPATIBILITY_BAR_MISSING",
+        "301207": "QFQ_COMPATIBILITY_BAR_MISSING",
+        "600018": "QFQ_COMPATIBILITY_BAR_MISSING",
+        "600916": "QFQ_COMPATIBILITY_BAR_MISSING",
+        "603676": "QFQ_COMPATIBILITY_BAR_MISSING",
+        "605001": "QFQ_COMPATIBILITY_BAR_MISSING",
+        "688060": "QFQ_COMPATIBILITY_BAR_MISSING",
+        "688137": "QFQ_COMPATIBILITY_BAR_MISSING",
+        "688333": "QFQ_COMPATIBILITY_BAR_MISSING",
+        "688543": "QFQ_COMPATIBILITY_BAR_MISSING",
+        "688575": "QFQ_COMPATIBILITY_BAR_MISSING",
+        "688613": "QFQ_COMPATIBILITY_BAR_MISSING"
+      },
+      "incompatible_codes": {},
+      "field_matches": {
+        "open": 33,
+        "high": 33,
+        "low": 33,
+        "close": 33
+      },
+      "source_basis": "Tencent exact quote; QFQ bar compatibility cross-check only"
+    },
+    "execution_2026_09_07": {
+      "expected": 25,
+      "evidence_found": 25,
+      "price_compatible": 25,
+      "recovered": 25,
+      "missing_codes": [],
+      "status_counts": {
+        "triggered": 21,
+        "pending": 4
+      }
+    },
+    "snapshot_2026_09_03_t_plus_3": {
+      "expected": 11,
+      "evidence_found": 11,
+      "price_compatible": 11,
+      "recovered": 11,
+      "confirmed_entry_returns": 0,
+      "path_fully_verified": 0,
+      "missing_codes": []
+    },
+    "review_coverage": {
+      "status": "REVIEW_OBSERVATION_INCOMPLETE",
+      "report_date": "2026-09-08",
+      "failure_reason": "REVIEW_OBSERVATION_INCOMPLETE",
+      "execution_expected": 36,
+      "execution_captured": 25,
+      "execution_missing": 11,
+      "execution_expected_signal_ids": [
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:002543:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:300546:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:301223:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:600108:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:600739:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:601512:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603323:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603406:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603995:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:688002:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:688621:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:000930:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:001217:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002073:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002099:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002291:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002385:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002391:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002394:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002556:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002825:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300016:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300133:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300148:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300268:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300318:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300765:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:600278:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:601512:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603205:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603406:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603444:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603585:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603970:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:605567:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:688002:B_BREAKOUT_RETEST"
+      ],
+      "execution_captured_signal_ids": [
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:000930:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:001217:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002073:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002099:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002291:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002385:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002391:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002394:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002556:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002825:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300016:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300133:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300148:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300268:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300318:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300765:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:600278:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:601512:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603205:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603406:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603444:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603585:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603970:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:605567:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:688002:B_BREAKOUT_RETEST"
+      ],
+      "execution_missing_signal_ids": [
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:002543:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:300546:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:301223:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:600108:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:600739:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:601512:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603323:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603406:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603995:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:688002:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:688621:B_BREAKOUT_RETEST"
+      ],
+      "horizon_expected": 11,
+      "horizon_captured": 11,
+      "horizon_missing": 0,
+      "horizon_expected_point_ids": [
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:002543:B_BREAKOUT_RETEST|T+3|2026-09-08",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:300546:B_BREAKOUT_RETEST|T+3|2026-09-08",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:301223:B_BREAKOUT_RETEST|T+3|2026-09-08",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:600108:B_BREAKOUT_RETEST|T+3|2026-09-08",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:600739:B_BREAKOUT_RETEST|T+3|2026-09-08",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:601512:B_BREAKOUT_RETEST|T+3|2026-09-08",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603323:B_BREAKOUT_RETEST|T+3|2026-09-08",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603406:B_BREAKOUT_RETEST|T+3|2026-09-08",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603995:B_BREAKOUT_RETEST|T+3|2026-09-08",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:688002:B_BREAKOUT_RETEST|T+3|2026-09-08",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:688621:B_BREAKOUT_RETEST|T+3|2026-09-08"
+      ],
+      "horizon_captured_point_ids": [
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:002543:B_BREAKOUT_RETEST|T+3|2026-09-08",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:300546:B_BREAKOUT_RETEST|T+3|2026-09-08",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:301223:B_BREAKOUT_RETEST|T+3|2026-09-08",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:600108:B_BREAKOUT_RETEST|T+3|2026-09-08",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:600739:B_BREAKOUT_RETEST|T+3|2026-09-08",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:601512:B_BREAKOUT_RETEST|T+3|2026-09-08",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603323:B_BREAKOUT_RETEST|T+3|2026-09-08",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603406:B_BREAKOUT_RETEST|T+3|2026-09-08",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603995:B_BREAKOUT_RETEST|T+3|2026-09-08",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:688002:B_BREAKOUT_RETEST|T+3|2026-09-08",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:688621:B_BREAKOUT_RETEST|T+3|2026-09-08"
+      ],
+      "horizon_missing_points": [],
+      "horizon_expected_signal_ids": [
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:002543:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:300546:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:301223:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:600108:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:600739:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:601512:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603323:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603406:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:603995:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:688002:B_BREAKOUT_RETEST",
+        "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:688621:B_BREAKOUT_RETEST"
+      ]
+    }
+  }
 }

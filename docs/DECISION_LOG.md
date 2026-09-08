@@ -5,6 +5,31 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-08 — Adopt exact-date immutable review recovery and completeness guard
+
+- context：PR #43 的 2026-09-03 / 2026-09-07 review observation 在 2026-09-08 才发现缺口；
+  本机已有同一收盘日的完整 raw/sidecar capture，但不存在可安全重放的 9/4、9/7 historical
+  execution path。
+- decision：冻结 `EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1`。只接受通过配对 SHA、capture
+  schema、provider/source、retrieved-at、代码 SHA、Tencent canonical parser 和 QFQ OHLC
+  compatibility cross-check 的本地 exact-date evidence。可写入 exact-date execution node 或
+  fixed-horizon snapshot；不得由该 evidence 推断缺失的先前路径。无确认入场时 return 必须是
+  `UNVERIFIED`，reason=`CONFIRMED_ENTRY_UNAVAILABLE`，path=
+  `UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH`。
+- guard：每日 report date `R` 更新前冻结 expected execution（current signal、list_date < R、
+  start status pending/triggered）和 expected horizon（scheduled_date == R）；更新后 execution
+  必须有 observation.date==R，horizon 必须是 exact-date `CAPTURED` 或带明确 reason 的
+  `NOT_CAPTURED`。缺失时输出 `REVIEW_OBSERVATION_INCOMPLETE`，保留 canonical watchlist，HTML
+  顶部告警，禁止静默降级为完整报告。
+- rationale：同时保留可验证的 contemporaneous market node 与不可验证的 historical path 边界，
+  避免 current quote、provider refetch 或 fabricated replay 造成 look-ahead / outcome overclaim。
+- consequences：9/7 的 25 个 execution observations 与 9/3 的 11 个 T+3 snapshots 可审计；
+  9/3 的 11 个 execution obligations 仍显式 missing，当前 coverage 为 36/25/11 和 11/11/0。
+  正常 future daily runner 使用 `LIVE_DAILY_TRACKER_QUOTE` provenance；recovery 使用本策略
+  provenance；既有无 provenance observation 仍可读。
+- boundaries：不改变 B strategy/threshold/scoring/target、acquisition priority、T+5 primary、
+  Final OOS/C/old D/historical B semantics，也不触碰 `data/validation/continuous_speed_probe/`。
+
 ## 2026-09-06 — Adopt FAST/STRICT path and minimal cross-device governance
 
 - context：既有治理要求每个任务默认读取全部治理/protocol 文件并实时核验历史
