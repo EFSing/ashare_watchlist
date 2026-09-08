@@ -31,6 +31,22 @@ CALENDAR = TradingCalendar(holidays=set(), session_close_time=time(15, 0))
 TARGET = "2026-09-08"
 
 
+def _require_local_20260908_evidence(paths: DataPaths) -> None:
+    """Run the real-data smoke tests only when the local evidence package is present."""
+    package_dir = paths.root / "prospective_inputs" / "20260908"
+    packages = sorted(package_dir.glob(f"{TARGET}_*.json"))
+    evidence_base = paths.root / "t_close_evidence" / "20260908"
+    has_capture_root = any(
+        (candidate / "tencent_quote").is_dir()
+        for candidate in (evidence_base, evidence_base / "20260908")
+    )
+    if len(packages) != 1 or not has_capture_root:
+        pytest.skip(
+            "LOCAL_EXACT_DATE_EVIDENCE_FIXTURE_UNAVAILABLE: "
+            "the large immutable 2026-09-08 capture is intentionally not committed"
+        )
+
+
 def _quote_raw(
     code: str = "600519",
     *,
@@ -314,6 +330,7 @@ def test_verify_review_coverage_requires_exact_observation_date():
 
 def test_real_20260908_recovery_is_local_only_and_separates_9_7_from_9_3(monkeypatch):
     paths = DataPaths(Path(__file__).resolve().parents[1] / "data")
+    _require_local_20260908_evidence(paths)
     tracker = track_perf.load_tracker(paths.perf_tracker_file())
 
     def fail_provider(*args, **kwargs):
@@ -382,6 +399,7 @@ def test_real_recovered_html_shows_25_yesterday_rows_and_11_unverified_nodes():
 
 def test_real_recovery_is_idempotent_and_does_not_duplicate_observations():
     paths = DataPaths(Path(__file__).resolve().parents[1] / "data")
+    _require_local_20260908_evidence(paths)
     tracker = track_perf.load_tracker(paths.perf_tracker_file())
     recovery.recover_exact_date_review(
         tracker,
