@@ -71,6 +71,11 @@ python3.11 scripts/render_daily_close_html.py --date YYYYMMDD
 `t_close_runner.py` 的正式成功路径会在 canonical watchlist 写入后尝试运行 `track_perf.py`，再渲染
 bundle；复盘失败不会阻断名单 HTML 交付，报告会明确显示 `REVIEW_FAILED` 及失败原因。
 
+当前 prospective 复盘只消费 2026-09-03 起、策略精确为 `B_BREAKOUT_RETEST_LEGACY_V1_1`
+且 canonical schema 有效的名单。`track_perf.py ingest` 会先验证并清理 current tracker 的
+legacy/out-of-scope 记录，再按正式名单入库；不会删除原始旧名单，也不会获取历史行情。
+身份冲突或 eligible 身份与 canonical 不符时停止；`open` 仅随新的真实 observation 保存。
+
 ## 正式复盘制度
 
 复盘分为四个固定层次：每个真实 XSHG 交易日生成一份每日轻量状态记录；对每个 signal-level 信号，以信号日 T 后第 3 个交易日做 T+3 短线评价，第 5 个交易日做 T+5 PRIMARY REVIEW HORIZON（主评价），第 10 个交易日做 T+10 延伸观察并结案。节点使用 XSHG 交易日历，不按自然日；信号最早执行日仍是 T+1。每个节点保存 signal/list date、review trading date、horizon 和 deterministic snapshot identity。

@@ -1744,3 +1744,15 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
   `9162c0ef73ad07adc7533b85e0b78248c539b6ff` and its governance-only follow-up are pushed.
   Exact-head CI is a live property and must be re-read for the current remote head. Stop at the
   user merge decision; do not auto-merge.
+
+
+## 2026-09-08 — Current prospective review epoch and canonical continuity
+
+ADOPT: current prospective ingest/review starts at `2026-09-03`, the first verified
+candidate-bound LIVE_OBSERVED instance, and requires exact strategy
+`B_BREAKOUT_RETEST_LEGACY_V1_1` plus schema-valid canonical identity. Pre-epoch or
+other-strategy artifacts are skipped, not deleted or silently re-adopted. Existing
+out-of-scope tracker records are removed only after a deterministic KEEP/REMOVE plan;
+KEEP identities must match canonical evidence and retain their observation/path state.
+Identity conflicts fail closed; code alone is never a deduplication key. Missing historical
+observations remain missing. Any future legacy re-adoption requires a separate formal decision.

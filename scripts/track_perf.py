@@ -37,6 +37,9 @@ TRACK_DAYS = REVIEW_HORIZONS[-1][1]
 REVIEW_POINT_PENDING = "PENDING"
 REVIEW_POINT_CAPTURED = "CAPTURED"
 REVIEW_POINT_NOT_CAPTURED = "NOT_CAPTURED"
+CURRENT_PROSPECTIVE_EPOCH_START = "2026-09-03"
+CURRENT_PROSPECTIVE_STRATEGY = "B_BREAKOUT_RETEST_LEGACY_V1_1"
+SKIP_LEGACY_OR_OUT_OF_SCOPE_WATCHLIST = "SKIP_LEGACY_OR_OUT_OF_SCOPE_WATCHLIST"
 
 
 class TrackerSchemaError(ValueError):
@@ -232,10 +235,13 @@ def _validate_tracker(data: Any) -> dict[str, Any]:
         raise TrackerSchemaError("tracker signals must be an object keyed by signal_id")
     for key, signal in data["signals"].items():
         if not isinstance(signal, dict) or signal.get("signal_id") != key:
-            raise TrackerSchemaError(f"signal key mismatch: {key}")
+            raise TrackerSchemaError(f"TRACKER_IDENTITY_CONFLICT: signal key mismatch: {key}")
         for field in ("strategy_version", "date", "code", "setup"):
             if not signal.get(field):
                 raise TrackerSchemaError(f"signal {key} missing {field}")
+        expected = stable_signal_id(signal['strategy_version'], signal['date'], signal['code'], signal['setup'])
+        if key != expected:
+            raise TrackerSchemaError(f"TRACKER_IDENTITY_CONFLICT: {key} != {expected}")
     data.setdefault("updated", None)
     return data
 
@@ -257,7 +263,7 @@ def save_tracker(data: dict[str, Any], path: str | Path | None = None) -> None:
     tracker_path = Path(path) if path is not None else TRACK_FILE
     _validate_tracker(data)
     tracker_path.parent.mkdir(parents=True, exist_ok=True)
-    tracker_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    tracker_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
 
 
 def _signal_from_candidate(
@@ -292,6 +298,65 @@ def _signal_from_candidate(
     }
 
 
+def is_current_prospective_signal(signal: dict[str, Any]) -> bool:
+    return (parse_date(signal['date']).isoformat() >= CURRENT_PROSPECTIVE_EPOCH_START
+            and signal.get('strategy_version') == CURRENT_PROSPECTIVE_STRATEGY)
+
+
+def current_prospective_watchlists(paths: DataPaths) -> list[dict[str, Any]]:
+    """Only schema-valid, exact-strategy canonical lists belong to this epoch."""
+    result = []
+    for path in paths.watchlist_files():
+        try:
+            watchlist = load_watchlist(path)
+        except WatchlistSchemaError as exc:
+            warnings.warn(f'{SKIP_LEGACY_OR_OUT_OF_SCOPE_WATCHLIST}: {path.name}: {exc}', RuntimeWarning)
+            continue
+        if (not is_current_prospective_signal(watchlist)
+                or any(c['strategy_version'] != CURRENT_PROSPECTIVE_STRATEGY for c in watchlist['candidates'])):
+            warnings.warn(f'{SKIP_LEGACY_OR_OUT_OF_SCOPE_WATCHLIST}: {path.name}', RuntimeWarning)
+            continue
+        result.append(watchlist)
+    return result
+
+
+def current_prospective_tracker(
+    tracker: dict[str, Any], paths: DataPaths | None = None,
+) -> dict[str, Any]:
+    """Read-only eligible view; every retained identity must have canonical evidence."""
+    _validate_tracker(tracker)
+    canonical = {c['signal_id']: c for w in current_prospective_watchlists(paths or PATHS)
+                 for c in w['candidates']}
+    signals = {}
+    for key, signal in tracker['signals'].items():
+        if not is_current_prospective_signal(signal):
+            continue
+        candidate = canonical.get(key)
+        if candidate is None or any(signal.get(k) != candidate[k] for k in
+                                    ('code', 'setup', 'strategy_version', 'trigger', 'stop', 'target')):
+            raise TrackerSchemaError(f'CURRENT_PROSPECTIVE_TRACKER_IDENTITY_MISMATCH: {key}')
+        signals[key] = signal
+    return {**tracker, 'signals': signals}
+
+
+def current_tracker_cleanup_plan(tracker: dict[str, Any], paths: DataPaths | None = None) -> dict[str, Any]:
+    """Validate KEEP first and produce a deterministic plan without mutation."""
+    eligible = current_prospective_tracker(tracker, paths)['signals']
+    return {
+        'epoch_start': CURRENT_PROSPECTIVE_EPOCH_START,
+        'strategy_version': CURRENT_PROSPECTIVE_STRATEGY,
+        'KEEP': sorted(eligible),
+        'REMOVE_FROM_CURRENT_TRACKER': sorted(set(tracker['signals']) - set(eligible)),
+    }
+
+
+def cleanup_current_tracker(tracker: dict[str, Any], paths: DataPaths | None = None) -> dict[str, Any]:
+    plan = current_tracker_cleanup_plan(tracker, paths)
+    for key in plan['REMOVE_FROM_CURRENT_TRACKER']:
+        del tracker['signals'][key]
+    return plan
+
+
 def ingest(
     tracker: dict[str, Any],
     paths: DataPaths | None = None,
@@ -303,14 +368,16 @@ def ingest(
     resolver = paths or PATHS
     cal = calendar or default_calendar()
     added = 0
-    for path in resolver.watchlist_files():
-        watchlist = load_watchlist(path)
+    current_prospective_tracker(tracker, resolver)
+    additions = {}
+    for watchlist in current_prospective_watchlists(resolver):
         for candidate in watchlist["candidates"]:
             signal_id = candidate["signal_id"]
             if signal_id in tracker["signals"]:
                 continue
-            tracker["signals"][signal_id] = _signal_from_candidate(watchlist, candidate, cal)
+            additions[signal_id] = _signal_from_candidate(watchlist, candidate, cal)
             added += 1
+    tracker['signals'].update(additions)
     return added
 
 
@@ -370,6 +437,7 @@ def classify_signal_bar(
 def _append_observation(signal: dict[str, Any], quote: dict[str, Any]) -> None:
     observation = {
         "date": quote["quote_date"],
+        "open": quote.get("open"),
         "price": quote["price"],
         "high": quote["high"],
         "low": quote["low"],
@@ -456,18 +524,19 @@ def update(
     if not cal.is_trading_day(today_date):
         raise CalendarUnavailable(f"{today_date} is not an XSHG trading session")
 
-    signals = list(tracker["signals"].values())
+    signals = [s for s in tracker["signals"].values() if is_current_prospective_signal(s)]
     for signal in signals:
         _ensure_review_points(signal, cal)
     due_or_active = [
         signal
         for signal in signals
-        if signal["status"] in ("pending", "triggered")
+        if parse_date(signal['date']) < today_date
+        and (signal["status"] in ("pending", "triggered")
         or any(
             point["status"] == REVIEW_POINT_PENDING
             and today_date >= parse_date(point["scheduled_date"])
             for point in signal["review_points"].values()
-        )
+        ))
     ]
     if not due_or_active:
         return 0
@@ -561,7 +630,7 @@ def report(
     _validate_tracker(tracker)
     cal = calendar or default_calendar()
     as_of_date = parse_date(as_of or datetime.now().date())
-    signals = list(tracker["signals"].values())
+    signals = [s for s in tracker["signals"].values() if is_current_prospective_signal(s)]
     for signal in signals:
         _ensure_review_points(signal, cal)
     total = len(signals)
@@ -626,6 +695,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         tracker = load_tracker()
+        plan = cleanup_current_tracker(tracker)
+        if plan['REMOVE_FROM_CURRENT_TRACKER']:
+            print('[cleanup] ' + json.dumps(plan, ensure_ascii=False, sort_keys=True), flush=True)
         if args.action in ("ingest", "all"):
             print(f"[ingest] 新增入库 {ingest(tracker)} 个信号", flush=True)
         if args.action in ("update", "all"):

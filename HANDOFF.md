@@ -9,7 +9,7 @@
   authoritative recovery branch after the source commit is pushed. At recovery time, run
   `git rev-parse HEAD` and `git rev-parse @{u}` and require the two values to be equal; do not
   use this file's or any governance commit's SHA as the recovery truth.
-- current task: `DAILY_CLOSE_HTML_USER_FACING_REDESIGN`. Live governance reconciliation is closed:
+- current task: `CURRENT_PROSPECTIVE_REVIEW_BOUNDARY_AND_DATA_CONTINUITY_FIX`. Live governance reconciliation is closed:
   PR #41 is merged, review cleanup PR #42 is merged into master, post-merge correctness run
   `34140697889` is `completed / success` with exact head, and formal Delivery Ladder is
   `frozen candidate`.
@@ -18,20 +18,34 @@
   `d3bbdc7275fe32fd8763eba03fb987fad2308eb43d6149919829b0d5ec462ba4`; fingerprint
   `93882eecb2f37d4c0653864bd54dbbe80c19334b7913439ef3f6939a69ef5db8`; watchlist SHA
   `f58059cd5269f8ac5cd10da357a2bd008a76ef84feaa399846d74ad7daa4b5fc`.
-- completed: PR #43 now separates today's new watchlist from historical daily review.
-  Previous-XSHG-session identities remain complete across pending/triggered/win/loss/
-  ambiguous/expired/missing states; older active and older closed-today rows are separate.
-  The Chinese report prioritizes daily review, tomorrow's simplified list, then T+5/T+3/T+10;
-  empty horizons are compact and audit identities/metadata are collapsed at the bottom.
-- validation: 28 focused renderer tests and 383 full pytest tests passed; compileall and
-  scoped diff check passed. Classification remained product blocker / FAST PATH;
-  real 20260908 smoke preserves exact 34 candidates and recorded watchlist SHA. Twelve older
-  signals have real 20260908 observations and expired that day; no prior-session list
-  or T+5 due rows exist in the local inputs. No historical replay was performed.
-  HTML paths: `data/reports/daily_close_20260908.html`, `data/reports/latest.html`.
-- local input boundary: the pre-existing modified `data/perf_tracker.json` and untracked
-  canonical/runtime artifacts are read-only inputs and are not part of the source commit.
-  Tracker SHA at smoke: `72bb256d625373b870f259dda204fb737131e9fa8758d47086c56db0202c877e`.
+- completed: current prospective review is bounded at `2026-09-03`, exact strategy
+  `B_BREAKOUT_RETEST_LEGACY_V1_1`, and schema-valid canonical membership. Ingest skips
+  legacy/out-of-scope files. CLI cleanup validates KEEP before removal; conflicting
+  stable identities fail closed. Renderer applies the same boundary as defense in depth.
+- contamination correction: the prior HTML smoke's 12 expired rows came from an out-of-scope
+  20260820 list. Fourteen old tracker records were two versions of seven old candidates
+  (`legacy-v1` from v1 migration and `watchlist-v1` from unbounded ingest). They are removed
+  from the current tracker; the original 20260820 watchlist bytes remain unchanged.
+- continuity: exact Drive bytes restored 20260903 (11 candidates, SHA
+  `50f0717e55daaf4435e1d25b4f1d029109c566d72d63a1fc566f263cdf0fb085`) and 20260907
+  (25 candidates, SHA `5a99273b6304621acbf7bba2423a6e372668348a31ac436021caf5f5855db100`).
+  20260908 remains exact 34 candidates with the SHA above. Current tracker counts are
+  11 / 25 / 34; its existing 34 eligible records were preserved, not replayed.
+- recovery sources: 9/3 Drive file `1N-G0LVvMtotffm5Tdq-2-f4I-fZkuTUq`; 9/7 formal
+  chunks40 manifest `1qU6VC-_hCs59ZHHHxhQ9hv9z4y-2PHBs`, package-output chunk 014
+  `1PPHCZfD-B7f5vRHhJ75NwFvF2NCgHPZK`. The chunk SHA was verified, then only its
+  `watchlist/watchlist_20260907.json` ZIP member was extracted and exact-SHA checked.
+- smoke: `data/reports/daily_close_20260908.html` and `data/reports/latest.html` show
+  34 new candidates, 25 exact previous-session signals, 11 older active signals and
+  11 due T+3 snapshots. The 36 historical signals lack 9/8 observations: OHLC remains
+  missing, no historical quotes or observations were fabricated. No 8/20 or duplicate
+  signal IDs appear. The migration plan/removed-record audit is local operational output
+  at `data/reports/prospective_cleanup_20260908.json`.
+- observation compatibility: future observations preserve quote open; old observations
+  without open remain missing. Update does not execute a signal on its list day (T+1).
+- validation: 49 focused tests and 390 full pytest tests passed; compileall, diff check,
+  exact-byte continuity and structured HTML smoke passed. Exact-head CI must be read live
+  for the pushed head. Classification remained correctness blocker / STRICT PATH.
 - boundaries: do not promote, approve production, unseal/read Final OOS, read C, rebuild old D,
   tune B, change strategy semantics, start new research, or touch
   `data/validation/continuous_speed_probe/`. Package/source/watchlist bytes and Drive
@@ -44,7 +58,7 @@
 - exact-head CI must always be re-read live for the current remote head; the previously
   verified implementation head passed both push and pull-request correctness checks before
   this governance-only handoff update.
-- terminal marker: `DAILY_CLOSE_HTML_USER_FACING_REDESIGN_PR_READY_FOR_USER_MERGE_DECISION`.
+- terminal marker: `CURRENT_PROSPECTIVE_REVIEW_BOUNDARY_FIXED_PR_READY_FOR_USER_MERGE_DECISION`.
 
 ## New-device / new-session recovery
 

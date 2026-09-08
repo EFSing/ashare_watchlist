@@ -27,6 +27,9 @@ from track_perf import (
     load_tracker,
     parse_date,
     review_date,
+    current_prospective_tracker,
+    is_current_prospective_signal,
+    CURRENT_PROSPECTIVE_STRATEGY,
 )
 from trading_calendar import TradingCalendar, default_calendar, previous_trading_day
 from watchlist_schema import load_watchlist
@@ -213,7 +216,7 @@ def _load_review_tracker(
         failures.append(f"{_REVIEW_FAILURE}: tracker file missing: {tracker_path}")
         return None, failures
     try:
-        return load_tracker(tracker_path), failures
+        return current_prospective_tracker(load_tracker(tracker_path), paths), failures
     except Exception as exc:  # renderer must preserve the canonical list on review failure
         failures.append(f"{_REVIEW_FAILURE}: {type(exc).__name__}: {exc}")
         return None, failures
@@ -279,7 +282,7 @@ def _review_rows(
             captured = status == REVIEW_POINT_CAPTURED
             return_value = point.get("return_pct") if captured else None
             path_status = point.get("path_status") if captured else None
-            snapshot_status = _status_text(status)
+            snapshot_status = _status_text(status) if captured else _MISSING
             if captured and return_value is None:
                 issues.append(_UNVERIFIED)
             if status == REVIEW_POINT_NOT_CAPTURED:
@@ -316,7 +319,9 @@ def _daily_collections(tracker, report_date, previous_date, paths, failures):
             failures.append(f'{_REVIEW_FAILURE}: previous watchlist: {type(exc).__name__}: {exc}')
             previous = {'candidates': []}
         for candidate in previous['candidates']:
-            signals.setdefault(candidate['signal_id'], {**candidate, 'date': previous_date})
+            if (is_current_prospective_signal(previous)
+                    and candidate['strategy_version'] == CURRENT_PROSPECTIVE_STRATEGY):
+                signals.setdefault(candidate['signal_id'], {**candidate, 'date': previous_date})
     groups = ([], [], [])
     for signal in signals.values():
         list_date = _normalize_date(signal['date'])
@@ -338,6 +343,10 @@ def _daily_collections(tracker, report_date, previous_date, paths, failures):
             'today_high': observation.get('high') if observation else None,
             'today_low': observation.get('low') if observation else None,
             'today_close': observation.get('price') if observation else None,
+            'close_vs_trigger_pct': (
+                (observation['price'] / signal['trigger'] - 1) * 100
+                if observation and observation.get('price') is not None and signal.get('trigger') else None
+            ),
             'path_status': status, 'raw_status': raw_status, 'observed': verified,
             'new_triggered': verified and signal.get('first_trigger_date') == report_date,
             'closed_today': closed_today,
@@ -371,6 +380,9 @@ def build_report_model(
     watchlist_path = resolver.watchlist_file(normalized_date)
     watchlist_bytes = watchlist_path.read_bytes()
     watchlist = load_watchlist(watchlist_path)
+    if (not is_current_prospective_signal(watchlist)
+            or any(c['strategy_version'] != CURRENT_PROSPECTIVE_STRATEGY for c in watchlist['candidates'])):
+        raise ValueError('SKIP_LEGACY_OR_OUT_OF_SCOPE_WATCHLIST: report requires current prospective canonical')
     if watchlist["date"] != normalized_date:
         raise ValueError(f"watchlist date {watchlist['date']} != report date {normalized_date}")
 
@@ -523,10 +535,12 @@ def _daily_table(rows):
         values = [_esc(row.get(k)) for k in ('code', 'name', 'list_date', 'score')]
         values += [_esc(_number(row.get(k))) for k in
                    ('original_trigger', 'today_open', 'today_high', 'today_low', 'today_close')]
+        values += [_esc(_percent(row['close_vs_trigger_pct'], signed=True)
+                        if row['close_vs_trigger_pct'] is not None else '—')]
         values += [_ui_badge(row['path_status']), _esc(row['note'])]
         body.append('<tr>' + ''.join(f'<td>{v}</td>' for v in values) + '</tr>')
     return _simple_table(('代码', '名称', '名单日期', 'Score', 'Trigger', '今日开盘',
-                          '今日最高', '今日最低', '今日收盘', '状态', '结果/说明'), body)
+                          '今日最高', '今日最低', '今日收盘', '收盘较 Trigger %', '今日状态', '结果说明'), body)
 
 
 def render_html(model: ReportModel) -> str:
@@ -547,6 +561,10 @@ def render_html(model: ReportModel) -> str:
                             f'<strong>{_esc(v)}</strong></div>' for k, v in metadata.items())
     audit_rows = model.watchlist_rows + model.previous_signals + model.active_signals + model.closed_today
     audit_rows += [r for rows in model.review_sections.values() for r in rows]
+    audit_by_id = {}
+    for row in audit_rows:
+        audit_by_id.setdefault(row['signal_id'], {}).update({k: v for k, v in row.items() if v is not None})
+    audit_rows = list(audit_by_id.values())
     audit_html = ''.join('<tr>' + ''.join(f'<td>{_esc(row.get(k))}</td>' for k in
                         ('code', 'signal_id', 'setup', 'status', 'raw_status', 'path_status', 'snapshot_status'))
                         + '</tr>' for row in audit_rows)
@@ -630,7 +648,7 @@ footer {{ color:var(--muted); font-size:12px; padding:18px 0 4px; }}
 {_daily_table(model.previous_signals)}
 <h3>历史仍在观察</h3>
 {_daily_table(model.active_signals)}
-{('<h3>历史名单今日结束</h3>' + _daily_table(model.closed_today)) if model.closed_today else ''}
+{('<h3>今日结束</h3>' + _daily_table(model.closed_today)) if model.closed_today else ''}
 </section>
 <section id="tomorrow-watchlist">
 <h2>明日观察名单</h2>

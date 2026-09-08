@@ -1,5 +1,22 @@
 # CURRENT STATUS
 
+## Current prospective review boundary correction — PR #43 (unmerged)
+
+The user-facing prospective epoch starts on 2026-09-03, the first verified
+candidate-bound LIVE_OBSERVED instance, and accepts only exact
+`B_BREAKOUT_RETEST_LEGACY_V1_1` schema-valid canonical identities. Prior HTML smoke
+claims about twelve historical expired signals are superseded: those rows belonged
+to the out-of-scope 20260820 legacy list. The 14 pre-epoch tracker records have been
+removed from the current tracker; original historical artifacts remain unchanged.
+
+Exact 20260903 / 20260907 / 20260908 canonical continuity and tracker identity counts
+are restored to 11 / 25 / 34. 9/3 and 9/7 were recovered from existing exact-SHA Drive
+bytes, without rerunning historical B. No 9/8 observation exists for those 36 historical
+signals; reports preserve the missing state. This correction does not change the frozen
+candidate, path/snapshot semantics, or research conclusions. PR #43 remains unmerged;
+read its exact head and CI live before any user merge decision.
+
+
 更新时间：2026-09-07（Asia/Shanghai）
 Formal Delivery Ladder：`frozen candidate`
 Live `master@3308c7ab8e403d459baf1bbfe873e7320d750317`；PR #41 已合并。post-merge
