@@ -4,14 +4,21 @@
 > 本文件不是历史归档；历史 provenance 在 Git 历史中，正式状态与长期决策分别见
 > `docs/CURRENT_STATUS.md` 与 `docs/DECISION_LOG.md`（仅当前任务需要时读取）。
 
-- branch: `codex/daily-close-bundle-html-report`; based on live `master@52484a82e4a2700372c85c47991f62717d4b1196`.
-- recovery pointer: this task's pushed `origin/codex/daily-close-bundle-html-report` is the
+- branch: `codex/daily-lightweight-cloud-checkpoint`; directly based on
+  `master@37551f88f34568f3d55a6ce602372e6135e20a61` after PR #43 was squash-merged.
+  PR #43 is `MERGED`; post-merge master correctness run `34306373948` is
+  `completed / success` at that exact SHA.
+- current task: `DAILY_LIGHTWEIGHT_CLOUD_CHECKPOINT`; cloud branch exact head is
+  `6ec9513186902b49e1fcc8451f81c0f6c5847f91`. PR #44 is OPEN / CLEAN / non-draft against
+  `master@37551f88f34568f3d55a6ce602372e6135e20a61`; push correctness `34307324454` and
+  PR correctness `34307530082` are both `completed / success`. Awaiting the user's merge decision.
+- recovery pointer: this task's pushed `origin/codex/daily-lightweight-cloud-checkpoint` is the
   authoritative recovery branch after the source commit is pushed. At recovery time, run
   `git rev-parse HEAD` and `git rev-parse @{u}` and require the two values to be equal; do not
   use this file's or any governance commit's SHA as the recovery truth.
-- current task: `EXACT_DATE_IMMUTABLE_REVIEW_RECOVERY_AND_COMPLETENESS_GUARD`. PR #43 is still
-  open and unmerged; the task started from exact head
-  `945b0fc16c0dde80aa4d795f049781834a7689a8` and must keep the no-merge boundary.
+- prior task: `EXACT_DATE_IMMUTABLE_REVIEW_RECOVERY_AND_COMPLETENESS_GUARD`. PR #43 was
+  squash-merged at `37551f88f34568f3d55a6ce602372e6135e20a61`; that task started from exact head
+  `945b0fc16c0dde80aa4d795f049781834a7689a8` and kept the no-merge boundary.
   Live governance reconciliation is closed:
   PR #41 is merged, review cleanup PR #42 is merged into master, post-merge correctness run
   `34140697889` is `completed / success` with exact head, and formal Delivery Ladder is
@@ -71,13 +78,54 @@
 - blockers: none for the frozen candidate or daily-close bundle. Final OOS remains
   `SEALED / UNREAD`; C remains unread; old D is not reconstructed; forbidden validation data
   remains untouched.
-- next action: push the new implementation head, re-read PR #43 exact-head CI live, then wait for
-  user merge decision. Do not auto-merge.
-- exact-head CI must always be re-read live for the current remote head; the previously
-  verified implementation head passed both push and pull-request correctness checks before
-  this governance-only handoff update.
-- terminal marker after the new head and CI are verified:
-  `EXACT_DATE_REVIEW_RECOVERY_AND_COMPLETENESS_GUARD_PR_READY_FOR_USER_MERGE_DECISION`.
+- prior task outcome: PR #43 exact head and exact-head CI were re-read before its squash merge;
+  master now contains the daily close bundle, exact-date recovery, current prospective boundary,
+  T+1 invariant, and review completeness guard. The post-merge master correctness run passed.
+- exact-head CI must always be re-read live for the current remote head; the current cloud head
+  passed both push and pull-request correctness checks listed above.
+- prior-task terminal marker: `PR43_SQUASH_MERGED_AND_POST_MERGE_CORRECTNESS_SUCCESS`.
+
+## Current checkpoint — daily lightweight cloud checkpoint — 2026-09-09
+
+The bounded follow-up is implemented on `codex/daily-lightweight-cloud-checkpoint`, now
+replayed directly onto `master@37551f88f34568f3d55a6ce602372e6135e20a61` after PR #43's squash
+merge. PR #43 is merged and the daily close bundle / exact-date recovery are formally in master.
+The rebased implementation commit is
+`b33b2ecbbb0b43b9a5c232acee6cccf8a2527f49`; the manifest records that code SHA because
+subsequent governance/test-only commits may advance the branch head without changing checkpoint
+implementation code.
+
+The private Drive target is `ashare_watchlist/daily_checkpoints`:
+
+- dated `20260908`: `watchlist_20260908.json`, `perf_tracker.json`,
+  `daily_close_20260908.html`, and `daily_checkpoint_20260908.json`;
+- fixed `latest`: `latest.html` and `latest_checkpoint.json`.
+
+All six files were uploaded in the required order and read back from Drive with exact metadata,
+length, and SHA-256 verification. Total payload is 389,472 bytes; the watchlist SHA remains
+`f58059cd5269f8ac5cd10da357a2bd008a76ef84feaa399846d74ad7daa4b5fc`. Dated files are not
+overwritten by latest failures, same-name SHA conflicts fail closed, and no remote object was
+deleted. K-line/raw/sidecar/source evidence, prospective packages, formal chunks, and historical
+archives were not uploaded by the daily checkpoint.
+
+The real recovery smoke fetched the dated manifest, watchlist, tracker, and HTML from Drive,
+verified identity/length/SHA, restored the lightweight canonical-shaped state in isolation, and
+matched the local canonical bytes. Result: `LIGHTWEIGHT_CLOUD_RECOVERY_SMOKE_PASS`. The
+read-only inventory is `data/reports/cloud_storage_inventory_20260908.json` with
+`FORMAL_KEEP=62`, `DAILY_KEEP=6`, `REDUNDANT_INTERMEDIATE_CANDIDATE=29`,
+`UNKNOWN_DO_NOT_DELETE=0`; remote deletes remain `0`.
+
+The runner remains fail-soft: it emits `[CLOUD] VERIFIED` when an injected authenticated Drive
+adapter completes, or `[CLOUD] FAILED <exact reason>` without changing canonical local state.
+There is no automatic scheduler. The terminal marker for this bounded follow-up is
+`DAILY_LIGHTWEIGHT_CLOUD_CHECKPOINT_PR_READY_FOR_USER_MERGE_DECISION`.
+
+Validation is complete: focused cloud/runner tests `18 passed`; full repository suite
+`438 passed, 2 skipped, 8 warnings` (the two skips are for the intentionally unavailable local
+immutable evidence fixture); compileall and `git diff --check` pass. Push correctness is
+`34307324454`, PR correctness is `34307530082`, both exact-head `completed / success`.
+Formal Delivery Ladder remains `frozen candidate`; Final OOS remains `SEALED / UNREAD`; C remains
+unread; old D is not reconstructed.
 
 ## New-device / new-session recovery
 
@@ -95,7 +143,7 @@ git rev-parse @{u}
 该任务实际依赖的 live Git/GitHub 状态，不执行完整项目审计。
 
 `REMOTE_RECOVERY_CHECKPOINT`: the authoritative Git recovery pointer is the pushed remote branch
-`origin/codex/daily-close-bundle-html-report`, not a governance commit SHA. Recovery is valid
+`origin/codex/daily-lightweight-cloud-checkpoint`, not a governance commit SHA. Recovery is valid
 only when runtime verification shows `git rev-parse HEAD == git rev-parse @{u}`. The formal
 package SHA, generation fingerprint and watchlist SHA above provide artifact identity; the
 daily HTML is reproducible from canonical data and is intentionally not a source commit.
