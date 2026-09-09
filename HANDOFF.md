@@ -9,14 +9,30 @@
 - current task: `DAILY_REPORT_REVIEW_USABILITY_AND_BUNDLE_WIRING`; the live baseline includes
   merged PR #43, PR #44 and PR #45. The latest master correctness run `34317755077` is
   `completed / success` at the exact live master SHA.
-- recovery pointer: after this bounded task is pushed, use
-  `origin/codex/daily-report-review-usability-20260909` as the current
+- recovery pointer: use `origin/codex/daily-report-review-usability-20260909` as the current
   handoff branch. At recovery time, run `git rev-parse HEAD` and `git rev-parse @{u}` and require
   the two values to be equal; do not use this file's or any governance commit's SHA as live truth.
 - governance: `PROJECT_GOVERNANCE_STATE_CONFLICT` from the stale c139a04/PR #44 snapshot is
   closed by this bounded live-state reconciliation. The daily checkpoint source and policy are
   in master; remote delete count remains `0`.
-- terminal marker: `DAILY_REPORT_REVIEW_USABILITY_AND_BUNDLE_WIRING_IN_PROGRESS`.
+- terminal marker: `DAILY_REPORT_REVIEW_USABILITY_AND_BUNDLE_WIRING_PR46_CI_SUCCESS`.
+- implementation: PR #46 is open and unmerged against `master`; feature head is
+  `e0e1b7c3b2739840b5964e8eccb09fbdb1692998`, exact-head correctness run `34346974727` is
+  `completed / success`, and no automatic merge was performed.
+- completed: the daily HTML is now review-oriented (yesterday review → today's new list/T+1
+  observation → rolling review → data quality → collapsed audit); current-date signals are
+  explicitly `T_PLUS_1_OBSERVATION_PENDING`; historical missing, UNVERIFIED return, same-bar,
+  acquisition and cloud checkpoint states remain separate. The successful T-close runner now
+  attaches/persists `daily_close_bundle` using its exact success status. Canonical watchlist,
+  tracker, strategy and review semantics are unchanged.
+- validation: project `.venv` full suite is `444 passed, 2 skipped, 8 warnings`; targeted report/
+  runner regression set is `35 passed`; `git diff --check` passed. Existing 20260909 evidence was
+  read only: 10,601 raw/sidecar pairs span `18:05:30–18:21:30 BJT`; no acquisition rerun or
+  operational artifact overwrite was performed. The local dated checkpoint remains
+  `LOCAL_INPUTS_VERIFIED`, not remote cloud `VERIFIED`.
+- next action: user review/merge decision for PR #46; do not merge automatically. Classification
+  remains product blocker / STRICT PATH for daily-close usability and wiring, with no correctness
+  semantic change.
 - prior task: `EXACT_DATE_IMMUTABLE_REVIEW_RECOVERY_AND_COMPLETENESS_GUARD`. PR #43 was
   squash-merged at `37551f88f34568f3d55a6ce602372e6135e20a61`; that task started from exact head
   `945b0fc16c0dde80aa4d795f049781834a7689a8` and kept the no-merge boundary.

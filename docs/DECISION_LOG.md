@@ -5,6 +5,29 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-09 — Adopt review-oriented daily close information architecture
+
+- decision：daily close HTML is organized as overview → actual previous-session review → today's
+  new list / next-trading-day observation → existing rolling review coverage → separate data
+  quality → collapsed audit detail. A current-date signal is displayed as
+  `T_PLUS_1_OBSERVATION_PENDING` / “今日新信号，等待下一交易日观察”, not as a historical missing
+  observation.
+- rationale：the prior report mixed current T-day candidates, yesterday's review, historical
+  gaps and same-bar ambiguity into a long page with generic labels. Separating these states makes
+  the operational decision surface readable without inventing observations, returns, win rates,
+  or day-internal order.
+- invariant：historical missing nodes remain `MISSING_HISTORICAL_OBSERVATION / UNVERIFIED`,
+  missing confirmed entry keeps return unverified, and `AMBIGUOUS_SAME_BAR` remains fail-safe and
+  visible. Score, Trigger, Stop, Target, RR, watchlist membership, T+1 rules, strategy identity,
+  and formal review semantics are unchanged.
+- operational wiring：only the exact successful canonical T-close runner status attaches the
+  daily bundle, preventing the previous success-path omission while leaving preflight/failure
+  behavior unchanged. The report exposes cloud `VERIFIED` only when the dated manifest itself
+  carries remote verification; `LOCAL_INPUTS_VERIFIED` is not promoted by inference.
+- evidence/stop：existing 20260909 timestamps show a 16-minute evidence-capture span and later
+  post-processing, but do not isolate a code bottleneck. No benchmark, acquisition rerun, strategy
+  change, Final OOS/C access, or forbidden validation-data access is authorized by this decision.
+
 ## 2026-09-09 — Reconcile live master before daily report usability work
 
 - live truth：`origin/master` is

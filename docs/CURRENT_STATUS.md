@@ -14,6 +14,31 @@ canonical watchlist, tracker semantics, T+1 observation rules, strategy identity
 boundaries remain unchanged. Final OOS remains `SEALED / UNREAD`; C remains unread; and
 `data/validation/continuous_speed_probe/` remains untouched.
 
+## Daily report review usability — PR #46 — 2026-09-09
+
+The bounded implementation is pushed on
+`codex/daily-report-review-usability-20260909@e0e1b7c3b2739840b5964e8eccb09fbdb1692998`.
+PR #46 targets live `master@f5c4c6bbf9d3213fc15af75ceb57b4de23bb1559`, is open and unmerged,
+and exact-head correctness run `34346974727` is `completed / success`.
+
+The HTML information architecture is now: T-close overview; yesterday's actual review date;
+today's new list with explicit next-trading-day observation state; existing rolling review
+coverage; separate data-quality categories; and collapsed audit detail. Historical missing
+nodes, unverified returns, same-bar ambiguity, acquisition completeness, and cloud checkpoint
+verification are not collapsed into one generic label. The runner's successful canonical T-close
+path now attaches `daily_close_bundle`; no canonical watchlist/tracker/strategy/T+1/review
+semantics were changed.
+
+Validation: project `.venv` full suite `444 passed, 2 skipped, 8 warnings`; focused report/runner
+regressions `35 passed`; `git diff --check` passed. Existing 20260909 evidence was inspected
+read-only: 10,601 raw/sidecar pairs from `18:05:30` to `18:21:30 BJT`, followed by package at
+`18:22:34`, watchlist at `18:26:24`, tracker at `18:48:48`, HTML at `18:48:56`, and checkpoint
+manifest at `18:49:35`. This supports a slow acquisition/post-processing window but does not
+isolate a report-code bottleneck, so no benchmark or performance architecture change was made.
+The dated manifest remains `LOCAL_INPUTS_VERIFIED`; the report does not claim remote cloud
+`VERIFIED` without persisted proof. No 20260909 acquisition rerun or operational artifact
+overwrite was performed. Next action is the user's PR #46 review/merge decision.
+
 ## Post-merge verified — daily lightweight cloud checkpoint — 2026-09-09
 
 PR #44 (`feat: add lightweight daily cloud checkpoint`) was squash-merged into `master` at
