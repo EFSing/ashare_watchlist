@@ -1,5 +1,24 @@
 # CURRENT STATUS
 
+## Local workspace migration intake — PR #46 governance reconciliation — 2026-09-09
+
+本轮分类为 `product infrastructure + correctness/provenance + recovery` 的 STRICT PATH
+任务，不改变交易策略、watchlist、review、provider、T+1、研究结论或正式 artifact 语义。
+实时 intake 已确认 PR #46 仍为 `OPEN / UNMERGED`，remote branch
+`codex/daily-report-review-usability-20260909` 与 `refs/pull/46/head` 均指向
+`6191489edae55f7389d24526292d502b1c5932bd`；exact-head correctness run
+`34347550977` 为 `completed / success`。旧当前快照仍记录
+`b64a5fa088fff177dd93aa6cfbb39aaffa487517` / `34347321149`，构成 bounded
+`PROJECT_GOVERNANCE_STATE_CONFLICT`，但没有发现策略、artifact identity 或历史链异常。
+
+本次 reconciliation 只修正当前 HANDOFF、CURRENT_STATUS 与 DECISION_LOG 的 live-state
+入口，保留旧 SHA/run 作为历史 provenance；任何 docs-only commit 后的 HEAD、upstream、PR
+状态和 exact-head CI 均必须重新实时核验，不把治理文件中的 SHA 当作 live-state invariant。
+下一步是先验证 reconciliation commit 的新 exact-head CI，再进行 C→D fresh clone、local
+operational/evidence inventory、SHA/integrity verification、D-path runtime smoke 和
+`ROUTINE_DAILY_EVIDENCE_ROLLING_20_SESSIONS` dry-run；本轮不重新 acquisition、不 remote
+delete、不自动 merge PR #46。
+
 ## Live master reconciliation before daily report work — 2026-09-09
 
 Live `origin/master` is `f5c4c6bbf9d3213fc15af75ceb57b4de23bb1559`; PR #43, PR #44 and PR #45

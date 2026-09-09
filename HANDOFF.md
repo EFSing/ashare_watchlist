@@ -4,21 +4,23 @@
 > 本文件不是历史归档；历史 provenance 在 Git 历史中，正式状态与长期决策分别见
 > `docs/CURRENT_STATUS.md` 与 `docs/DECISION_LOG.md`（仅当前任务需要时读取）。
 
-- branch: `codex/daily-report-review-usability-20260909`; this bounded feature branch is based
-  on the verified live `master@f5c4c6bbf9d3213fc15af75ceb57b4de23bb1559`.
-- current task: `DAILY_REPORT_REVIEW_USABILITY_AND_BUNDLE_WIRING`; the live baseline includes
-  merged PR #43, PR #44 and PR #45. The latest master correctness run `34317755077` is
-  `completed / success` at the exact live master SHA.
+- branch: `codex/daily-report-review-usability-20260909`; this remains the recovery pointer for
+  PR #46 and the local workspace migration audit.
+- current task: `LOCAL_WORKSPACE_C_TO_D_MIGRATION_AND_EVIDENCE_RETENTION_AUDIT`; this is a
+  bounded storage/recovery task and does not change strategy, watchlist, review, provider,
+  T+1, research conclusions, or formal artifact semantics.
 - recovery pointer: use `origin/codex/daily-report-review-usability-20260909` as the current
   handoff branch. At recovery time, run `git rev-parse HEAD` and `git rev-parse @{u}` and require
   the two values to be equal; do not use this file's or any governance commit's SHA as live truth.
-- governance: `PROJECT_GOVERNANCE_STATE_CONFLICT` from the stale c139a04/PR #44 snapshot is
-  closed by this bounded live-state reconciliation. The daily checkpoint source and policy are
-  in master; remote delete count remains `0`.
-- terminal marker: `DAILY_REPORT_REVIEW_USABILITY_AND_BUNDLE_WIRING_PR46_CI_SUCCESS`.
-- implementation: PR #46 is open and unmerged against `master`; the validated feature head is
-  `b64a5fa088fff177dd93aa6cfbb39aaffa487517`, exact-head correctness run `34347321149` is
-  `completed / success`, and no automatic merge was performed.
+- governance: at intake, PR #46 was open/unmerged and its live remote head was
+  `6191489edae55f7389d24526292d502b1c5932bd`; exact-head correctness run `34347550977` was
+  `completed / success`. The preceding current-state snapshot recorded `b64a5fa...` and
+  `34347321149`; this is a bounded `PROJECT_GOVERNANCE_STATE_CONFLICT`, not a strategy or
+  artifact-identity conflict. The old values remain historical provenance below.
+- implementation: the review-oriented daily report and successful-run bundle wiring remain
+  unchanged. This docs-only reconciliation creates a new branch head; re-read the live branch,
+  PR and exact-head CI after push instead of treating this file as a permanent head/CI record.
+- terminal marker: `LOCAL_WORKSPACE_C_TO_D_MIGRATION_AND_EVIDENCE_RETENTION_AUDIT_IN_PROGRESS`.
 - completed: the daily HTML is now review-oriented (yesterday review → today's new list/T+1
   observation → rolling review → data quality → collapsed audit); current-date signals are
   explicitly `T_PLUS_1_OBSERVATION_PENDING`; historical missing, UNVERIFIED return, same-bar,
@@ -30,9 +32,9 @@
   read only: 10,601 raw/sidecar pairs span `18:05:30–18:21:30 BJT`; no acquisition rerun or
   operational artifact overwrite was performed. The local dated checkpoint remains
   `LOCAL_INPUTS_VERIFIED`, not remote cloud `VERIFIED`.
-- next action: user review/merge decision for PR #46; do not merge automatically. Classification
-  remains product blocker / STRICT PATH for daily-close usability and wiring, with no correctness
-  semantic change.
+- next action: after the docs-only reconciliation is pushed and its new exact-head CI is verified,
+  finish the C→D migration/inventory and retention dry-run; stop before any routine K-line delete
+  or PR merge decision. Classification remains STRICT PATH with no correctness semantic change.
 - prior task: `EXACT_DATE_IMMUTABLE_REVIEW_RECOVERY_AND_COMPLETENESS_GUARD`. PR #43 was
   squash-merged at `37551f88f34568f3d55a6ce602372e6135e20a61`; that task started from exact head
   `945b0fc16c0dde80aa4d795f049781834a7689a8` and kept the no-merge boundary.

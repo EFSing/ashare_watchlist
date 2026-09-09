@@ -5,6 +5,22 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-09 — Reconcile PR #46 live head before C→D migration audit
+
+- classification：`product infrastructure + correctness/provenance + recovery`，属于 STRICT
+  PATH；不改变交易、review、provider、T+1、研究结论或正式 artifact 语义。
+- live truth：PR #46 为 `OPEN / UNMERGED`；remote branch 与 pull head 均为
+  `6191489edae55f7389d24526292d502b1c5932bd`，exact-head correctness run
+  `34347550977` 为 `completed / success`。旧当前快照中的
+  `b64a5fa088fff177dd93aa6cfbb39aaffa487517` / `34347321149` 已过时。
+- decision：将该差异标记并以 bounded docs-only reconciliation 关闭
+  `PROJECT_GOVERNANCE_STATE_CONFLICT`；只修当前入口，不改写旧历史 provenance，不把
+  HANDOFF 设计成永久记录当前 branch exact HEAD 或 CI run 的不变量。
+- boundary：reconciliation push 后必须重新读取 `HEAD`、`@{u}`、PR 和 exact-head CI；随后
+  执行 C→D fresh clone、local evidence retention inventory 与 dry-run。routine daily
+  raw/sidecar 本轮只提案、不删除；Final OOS、C、forbidden validation、Drive remote
+  delete、acquisition rerun 和 PR merge 均不在授权范围内。
+
 ## 2026-09-09 — Adopt review-oriented daily close information architecture
 
 - decision：daily close HTML is organized as overview → actual previous-session review → today's
