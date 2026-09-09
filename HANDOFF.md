@@ -4,14 +4,18 @@
 > 本文件不是历史归档；历史 provenance 在 Git 历史中，正式状态与长期决策分别见
 > `docs/CURRENT_STATUS.md` 与 `docs/DECISION_LOG.md`（仅当前任务需要时读取）。
 
-- branch: `codex/daily-lightweight-cloud-checkpoint`; stacked directly on PR #43 exact green
-  head `e2d911692a4eed6ffcfd41c1f8ea035a2070b3c4`, with PR #43 still unmerged.
+- branch: `codex/daily-lightweight-cloud-checkpoint`; directly based on
+  `master@37551f88f34568f3d55a6ce602372e6135e20a61` after PR #43 was squash-merged.
+  PR #43 is `MERGED`; post-merge master correctness run `34306373948` is
+  `completed / success` at that exact SHA.
+- current task: `DAILY_LIGHTWEIGHT_CLOUD_CHECKPOINT`; the cloud branch is no longer stacked
+  on an open PR and is being prepared as an independent PR against the latest master.
 - recovery pointer: this task's pushed `origin/codex/daily-lightweight-cloud-checkpoint` is the
   authoritative recovery branch after the source commit is pushed. At recovery time, run
   `git rev-parse HEAD` and `git rev-parse @{u}` and require the two values to be equal; do not
   use this file's or any governance commit's SHA as the recovery truth.
-- prior task: `EXACT_DATE_IMMUTABLE_REVIEW_RECOVERY_AND_COMPLETENESS_GUARD`. PR #43 is still
-  open and unmerged; that task started from exact head
+- prior task: `EXACT_DATE_IMMUTABLE_REVIEW_RECOVERY_AND_COMPLETENESS_GUARD`. PR #43 was
+  squash-merged at `37551f88f34568f3d55a6ce602372e6135e20a61`; that task started from exact head
   `945b0fc16c0dde80aa4d795f049781834a7689a8` and kept the no-merge boundary.
   Live governance reconciliation is closed:
   PR #41 is merged, review cleanup PR #42 is merged into master, post-merge correctness run
@@ -72,20 +76,21 @@
 - blockers: none for the frozen candidate or daily-close bundle. Final OOS remains
   `SEALED / UNREAD`; C remains unread; old D is not reconstructed; forbidden validation data
   remains untouched.
-- prior task outcome: exact PR #43 head and its exact-head CI were re-read before starting this
-  bounded follow-up; PR #43 remains open, unmerged, and awaiting the user's merge decision.
+- prior task outcome: PR #43 exact head and exact-head CI were re-read before its squash merge;
+  master now contains the daily close bundle, exact-date recovery, current prospective boundary,
+  T+1 invariant, and review completeness guard. The post-merge master correctness run passed.
 - exact-head CI must always be re-read live for the current remote head; the previously
   verified implementation head passed both push and pull-request correctness checks before
   this governance-only handoff update.
-- prior-task terminal marker after the exact PR #43 head and CI were verified:
-  `EXACT_DATE_REVIEW_RECOVERY_AND_COMPLETENESS_GUARD_PR_READY_FOR_USER_MERGE_DECISION`.
+- prior-task terminal marker: `PR43_SQUASH_MERGED_AND_POST_MERGE_CORRECTNESS_SUCCESS`.
 
 ## Current checkpoint — daily lightweight cloud checkpoint — 2026-09-08
 
-The bounded follow-up is implemented on `codex/daily-lightweight-cloud-checkpoint`, created
-from PR #43's exact green head `e2d911692a4eed6ffcfd41c1f8ea035a2070b3c4`; PR #43 remains
-open and unmerged. The implementation commit is
-`bcbbe9afeab95da87a98d762386d2de84a58095b`; the manifest records that code SHA because
+The bounded follow-up is implemented on `codex/daily-lightweight-cloud-checkpoint`, now
+replayed directly onto `master@37551f88f34568f3d55a6ce602372e6135e20a61` after PR #43's squash
+merge. PR #43 is merged and the daily close bundle / exact-date recovery are formally in master.
+The rebased implementation commit is
+`b33b2ecbbb0b43b9a5c232acee6cccf8a2527f49`; the manifest records that code SHA because
 subsequent governance/test-only commits may advance the branch head without changing checkpoint
 implementation code.
 
@@ -112,10 +117,12 @@ read-only inventory is `data/reports/cloud_storage_inventory_20260908.json` with
 The runner remains fail-soft: it emits `[CLOUD] VERIFIED` when an injected authenticated Drive
 adapter completes, or `[CLOUD] FAILED <exact reason>` without changing canonical local state.
 There is no automatic scheduler. The terminal marker for this bounded follow-up is
-`DAILY_LIGHTWEIGHT_CLOUD_CHECKPOINT_STACKED_BRANCH_READY_AFTER_PR43_MERGE`.
+`DAILY_LIGHTWEIGHT_CLOUD_CHECKPOINT_PR_READY_FOR_USER_MERGE_DECISION`.
 
-Validation is complete: the checkpoint/runner focused set is 18 passed; the full repository suite is
-440 passed with 8 legacy/out-of-scope warnings; compileall and `git diff --check` pass.
+Validation is complete: the checkpoint/runner focused set and full repository suite are to be
+re-run on the rebased branch before the independent PR is opened. Formal Delivery Ladder remains
+`frozen candidate`; Final OOS remains `SEALED / UNREAD`; C remains unread; old D is not
+reconstructed.
 
 ## New-device / new-session recovery
 

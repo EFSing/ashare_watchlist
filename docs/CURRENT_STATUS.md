@@ -1,10 +1,13 @@
 # CURRENT STATUS
 
-## Daily lightweight cloud checkpoint — stacked on PR #43 — 2026-09-08
+## Daily lightweight cloud checkpoint — based on merged PR #43 — 2026-09-09
 
 The bounded cloud follow-up is complete on
-`codex/daily-lightweight-cloud-checkpoint`, created from PR #43 exact green head
-`e2d911692a4eed6ffcfd41c1f8ea035a2070b3c4`; PR #43 remains open and unmerged.
+`codex/daily-lightweight-cloud-checkpoint`, replayed directly onto
+`master@37551f88f34568f3d55a6ce602372e6135e20a61` after PR #43 was squash-merged.
+PR #43 is `MERGED`; post-merge master correctness run `34306373948` is
+`completed / success` at that exact SHA. The daily close bundle and exact-date recovery are
+formally in master; the cloud branch is no longer stacked.
 Daily cloud scope is limited to the six lightweight files for 20260908: four files in
 `ashare_watchlist/daily_checkpoints/20260908` and two files in the fixed
 `ashare_watchlist/daily_checkpoints/latest`. The dated four are uploaded before latest, and
@@ -23,14 +26,16 @@ Read-only Drive inventory is recorded in
 `REDUNDANT_INTERMEDIATE_CANDIDATE=29`, and `UNKNOWN_DO_NOT_DELETE=0`. Formal/source/raw
 evidence and historical archives remain outside daily scope. The runner is fail-soft and has no
 automatic scheduler. Terminal marker:
-`DAILY_LIGHTWEIGHT_CLOUD_CHECKPOINT_STACKED_BRANCH_READY_AFTER_PR43_MERGE`.
+`DAILY_LIGHTWEIGHT_CLOUD_CHECKPOINT_PR_READY_FOR_USER_MERGE_DECISION`.
 
 Validation is complete: focused checkpoint/runner tests 18 passed, full repository suite 440 passed
 with 8 legacy/out-of-scope warnings, compileall passed, and `git diff --check` passed.
 
-## Exact-date immutable review recovery and completeness guard — PR #43 (unmerged) — 2026-09-08
+## Exact-date immutable review recovery and completeness guard — PR #43 (merged) — 2026-09-08
 
-本轮从 PR #43 起始 head `945b0fc16c0dde80aa4d795f049781834a7689a8` 继续，保持不 merge。
+本轮从 PR #43 起始 head `945b0fc16c0dde80aa4d795f049781834a7689a8` 继续；PR #43 已
+以 squash 方式合并至 `master@37551f88f34568f3d55a6ce602372e6135e20a61`，post-merge
+correctness run `34306373948` 为 `completed / success`。
 只使用本机不可变 evidence root
 `data/t_close_evidence/20260908/20260908`；10,598/10,598 raw/sidecar 配对通过 SHA、
 schema、retrieved-at、provider/source、code SHA 和完整性审计，`UNKNOWN_ORIGIN=0`，恢复过程
@@ -50,10 +55,10 @@ recovery=25/25，9/3 T+3 snapshot=11/11，9/8 current list 34 个保持 pending�
 因此状态是 `REVIEW_OBSERVATION_INCOMPLETE` 的 fail-soft，而不是伪造 9/3 的历史执行。
 HTML 同时展示 9/7 的 25 行当日 OHLC/trigger/status/close-vs-trigger、9/3 的恢复节点与
 路径未验证，并在顶部显示 coverage warning。B strategy/threshold/scoring/target、provider
-priority、T+5 primary、Final OOS/C/old D 边界均未改变。下一步是推送新 head、实时核对 PR #43
-exact-head CI，并等待用户 merge decision。
+priority、T+5 primary、Final OOS/C/old D 边界均未改变。下一步是完成 cloud branch 的
+rebase、独立 PR 验证和用户 merge decision。
 
-## Current prospective review boundary correction — PR #43 (unmerged)
+## Current prospective review boundary correction — PR #43 (merged)
 
 The user-facing prospective epoch starts on 2026-09-03, the first verified
 candidate-bound LIVE_OBSERVED instance, and accepts only exact
@@ -66,14 +71,15 @@ Exact 20260903 / 20260907 / 20260908 canonical continuity and tracker identity c
 are restored to 11 / 25 / 34. 9/3 and 9/7 were recovered from existing exact-SHA Drive
 bytes, without rerunning historical B. No 9/8 observation exists for those 36 historical
 signals; reports preserve the missing state. This correction does not change the frozen
-candidate, path/snapshot semantics, or research conclusions. PR #43 remains unmerged;
-read its exact head and CI live before any user merge decision.
+candidate, path/snapshot semantics, or research conclusions. PR #43 is merged at the master SHA
+recorded above; the independent cloud checkpoint PR remains subject to its own exact-head CI and
+user merge decision.
 
 
-更新时间：2026-09-08（Asia/Shanghai）
+更新时间：2026-09-09（Asia/Shanghai）
 Formal Delivery Ladder：`frozen candidate`
-Live `master@3308c7ab8e403d459baf1bbfe873e7320d750317`；PR #41 已合并。post-merge
-correctness run `34133269448` 为 `completed / success` 且 head exact。
+Live `master@37551f88f34568f3d55a6ce602372e6135e20a61`；PR #43 已 squash merge。post-merge
+correctness run `34306373948` 为 `completed / success` 且 head exact。
 Phase 2E research baseline：PR #6 / `74ccf86dfdea3b9d4b0124fb54346aa429735508`
 职责：记录项目正式处于什么状态，以及哪些研究结论已经成立。长期产品目标和 usable gate 见 [`PRODUCT_CHARTER.md`](PRODUCT_CHARTER.md)，接手动作见 [`HANDOFF.md`](../HANDOFF.md)，决策理由见 [`DECISION_LOG.md`](DECISION_LOG.md)。
 
