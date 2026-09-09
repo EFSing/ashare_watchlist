@@ -1,5 +1,33 @@
 # CURRENT STATUS
 
+## Daily lightweight cloud checkpoint — stacked on PR #43 — 2026-09-08
+
+The bounded cloud follow-up is complete on
+`codex/daily-lightweight-cloud-checkpoint`, created from PR #43 exact green head
+`e2d911692a4eed6ffcfd41c1f8ea035a2070b3c4`; PR #43 remains open and unmerged.
+Daily cloud scope is limited to the six lightweight files for 20260908: four files in
+`ashare_watchlist/daily_checkpoints/20260908` and two files in the fixed
+`ashare_watchlist/daily_checkpoints/latest`. The dated four are uploaded before latest, and
+same-name SHA conflicts fail closed.
+
+Drive readback passed for all six files: 389,472 total payload bytes, watchlist SHA
+`f58059cd5269f8ac5cd10da357a2bd008a76ef84feaa399846d74ad7daa4b5fc`, dated manifest SHA
+`d42de41efd50393f0568191e07bd82cb6daf2e4e94221d9c9c9e218112742965`, tracker SHA
+`dcb59bb2784ab02bd4e203a55907f6de3e31c06940007bb0cfb528909fa0cda6`, and dated HTML SHA
+`171a7af05510a61270ca162cbc26912d71a745e84a20061cc315e66d1c10d679`. The actual recovery
+smoke passed with exact restoration from Drive bytes; no remote deletes occurred.
+
+Read-only Drive inventory is recorded in
+`data/reports/cloud_storage_inventory_20260908.json`: 97 files, 4,581,059,971 bytes,
+16 folders, with `FORMAL_KEEP=62`, `DAILY_KEEP=6`,
+`REDUNDANT_INTERMEDIATE_CANDIDATE=29`, and `UNKNOWN_DO_NOT_DELETE=0`. Formal/source/raw
+evidence and historical archives remain outside daily scope. The runner is fail-soft and has no
+automatic scheduler. Terminal marker:
+`DAILY_LIGHTWEIGHT_CLOUD_CHECKPOINT_STACKED_BRANCH_READY_AFTER_PR43_MERGE`.
+
+Validation is complete: focused checkpoint/runner tests 16 passed, full repository suite 438 passed
+with 8 legacy/out-of-scope warnings, compileall passed, and `git diff --check` passed.
+
 ## Exact-date immutable review recovery and completeness guard — PR #43 (unmerged) — 2026-09-08
 
 本轮从 PR #43 起始 head `945b0fc16c0dde80aa4d795f049781834a7689a8` 继续，保持不 merge。

@@ -5,6 +5,29 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-08 — Adopt daily lightweight cloud checkpoint with immutable dated state
+
+- scope：在 PR #43 仍未 merge 的条件下，新增独立 stacked branch
+  `codex/daily-lightweight-cloud-checkpoint`，只负责小型日终 checkpoint，不改变交易、
+  review、tracker 语义或正式 evidence。
+- decision：每个日期只保存 `watchlist_YYYYMMDD.json`、`perf_tracker.json`、dated HTML
+  和小型 manifest；固定 latest 只保存 `latest.html` 与 `latest_checkpoint.json`。上传顺序
+  是 dated watchlist → tracker → dated HTML/readback → dated manifest → latest 两个文件。
+  同 logical filename 的相同 SHA 只能 `NO_OP_ALREADY_VERIFIED`，不同 SHA 必须
+  `CLOUD_CHECKPOINT_CONFLICT` 并 fail closed，禁止覆盖、改名或复制。
+- rationale：dated checkpoint 是可恢复的 immutable daily state，latest 只是已验证 dated
+  state 的便捷指针；将 latest 更新置于 dated manifest 成功之后，可避免 latest 失败损伤
+  dated recovery。
+- governance：Kline/raw/sidecar/source evidence、prospective package、formal chunks 和
+  historical archives 永不进入 daily scope。Drive inventory 只读分类为
+  `FORMAL_KEEP`、`DAILY_KEEP`、`REDUNDANT_INTERMEDIATE_CANDIDATE`、
+  `UNKNOWN_DO_NOT_DELETE`；本决定不授权任何 remote delete。无自动 scheduler，云端失败
+  只产生精确原因并保持 canonical local files 不变。
+- recovery：20260908 六个 checkpoint 文件实际上传、readback 与 SHA 验证通过，真实恢复
+  smoke 通过；本地 inventory 报告保留为未跟踪 operational report。该 bounded follow-up
+  的 terminal marker 是
+  `DAILY_LIGHTWEIGHT_CLOUD_CHECKPOINT_STACKED_BRANCH_READY_AFTER_PR43_MERGE`。
+
 ## 2026-09-08 — Adopt exact-date immutable review recovery and completeness guard
 
 - context：PR #43 的 2026-09-03 / 2026-09-07 review observation 在 2026-09-08 才发现缺口；
