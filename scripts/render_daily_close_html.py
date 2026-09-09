@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import html
+import json
 import os
 import tempfile
 from dataclasses import dataclass
@@ -43,6 +44,8 @@ _FROZEN_STRATEGY = "B_BREAKOUT_RETEST_LEGACY_V1_1"
 _UNVERIFIED = "UNVERIFIED"
 _MISSING = "MISSING_HISTORICAL_OBSERVATION"
 _REVIEW_FAILURE = "REVIEW_FAILED"
+_T1_PENDING = "T_PLUS_1_OBSERVATION_PENDING"
+_CLOUD_VERIFIED = "CLOUD_CHECKPOINT_VERIFIED"
 _HORIZON_OFFSETS = dict(REVIEW_HORIZONS)
 
 
@@ -61,6 +64,9 @@ class ReportModel:
     summary_text: str
     review_status: str
     review_coverage: dict[str, Any] | None = None
+    overview: dict[str, Any] | None = None
+    data_quality: list[dict[str, Any]] | None = None
+    rolling_review: dict[str, Any] | None = None
 
 
 def _normalize_date(value: date | datetime | str) -> str:
@@ -177,6 +183,48 @@ def _package_metadata(paths: DataPaths, list_date: str) -> tuple[str, str]:
     return _sha256_file(package), fingerprint or "UNVERIFIED"
 
 
+def _acquisition_status(paths: DataPaths, list_date: str) -> str:
+    """Read only the existing evidence sidecars to expose capture completeness."""
+
+    evidence_root = paths.root / "t_close_evidence" / _date_token(list_date)
+    sidecars = sorted(evidence_root.rglob("*.json")) if evidence_root.exists() else []
+    if not sidecars:
+        return _UNVERIFIED
+    for sidecar in sidecars:
+        raw_path = sidecar.with_suffix(".raw")
+        if not raw_path.is_file():
+            return _UNVERIFIED
+        try:
+            metadata = json.loads(sidecar.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            return _UNVERIFIED
+        if not isinstance(metadata, Mapping):
+            return _UNVERIFIED
+        if metadata.get("target_date") != list_date or metadata.get("completeness_status") != "COMPLETE":
+            return _UNVERIFIED
+    return "COMPLETE"
+
+
+def _cloud_checkpoint_status(paths: DataPaths, list_date: str) -> str:
+    """Expose verified cloud state only when the existing manifest says so."""
+
+    manifest_path = paths.root / "checkpoints" / f"daily_checkpoint_{_date_token(list_date)}.json"
+    if not manifest_path.is_file():
+        return _UNVERIFIED
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return _UNVERIFIED
+    if not isinstance(manifest, Mapping) or manifest.get("list_date") != list_date:
+        return _UNVERIFIED
+    status = str(manifest.get("verification_status") or "")
+    if status in {_CLOUD_VERIFIED, "UPLOADED_AND_VERIFIED", "NO_OP_ALREADY_VERIFIED"}:
+        return "VERIFIED"
+    if status == "LOCAL_INPUTS_VERIFIED":
+        return "LOCAL_INPUTS_VERIFIED"
+    return _UNVERIFIED
+
+
 def _point_for_signal(
     signal: Mapping[str, Any],
     horizon: str,
@@ -230,6 +278,7 @@ def _load_review_tracker(
 def _watchlist_rows(
     watchlist: Mapping[str, Any],
     tracker: Mapping[str, Any] | None,
+    report_date: str,
 ) -> list[dict[str, Any]]:
     signals = tracker.get("signals", {}) if isinstance(tracker, Mapping) else {}
     signals = signals if isinstance(signals, Mapping) else {}
@@ -241,6 +290,12 @@ def _watchlist_rows(
     for rank, candidate in enumerate(candidates, start=1):
         signal = signals.get(candidate.get("signal_id"))
         status = signal.get("status") if isinstance(signal, Mapping) else None
+        is_new_signal = str(watchlist.get("date")) == report_date
+        observation_status = _T1_PENDING if is_new_signal else _UNVERIFIED
+        status_explanation = "今日新信号，等待下一交易日观察" if is_new_signal else "状态待核验"
+        if not is_new_signal and status is not None:
+            observation_status = "已记录"
+            status_explanation = "按已有 tracker 状态展示"
         rows.append(
             {
                 "rank": rank,
@@ -256,6 +311,8 @@ def _watchlist_rows(
                 "setup": candidate.get("setup", candidate.get("buy_type")),
                 "sector": candidate.get("sector", "-"),
                 "status": _status_text(status),
+                "observation_status": observation_status,
+                "status_explanation": status_explanation,
                 "signal_id": candidate.get("signal_id"),
             }
         )
@@ -355,6 +412,16 @@ def _daily_collections(tracker, report_date, previous_date, paths, failures):
         verified = observation is not None and not future_state
         status = raw_status if verified else _MISSING
         closed_today = verified and signal.get('close_date') == report_date
+        ambiguity_reason = signal.get('ambiguity_reason')
+        if verified and raw_status == 'AMBIGUOUS_SAME_BAR':
+            observation_status = 'AMBIGUOUS_SAME_BAR'
+            status_explanation = f"同日顺序不明；{ambiguity_reason}" if ambiguity_reason else '同日顺序不明'
+        elif not verified:
+            observation_status = _MISSING
+            status_explanation = '历史 observation 缺失或状态未核验；保持 UNVERIFIED'
+        else:
+            observation_status = 'CAPTURED'
+            status_explanation = '正常已记录' if raw_status == 'pending' else f"正常已记录；canonical status={raw_status}"
         row = {
             'code': signal.get('code'), 'name': signal.get('name'),
             'signal_id': signal.get('signal_id'), 'list_date': list_date,
@@ -363,6 +430,7 @@ def _daily_collections(tracker, report_date, previous_date, paths, failures):
             'today_high': observation.get('high') if observation else None,
             'today_low': observation.get('low') if observation else None,
             'today_close': observation.get('price') if observation else None,
+            'daily_change_pct': observation.get('change_pct') if observation else None,
             'observation_source_mode': observation.get('source_mode') if observation else None,
             'source_mode': observation.get('source_mode') if observation else None,
             'observation_source': (
@@ -381,6 +449,8 @@ def _daily_collections(tracker, report_date, previous_date, paths, failures):
                 if observation and observation.get('price') is not None and signal.get('trigger') else None
             ),
             'path_status': status, 'raw_status': raw_status, 'observed': verified,
+            'observation_status': observation_status,
+            'status_explanation': status_explanation,
             'new_triggered': verified and signal.get('first_trigger_date') == report_date,
             'closed_today': closed_today,
             'note': ('缺少当日真实记录或当日状态未核验' if not verified else
@@ -395,8 +465,20 @@ def _daily_collections(tracker, report_date, previous_date, paths, failures):
             groups[1].append(row)
         elif closed_today:
             groups[2].append(row)
+    def sort_key(row: Mapping[str, Any]) -> tuple[int, float, str, str]:
+        attention = (
+            0 if row.get('raw_status') == 'AMBIGUOUS_SAME_BAR' or not row.get('observed')
+            else 1 if row.get('raw_status') == 'triggered'
+            else 2
+        )
+        try:
+            score = -float(row.get('score'))
+        except (TypeError, ValueError):
+            score = float('inf')
+        return attention, score, str(row.get('code', '')), str(row.get('signal_id', ''))
+
     for rows in groups:
-        rows.sort(key=lambda row: (row['list_date'], str(row['code']), str(row['signal_id'])))
+        rows.sort(key=sort_key)
     return groups
 
 
@@ -435,7 +517,7 @@ def build_report_model(
     previous_signals, active_signals, closed_today = _daily_collections(
         tracker, normalized_date, previous_date, resolver, review_failures
     )
-    watchlist_rows = _watchlist_rows(watchlist, tracker)
+    watchlist_rows = _watchlist_rows(watchlist, tracker, normalized_date)
 
     anomalies = list(review_failures)
     anomalies.extend(review_issues)
@@ -465,6 +547,86 @@ def build_report_model(
         review_status = REVIEW_OBSERVATION_INCOMPLETE
     else:
         review_status = "READY"
+    previous_triggered = sum(row['raw_status'] == 'triggered' for row in previous_signals)
+    previous_pending = sum(row['raw_status'] == 'pending' for row in previous_signals)
+    previous_ambiguous = sum(row['raw_status'] == 'AMBIGUOUS_SAME_BAR' for row in previous_signals)
+    today_t1_pending = sum(row.get('observation_status') == _T1_PENDING for row in watchlist_rows)
+    unverified_count = review_issues.count(_UNVERIFIED)
+    ambiguity_dates: dict[str, int] = {}
+    historical_missing_dates: dict[str, int] = {}
+    unverified_dates: dict[str, int] = {}
+    if isinstance(tracker, Mapping):
+        for signal in tracker.get("signals", {}).values():
+            if not isinstance(signal, Mapping):
+                continue
+            if signal.get("status") == "AMBIGUOUS_SAME_BAR":
+                signal_date = _normalize_date(signal.get("date"))
+                ambiguity_dates[signal_date] = ambiguity_dates.get(signal_date, 0) + 1
+            for point in (signal.get("review_points") or {}).values():
+                if not isinstance(point, Mapping):
+                    continue
+                scheduled = point.get("review_trading_date") or point.get("scheduled_date")
+                if not scheduled or parse_date(scheduled) > parse_date(normalized_date):
+                    continue
+                signal_date = _normalize_date(signal.get("date"))
+                if point.get("status") == REVIEW_POINT_NOT_CAPTURED:
+                    historical_missing_dates[signal_date] = historical_missing_dates.get(signal_date, 0) + 1
+                elif point.get("status") == REVIEW_POINT_CAPTURED and point.get("return_pct") is None:
+                    unverified_dates[signal_date] = unverified_dates.get(signal_date, 0) + 1
+    acquisition_status = _acquisition_status(resolver, normalized_date)
+    cloud_checkpoint_status = _cloud_checkpoint_status(resolver, normalized_date)
+    quality_exception_count = (
+        missing_count
+        + unverified_count
+        + sum(ambiguity_dates.values())
+        + (1 if acquisition_status != "COMPLETE" else 0)
+        + (1 if cloud_checkpoint_status != "VERIFIED" else 0)
+        + sum(item != "NONE" for item in review_failures)
+    )
+    data_quality = [
+        {
+            "category": "历史节点缺失",
+            "count": missing_count,
+            "status": f"{_MISSING} / {_UNVERIFIED}",
+            "reason": "节点未采集，不回填；保持历史路径 UNVERIFIED",
+            "signal_dates": ", ".join(f"{d} ({n})" for d, n in sorted(historical_missing_dates.items())) or "—",
+        },
+        {
+            "category": "收益待核验",
+            "count": unverified_count,
+            "status": _UNVERIFIED,
+            "reason": "confirmed entry unavailable; return is unverified",
+            "signal_dates": ", ".join(f"{d} ({n})" for d, n in sorted(unverified_dates.items())) or "—",
+        },
+        {
+            "category": "同日顺序不明",
+            "count": sum(ambiguity_dates.values()),
+            "status": "AMBIGUOUS_SAME_BAR",
+            "reason": "保留 fail-safe，不猜测日内先后顺序",
+            "signal_dates": ", ".join(f"{d} ({n})" for d, n in sorted(ambiguity_dates.items())) or "—",
+        },
+        {
+            "category": "今日新信号等待 T+1",
+            "count": today_t1_pending,
+            "status": _T1_PENDING,
+            "reason": "正常状态：今日新信号尚未进入下一交易日 observation",
+            "signal_dates": normalized_date if today_t1_pending else "—",
+        },
+        {
+            "category": "acquisition",
+            "count": 0 if acquisition_status == "COMPLETE" else 1,
+            "status": acquisition_status,
+            "reason": "T-close evidence sidecars complete" if acquisition_status == "COMPLETE" else "capture completeness is not verified",
+            "signal_dates": normalized_date,
+        },
+        {
+            "category": "cloud checkpoint",
+            "count": 0 if cloud_checkpoint_status == "VERIFIED" else 1,
+            "status": cloud_checkpoint_status,
+            "reason": "dated checkpoint verified" if cloud_checkpoint_status == "VERIFIED" else "local manifest is not proof of remote cloud verification",
+            "signal_dates": normalized_date,
+        },
+    ]
     summary = {
         'tracked': len(daily_rows),
         'active_signals': sum(row['raw_status'] in {'pending', 'triggered'} and row['observed'] for row in daily_rows),
@@ -478,12 +640,19 @@ def build_report_model(
         't3_count': len(review_sections['T+3']),
         't5_count': len(review_sections['T+5']),
         't10_count': len(review_sections['T+10']),
+        'previous_total': len(previous_signals),
+        'previous_triggered': previous_triggered,
+        'previous_pending': previous_pending,
+        'previous_ambiguous': previous_ambiguous,
+        'today_t1_pending': today_t1_pending,
+        'quality_exception_count': quality_exception_count,
     }
     summary_text = (
-        f"今日复盘 {summary['tracked']} 个历史信号，其中新触发 {summary['new_triggered']} 个、"
-        f"目标达成 {summary['target_hits']} 个、止损 {summary['stop_hits']} 个、"
-        f"仍观察 {summary['active_signals']} 个、已过期 {summary['expired']} 个、"
-        f"同日顺序不明 {summary['ambiguous']} 个、数据缺失 {summary['daily_missing']} 个。"
+        f"昨日 {previous_date} 共 {previous_triggered + previous_pending + previous_ambiguous} 个信号："
+        f"triggered {previous_triggered}、pending {previous_pending}、same-bar {previous_ambiguous}。"
+        f"今日新信号 {today_t1_pending} 个，正常等待下一交易日 observation。"
+        f"历史数据质量例外 {quality_exception_count} 个；"
+        f"acquisition={acquisition_status}、review={review_status}、cloud={cloud_checkpoint_status}。"
         + (f"今日 T+5 PRIMARY 到期 {summary['t5_count']} 个。" if summary['t5_count'] else "今日无 T+5 PRIMARY 到期信号。")
     )
     if review_coverage and review_coverage.get('status') == REVIEW_OBSERVATION_INCOMPLETE:
@@ -531,6 +700,30 @@ def build_report_model(
             "recovery_integrity": recovery_audit.get("integrity_status", "UNVERIFIED"),
             "recovery_provider_calls": recovery_audit.get("provider_calls", "UNVERIFIED"),
         })
+    overview = {
+        "t_close_date": normalized_date,
+        "new_watchlist_count": len(watchlist_rows),
+        "previous_signal_count": len(previous_signals),
+        "triggered_count": previous_triggered,
+        "pending_count": previous_pending,
+        "ambiguous_count": previous_ambiguous,
+        "quality_exception_count": quality_exception_count,
+        "acquisition_status": acquisition_status,
+        "review_status": review_status,
+        "cloud_checkpoint_status": cloud_checkpoint_status,
+    }
+    rolling_review = {
+        "status": review_coverage.get("status", _UNVERIFIED) if review_coverage else _UNVERIFIED,
+        "strategy": metadata["strategy"],
+        "execution_expected": review_coverage.get("execution_expected", 0) if review_coverage else 0,
+        "execution_captured": review_coverage.get("execution_captured", 0) if review_coverage else 0,
+        "execution_missing": review_coverage.get("execution_missing", 0) if review_coverage else 0,
+        "horizon_expected": review_coverage.get("horizon_expected", 0) if review_coverage else 0,
+        "horizon_captured": review_coverage.get("horizon_captured", 0) if review_coverage else 0,
+        "horizon_missing": review_coverage.get("horizon_missing", 0) if review_coverage else 0,
+        "unverified_excluded": unverified_count,
+        "ambiguous_excluded": sum(ambiguity_dates.values()),
+    }
     return ReportModel(
         metadata=metadata,
         watchlist_rows=watchlist_rows,
@@ -543,6 +736,9 @@ def build_report_model(
         summary_text=summary_text,
         review_status=review_status,
         review_coverage=dict(review_coverage) if review_coverage else None,
+        overview=overview,
+        data_quality=data_quality,
+        rolling_review=rolling_review,
     )
 
 
@@ -560,6 +756,8 @@ def _display_status(value):
         'AMBIGUOUS_SAME_BAR': '同日顺序不明',
         PATH_UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH: '路径未完整验证',
         'CAPTURED': '已记录', 'NOT_CAPTURED': '数据缺失',
+        _T1_PENDING: '等待下一交易日观察', 'VERIFIED': 'VERIFIED',
+        'COMPLETE': 'COMPLETE', 'LOCAL_INPUTS_VERIFIED': '本地输入已验证',
         _MISSING: '数据缺失', _UNVERIFIED: '待核验',
     }.get(value, value or '数据缺失')
 
@@ -614,11 +812,12 @@ def _watchlist_table(rows):
         values += [_esc(_percent(distance, signed=True) if distance is not None else '—')
                    + '<br><small>' + _esc(_position(distance)) + '</small>']
         values += [_esc(_number(row.get(k))) for k in ('stop', 'target', 'rr')]
-        values += [_esc(row.get('sector'))]
+        values += [_ui_badge(row.get('status')), _ui_badge(row.get('observation_status')),
+                   _esc(row.get('status_explanation')), _esc(row.get('sector'))]
         search = ' '.join(str(row.get(k, '')) for k in ('code', 'name', 'sector')).lower()
         body.append(f'<tr data-search="{_esc(search)}">' + ''.join(f'<td>{v}</td>' for v in values) + '</tr>')
     return _simple_table(('排名', '代码', '名称', 'Score', '收盘', 'Trigger', '距 Trigger',
-                          'Stop', 'Target', 'RR', '行业'), body, 'watchlist-table')
+                          'Stop', 'Target', 'RR', '当前状态', '观察状态', '状态解释', '行业'), body, 'watchlist-table')
 
 
 def _daily_table(rows):
@@ -629,12 +828,44 @@ def _daily_table(rows):
         values = [_esc(row.get(k)) for k in ('code', 'name', 'list_date', 'score')]
         values += [_esc(_number(row.get(k))) for k in
                    ('original_trigger', 'today_open', 'today_high', 'today_low', 'today_close')]
+        values += [_esc(_percent(row.get('daily_change_pct'), signed=True))]
         values += [_esc(_percent(row['close_vs_trigger_pct'], signed=True)
                         if row['close_vs_trigger_pct'] is not None else '—')]
-        values += [_ui_badge(row['path_status']), _esc(row.get('observation_source', '数据缺失')), _esc(row['note'])]
+        values += [_ui_badge(row['path_status']), _ui_badge(row.get('observation_status')),
+                   _esc(row.get('observation_source', '数据缺失')), _esc(row.get('status_explanation'))]
         body.append('<tr>' + ''.join(f'<td>{v}</td>' for v in values) + '</tr>')
     return _simple_table(('代码', '名称', '名单日期', 'Score', 'Trigger', '今日开盘',
-                          '今日最高', '今日最低', '今日收盘', '收盘较 Trigger %', '今日状态', '记录来源', '结果说明'), body)
+                          '今日最高', '今日最低', '今日收盘', '当日涨跌', '收盘较 Trigger %',
+                          'Trigger 状态', 'Observation 状态', '记录来源', '状态解释'), body)
+
+
+def _quality_table(rows):
+    body = []
+    for row in rows:
+        values = [
+            _esc(row.get("category")),
+            _esc(row.get("count")),
+            _ui_badge(row.get("status")),
+            _esc(row.get("reason")),
+            _esc(row.get("signal_dates")),
+        ]
+        body.append("<tr>" + "".join(f"<td>{value}</td>" for value in values) + "</tr>")
+    return _simple_table(("类别", "数量", "状态", "解释", "Signal date"), body)
+
+
+def _rolling_review_html(review: Mapping[str, Any]) -> str:
+    rows = [
+        ("策略", review.get("strategy")),
+        ("Review guard", review.get("status")),
+        ("已验证 execution", f"{review.get('execution_captured', 0)} / {review.get('execution_expected', 0)}"),
+        ("已验证 fixed horizon", f"{review.get('horizon_captured', 0)} / {review.get('horizon_expected', 0)}"),
+        ("execution missing", review.get("execution_missing", 0)),
+        ("horizon missing", review.get("horizon_missing", 0)),
+        ("排除 UNVERIFIED", review.get("unverified_excluded", 0)),
+        ("排除 same-bar", review.get("ambiguous_excluded", 0)),
+    ]
+    body = [f"<tr><td>{_esc(label)}</td><td>{_esc(value)}</td></tr>" for label, value in rows]
+    return _simple_table(("现有正式计数", "值"), body)
 
 
 def render_html(model: ReportModel) -> str:
@@ -642,15 +873,23 @@ def render_html(model: ReportModel) -> str:
 
     metadata = model.metadata
     summary = model.daily_summary
+    overview = model.overview or {}
+    quality_rows = model.data_quality or []
+    rolling_review = model.rolling_review or {}
     cards = [
-        ('今日新名单', metadata['candidate_count']), ('昨日/近期复盘信号数', summary['tracked']),
-        ('今日新触发', summary['new_triggered']), ('今日目标', summary['target_hits']),
-        ('今日止损', summary['stop_hits']), ('今日仍观察', summary['active_signals']),
-        ('T+5 PRIMARY 到期数', summary['t5_count']),
-        ('异常数', len([a for a in model.anomalies if a != 'NONE'])),
+        ('T-close 日期', overview.get('t_close_date', metadata['review_date'])),
+        ('今日新名单', overview.get('new_watchlist_count', metadata['candidate_count'])),
+        ('昨日信号', overview.get('previous_signal_count', 0)),
+        ('昨日 triggered', overview.get('triggered_count', 0)),
+        ('昨日 pending / 未触发', overview.get('pending_count', 0)),
+        ('昨日 same-bar', overview.get('ambiguous_count', 0)),
+        ('UNVERIFIED / 数据质量例外', overview.get('quality_exception_count', 0)),
+        ('acquisition', overview.get('acquisition_status', _UNVERIFIED)),
+        ('review', overview.get('review_status', _UNVERIFIED)),
+        ('cloud checkpoint', overview.get('cloud_checkpoint_status', _UNVERIFIED)),
     ]
     card_html = ''.join(f'<div class="card"><div class="card-label">{label}</div>'
-                        f'<div class="card-value">{value}</div></div>' for label, value in cards)
+                        f'<div class="card-value">{_esc(value)}</div></div>' for label, value in cards)
     metadata_html = ''.join(f'<div class="meta-item"><span>{_esc(k)}</span>'
                             f'<strong>{_esc(v)}</strong></div>' for k, v in metadata.items())
     audit_rows = model.watchlist_rows + model.previous_signals + model.active_signals + model.closed_today
@@ -667,11 +906,10 @@ def render_html(model: ReportModel) -> str:
                                'Execution / Path Result', 'Fixed Horizon Snapshot', 'Snapshot Source',
                                'Execution Source', 'Source Mode'), [audit_html])
     issues = [a for a in model.anomalies if a != 'NONE']
-    labels = {_MISSING: '数据缺失：历史节点或今日记录缺失',
-              'AMBIGUOUS_SAME_BAR': '同日顺序不明', _UNVERIFIED: '数据待核验',
-              REVIEW_OBSERVATION_INCOMPLETE: '复盘数据不完整：执行观察或固定节点覆盖不足'}
-    anomaly_html = ('<ul>' + ''.join('<li>' + _esc(labels.get(a, '复盘失败：' + a)) + '</li>' for a in issues)
-                    + '</ul>') if issues else '<p>数据状态：正常</p>'
+    anomaly_html = (
+        '<p class="note">其他异常：' + _esc('；'.join(issues)) + '</p>'
+        if issues else '<p class="note">其他异常：无</p>'
+    )
     review_html = []
     for horizon, label in (('T+5', 'T+5 PRIMARY REVIEW'), ('T+3', 'T+3 短期复盘'),
                            ('T+10', 'T+10 EXTENSION / CLOSURE')):
@@ -704,6 +942,7 @@ h1 {{ margin:0 0 6px; font-size:clamp(24px,4vw,36px); }}
 h2 {{ margin:28px 0 8px; font-size:22px; }}
 h3 {{ margin:18px 0 8px; }}
 .subtitle,.note {{ color:var(--muted); margin:4px 0 14px; }}
+.section-summary {{ margin:8px 0 14px; font-weight:600; }}
 .meta-grid {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:8px; margin:20px 0; }}
 .meta-item {{ background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:10px 12px; min-width:0; }}
 .meta-item span {{ display:block; color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.04em; }}
@@ -747,7 +986,8 @@ footer {{ color:var(--muted); font-size:12px; padding:18px 0 4px; }}
 <div class="cards">{card_html}</div>
 <p class="callout{callout_class}">{_esc(model.summary_text)}</p>
 <section id="daily-review">
-<h2>今日复盘</h2>
+<h2>昨日信号复盘 · {metadata['previous_date']}</h2>
+<p class="section-summary">总信号 {summary['previous_total']} · triggered {summary['previous_triggered']} · pending / 未触发 {summary['previous_pending']} · same-bar {summary['previous_ambiguous']}。默认按需注意、triggered、pending 排序。</p>
 <h3>昨日名单今日表现 · {metadata['previous_date']}</h3>
 {_daily_table(model.previous_signals)}
 <h3>历史仍在观察</h3>
@@ -755,17 +995,24 @@ footer {{ color:var(--muted); font-size:12px; padding:18px 0 4px; }}
 {('<h3>今日结束</h3>' + _daily_table(model.closed_today)) if model.closed_today else ''}
 </section>
 <section id="tomorrow-watchlist">
-<h2>明日观察名单</h2>
+<h2>今日新名单 / 明日观察</h2>
 <p class="note">共 {metadata['candidate_count']} 个 · 按 Score 从高到低排列。位置标签仅供阅读，不改变筛选或交易规则。</p>
 <div class="toolbar"><label for="watchlist-search">搜索：</label><input id="watchlist-search" type="search" placeholder="输入代码、名称或行业" autocomplete="off"></div>
 {_watchlist_table(model.watchlist_rows)}
 </section>
 <section id="formal-review">
-<h2>正式节点复盘</h2>
+<h2>策略滚动复盘</h2>
+<p class="note">只展示 tracker 已定义且已验证的 execution / fixed-horizon coverage；UNVERIFIED、未成熟窗口和 same-bar 结果不被临时归类或计算新指标。</p>
+{_rolling_review_html(rolling_review)}
+<h3>正式节点明细</h3>
 <p class="note">节点收益是固定期限快照，与触发、目标及止损等路径结果分开记录。</p>
 {''.join(review_html)}
 </section>
-<section id="anomalies"><h2>异常</h2>{anomaly_html}</section>
+<section id="anomalies"><h2>异常与数据质量</h2>
+<p class="note">“今日新信号等待 T+1”是正常状态，不计入缺失；历史缺口、UNVERIFIED、same-bar 和云端/采集状态分别列出。</p>
+{_quality_table(quality_rows)}
+{anomaly_html}
+</section>
 <details id="audit"><summary>审计详情</summary>
 <div class="meta-grid">{metadata_html}</div>
 <p>review status: {_esc(model.review_status)}</p>

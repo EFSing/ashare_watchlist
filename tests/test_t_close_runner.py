@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -69,3 +70,29 @@ def test_runner_persists_input_package_before_generating_watchlist(monkeypatch, 
     assert result["input_package"]["path"] == str(persisted.path)
     assert result["watchlist"]["path"] == str(candidate.output_path)
     assert events == ["acquire", "persist_package", "generate_watchlist"]
+
+
+def test_main_persists_daily_close_bundle_after_successful_tclose_run(monkeypatch, tmp_path, capsys):
+    watchlist_path = tmp_path / "watchlist_20260910.json"
+    watchlist_path.write_text("{}", encoding="utf-8")
+    bundle = {"status": "READY", "dated_html": "daily_close_20260910.html"}
+
+    monkeypatch.setattr(
+        runner,
+        "run",
+        lambda as_of_date, data_root, evidence_root, now_bjt=None: {
+            "status": runner.T_CLOSE_SUCCESS_STATUS,
+            "watchlist": {"path": str(watchlist_path)},
+        },
+    )
+    monkeypatch.setattr(runner, "_run_daily_close_reporting", lambda as_of_date, data_root: bundle)
+
+    assert runner.main([
+        "--as-of-date", "2026-09-10",
+        "--data-root", str(tmp_path / "data"),
+        "--evidence-root", str(tmp_path / "evidence"),
+    ]) == 0
+    result = json.loads(capsys.readouterr().out)
+
+    assert result["status"] == runner.T_CLOSE_SUCCESS_STATUS
+    assert result["daily_close_bundle"] == bundle
