@@ -1,5 +1,9 @@
 from data_paths import DataPaths
-from test_watchlist_schema import payload
+from test_watchlist_schema import payload as schema_payload
+
+
+def payload(**overrides):
+    return schema_payload(**{"date": "2026-09-03", "strategy_version": "B_BREAKOUT_RETEST_LEGACY_V1_1", **overrides})
 from track_perf import classify_signal_bar, ingest, new_tracker, update
 from trading_calendar import TradingCalendar
 import json
@@ -23,13 +27,13 @@ def test_trigger_stop_target_on_same_bar_is_ambiguous_and_explains_why():
 
 def test_tracker_persists_ambiguous_status_instead_of_counting_a_loss(tmp_path):
     paths = DataPaths(tmp_path)
-    paths.watchlist_file("2026-08-20").write_text(json.dumps(payload()), encoding="utf-8")
+    paths.watchlist_file("2026-09-03").write_text(json.dumps(payload()), encoding="utf-8")
     tracker = new_tracker()
     assert ingest(tracker, paths=paths) == 1
 
     quote = {
         "code": "600519",
-        "quote_date": "2026-08-21",
+        "quote_date": "2026-09-04",
         "price": 100.0,
         "prev_close": 100.0,
         "open": 100.0,
@@ -42,7 +46,7 @@ def test_tracker_persists_ambiguous_status_instead_of_counting_a_loss(tmp_path):
     update(
         tracker,
         quotes={"600519": quote},
-        today="2026-08-21",
+        today="2026-09-04",
         calendar=TradingCalendar(holidays=set()),
     )
 

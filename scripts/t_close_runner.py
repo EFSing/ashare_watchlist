@@ -19,7 +19,7 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
 
-from data_paths import DataPaths
+from data_paths import DATA_ROOT_ENV, DataPaths
 from development_candidate import (
     B_STRATEGY_BINDING,
     DevelopmentCandidateStore,
@@ -38,6 +38,116 @@ from trading_calendar import CalendarUnavailable, default_calendar
 
 _BJT = timezone(timedelta(hours=8))
 RUNNABLE_STATUSES = {RUN_SUCCESS, RUN_ALREADY_CURRENT, RUN_NO_CANDIDATES}
+
+
+def _bounded_process_detail(completed: subprocess.CompletedProcess[str]) -> str:
+    detail = "\n".join(part.strip() for part in (completed.stdout or "", completed.stderr or "") if part.strip())
+    return detail[:2000] or f"process exited with code {completed.returncode}"
+
+
+def _run_daily_close_reporting(as_of_date: str, data_root: Path) -> dict[str, Any]:
+    """Run tracker then renderer after a successful canonical watchlist write.
+
+    The tracker is intentionally allowed to fail without suppressing the
+    canonical-list HTML delivery.  Its exact bounded failure detail is passed
+    to the renderer so the report remains actionable instead of silently
+    presenting stale review state as current.
+    """
+
+    project_root = Path(__file__).resolve().parents[1]
+    environment = os.environ.copy()
+    environment[DATA_ROOT_ENV] = str(data_root)
+    python = sys.executable
+    tracker_command = [
+        python,
+        str(project_root / "scripts" / "track_perf.py"),
+        "all",
+        "--date",
+        str(as_of_date),
+    ]
+    try:
+        tracker_run = subprocess.run(
+            tracker_command,
+            cwd=project_root,
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        tracker_run = None
+        tracker_failure = f"track_perf launch failed: {type(exc).__name__}: {exc}"
+    else:
+        tracker_failure = None if tracker_run.returncode == 0 else (
+            f"track_perf exit {tracker_run.returncode}: {_bounded_process_detail(tracker_run)}"
+        )
+
+    coverage: dict[str, Any] | None = None
+    tracker_path = data_root / "perf_tracker.json"
+    if tracker_path.exists():
+        try:
+            tracker_payload = json.loads(tracker_path.read_text(encoding="utf-8"))
+            raw_coverage = tracker_payload.get("review_coverage")
+            normalized_as_of = str(as_of_date).replace("-", "")
+            coverage_date = str(raw_coverage.get("report_date", "")).replace("-", "") if isinstance(raw_coverage, dict) else ""
+            if isinstance(raw_coverage, dict) and coverage_date == normalized_as_of:
+                coverage = raw_coverage
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            coverage = None
+
+    renderer_command = [
+        python,
+        str(project_root / "scripts" / "render_daily_close_html.py"),
+        "--date",
+        str(as_of_date).replace("-", ""),
+    ]
+    if tracker_failure:
+        renderer_command.extend(["--review-failure", tracker_failure])
+    try:
+        renderer_run = subprocess.run(
+            renderer_command,
+            cwd=project_root,
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        return {
+            "status": "REPORT_FAILED",
+            "track_perf": {
+                "status": "FAILED" if tracker_failure else "SUCCESS",
+                "detail": tracker_failure,
+                "exit_code": tracker_run.returncode if tracker_run is not None else None,
+            },
+            "renderer": {"status": "LAUNCH_FAILED", "detail": f"{type(exc).__name__}: {exc}"},
+        }
+
+    renderer_detail = _bounded_process_detail(renderer_run)
+    if renderer_run.returncode != 0:
+        bundle_status = "REPORT_FAILED"
+    elif tracker_failure:
+        bundle_status = "REVIEW_FAILED_REPORT_READY"
+    elif coverage and coverage.get("status") == "REVIEW_OBSERVATION_INCOMPLETE":
+        bundle_status = "REVIEW_OBSERVATION_INCOMPLETE_REPORT_READY"
+    else:
+        bundle_status = "READY"
+    return {
+        "status": bundle_status,
+        "track_perf": {
+            "status": "FAILED" if tracker_failure else "SUCCESS",
+            "detail": tracker_failure or _bounded_process_detail(tracker_run),
+            "exit_code": tracker_run.returncode if tracker_run is not None else None,
+            "review_coverage": coverage,
+        },
+        "renderer": {
+            "status": "SUCCESS" if renderer_run.returncode == 0 else "FAILED",
+            "detail": renderer_detail,
+            "exit_code": renderer_run.returncode,
+        },
+        "dated_html": str(data_root / "reports" / f"daily_close_{str(as_of_date).replace('-', '')}.html"),
+        "latest_html": str(data_root / "reports" / "latest.html"),
+    }
 
 
 def _git_sha() -> str:
@@ -161,6 +271,8 @@ def main(argv: list[str] | None = None) -> int:
             if args.preflight
             else run(args.as_of_date, data_root, evidence_root, args.now_bjt)
         )
+        if not args.preflight and result.get("status") in RUNNABLE_STATUSES and result.get("watchlist", {}).get("path"):
+            result["daily_close_bundle"] = _run_daily_close_reporting(args.as_of_date, data_root)
     except (LiveAcquisitionError, OSError, RuntimeError, ValueError) as exc:
         print(
             json.dumps(
@@ -171,6 +283,9 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+    bundle = result.get("daily_close_bundle")
+    if isinstance(bundle, dict) and bundle.get("status") == "REPORT_FAILED":
+        return 1
     return 0 if result.get("status") not in {"CALENDAR_CONTEXT_NOT_READY", "SCHEDULED_TASK_CREDENTIAL_CONTEXT_NOT_READY"} else 1
 
 

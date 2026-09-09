@@ -56,7 +56,7 @@ def test_success_publishes_canonical_output_with_immutable_provenance(tmp_path):
     assert payload["strategy_version"] == STRATEGY_VERSION
     assert payload["candidates"][0]["name"] == "测试银行"
     assert payload["candidates"][0]["signal_id"].startswith(f"{STRATEGY_VERSION}:2026-08-27:600000:")
-    assert ingest(new_tracker(), paths=DataPaths(tmp_path)) == 1
+    assert ingest(new_tracker(), paths=DataPaths(tmp_path)) == 0  # pre-epoch A output is outside current prospective scope
     record = json.loads(result.run_manifest_path.read_text(encoding="utf-8"))
     assert record["input_fingerprint"] == manifest.input_fingerprint
     assert record["generation_fingerprint"] == result.generation_fingerprint

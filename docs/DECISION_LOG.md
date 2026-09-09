@@ -5,6 +5,31 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-08 — Adopt exact-date immutable review recovery and completeness guard
+
+- context：PR #43 的 2026-09-03 / 2026-09-07 review observation 在 2026-09-08 才发现缺口；
+  本机已有同一收盘日的完整 raw/sidecar capture，但不存在可安全重放的 9/4、9/7 historical
+  execution path。
+- decision：冻结 `EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1`。只接受通过配对 SHA、capture
+  schema、provider/source、retrieved-at、代码 SHA、Tencent canonical parser 和 QFQ OHLC
+  compatibility cross-check 的本地 exact-date evidence。可写入 exact-date execution node 或
+  fixed-horizon snapshot；不得由该 evidence 推断缺失的先前路径。无确认入场时 return 必须是
+  `UNVERIFIED`，reason=`CONFIRMED_ENTRY_UNAVAILABLE`，path=
+  `UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH`。
+- guard：每日 report date `R` 更新前冻结 expected execution（current signal、list_date < R、
+  start status pending/triggered）和 expected horizon（scheduled_date == R）；更新后 execution
+  必须有 observation.date==R，horizon 必须是 exact-date `CAPTURED` 或带明确 reason 的
+  `NOT_CAPTURED`。缺失时输出 `REVIEW_OBSERVATION_INCOMPLETE`，保留 canonical watchlist，HTML
+  顶部告警，禁止静默降级为完整报告。
+- rationale：同时保留可验证的 contemporaneous market node 与不可验证的 historical path 边界，
+  避免 current quote、provider refetch 或 fabricated replay 造成 look-ahead / outcome overclaim。
+- consequences：9/7 的 25 个 execution observations 与 9/3 的 11 个 T+3 snapshots 可审计；
+  9/3 的 11 个 execution obligations 仍显式 missing，当前 coverage 为 36/25/11 和 11/11/0。
+  正常 future daily runner 使用 `LIVE_DAILY_TRACKER_QUOTE` provenance；recovery 使用本策略
+  provenance；既有无 provenance observation 仍可读。
+- boundaries：不改变 B strategy/threshold/scoring/target、acquisition priority、T+5 primary、
+  Final OOS/C/old D/historical B semantics，也不触碰 `data/validation/continuous_speed_probe/`。
+
 ## 2026-09-06 — Adopt FAST/STRICT path and minimal cross-device governance
 
 - context：既有治理要求每个任务默认读取全部治理/protocol 文件并实时核验历史
@@ -1725,3 +1750,34 @@ provider/Kline/ST semantics 与 forbidden continuous-speed-probe directory 均�
   回写或重新定义。
 - scope：报告不再消费旧持仓/配对指标流程；B、frozen candidate、Final OOS、C、old D
   和 `data/validation/continuous_speed_probe/` 均不触碰。
+
+## 2026-09-08 — Reconcile governance and add daily close bundle HTML
+
+- live truth：`master=52484a82e4a2700372c85c47991f62717d4b1196`；PR #41 与 review-cleanup
+  PR #42 均已合并；post-merge correctness run `34140697889` 为 `completed / success` 且
+  exact-head。旧的 PR #42 open/awaiting-merge snapshot 仅为 stale governance metadata，现已
+  由 `HANDOFF.md` 与本状态记录最小纠正；不重写历史 checkpoint。
+- decision：`ADOPT_DAILY_CLOSE_BUNDLE_HTML_REPORT`。独立 renderer 读取 canonical
+  watchlist 与 `track_perf.py` tracker，输出 self-contained dated HTML 与完整的
+  `latest.html`；T+3/T+5/T+10 继续使用真实 XSHG sessions，path result 与 fixed-horizon
+  snapshot 分离，review failure fail-soft，HTML 写入 atomic。
+- boundary：不修改 B strategy semantics、阈值、score、target、ST、provider、acquisition、
+  package schema、frozen identity 或历史 B 10D outcome；不读 Final OOS/C/old D，不做历史 replay，
+  不访问 `data/validation/continuous_speed_probe/`。daily HTML 是 operational generated
+  artifact，不作为每日 Git source commit 内容。
+- delivery：bounded PR #43 is open against `master`; implementation commit
+  `9162c0ef73ad07adc7533b85e0b78248c539b6ff` and its governance-only follow-up are pushed.
+  Exact-head CI is a live property and must be re-read for the current remote head. Stop at the
+  user merge decision; do not auto-merge.
+
+
+## 2026-09-08 — Current prospective review epoch and canonical continuity
+
+ADOPT: current prospective ingest/review starts at `2026-09-03`, the first verified
+candidate-bound LIVE_OBSERVED instance, and requires exact strategy
+`B_BREAKOUT_RETEST_LEGACY_V1_1` plus schema-valid canonical identity. Pre-epoch or
+other-strategy artifacts are skipped, not deleted or silently re-adopted. Existing
+out-of-scope tracker records are removed only after a deterministic KEEP/REMOVE plan;
+KEEP identities must match canonical evidence and retain their observation/path state.
+Identity conflicts fail closed; code alone is never a deduplication key. Missing historical
+observations remain missing. Any future legacy re-adoption requires a separate formal decision.

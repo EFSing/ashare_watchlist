@@ -37,6 +37,16 @@ TRACK_DAYS = REVIEW_HORIZONS[-1][1]
 REVIEW_POINT_PENDING = "PENDING"
 REVIEW_POINT_CAPTURED = "CAPTURED"
 REVIEW_POINT_NOT_CAPTURED = "NOT_CAPTURED"
+CURRENT_PROSPECTIVE_EPOCH_START = "2026-09-03"
+CURRENT_PROSPECTIVE_STRATEGY = "B_BREAKOUT_RETEST_LEGACY_V1_1"
+SKIP_LEGACY_OR_OUT_OF_SCOPE_WATCHLIST = "SKIP_LEGACY_OR_OUT_OF_SCOPE_WATCHLIST"
+SOURCE_MODE_LIVE_DAILY_TRACKER_QUOTE = "LIVE_DAILY_TRACKER_QUOTE"
+SOURCE_MODE_EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1 = (
+    "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1"
+)
+PATH_UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH = "UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH"
+CONFIRMED_ENTRY_UNAVAILABLE = "CONFIRMED_ENTRY_UNAVAILABLE"
+REVIEW_OBSERVATION_INCOMPLETE = "REVIEW_OBSERVATION_INCOMPLETE"
 
 
 class TrackerSchemaError(ValueError):
@@ -44,7 +54,7 @@ class TrackerSchemaError(ValueError):
 
 
 def new_tracker() -> dict[str, Any]:
-    return {"version": 2, "signals": {}, "updated": None}
+    return {"version": 2, "signals": {}, "updated": None, "review_coverage": None}
 
 
 def parse_date(value: date | datetime | str) -> date:
@@ -125,6 +135,7 @@ def _new_review_points(
             ),
             "status": REVIEW_POINT_PENDING,
             "quote_date": None,
+            "open": None,
             "price": None,
             "high": None,
             "low": None,
@@ -132,6 +143,8 @@ def _new_review_points(
             "path_status": None,
             "signal_status": None,
             "reason": None,
+            "source_mode": None,
+            "provenance": None,
         }
         for label, offset in REVIEW_HORIZONS
     }
@@ -180,6 +193,7 @@ def _ensure_review_points(
         point.setdefault("scheduled_date", expected_date)
         point.setdefault("status", REVIEW_POINT_PENDING)
         point.setdefault("quote_date", None)
+        point.setdefault("open", None)
         point.setdefault("price", None)
         point.setdefault("high", None)
         point.setdefault("low", None)
@@ -187,6 +201,8 @@ def _ensure_review_points(
         point.setdefault("path_status", point.get("signal_status"))
         point.setdefault("signal_status", None)
         point.setdefault("reason", None)
+        point.setdefault("source_mode", None)
+        point.setdefault("provenance", None)
     return points
 
 
@@ -232,11 +248,23 @@ def _validate_tracker(data: Any) -> dict[str, Any]:
         raise TrackerSchemaError("tracker signals must be an object keyed by signal_id")
     for key, signal in data["signals"].items():
         if not isinstance(signal, dict) or signal.get("signal_id") != key:
-            raise TrackerSchemaError(f"signal key mismatch: {key}")
+            raise TrackerSchemaError(f"TRACKER_IDENTITY_CONFLICT: signal key mismatch: {key}")
         for field in ("strategy_version", "date", "code", "setup"):
             if not signal.get(field):
                 raise TrackerSchemaError(f"signal {key} missing {field}")
+        expected = stable_signal_id(signal['strategy_version'], signal['date'], signal['code'], signal['setup'])
+        if key != expected:
+            raise TrackerSchemaError(f"TRACKER_IDENTITY_CONFLICT: {key} != {expected}")
+        if is_current_prospective_signal(signal):
+            signal_date = parse_date(signal['date'])
+            for field in ('first_trigger_date', 'close_date'):
+                if signal.get(field) and parse_date(signal[field]) <= signal_date:
+                    raise TrackerSchemaError(f'PRE_T_PLUS_1_STATE_VIOLATION: {key}: {field}')
+            for observation in signal.get('observations', []):
+                if parse_date(observation['date']) <= signal_date:
+                    raise TrackerSchemaError(f'PRE_T_PLUS_1_STATE_VIOLATION: {key}: observation.date')
     data.setdefault("updated", None)
+    data.setdefault("review_coverage", None)
     return data
 
 
@@ -257,7 +285,7 @@ def save_tracker(data: dict[str, Any], path: str | Path | None = None) -> None:
     tracker_path = Path(path) if path is not None else TRACK_FILE
     _validate_tracker(data)
     tracker_path.parent.mkdir(parents=True, exist_ok=True)
-    tracker_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    tracker_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
 
 
 def _signal_from_candidate(
@@ -292,6 +320,65 @@ def _signal_from_candidate(
     }
 
 
+def is_current_prospective_signal(signal: dict[str, Any]) -> bool:
+    return (parse_date(signal['date']).isoformat() >= CURRENT_PROSPECTIVE_EPOCH_START
+            and signal.get('strategy_version') == CURRENT_PROSPECTIVE_STRATEGY)
+
+
+def current_prospective_watchlists(paths: DataPaths) -> list[dict[str, Any]]:
+    """Only schema-valid, exact-strategy canonical lists belong to this epoch."""
+    result = []
+    for path in paths.watchlist_files():
+        try:
+            watchlist = load_watchlist(path)
+        except WatchlistSchemaError as exc:
+            warnings.warn(f'{SKIP_LEGACY_OR_OUT_OF_SCOPE_WATCHLIST}: {path.name}: {exc}', RuntimeWarning)
+            continue
+        if (not is_current_prospective_signal(watchlist)
+                or any(c['strategy_version'] != CURRENT_PROSPECTIVE_STRATEGY for c in watchlist['candidates'])):
+            warnings.warn(f'{SKIP_LEGACY_OR_OUT_OF_SCOPE_WATCHLIST}: {path.name}', RuntimeWarning)
+            continue
+        result.append(watchlist)
+    return result
+
+
+def current_prospective_tracker(
+    tracker: dict[str, Any], paths: DataPaths | None = None,
+) -> dict[str, Any]:
+    """Read-only eligible view; every retained identity must have canonical evidence."""
+    _validate_tracker(tracker)
+    canonical = {c['signal_id']: c for w in current_prospective_watchlists(paths or PATHS)
+                 for c in w['candidates']}
+    signals = {}
+    for key, signal in tracker['signals'].items():
+        if not is_current_prospective_signal(signal):
+            continue
+        candidate = canonical.get(key)
+        if candidate is None or any(signal.get(k) != candidate[k] for k in
+                                    ('code', 'setup', 'strategy_version', 'trigger', 'stop', 'target')):
+            raise TrackerSchemaError(f'CURRENT_PROSPECTIVE_TRACKER_IDENTITY_MISMATCH: {key}')
+        signals[key] = signal
+    return {**tracker, 'signals': signals}
+
+
+def current_tracker_cleanup_plan(tracker: dict[str, Any], paths: DataPaths | None = None) -> dict[str, Any]:
+    """Validate KEEP first and produce a deterministic plan without mutation."""
+    eligible = current_prospective_tracker(tracker, paths)['signals']
+    return {
+        'epoch_start': CURRENT_PROSPECTIVE_EPOCH_START,
+        'strategy_version': CURRENT_PROSPECTIVE_STRATEGY,
+        'KEEP': sorted(eligible),
+        'REMOVE_FROM_CURRENT_TRACKER': sorted(set(tracker['signals']) - set(eligible)),
+    }
+
+
+def cleanup_current_tracker(tracker: dict[str, Any], paths: DataPaths | None = None) -> dict[str, Any]:
+    plan = current_tracker_cleanup_plan(tracker, paths)
+    for key in plan['REMOVE_FROM_CURRENT_TRACKER']:
+        del tracker['signals'][key]
+    return plan
+
+
 def ingest(
     tracker: dict[str, Any],
     paths: DataPaths | None = None,
@@ -303,14 +390,16 @@ def ingest(
     resolver = paths or PATHS
     cal = calendar or default_calendar()
     added = 0
-    for path in resolver.watchlist_files():
-        watchlist = load_watchlist(path)
+    current_prospective_tracker(tracker, resolver)
+    additions = {}
+    for watchlist in current_prospective_watchlists(resolver):
         for candidate in watchlist["candidates"]:
             signal_id = candidate["signal_id"]
             if signal_id in tracker["signals"]:
                 continue
-            tracker["signals"][signal_id] = _signal_from_candidate(watchlist, candidate, cal)
+            additions[signal_id] = _signal_from_candidate(watchlist, candidate, cal)
             added += 1
+    tracker['signals'].update(additions)
     return added
 
 
@@ -367,18 +456,41 @@ def classify_signal_bar(
     return {"status": status, "reason": "signal is already closed"}
 
 
-def _append_observation(signal: dict[str, Any], quote: dict[str, Any]) -> None:
+def _provenance_fields(
+    source_mode: str | None,
+    provenance: dict[str, Any] | None,
+) -> dict[str, Any]:
+    fields: dict[str, Any] = {}
+    if source_mode:
+        fields["source_mode"] = source_mode
+    if provenance:
+        fields["provenance"] = dict(provenance)
+    return fields
+
+
+def _append_observation(
+    signal: dict[str, Any],
+    quote: dict[str, Any],
+    *,
+    source_mode: str = SOURCE_MODE_LIVE_DAILY_TRACKER_QUOTE,
+    provenance: dict[str, Any] | None = None,
+) -> bool:
     observation = {
         "date": quote["quote_date"],
+        "open": quote.get("open"),
         "price": quote["price"],
         "high": quote["high"],
         "low": quote["low"],
     }
+    observation.update(_provenance_fields(source_mode, provenance))
     for index, old in enumerate(signal.setdefault("observations", [])):
         if old.get("date") == observation["date"]:
+            if old == observation:
+                return False
             signal["observations"][index] = observation
-            return
+            return True
     signal["observations"].append(observation)
+    return True
 
 
 def _snapshot_return_pct(signal: dict[str, Any], price: float | None) -> float | None:
@@ -402,13 +514,19 @@ def _capture_review_points(
     quote: dict[str, Any],
     today_date: date,
     calendar: TradingCalendar,
+    *,
+    source_mode: str = SOURCE_MODE_LIVE_DAILY_TRACKER_QUOTE,
+    provenance: dict[str, Any] | None = None,
 ) -> int:
     """Capture due fixed-point snapshots without historical backfill."""
 
     points = _ensure_review_points(signal, calendar)
     changed = 0
     for point in points.values():
-        if point["status"] != REVIEW_POINT_PENDING:
+        if point["status"] != REVIEW_POINT_PENDING and not (
+            point["status"] == REVIEW_POINT_NOT_CAPTURED
+            and point.get("reason") == REVIEW_OBSERVATION_INCOMPLETE
+        ):
             continue
         scheduled = parse_date(point["scheduled_date"])
         if today_date < scheduled:
@@ -424,6 +542,7 @@ def _capture_review_points(
         point.update({
             "status": REVIEW_POINT_CAPTURED,
             "quote_date": quote["quote_date"],
+            "open": quote.get("open"),
             "price": quote["price"],
             "high": quote["high"],
             "low": quote["low"],
@@ -432,8 +551,275 @@ def _capture_review_points(
             "signal_status": signal["status"],
             "reason": None if return_pct is not None else "confirmed entry unavailable; return is unverified",
         })
+        point.update(_provenance_fields(source_mode, provenance))
         changed += 1
     return changed
+
+
+def _mark_expected_horizon_failures(
+    tracker: dict[str, Any],
+    expected: dict[str, Any],
+) -> None:
+    """Record an exact same-date failure without pretending a quote was captured."""
+
+    expected_point_ids = set(expected.get("horizon_point_ids", []))
+    for signal in tracker.get("signals", {}).values():
+        if not isinstance(signal, dict):
+            continue
+        for point in (signal.get("review_points") or {}).values():
+            if not isinstance(point, dict) or point.get("snapshot_id") not in expected_point_ids:
+                continue
+            point["status"] = REVIEW_POINT_NOT_CAPTURED
+            point["reason"] = REVIEW_OBSERVATION_INCOMPLETE
+
+
+def _capture_exact_review_point(
+    signal: dict[str, Any],
+    horizon: str,
+    quote: dict[str, Any],
+    calendar: TradingCalendar,
+    *,
+    path_status: str | None,
+    reason: str | None,
+    source_mode: str,
+    provenance: dict[str, Any] | None = None,
+) -> bool:
+    """Write one exact-date fixed point, including its immutable provenance."""
+
+    points = _ensure_review_points(signal, calendar)
+    if horizon not in points:
+        raise TrackerSchemaError(f"unsupported review horizon: {horizon!r}")
+    point = points[horizon]
+    return_pct = _snapshot_return_pct(signal, quote.get("price"))
+    expected = {
+        "status": REVIEW_POINT_CAPTURED,
+        "quote_date": quote.get("quote_date"),
+        "open": quote.get("open"),
+        "price": quote.get("price"),
+        "high": quote.get("high"),
+        "low": quote.get("low"),
+        "return_pct": return_pct,
+        "path_status": path_status,
+        "signal_status": signal.get("status"),
+        "reason": reason,
+    }
+    expected.update(_provenance_fields(source_mode, provenance))
+    if all(point.get(key) == value for key, value in expected.items()):
+        return False
+    point.update(expected)
+    return True
+
+
+def _apply_execution_bar(
+    signal: dict[str, Any],
+    quote: dict[str, Any],
+    today_date: date,
+    calendar: TradingCalendar,
+    *,
+    source_mode: str = SOURCE_MODE_LIVE_DAILY_TRACKER_QUOTE,
+    provenance: dict[str, Any] | None = None,
+) -> int:
+    """Apply one dated quote to the execution path using existing semantics."""
+
+    if signal["status"] not in ("pending", "triggered"):
+        return 0
+    changed = 0
+    list_date = parse_date(signal["date"])
+    days_tracked = trading_days_after(list_date, today_date, calendar=calendar)
+    if signal.get("days_tracked") != days_tracked:
+        signal["days_tracked"] = days_tracked
+        changed += 1
+    changed += int(_append_observation(
+        signal,
+        quote,
+        source_mode=source_mode,
+        provenance=provenance,
+    ))
+    decision = classify_signal_bar(
+        status=signal["status"],
+        trigger=signal.get("trigger"),
+        stop=signal.get("stop"),
+        target=signal.get("target"),
+        high=quote.get("high"),
+        low=quote.get("low"),
+        price=quote.get("price"),
+    )
+    today_text = today_date.isoformat()
+    next_status = decision["status"]
+    if next_status == "triggered" and signal["status"] == "pending":
+        signal["status"] = "triggered"
+        signal["entry_price"] = signal.get("trigger")
+        signal["first_trigger_date"] = today_text
+        changed += 1
+        if days_tracked >= TRACK_DAYS:
+            signal["status"] = "expired"
+            signal["result_price"] = quote["price"]
+            signal["close_date"] = today_text
+            changed += 1
+    elif next_status in ("win", "loss", "AMBIGUOUS_SAME_BAR"):
+        signal["status"] = next_status
+        signal["close_date"] = today_text
+        signal["ambiguity_reason"] = decision.get("reason") if next_status == "AMBIGUOUS_SAME_BAR" else None
+        if next_status == "win":
+            signal["result_price"] = signal.get("target")
+        elif next_status == "loss":
+            signal["result_price"] = signal.get("stop")
+        changed += 1
+    elif days_tracked >= TRACK_DAYS:
+        signal["status"] = "expired"
+        signal["close_date"] = today_text
+        if next_status == "triggered":
+            signal["result_price"] = quote["price"]
+        changed += 1
+    return changed
+
+
+def expected_review_set(
+    tracker: dict[str, Any],
+    report_date: date | datetime | str,
+    calendar: TradingCalendar | None = None,
+) -> dict[str, Any]:
+    """Freeze the execution and fixed-horizon obligations before a daily update."""
+
+    _validate_tracker(tracker)
+    cal = calendar or default_calendar()
+    report_date_text = parse_date(report_date).isoformat()
+    report_day = parse_date(report_date_text)
+    execution_signal_ids: list[str] = []
+    horizon_point_ids: list[str] = []
+    horizon_signal_ids: list[str] = []
+    for signal_id, signal in tracker["signals"].items():
+        if not is_current_prospective_signal(signal):
+            continue
+        signal_day = parse_date(signal["date"])
+        points = _ensure_review_points(signal, cal)
+        if signal_day < report_day and signal.get("status") in ("pending", "triggered"):
+            execution_signal_ids.append(signal_id)
+        for point in points.values():
+            if point.get("scheduled_date") == report_date_text:
+                horizon_point_ids.append(str(point["snapshot_id"]))
+                horizon_signal_ids.append(signal_id)
+    return {
+        "report_date": report_date_text,
+        "execution_signal_ids": sorted(execution_signal_ids),
+        "horizon_point_ids": sorted(horizon_point_ids),
+        "horizon_signal_ids": sorted(set(horizon_signal_ids)),
+    }
+
+
+def verify_review_coverage(
+    tracker: dict[str, Any],
+    report_date: date | datetime | str,
+    *,
+    expected: dict[str, Any] | None = None,
+    failure_reason: str | None = None,
+    calendar: TradingCalendar | None = None,
+) -> dict[str, Any]:
+    """Verify that every pre-update obligation has a same-date result."""
+
+    _validate_tracker(tracker)
+    cal = calendar or default_calendar()
+    report_date_text = parse_date(report_date).isoformat()
+    expected = expected or expected_review_set(tracker, report_date_text, cal)
+    signals = tracker["signals"]
+    execution_captured: list[str] = []
+    execution_missing: list[str] = []
+    for signal_id in expected.get("execution_signal_ids", []):
+        signal = signals.get(signal_id, {})
+        observations = signal.get("observations", []) if isinstance(signal, dict) else []
+        captured = any(
+            isinstance(observation, dict) and observation.get("date") == report_date_text
+            for observation in observations
+        )
+        (execution_captured if captured else execution_missing).append(signal_id)
+
+    horizon_captured: list[str] = []
+    horizon_missing: list[dict[str, Any]] = []
+    for point_id in expected.get("horizon_point_ids", []):
+        point: dict[str, Any] | None = None
+        signal_id = None
+        for candidate_id, signal in signals.items():
+            if not isinstance(signal, dict):
+                continue
+            for candidate in (signal.get("review_points") or {}).values():
+                if isinstance(candidate, dict) and candidate.get("snapshot_id") == point_id:
+                    point = candidate
+                    signal_id = candidate_id
+                    break
+            if point is not None:
+                break
+        captured = bool(
+            point
+            and point.get("status") == REVIEW_POINT_CAPTURED
+            and point.get("quote_date") == report_date_text
+        )
+        acceptable_failure = bool(
+            point
+            and point.get("status") == REVIEW_POINT_NOT_CAPTURED
+            and isinstance(point.get("reason"), str)
+            and point.get("reason", "").strip()
+        )
+        if captured:
+            horizon_captured.append(point_id)
+        else:
+            horizon_missing.append({
+                "snapshot_id": point_id,
+                "signal_id": signal_id,
+                "reason": (point or {}).get("reason") if point else None,
+                "failure_recorded": acceptable_failure,
+            })
+
+    missing = bool(execution_missing or horizon_missing)
+    return {
+        "status": REVIEW_OBSERVATION_INCOMPLETE if missing else "READY",
+        "report_date": report_date_text,
+        "failure_reason": failure_reason if failure_reason else (
+            REVIEW_OBSERVATION_INCOMPLETE if missing else None
+        ),
+        "execution_expected": len(expected.get("execution_signal_ids", [])),
+        "execution_captured": len(execution_captured),
+        "execution_missing": len(execution_missing),
+        "execution_expected_signal_ids": list(expected.get("execution_signal_ids", [])),
+        "execution_captured_signal_ids": execution_captured,
+        "execution_missing_signal_ids": execution_missing,
+        "horizon_expected": len(expected.get("horizon_point_ids", [])),
+        "horizon_captured": len(horizon_captured),
+        "horizon_missing": len(horizon_missing),
+        "horizon_expected_point_ids": list(expected.get("horizon_point_ids", [])),
+        "horizon_captured_point_ids": horizon_captured,
+        "horizon_missing_points": horizon_missing,
+        "horizon_expected_signal_ids": list(expected.get("horizon_signal_ids", [])),
+    }
+
+
+def run_daily_review(
+    tracker: dict[str, Any],
+    quotes: dict[str, dict[str, Any]] | None = None,
+    today: date | datetime | str | None = None,
+    calendar: TradingCalendar | None = None,
+) -> tuple[int, dict[str, Any]]:
+    """Run one update under the fail-soft execution/horizon completeness guard."""
+
+    cal = calendar or default_calendar()
+    report_date = parse_date(today or datetime.now().date())
+    expected = expected_review_set(tracker, report_date, cal)
+    try:
+        changed = update(tracker, quotes=quotes, today=report_date, calendar=cal)
+    except Exception as exc:
+        _mark_expected_horizon_failures(tracker, expected)
+        coverage = verify_review_coverage(
+            tracker,
+            report_date,
+            expected=expected,
+            failure_reason=f"{type(exc).__name__}: {exc}",
+            calendar=cal,
+        )
+        tracker["review_coverage"] = coverage
+        tracker["updated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        raise
+    coverage = verify_review_coverage(tracker, report_date, expected=expected, calendar=cal)
+    tracker["review_coverage"] = coverage
+    return changed, coverage
 
 
 def update(
@@ -456,18 +842,21 @@ def update(
     if not cal.is_trading_day(today_date):
         raise CalendarUnavailable(f"{today_date} is not an XSHG trading session")
 
-    signals = list(tracker["signals"].values())
+    signals = [s for s in tracker["signals"].values() if is_current_prospective_signal(s)]
     for signal in signals:
+        if parse_date(signal['date']) >= today_date:
+            continue
         _ensure_review_points(signal, cal)
     due_or_active = [
         signal
         for signal in signals
-        if signal["status"] in ("pending", "triggered")
+        if parse_date(signal['date']) < today_date
+        and (signal["status"] in ("pending", "triggered")
         or any(
             point["status"] == REVIEW_POINT_PENDING
             and today_date >= parse_date(point["scheduled_date"])
             for point in signal["review_points"].values()
-        )
+        ))
     ]
     if not due_or_active:
         return 0
@@ -478,48 +867,10 @@ def update(
         validate_quotes(quotes, expected_codes=codes, expected_date=today_date)
 
     changed = 0
-    today_text = today_date.isoformat()
     for signal in due_or_active:
         quote = quotes[signal["code"]]
         if signal["status"] in ("pending", "triggered"):
-            list_date = parse_date(signal["date"])
-            signal["days_tracked"] = trading_days_after(list_date, today_date, calendar=cal)
-            _append_observation(signal, quote)
-            decision = classify_signal_bar(
-                status=signal["status"],
-                trigger=signal.get("trigger"),
-                stop=signal.get("stop"),
-                target=signal.get("target"),
-                high=quote.get("high"),
-                low=quote.get("low"),
-                price=quote.get("price"),
-            )
-            next_status = decision["status"]
-            if next_status == "triggered" and signal["status"] == "pending":
-                signal["status"] = "triggered"
-                signal["entry_price"] = signal.get("trigger")
-                signal["first_trigger_date"] = today_text
-                changed += 1
-                if signal["days_tracked"] >= TRACK_DAYS:
-                    signal["status"] = "expired"
-                    signal["result_price"] = quote["price"]
-                    signal["close_date"] = today_text
-                    changed += 1
-            elif next_status in ("win", "loss", "AMBIGUOUS_SAME_BAR"):
-                signal["status"] = next_status
-                signal["close_date"] = today_text
-                signal["ambiguity_reason"] = decision.get("reason") if next_status == "AMBIGUOUS_SAME_BAR" else None
-                if next_status == "win":
-                    signal["result_price"] = signal.get("target")
-                elif next_status == "loss":
-                    signal["result_price"] = signal.get("stop")
-                changed += 1
-            elif signal["days_tracked"] >= TRACK_DAYS:
-                signal["status"] = "expired"
-                signal["close_date"] = today_text
-                if next_status == "triggered":
-                    signal["result_price"] = quote["price"]
-                changed += 1
+            changed += _apply_execution_bar(signal, quote, today_date, cal)
         changed += _capture_review_points(signal, quote, today_date, cal)
     tracker["updated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     return changed
@@ -538,7 +889,13 @@ def _review_point_text(
         return_pct = point.get("return_pct")
         return_text = f"{return_pct:.2f}%" if isinstance(return_pct, (int, float)) else "UNVERIFIED"
         path_status = point.get("path_status") or point.get("signal_status") or "UNVERIFIED"
-        return f"已采集 {point.get('quote_date')} / return={return_text} / path={path_status}"
+        source_mode = point.get("source_mode") or "UNVERIFIED"
+        reason = point.get("reason")
+        reason_text = f" / reason={reason}" if reason else ""
+        return (
+            f"已采集 {point.get('quote_date')} / return={return_text} / path={path_status}"
+            f" / source={source_mode}{reason_text}"
+        )
     scheduled_date = point.get("review_trading_date") or point.get("scheduled_date")
     if status == REVIEW_POINT_NOT_CAPTURED:
         return "MISSING_HISTORICAL_OBSERVATION（节点未采集，不回填）"
@@ -561,7 +918,7 @@ def report(
     _validate_tracker(tracker)
     cal = calendar or default_calendar()
     as_of_date = parse_date(as_of or datetime.now().date())
-    signals = list(tracker["signals"].values())
+    signals = [s for s in tracker["signals"].values() if is_current_prospective_signal(s)]
     for signal in signals:
         _ensure_review_points(signal, cal)
     total = len(signals)
@@ -582,6 +939,21 @@ def report(
         "",
         "## 一、节点状态",
     ]
+    coverage = tracker.get("review_coverage")
+    if isinstance(coverage, dict):
+        guard_label = (
+            REVIEW_OBSERVATION_INCOMPLETE
+            if coverage.get("status") == REVIEW_OBSERVATION_INCOMPLETE
+            else "REVIEW_COVERAGE"
+        )
+        lines.insert(
+            4,
+            f"> {guard_label} guard：execution "
+            f"expected={coverage.get('execution_expected', 0)} / captured={coverage.get('execution_captured', 0)} / "
+            f"missing={coverage.get('execution_missing', 0)}；horizon "
+            f"expected={coverage.get('horizon_expected', 0)} / captured={coverage.get('horizon_captured', 0)} / "
+            f"missing={coverage.get('horizon_missing', 0)}；status={coverage.get('status', 'UNVERIFIED')}",
+        )
     for label, _ in REVIEW_HORIZONS:
         counts = {status: 0 for status in (REVIEW_POINT_PENDING, REVIEW_POINT_CAPTURED, REVIEW_POINT_NOT_CAPTURED)}
         for signal in signals:
@@ -622,23 +994,64 @@ def report(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("action", nargs="?", default="all", choices=["ingest", "update", "report", "all"])
+    parser.add_argument(
+        "action",
+        nargs="?",
+        default="all",
+        choices=["ingest", "update", "report", "recover", "all"],
+    )
+    parser.add_argument("--date", default=None, help="report/update date, YYYY-MM-DD or YYYYMMDD")
+    parser.add_argument("--evidence-root", type=Path, default=None, help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
+    tracker: dict[str, Any] | None = None
     try:
         tracker = load_tracker()
+        if args.action == "recover":
+            resolver = PATHS
+            plan = cleanup_current_tracker(tracker, resolver)
+            if plan["REMOVE_FROM_CURRENT_TRACKER"]:
+                print("[cleanup] " + json.dumps(plan, ensure_ascii=False, sort_keys=True), flush=True)
+            print(f"[ingest] 新增入库 {ingest(tracker, paths=resolver)} 个信号", flush=True)
+            from exact_date_review_recovery import recover_exact_date_review
+
+            result = recover_exact_date_review(
+                tracker,
+                paths=resolver,
+                evidence_root=args.evidence_root or (resolver.root / "t_close_evidence"),
+                target_date=args.date or "2026-09-08",
+            )
+            save_tracker(tracker)
+            print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+            return 0
+
+        plan = cleanup_current_tracker(tracker)
+        if plan['REMOVE_FROM_CURRENT_TRACKER']:
+            print('[cleanup] ' + json.dumps(plan, ensure_ascii=False, sort_keys=True), flush=True)
         if args.action in ("ingest", "all"):
             print(f"[ingest] 新增入库 {ingest(tracker)} 个信号", flush=True)
         if args.action in ("update", "all"):
-            print(f"[update] 状态变更 {update(tracker)} 个", flush=True)
+            changed, coverage = run_daily_review(tracker, today=args.date)
+            print(
+                f"[update] 状态变更 {changed} 个；"
+                f"execution={coverage['execution_captured']}/{coverage['execution_expected']}，"
+                f"horizon={coverage['horizon_captured']}/{coverage['horizon_expected']}，"
+                f"status={coverage['status']}",
+                flush=True,
+            )
         text = None
         if args.action in ("report", "all"):
-            text = report(tracker)
+            text = report(tracker, as_of=args.date)
             print(text)
             REPORT_FILE.parent.mkdir(parents=True, exist_ok=True)
             REPORT_FILE.write_text(text, encoding="utf-8")
             print(f"\n报表已存：{REPORT_FILE}", flush=True)
         save_tracker(tracker)
     except (OSError, ValueError, CalendarUnavailable, WatchlistSchemaError, QuoteDataError, TrackerSchemaError) as exc:
+        if tracker is not None and tracker.get("review_coverage"):
+            try:
+                save_tracker(tracker)
+            except OSError:
+                pass
         print(f"数据完整性失败: {exc}")
         return 2
     return 0

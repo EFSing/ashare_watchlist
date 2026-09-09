@@ -49,7 +49,32 @@ python3.11 scripts/review_after.py --mode close --date 20260821
 
 # 跨日正式复盘（每日运行，自动维护节点）
 python3.11 scripts/track_perf.py
+
+# 从正式 canonical watchlist 渲染离线每日收盘 bundle
+python3.11 scripts/render_daily_close_html.py --date YYYYMMDD
 ```
+
+## 每日收盘 bundle
+
+每日 T-close 成功后，系统会在 `data/reports/latest.html` 生成最新的完整离线报告；历史报告保存在
+`data/reports/daily_close_YYYYMMDD.html`。报告固定包含 Daily、T+3、T+5 PRIMARY 和 T+10
+EXTENSION / CLOSURE，并从 canonical watchlist 与 `perf_tracker` 读取真实状态。
+默认顺序为今日总览、今日复盘、明日观察名单、正式节点复盘、异常、折叠审计详情。
+今日复盘完整展示上一 XSHG 交易日名单（含目标、止损、歧义和缺失记录）；更早仍 active
+的信号与今日结束的历史信号分栏展示，当天新名单不计入历史复盘。T+5 优先，空节点只显示一行。
+SHA、signal_id 和原始状态位于页尾审计详情；观察名单按 Score 降序并保留搜索。也可以手工运行：
+
+```bash
+python3.11 scripts/render_daily_close_html.py --date YYYYMMDD
+```
+
+`t_close_runner.py` 的正式成功路径会在 canonical watchlist 写入后尝试运行 `track_perf.py`，再渲染
+bundle；复盘失败不会阻断名单 HTML 交付，报告会明确显示 `REVIEW_FAILED` 及失败原因。
+
+当前 prospective 复盘只消费 2026-09-03 起、策略精确为 `B_BREAKOUT_RETEST_LEGACY_V1_1`
+且 canonical schema 有效的名单。`track_perf.py ingest` 会先验证并清理 current tracker 的
+legacy/out-of-scope 记录，再按正式名单入库；不会删除原始旧名单，也不会获取历史行情。
+身份冲突或 eligible 身份与 canonical 不符时停止；`open` 仅随新的真实 observation 保存。
 
 ## 正式复盘制度
 
