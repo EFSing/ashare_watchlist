@@ -1,5 +1,19 @@
 # CURRENT STATUS
 
+## Live master reconciliation before daily report work — 2026-09-09
+
+Live `origin/master` is `f5c4c6bbf9d3213fc15af75ceb57b4de23bb1559`; PR #43, PR #44 and PR #45
+are all merged, with PR #45 merged at that exact SHA. Master correctness run `34317755077` is
+`completed / success` for that exact head. The preceding top section's `c139a04...`/PR #44
+state is retained below as historical provenance, not live state.
+
+`PROJECT_GOVERNANCE_STATE_CONFLICT` is closed by this bounded reconciliation. The new task is
+`DAILY_REPORT_REVIEW_USABILITY_AND_BUNDLE_WIRING`: improve review-oriented report information
+architecture and fix only the confirmed successful-run daily bundle persistence wiring defect;
+canonical watchlist, tracker semantics, T+1 observation rules, strategy identity and research
+boundaries remain unchanged. Final OOS remains `SEALED / UNREAD`; C remains unread; and
+`data/validation/continuous_speed_probe/` remains untouched.
+
 ## Post-merge verified — daily lightweight cloud checkpoint — 2026-09-09
 
 PR #44 (`feat: add lightweight daily cloud checkpoint`) was squash-merged into `master` at

@@ -5,6 +5,18 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-09 — Reconcile live master before daily report usability work
+
+- live truth：`origin/master` is
+  `f5c4c6bbf9d3213fc15af75ceb57b4de23bb1559`; PR #43, PR #44 and PR #45 are merged, and
+  master correctness run `34317755077` is `completed / success` for that exact head.
+- decision：close `PROJECT_GOVERNANCE_STATE_CONFLICT` caused by the stale c139a04/PR #44
+  current-state snapshot before continuing. The current bounded task is
+  `DAILY_REPORT_REVIEW_USABILITY_AND_BUNDLE_WIRING`.
+- boundary：the task may change presentation aggregation and the confirmed runner wiring only;
+  it does not change canonical watchlist/tracker semantics, strategy, T+1 rules, provider
+  acquisition, research conclusions, Final OOS, C, or the continuous-speed-probe boundary.
+
 ## 2026-09-09 — Merge and verify daily lightweight cloud checkpoint
 
 - live truth：PR #44 was squash-merged into `master` at
