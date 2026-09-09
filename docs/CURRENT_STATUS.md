@@ -16,10 +16,11 @@ boundaries remain unchanged. Final OOS remains `SEALED / UNREAD`; C remains unre
 
 ## Daily report review usability — PR #46 — 2026-09-09
 
-The bounded implementation is pushed on
-`codex/daily-report-review-usability-20260909@e0e1b7c3b2739840b5964e8eccb09fbdb1692998`.
+The bounded implementation is pushed on branch
+`codex/daily-report-review-usability-20260909`; the validated feature head is
+`b64a5fa088fff177dd93aa6cfbb39aaffa487517`.
 PR #46 targets live `master@f5c4c6bbf9d3213fc15af75ceb57b4de23bb1559`, is open and unmerged,
-and exact-head correctness run `34346974727` is `completed / success`.
+and exact-head correctness run `34347321149` is `completed / success` for that head.
 
 The HTML information architecture is now: T-close overview; yesterday's actual review date;
 today's new list with explicit next-trading-day observation state; existing rolling review

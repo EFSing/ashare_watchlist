@@ -16,8 +16,8 @@
   closed by this bounded live-state reconciliation. The daily checkpoint source and policy are
   in master; remote delete count remains `0`.
 - terminal marker: `DAILY_REPORT_REVIEW_USABILITY_AND_BUNDLE_WIRING_PR46_CI_SUCCESS`.
-- implementation: PR #46 is open and unmerged against `master`; feature head is
-  `e0e1b7c3b2739840b5964e8eccb09fbdb1692998`, exact-head correctness run `34346974727` is
+- implementation: PR #46 is open and unmerged against `master`; the validated feature head is
+  `b64a5fa088fff177dd93aa6cfbb39aaffa487517`, exact-head correctness run `34347321149` is
   `completed / success`, and no automatic merge was performed.
 - completed: the daily HTML is now review-oriented (yesterday review → today's new list/T+1
   observation → rolling review → data quality → collapsed audit); current-date signals are
