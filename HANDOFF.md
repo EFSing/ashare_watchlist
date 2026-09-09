@@ -4,18 +4,19 @@
 > 本文件不是历史归档；历史 provenance 在 Git 历史中，正式状态与长期决策分别见
 > `docs/CURRENT_STATUS.md` 与 `docs/DECISION_LOG.md`（仅当前任务需要时读取）。
 
-- branch: `codex/daily-lightweight-cloud-checkpoint`; directly based on
-  `master@37551f88f34568f3d55a6ce602372e6135e20a61` after PR #43 was squash-merged.
-  PR #43 is `MERGED`; post-merge master correctness run `34306373948` is
-  `completed / success` at that exact SHA.
-- current task: `DAILY_LIGHTWEIGHT_CLOUD_CHECKPOINT`; cloud branch exact head is
-  `6ec9513186902b49e1fcc8451f81c0f6c5847f91`. PR #44 is OPEN / CLEAN / non-draft against
-  `master@37551f88f34568f3d55a6ce602372e6135e20a61`; push correctness `34307324454` and
-  PR correctness `34307530082` are both `completed / success`. Awaiting the user's merge decision.
-- recovery pointer: this task's pushed `origin/codex/daily-lightweight-cloud-checkpoint` is the
-  authoritative recovery branch after the source commit is pushed. At recovery time, run
-  `git rev-parse HEAD` and `git rev-parse @{u}` and require the two values to be equal; do not
-  use this file's or any governance commit's SHA as the recovery truth.
+- branch: `codex/reconcile-daily-lightweight-cloud-checkpoint-merge-20260909`; this bounded
+  governance-only branch is based on the verified `master@c139a04c989913b14ae6c1c63aa14e63f66bc246`.
+- current task: `MERGE_AND_VERIFY_DAILY_LIGHTWEIGHT_CLOUD_CHECKPOINT`; PR #44 is `MERGED` by
+  squash merge at `c139a04c989913b14ae6c1c63aa14e63f66bc246`. Post-merge master correctness
+  run `34316393267` is `completed / success`, triggered by `push` on `master` at that exact SHA.
+- recovery pointer: after this bounded reconciliation is pushed, use
+  `origin/codex/reconcile-daily-lightweight-cloud-checkpoint-merge-20260909` as the current
+  handoff branch. At recovery time, run `git rev-parse HEAD` and `git rev-parse @{u}` and require
+  the two values to be equal; do not use this file's or any governance commit's SHA as live truth.
+- governance: `PROJECT_GOVERNANCE_STATE_CONFLICT` from the stale pre-merge snapshot is closed by
+  this bounded reconciliation. The daily checkpoint source and policy are now in master; remote
+  delete count remains `0`.
+- terminal marker: `DAILY_LIGHTWEIGHT_CLOUD_CHECKPOINT_MERGED_MASTER_VERIFIED`.
 - prior task: `EXACT_DATE_IMMUTABLE_REVIEW_RECOVERY_AND_COMPLETENESS_GUARD`. PR #43 was
   squash-merged at `37551f88f34568f3d55a6ce602372e6135e20a61`; that task started from exact head
   `945b0fc16c0dde80aa4d795f049781834a7689a8` and kept the no-merge boundary.
@@ -85,7 +86,9 @@
   passed both push and pull-request correctness checks listed above.
 - prior-task terminal marker: `PR43_SQUASH_MERGED_AND_POST_MERGE_CORRECTNESS_SUCCESS`.
 
-## Current checkpoint — daily lightweight cloud checkpoint — 2026-09-09
+## Historical pre-merge checkpoint — daily lightweight cloud checkpoint — 2026-09-09
+
+The section below is retained as pre-merge provenance. The live merged state is recorded above.
 
 The bounded follow-up is implemented on `codex/daily-lightweight-cloud-checkpoint`, now
 replayed directly onto `master@37551f88f34568f3d55a6ce602372e6135e20a61` after PR #43's squash

@@ -1,6 +1,29 @@
 # CURRENT STATUS
 
-## Daily lightweight cloud checkpoint — based on merged PR #43 — 2026-09-09
+## Post-merge verified — daily lightweight cloud checkpoint — 2026-09-09
+
+PR #44 (`feat: add lightweight daily cloud checkpoint`) was squash-merged into `master` at
+`c139a04c989913b14ae6c1c63aa14e63f66bc246`. `origin/master` was re-read at that exact SHA.
+Post-merge correctness run `34316393267` is `completed / success`, triggered by `push`, with
+`head_branch=master` and the exact merge SHA. The formal master now contains
+`scripts/upload_daily_checkpoint.py`, the `t_close_runner` fail-soft cloud-checkpoint path, and
+the daily manifest/SHA verification policy.
+
+The policy is effective on master: same logical path plus the same SHA is
+`NO_OP_ALREADY_VERIFIED`; a same-path SHA mismatch fails closed; cloud upload failure does not
+invalidate the local canonical watchlist, tracker, or HTML; daily scope excludes Kline/raw/
+sidecar/source evidence/prospective packages/formal archives; and `remote_deletes=0` remains
+enforced. `PROJECT_GOVERNANCE_STATE_CONFLICT` is closed by the bounded governance reconciliation
+branch; no strategy, provider, scheduler, research, promotion, production approval, Final OOS,
+C, or old-D boundary changed.
+
+Formal Delivery Ladder remains `frozen candidate`; Final OOS remains `SEALED / UNREAD`; C remains
+unread; old D is not reconstructed. Terminal marker:
+`DAILY_LIGHTWEIGHT_CLOUD_CHECKPOINT_MERGED_MASTER_VERIFIED`.
+
+## Historical pre-merge snapshot — daily lightweight cloud checkpoint — 2026-09-09
+
+The section below is retained as pre-merge provenance; the post-merge section above is current.
 
 The bounded cloud follow-up is complete on
 `codex/daily-lightweight-cloud-checkpoint`, replayed directly onto

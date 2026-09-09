@@ -5,6 +5,23 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-09 — Merge and verify daily lightweight cloud checkpoint
+
+- live truth：PR #44 was squash-merged into `master` at
+  `c139a04c989913b14ae6c1c63aa14e63f66bc246`; `origin/master` matches exactly. Post-merge
+  correctness run `34316393267` is `completed / success` for `push`, `master`, and that exact
+  merge SHA.
+- decision：`DAILY_LIGHTWEIGHT_CLOUD_CHECKPOINT_MERGED_MASTER_VERIFIED`. The bounded source is
+  now formal master functionality; its six-file scope, manifest/length/SHA readback, same-path
+  idempotence, same-path conflict fail-closed behavior, and fail-soft local-output boundary are
+  effective. Remote deletion remains forbidden and `remote_deletes=0`.
+- reconciliation：the stale PR #44 open/awaiting-merge state in the preceding handoff/status
+  snapshot is retained as historical provenance and superseded by the current post-merge state.
+  No historical record is rewritten, and no code, strategy, provider, scheduler, research,
+  promotion, production approval, Final OOS, C, or old-D boundary is changed.
+- stop：`Formal Delivery Ladder=frozen candidate`; Final OOS=`SEALED / UNREAD`; C unread; old D
+  not reconstructed. Stop at `DAILY_LIGHTWEIGHT_CLOUD_CHECKPOINT_MERGED_MASTER_VERIFIED`.
+
 ## 2026-09-08 — Adopt daily lightweight cloud checkpoint with immutable dated state
 
 - scope：在 PR #43 仍未 merge 的条件下，新增独立 stacked branch
