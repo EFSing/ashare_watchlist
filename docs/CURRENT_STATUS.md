@@ -7,7 +7,10 @@ The bounded cloud follow-up is complete on
 `master@37551f88f34568f3d55a6ce602372e6135e20a61` after PR #43 was squash-merged.
 PR #43 is `MERGED`; post-merge master correctness run `34306373948` is
 `completed / success` at that exact SHA. The daily close bundle and exact-date recovery are
-formally in master; the cloud branch is no longer stacked.
+formally in master; the cloud branch is no longer stacked. The rebased cloud head is
+`6ec9513186902b49e1fcc8451f81c0f6c5847f91`; PR #44 is OPEN / CLEAN / non-draft against
+`master`, with push correctness `34307324454` and PR correctness `34307530082` both
+`completed / success`.
 Daily cloud scope is limited to the six lightweight files for 20260908: four files in
 `ashare_watchlist/daily_checkpoints/20260908` and two files in the fixed
 `ashare_watchlist/daily_checkpoints/latest`. The dated four are uploaded before latest, and
@@ -28,8 +31,10 @@ evidence and historical archives remain outside daily scope. The runner is fail-
 automatic scheduler. Terminal marker:
 `DAILY_LIGHTWEIGHT_CLOUD_CHECKPOINT_PR_READY_FOR_USER_MERGE_DECISION`.
 
-Validation is complete: focused checkpoint/runner tests 18 passed, full repository suite 440 passed
-with 8 legacy/out-of-scope warnings, compileall passed, and `git diff --check` passed.
+Validation is complete: focused checkpoint/runner tests `18 passed`; full repository suite
+`438 passed, 2 skipped, 8 warnings` (the two skips are for the intentionally unavailable local
+immutable evidence fixture); compileall and `git diff --check` passed. The branch is ready for
+the user's PR #44 merge decision.
 
 ## Exact-date immutable review recovery and completeness guard — PR #43 (merged) — 2026-09-08
 
