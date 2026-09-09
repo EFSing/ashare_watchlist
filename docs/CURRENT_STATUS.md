@@ -25,7 +25,7 @@ evidence and historical archives remain outside daily scope. The runner is fail-
 automatic scheduler. Terminal marker:
 `DAILY_LIGHTWEIGHT_CLOUD_CHECKPOINT_STACKED_BRANCH_READY_AFTER_PR43_MERGE`.
 
-Validation is complete: focused checkpoint/runner tests 16 passed, full repository suite 438 passed
+Validation is complete: focused checkpoint/runner tests 18 passed, full repository suite 440 passed
 with 8 legacy/out-of-scope warnings, compileall passed, and `git diff --check` passed.
 
 ## Exact-date immutable review recovery and completeness guard — PR #43 (unmerged) — 2026-09-08

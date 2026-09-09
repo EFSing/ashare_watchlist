@@ -225,6 +225,72 @@ def test_dated_files_are_verified_before_latest_upload(tmp_path):
     ]
 
 
+def test_dated_manifest_waits_for_first_three_readbacks(tmp_path):
+    data_root, manifest, manifest_path, _persisted = _prepared(tmp_path)
+
+    class ReadbackFailDrive(FakeDrive):
+        def __init__(self):
+            super().__init__()
+            self.failed = False
+
+        def read_file_bytes(self, file_id: str) -> bytes:
+            if not self.failed:
+                self.failed = True
+                raise OSError("simulated readback failure")
+            return super().read_file_bytes(file_id)
+
+    client = ReadbackFailDrive()
+    with pytest.raises(OSError, match="simulated readback failure"):
+        upload_checkpoint(
+            manifest,
+            data_root=data_root,
+            client=client,
+            root_folder_id="root",
+            manifest_path=manifest_path,
+        )
+
+    uploads = [name for kind, name in client.events if kind == "upload"]
+    assert uploads == ["watchlist_20260908.json"]
+    assert "daily_checkpoint_20260908.json" not in uploads
+    assert "latest.html" not in uploads
+    assert "latest_checkpoint.json" not in uploads
+
+
+def test_latest_failure_leaves_dated_checkpoint_intact(tmp_path):
+    data_root, manifest, manifest_path, _persisted = _prepared(tmp_path / "latest-failure")
+    client = FakeDrive()
+    client.fail_on_upload = "latest.html"
+
+    with pytest.raises(OSError, match="simulated upload failure"):
+        upload_checkpoint(
+            manifest,
+            data_root=data_root,
+            client=client,
+            root_folder_id="root",
+            manifest_path=manifest_path,
+        )
+
+    dated_folder = next(
+        entry
+        for entries in client.entries.values()
+        for entry in entries
+        if entry.is_folder and entry.name == "20260908"
+    )
+    latest_folder = next(
+        entry
+        for entries in client.entries.values()
+        for entry in entries
+        if entry.is_folder and entry.name == "latest"
+    )
+    assert {entry.name for entry in client.entries[dated_folder.id]} == {
+        "watchlist_20260908.json",
+        "perf_tracker.json",
+        "daily_close_20260908.html",
+        "daily_checkpoint_20260908.json",
+    }
+    assert client.entries[latest_folder.id] == []
+
+
 def test_restore_verifies_manifest_and_all_dated_bytes(tmp_path):
     data_root, manifest, _path, client, _result = _upload(tmp_path)
     restore_dir = tmp_path / "recovery"

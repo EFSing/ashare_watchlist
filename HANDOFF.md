@@ -113,8 +113,8 @@ adapter completes, or `[CLOUD] FAILED <exact reason>` without changing canonical
 There is no automatic scheduler. The terminal marker for this bounded follow-up is
 `DAILY_LIGHTWEIGHT_CLOUD_CHECKPOINT_STACKED_BRANCH_READY_AFTER_PR43_MERGE`.
 
-Validation is complete: the checkpoint/runner focused set is 16 passed; the full repository suite is
-438 passed with 8 legacy/out-of-scope warnings; compileall and `git diff --check` pass.
+Validation is complete: the checkpoint/runner focused set is 18 passed; the full repository suite is
+440 passed with 8 legacy/out-of-scope warnings; compileall and `git diff --check` pass.
 
 ## New-device / new-session recovery
 
