@@ -85,8 +85,9 @@
 The bounded follow-up is implemented on `codex/daily-lightweight-cloud-checkpoint`, created
 from PR #43's exact green head `e2d911692a4eed6ffcfd41c1f8ea035a2070b3c4`; PR #43 remains
 open and unmerged. The implementation commit is
-`bcbbe9afeab95da87a98d762386d2de84a58095b`; the manifest records that code SHA because the
-docs-only handoff commit may advance the branch head without changing checkpoint code.
+`bcbbe9afeab95da87a98d762386d2de84a58095b`; the manifest records that code SHA because
+subsequent governance/test-only commits may advance the branch head without changing checkpoint
+implementation code.
 
 The private Drive target is `ashare_watchlist/daily_checkpoints`:
 
