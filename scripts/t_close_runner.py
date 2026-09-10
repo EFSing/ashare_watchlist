@@ -44,6 +44,7 @@ from upload_daily_checkpoint import (
 
 _BJT = timezone(timedelta(hours=8))
 RUNNABLE_STATUSES = {RUN_SUCCESS, RUN_ALREADY_CURRENT, RUN_NO_CANDIDATES}
+T_CLOSE_SUCCESS_STATUS = "T_CLOSE_EVIDENCE_PACKAGE_AND_WATCHLIST_PERSISTED"
 
 # The desktop app can inject its authenticated Drive adapter here. The
 # standalone runner deliberately has no credentials or second Drive SDK.
@@ -305,7 +306,7 @@ def run(as_of_date: str, data_root: Path, evidence_root: Path, now_bjt: str | No
     if candidate.status not in RUNNABLE_STATUSES:
         raise RuntimeError(f"development candidate generation failed: {candidate.status}")
     return {
-        "status": "T_CLOSE_EVIDENCE_PACKAGE_AND_WATCHLIST_PERSISTED",
+        "status": T_CLOSE_SUCCESS_STATUS,
         "as_of_date": package.generation_input_manifest.signal_date,
         "code_git_sha": code_git_sha,
         "evidence_capture": package.provenance.get("evidence_capture"),
@@ -345,7 +346,7 @@ def main(argv: list[str] | None = None) -> int:
             if args.preflight
             else run(args.as_of_date, data_root, evidence_root, args.now_bjt)
         )
-        if not args.preflight and result.get("status") in RUNNABLE_STATUSES and result.get("watchlist", {}).get("path"):
+        if not args.preflight and result.get("status") == T_CLOSE_SUCCESS_STATUS and result.get("watchlist", {}).get("path"):
             result["daily_close_bundle"] = _run_daily_close_reporting(args.as_of_date, data_root)
     except (LiveAcquisitionError, OSError, RuntimeError, ValueError) as exc:
         print(

@@ -90,6 +90,104 @@ def test_canonical_watchlist_is_score_sorted_and_distance_is_display_only(tmp_pa
     assert model.metadata["earliest_execution"] == "2026-09-11"
 
 
+def test_t_day_new_signal_is_explicitly_waiting_for_t1_not_missing(tmp_path):
+    watchlist = _write_watchlist(tmp_path, "20260910", [_candidate("600018", "今日新信号", 70)])
+    _write_tracker(tmp_path, watchlist)
+
+    model = renderer.build_report_model("20260910", paths=_paths(tmp_path), calendar=CALENDAR)
+    row = model.watchlist_rows[0]
+    quality = next(item for item in model.data_quality or [] if item["category"] == "今日新信号等待 T+1")
+    text = renderer.render_html(model)
+
+    assert row["status"] == "PENDING"
+    assert row["observation_status"] == renderer._T1_PENDING
+    assert row["status_explanation"] == "今日新信号，等待下一交易日观察"
+    assert quality["count"] == 1 and quality["status"] == renderer._T1_PENDING
+    assert "今日新信号，等待下一交易日观察" in text
+    assert "历史节点或今日记录缺失" not in text
+
+
+def test_historical_missing_observation_remains_unverified_and_is_not_t1(tmp_path):
+    old = _write_watchlist(tmp_path, "20260903", [_candidate("600018", "历史缺口", 60)])
+    tracker = _write_tracker(tmp_path, old)
+    signal = next(iter(tracker["signals"].values()))
+    signal["review_points"]["T+3"].update({"status": "NOT_CAPTURED", "reason": "historical node missing"})
+    _write_watchlist(tmp_path, "20260910", [_candidate("600019", "今日新名单", 65)])
+    (tmp_path / "data" / "perf_tracker.json").write_text(json.dumps(tracker), encoding="utf-8")
+
+    model = renderer.build_report_model("20260910", paths=_paths(tmp_path), calendar=CALENDAR)
+    missing = next(item for item in model.data_quality or [] if item["category"] == "历史节点缺失")
+    new_row = model.watchlist_rows[0]
+
+    assert missing["count"] == 1
+    assert missing["status"] == "MISSING_HISTORICAL_OBSERVATION / UNVERIFIED"
+    assert new_row["observation_status"] == renderer._T1_PENDING
+    assert new_row["observation_status"] != renderer._MISSING
+
+
+def test_same_bar_ambiguity_is_preserved_and_sorted_first(tmp_path):
+    old = _write_watchlist(tmp_path, "20260909", [
+        _candidate("600018", "普通信号", 80),
+        _candidate("600019", "歧义信号", 40),
+    ])
+    tracker = _write_tracker(tmp_path, old)
+    signals = list(tracker["signals"].values())
+    signals[0].update(status="triggered", observations=[{"date": "2026-09-10", "open": 10, "high": 10.2, "low": 9.9, "price": 10.1}])
+    signals[1].update(
+        status="AMBIGUOUS_SAME_BAR",
+        observations=[{"date": "2026-09-10", "open": 10, "high": 10.5, "low": 9.5, "price": 10.0}],
+        ambiguity_reason="same bar touched trigger, target",
+        close_date="2026-09-10",
+    )
+    _write_watchlist(tmp_path, "20260910", [_candidate("600020", "今日新名单", 50)])
+    (tmp_path / "data" / "perf_tracker.json").write_text(json.dumps(tracker), encoding="utf-8")
+
+    model = renderer.build_report_model("20260910", paths=_paths(tmp_path), calendar=CALENDAR)
+    row = model.previous_signals[0]
+
+    assert row["raw_status"] == "AMBIGUOUS_SAME_BAR"
+    assert row["observation_status"] == "AMBIGUOUS_SAME_BAR"
+    assert "same bar touched trigger, target" in row["status_explanation"]
+    assert model.overview["ambiguous_count"] == 1
+
+
+def test_report_information_architecture_has_overview_yesterday_new_list_quality_and_audit(tmp_path):
+    old = _write_watchlist(tmp_path, "20260909", [_candidate("600018", "昨日信号", 60)])
+    tracker = _write_tracker(tmp_path, old)
+    signal = next(iter(tracker["signals"].values()))
+    signal.update(status="triggered", observations=[{"date": "2026-09-10", "open": 10, "high": 10.4, "low": 9.8, "price": 10.2}])
+    current = _write_watchlist(tmp_path, "20260910", [_candidate("600019", "今日新名单", 70)])
+    current_before = (tmp_path / "data" / "watchlist_20260910.json").read_bytes()
+    tracker_path = tmp_path / "data" / "perf_tracker.json"
+    (tracker_path).write_text(json.dumps(tracker), encoding="utf-8")
+    tracker_before = tracker_path.read_bytes()
+
+    model = renderer.build_report_model("20260910", paths=_paths(tmp_path), calendar=CALENDAR)
+    text = renderer.render_html(model)
+
+    for marker in (
+        "T-close 日期", "昨日信号复盘", "今日新名单 / 明日观察", "策略滚动复盘",
+        "异常与数据质量", "审计详情", "今日新信号，等待下一交易日观察",
+    ):
+        assert marker in text
+    assert text.index('id="daily-review"') < text.index('id="tomorrow-watchlist"') < text.index('id="formal-review"') < text.index('id="anomalies"') < text.index('id="audit"')
+    assert (tmp_path / "data" / "watchlist_20260910.json").read_bytes() == current_before
+    assert tracker_path.read_bytes() == tracker_before
+    assert current["candidates"][0]["signal_id"] in text
+
+
+def test_report_keeps_full_audit_details_collapsed_after_review_sections(tmp_path):
+    watchlist = _write_watchlist(tmp_path, "20260910", [_candidate("600018", "审计信号", 60)])
+    _write_tracker(tmp_path, watchlist)
+    model = renderer.build_report_model("20260910", paths=_paths(tmp_path), calendar=CALENDAR)
+    text = renderer.render_html(model)
+
+    audit = text.split('<details id="audit">', 1)[1].split("</details>", 1)[0]
+    assert "signal_id" in audit
+    assert '<details id="audit" open' not in text
+    assert text.index('id="audit"') > text.index('id="anomalies"')
+
+
 def test_html_escapes_text_and_has_no_external_dependency(tmp_path):
     candidate = _candidate("600018", '<script>alert("x")</script>', 31, sector='A & <B>')
     watchlist = _write_watchlist(tmp_path, "20260910", [candidate])
@@ -304,18 +402,18 @@ def test_older_active_and_closed_today_are_separate(tmp_path):
     (tmp_path / 'data/perf_tracker.json').write_text(json.dumps(tracker), encoding='utf-8')
     _write_watchlist(tmp_path, '20260910', [_candidate('600005', 'New', 80)])
     model = renderer.build_report_model('20260910', paths=_paths(tmp_path), calendar=CALENDAR)
-    assert [r['raw_status'] for r in model.active_signals] == ['pending', 'triggered']
+    assert [r['raw_status'] for r in model.active_signals] == ['triggered', 'pending']
     assert [r['raw_status'] for r in model.closed_today] == ['win']
     assert model.daily_summary['tracked'] == 3
     assert model.daily_summary['target_hits'] == 1
 
 
-def test_formal_empty_has_no_table_and_primary_is_first(tmp_path):
+def test_formal_empty_keeps_rolling_summary_and_primary_is_first(tmp_path):
     watchlist = _write_watchlist(tmp_path, '20260910', [_candidate('600001', 'New', 60)])
     _write_tracker(tmp_path, watchlist)
     model = renderer.build_report_model('20260910', paths=_paths(tmp_path), calendar=CALENDAR)
     text = renderer.render_html(model).split('<section id="formal-review">')[1].split('</section>')[0]
-    assert '<table' not in text
+    assert '现有正式计数' in text
     assert '今日无 T+5 到期信号' in text
     row = dict(code='600001', name='Old', list_date='2026-09-03', horizon_return='+2.00%', path_status='loss', snapshot_status='CAPTURED', signal_id='hidden')
     model.review_sections['T+5'].append(row)

@@ -1,5 +1,96 @@
 # CURRENT STATUS
 
+## Final migration and PR #46 verification — 2026-09-10
+
+The bounded `LOCAL_WORKSPACE_C_TO_D_MIGRATION_AND_EVIDENCE_RETENTION_AUDIT` is complete.
+At the preceding pre-close verification point, live `origin/master` was
+`f5c4c6bbf9d3213fc15af75ceb57b4de23bb1559`; PR #46 head was
+`00f6a6a583cf20d8b0bdf5a5058b88fe71bf39f1`, with exact-head push run `34348922848` and
+pull-request run `34348927072` both successful. The subsequent docs-only close commit
+advanced the PR branch; current head, mergeability and exact-head CI are live state and
+must be re-read from GitHub rather than treated as persisted invariants. The PR remains
+open and unmerged.
+
+The fresh recovery workspace is `D:\ChatGPT\A股项目开发` with branch, `HEAD`, and upstream
+equal at the PR head. Selected C-local operational/evidence state copied to D is 85,372 files
+and 9,332,547,439 bytes; C was not deleted. T-close source/target file counts and bytes match,
+raw/sidecar pair sets are complete, formal archive/chunk verification is 50/50 exact, and
+canonical package/watchlist/tracker/report/checkpoint identities match. The local-only B
+diagnostic event file was copied with exact SHA; the tracked diagnostic summary remains the
+remote branch version and was not overwritten by C-local state.
+
+D preflight and D-path smoke passed without provider calls or acquisition rerun. Report/runner
+targeted tests are `35 passed`; a clean LF checkout full suite is `444 passed, 2 skipped`;
+compileall and PR diff check pass. The D main workspace contains intentionally migrated live
+operational state, so five full-suite assertions that expect older committed tracker/report or
+Windows-normalized formal bytes are environment/state checks, not PR code regressions.
+
+The rolling-20-session dry-run as of 2026-09-10 keeps sessions 2026-08-14 through 2026-09-10.
+All present routine T-close dates fall inside the window; prune candidates are 0 files, 0
+raw/sidecar pairs, and 0 bytes. Formal/frozen/recovery evidence, checkpoints, canonical
+artifacts, unknown validation, and the forbidden continuous-speed-probe directory are excluded.
+No routine evidence, C source, or remote object was deleted. Terminal state:
+`PR46_READY_FOR_USER_MERGE_DECISION`.
+
+## Local workspace migration intake — PR #46 governance reconciliation — 2026-09-09
+
+本轮分类为 `product infrastructure + correctness/provenance + recovery` 的 STRICT PATH
+任务，不改变交易策略、watchlist、review、provider、T+1、研究结论或正式 artifact 语义。
+实时 intake 已确认 PR #46 仍为 `OPEN / UNMERGED`，remote branch
+`codex/daily-report-review-usability-20260909` 与 `refs/pull/46/head` 均指向
+`6191489edae55f7389d24526292d502b1c5932bd`；exact-head correctness run
+`34347550977` 为 `completed / success`。旧当前快照仍记录
+`b64a5fa088fff177dd93aa6cfbb39aaffa487517` / `34347321149`，构成 bounded
+`PROJECT_GOVERNANCE_STATE_CONFLICT`，但没有发现策略、artifact identity 或历史链异常。
+
+本次 reconciliation 只修正当前 HANDOFF、CURRENT_STATUS 与 DECISION_LOG 的 live-state
+入口，保留旧 SHA/run 作为历史 provenance；任何 docs-only commit 后的 HEAD、upstream、PR
+状态和 exact-head CI 均必须重新实时核验，不把治理文件中的 SHA 当作 live-state invariant。
+下一步是先验证 reconciliation commit 的新 exact-head CI，再进行 C→D fresh clone、local
+operational/evidence inventory、SHA/integrity verification、D-path runtime smoke 和
+`ROUTINE_DAILY_EVIDENCE_ROLLING_20_SESSIONS` dry-run；本轮不重新 acquisition、不 remote
+delete、不自动 merge PR #46。
+
+## Live master reconciliation before daily report work — 2026-09-09
+
+Live `origin/master` is `f5c4c6bbf9d3213fc15af75ceb57b4de23bb1559`; PR #43, PR #44 and PR #45
+are all merged, with PR #45 merged at that exact SHA. Master correctness run `34317755077` is
+`completed / success` for that exact head. The preceding top section's `c139a04...`/PR #44
+state is retained below as historical provenance, not live state.
+
+`PROJECT_GOVERNANCE_STATE_CONFLICT` is closed by this bounded reconciliation. The new task is
+`DAILY_REPORT_REVIEW_USABILITY_AND_BUNDLE_WIRING`: improve review-oriented report information
+architecture and fix only the confirmed successful-run daily bundle persistence wiring defect;
+canonical watchlist, tracker semantics, T+1 observation rules, strategy identity and research
+boundaries remain unchanged. Final OOS remains `SEALED / UNREAD`; C remains unread; and
+`data/validation/continuous_speed_probe/` remains untouched.
+
+## Daily report review usability — PR #46 — 2026-09-09
+
+The bounded implementation is pushed on branch
+`codex/daily-report-review-usability-20260909`; the validated feature head is
+`b64a5fa088fff177dd93aa6cfbb39aaffa487517`.
+PR #46 targets live `master@f5c4c6bbf9d3213fc15af75ceb57b4de23bb1559`, is open and unmerged,
+and exact-head correctness run `34347321149` is `completed / success` for that head.
+
+The HTML information architecture is now: T-close overview; yesterday's actual review date;
+today's new list with explicit next-trading-day observation state; existing rolling review
+coverage; separate data-quality categories; and collapsed audit detail. Historical missing
+nodes, unverified returns, same-bar ambiguity, acquisition completeness, and cloud checkpoint
+verification are not collapsed into one generic label. The runner's successful canonical T-close
+path now attaches `daily_close_bundle`; no canonical watchlist/tracker/strategy/T+1/review
+semantics were changed.
+
+Validation: project `.venv` full suite `444 passed, 2 skipped, 8 warnings`; focused report/runner
+regressions `35 passed`; `git diff --check` passed. Existing 20260909 evidence was inspected
+read-only: 10,601 raw/sidecar pairs from `18:05:30` to `18:21:30 BJT`, followed by package at
+`18:22:34`, watchlist at `18:26:24`, tracker at `18:48:48`, HTML at `18:48:56`, and checkpoint
+manifest at `18:49:35`. This supports a slow acquisition/post-processing window but does not
+isolate a report-code bottleneck, so no benchmark or performance architecture change was made.
+The dated manifest remains `LOCAL_INPUTS_VERIFIED`; the report does not claim remote cloud
+`VERIFIED` without persisted proof. No 20260909 acquisition rerun or operational artifact
+overwrite was performed. Next action is the user's PR #46 review/merge decision.
+
 ## Post-merge verified — daily lightweight cloud checkpoint — 2026-09-09
 
 PR #44 (`feat: add lightweight daily cloud checkpoint`) was squash-merged into `master` at

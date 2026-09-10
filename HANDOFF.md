@@ -4,19 +4,65 @@
 > 本文件不是历史归档；历史 provenance 在 Git 历史中，正式状态与长期决策分别见
 > `docs/CURRENT_STATUS.md` 与 `docs/DECISION_LOG.md`（仅当前任务需要时读取）。
 
-- branch: `codex/reconcile-daily-lightweight-cloud-checkpoint-merge-20260909`; this bounded
-  governance-only branch is based on the verified `master@c139a04c989913b14ae6c1c63aa14e63f66bc246`.
-- current task: `MERGE_AND_VERIFY_DAILY_LIGHTWEIGHT_CLOUD_CHECKPOINT`; PR #44 is `MERGED` by
-  squash merge at `c139a04c989913b14ae6c1c63aa14e63f66bc246`. Post-merge master correctness
-  run `34316393267` is `completed / success`, triggered by `push` on `master` at that exact SHA.
-- recovery pointer: after this bounded reconciliation is pushed, use
-  `origin/codex/reconcile-daily-lightweight-cloud-checkpoint-merge-20260909` as the current
+## 2026-09-10 — C→D migration and retention audit completed
+
+- pre-close live verification: `origin/master=f5c4c6bbf9d3213fc15af75ceb57b4de23bb1559`;
+  before this close commit, PR #46 branch and `refs/pull/46/head` both pointed to
+  `00f6a6a583cf20d8b0bdf5a5058b88fe71bf39f1`; push run `34348922848` and
+  pull-request run `34348927072` were exact-head `success`. These are historical
+  provenance for the preceding head, not the current live-head invariant.
+- the docs-only close commit was then pushed to the same PR branch. On recovery,
+  re-read `origin/master`, the PR branch/ref, `HEAD`, `@{u}`, mergeability and exact-head
+  CI live; PR #46 remains the user-merge decision point and is not auto-merged.
+- D recovery workspace: `D:\ChatGPT\A股项目开发`, branch
+  `codex/daily-report-review-usability-20260909`; require live `HEAD==@{u}` at recovery.
+- migration: 85,372 selected local operational/evidence files, 9,332,547,439 bytes
+  (8.692 GiB), copied without deleting C. T-close counts/bytes match C exactly;
+  raw/sidecar pair sets are complete for each retained date; formal backup archive/chunk
+  map is 50/50 exact; canonical package/watchlist/tracker/report/checkpoint hashes match;
+  the local-only B diagnostic event file matches SHA
+  `4bc5261c6d5329f48eded16caead33ebf0a49c462739f2f43d2dc33f0a88c3fe`.
+- D validation: fresh venv/preflight, D-path smoke, report/runner targeted tests
+  (`35 passed`), clean-checkout full suite (`444 passed, 2 skipped`), compileall and
+  PR diff check passed. No acquisition/refetch, provider probe, remote delete or C-source
+  deletion was performed.
+- retention: as of `2026-09-10`, the rolling 20 XSHG sessions are
+  `2026-08-14` through `2026-09-10`; all present T-close dates are inside the window,
+  so prune candidates are 0 files / 0 pairs / 0 bytes. Formal/recovery evidence and
+  unknown/forbidden validation remain excluded. `DELETE=NO`.
+- terminal marker: `PR46_READY_FOR_USER_MERGE_DECISION`.
+
+- branch: `codex/daily-report-review-usability-20260909`; this remains the recovery pointer for
+  PR #46 and the local workspace migration audit.
+- current task: `LOCAL_WORKSPACE_C_TO_D_MIGRATION_AND_EVIDENCE_RETENTION_AUDIT`; this is a
+  bounded storage/recovery task and does not change strategy, watchlist, review, provider,
+  T+1, research conclusions, or formal artifact semantics.
+- recovery pointer: use `origin/codex/daily-report-review-usability-20260909` as the current
   handoff branch. At recovery time, run `git rev-parse HEAD` and `git rev-parse @{u}` and require
   the two values to be equal; do not use this file's or any governance commit's SHA as live truth.
-- governance: `PROJECT_GOVERNANCE_STATE_CONFLICT` from the stale pre-merge snapshot is closed by
-  this bounded reconciliation. The daily checkpoint source and policy are now in master; remote
-  delete count remains `0`.
-- terminal marker: `DAILY_LIGHTWEIGHT_CLOUD_CHECKPOINT_MERGED_MASTER_VERIFIED`.
+- governance: at intake, PR #46 was open/unmerged and its live remote head was
+  `6191489edae55f7389d24526292d502b1c5932bd`; exact-head correctness run `34347550977` was
+  `completed / success`. The preceding current-state snapshot recorded `b64a5fa...` and
+  `34347321149`; this is a bounded `PROJECT_GOVERNANCE_STATE_CONFLICT`, not a strategy or
+  artifact-identity conflict. The old values remain historical provenance below.
+- implementation: the review-oriented daily report and successful-run bundle wiring remain
+  unchanged. This docs-only reconciliation creates a new branch head; re-read the live branch,
+  PR and exact-head CI after push instead of treating this file as a permanent head/CI record.
+- terminal marker: `PR46_READY_FOR_USER_MERGE_DECISION`.
+- completed: the daily HTML is now review-oriented (yesterday review → today's new list/T+1
+  observation → rolling review → data quality → collapsed audit); current-date signals are
+  explicitly `T_PLUS_1_OBSERVATION_PENDING`; historical missing, UNVERIFIED return, same-bar,
+  acquisition and cloud checkpoint states remain separate. The successful T-close runner now
+  attaches/persists `daily_close_bundle` using its exact success status. Canonical watchlist,
+  tracker, strategy and review semantics are unchanged.
+- validation: project `.venv` full suite is `444 passed, 2 skipped, 8 warnings`; targeted report/
+  runner regression set is `35 passed`; `git diff --check` passed. Existing 20260909 evidence was
+  read only: 10,601 raw/sidecar pairs span `18:05:30–18:21:30 BJT`; no acquisition rerun or
+  operational artifact overwrite was performed. The local dated checkpoint remains
+  `LOCAL_INPUTS_VERIFIED`, not remote cloud `VERIFIED`.
+- next action: user decides whether to authorize squash merge PR #46. Do not auto-merge, delete
+  routine K-line evidence, delete C-source data, or perform any remote delete. Classification
+  remains STRICT PATH with no correctness semantic change.
 - prior task: `EXACT_DATE_IMMUTABLE_REVIEW_RECOVERY_AND_COMPLETENESS_GUARD`. PR #43 was
   squash-merged at `37551f88f34568f3d55a6ce602372e6135e20a61`; that task started from exact head
   `945b0fc16c0dde80aa4d795f049781834a7689a8` and kept the no-merge boundary.

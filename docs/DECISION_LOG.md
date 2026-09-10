@@ -5,6 +5,72 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-10 — Complete bounded C→D migration and retention dry-run
+
+- classification：`product infrastructure + correctness/provenance + recovery`，属于
+  STRICT PATH；不改变 B strategy、review、provider、T+1、研究结论或正式 artifact 语义。
+- decision：采用 D 盘 fresh remote-recoverable workspace 作为后续恢复入口；C-local
+  operational/evidence state required for current review was copied and verified by exact
+  counts/bytes, SHA identities, raw/sidecar pair integrity and formal archive/chunk checks。
+- retention：复用 `ROUTINE_DAILY_EVIDENCE_ROLLING_20_SESSIONS` 规则，只做 inventory；截至
+  2026-09-10 所有 present T-close dates 均在最近 20 个 XSHG sessions 内，candidate 为
+  0 files / 0 pairs / 0 bytes。formal/frozen/recovery evidence、checkpoint/canonical
+  artifacts、unknown validation 和 forbidden validation 不进入 routine deletion。
+- boundary：C source remains intact；`DELETE=NO`；remote delete=0；acquisition/refetch=0；
+  `data/validation/continuous_speed_probe/` 未读取、未 hash、未复制、未修改、未删除。
+  下一步只剩 PR #46 的用户 squash-merge decision。
+
+## 2026-09-09 — Reconcile PR #46 live head before C→D migration audit
+
+- classification：`product infrastructure + correctness/provenance + recovery`，属于 STRICT
+  PATH；不改变交易、review、provider、T+1、研究结论或正式 artifact 语义。
+- live truth：PR #46 为 `OPEN / UNMERGED`；remote branch 与 pull head 均为
+  `6191489edae55f7389d24526292d502b1c5932bd`，exact-head correctness run
+  `34347550977` 为 `completed / success`。旧当前快照中的
+  `b64a5fa088fff177dd93aa6cfbb39aaffa487517` / `34347321149` 已过时。
+- decision：将该差异标记并以 bounded docs-only reconciliation 关闭
+  `PROJECT_GOVERNANCE_STATE_CONFLICT`；只修当前入口，不改写旧历史 provenance，不把
+  HANDOFF 设计成永久记录当前 branch exact HEAD 或 CI run 的不变量。
+- boundary：reconciliation push 后必须重新读取 `HEAD`、`@{u}`、PR 和 exact-head CI；随后
+  执行 C→D fresh clone、local evidence retention inventory 与 dry-run。routine daily
+  raw/sidecar 本轮只提案、不删除；Final OOS、C、forbidden validation、Drive remote
+  delete、acquisition rerun 和 PR merge 均不在授权范围内。
+
+## 2026-09-09 — Adopt review-oriented daily close information architecture
+
+- decision：daily close HTML is organized as overview → actual previous-session review → today's
+  new list / next-trading-day observation → existing rolling review coverage → separate data
+  quality → collapsed audit detail. A current-date signal is displayed as
+  `T_PLUS_1_OBSERVATION_PENDING` / “今日新信号，等待下一交易日观察”, not as a historical missing
+  observation.
+- rationale：the prior report mixed current T-day candidates, yesterday's review, historical
+  gaps and same-bar ambiguity into a long page with generic labels. Separating these states makes
+  the operational decision surface readable without inventing observations, returns, win rates,
+  or day-internal order.
+- invariant：historical missing nodes remain `MISSING_HISTORICAL_OBSERVATION / UNVERIFIED`,
+  missing confirmed entry keeps return unverified, and `AMBIGUOUS_SAME_BAR` remains fail-safe and
+  visible. Score, Trigger, Stop, Target, RR, watchlist membership, T+1 rules, strategy identity,
+  and formal review semantics are unchanged.
+- operational wiring：only the exact successful canonical T-close runner status attaches the
+  daily bundle, preventing the previous success-path omission while leaving preflight/failure
+  behavior unchanged. The report exposes cloud `VERIFIED` only when the dated manifest itself
+  carries remote verification; `LOCAL_INPUTS_VERIFIED` is not promoted by inference.
+- evidence/stop：existing 20260909 timestamps show a 16-minute evidence-capture span and later
+  post-processing, but do not isolate a code bottleneck. No benchmark, acquisition rerun, strategy
+  change, Final OOS/C access, or forbidden validation-data access is authorized by this decision.
+
+## 2026-09-09 — Reconcile live master before daily report usability work
+
+- live truth：`origin/master` is
+  `f5c4c6bbf9d3213fc15af75ceb57b4de23bb1559`; PR #43, PR #44 and PR #45 are merged, and
+  master correctness run `34317755077` is `completed / success` for that exact head.
+- decision：close `PROJECT_GOVERNANCE_STATE_CONFLICT` caused by the stale c139a04/PR #44
+  current-state snapshot before continuing. The current bounded task is
+  `DAILY_REPORT_REVIEW_USABILITY_AND_BUNDLE_WIRING`.
+- boundary：the task may change presentation aggregation and the confirmed runner wiring only;
+  it does not change canonical watchlist/tracker semantics, strategy, T+1 rules, provider
+  acquisition, research conclusions, Final OOS, C, or the continuous-speed-probe boundary.
+
 ## 2026-09-09 — Merge and verify daily lightweight cloud checkpoint
 
 - live truth：PR #44 was squash-merged into `master` at
