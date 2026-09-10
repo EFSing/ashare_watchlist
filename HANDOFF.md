@@ -6,12 +6,16 @@
 
 ## 2026-09-10 — C→D migration and retention audit completed
 
-- live verification: `origin/master=f5c4c6bbf9d3213fc15af75ceb57b4de23bb1559`;
-  PR #46 branch and `refs/pull/46/head` both point to
+- pre-close live verification: `origin/master=f5c4c6bbf9d3213fc15af75ceb57b4de23bb1559`;
+  before this close commit, PR #46 branch and `refs/pull/46/head` both pointed to
   `00f6a6a583cf20d8b0bdf5a5058b88fe71bf39f1`; push run `34348922848` and
-  pull-request run `34348927072` are exact-head `success`; PR remains open and unmerged.
+  pull-request run `34348927072` were exact-head `success`. These are historical
+  provenance for the preceding head, not the current live-head invariant.
+- the docs-only close commit was then pushed to the same PR branch. On recovery,
+  re-read `origin/master`, the PR branch/ref, `HEAD`, `@{u}`, mergeability and exact-head
+  CI live; PR #46 remains the user-merge decision point and is not auto-merged.
 - D recovery workspace: `D:\ChatGPT\A股项目开发`, branch
-  `codex/daily-report-review-usability-20260909`, `HEAD==@{u}==00f6a6a...`.
+  `codex/daily-report-review-usability-20260909`; require live `HEAD==@{u}` at recovery.
 - migration: 85,372 selected local operational/evidence files, 9,332,547,439 bytes
   (8.692 GiB), copied without deleting C. T-close counts/bytes match C exactly;
   raw/sidecar pair sets are complete for each retained date; formal backup archive/chunk

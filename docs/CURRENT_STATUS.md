@@ -3,10 +3,13 @@
 ## Final migration and PR #46 verification — 2026-09-10
 
 The bounded `LOCAL_WORKSPACE_C_TO_D_MIGRATION_AND_EVIDENCE_RETENTION_AUDIT` is complete.
-Live `origin/master` is `f5c4c6bbf9d3213fc15af75ceb57b4de23bb1559`; PR #46 head is
+At the preceding pre-close verification point, live `origin/master` was
+`f5c4c6bbf9d3213fc15af75ceb57b4de23bb1559`; PR #46 head was
 `00f6a6a583cf20d8b0bdf5a5058b88fe71bf39f1`, with exact-head push run `34348922848` and
-pull-request run `34348927072` both successful. The PR is open, clean/mergeable, and not
-merged.
+pull-request run `34348927072` both successful. The subsequent docs-only close commit
+advanced the PR branch; current head, mergeability and exact-head CI are live state and
+must be re-read from GitHub rather than treated as persisted invariants. The PR remains
+open and unmerged.
 
 The fresh recovery workspace is `D:\ChatGPT\A股项目开发` with branch, `HEAD`, and upstream
 equal at the PR head. Selected C-local operational/evidence state copied to D is 85,372 files
