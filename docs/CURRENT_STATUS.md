@@ -1,15 +1,13 @@
 # CURRENT STATUS
 
-## Final migration and PR #46 verification — 2026-09-10
+## PR #46 squash-merged; migration audit complete — 2026-09-10
 
 The bounded `LOCAL_WORKSPACE_C_TO_D_MIGRATION_AND_EVIDENCE_RETENTION_AUDIT` is complete.
-At the preceding pre-close verification point, live `origin/master` was
-`f5c4c6bbf9d3213fc15af75ceb57b4de23bb1559`; PR #46 head was
-`00f6a6a583cf20d8b0bdf5a5058b88fe71bf39f1`, with exact-head push run `34348922848` and
-pull-request run `34348927072` both successful. The subsequent docs-only close commit
-advanced the PR branch; current head, mergeability and exact-head CI are live state and
-must be re-read from GitHub rather than treated as persisted invariants. The PR remains
-open and unmerged.
+User-authorized PR #46 squash merge completed at merge commit
+`246700a72261bddde7da9148ecc18db0080da9be`, from source head
+`7ae76985f39c53e5d3a9bbb046cecc4cd7ddc167`. Exact-head push run `34466803595` and
+pull-request run `34466807793` both succeeded. The source branch remains intact; the merge
+commit and CI numbers are persisted provenance, while current `master` must be re-read live.
 
 The fresh recovery workspace is `D:\ChatGPT\A股项目开发` with branch, `HEAD`, and upstream
 equal at the PR head. Selected C-local operational/evidence state copied to D is 85,372 files
@@ -30,7 +28,7 @@ All present routine T-close dates fall inside the window; prune candidates are 0
 raw/sidecar pairs, and 0 bytes. Formal/frozen/recovery evidence, checkpoints, canonical
 artifacts, unknown validation, and the forbidden continuous-speed-probe directory are excluded.
 No routine evidence, C source, or remote object was deleted. Terminal state:
-`PR46_READY_FOR_USER_MERGE_DECISION`.
+`PR46_SQUASH_MERGED`.
 
 ## Local workspace migration intake — PR #46 governance reconciliation — 2026-09-09
 

@@ -4,18 +4,19 @@
 > 本文件不是历史归档；历史 provenance 在 Git 历史中，正式状态与长期决策分别见
 > `docs/CURRENT_STATUS.md` 与 `docs/DECISION_LOG.md`（仅当前任务需要时读取）。
 
-## 2026-09-10 — C→D migration and retention audit completed
+## 2026-09-10 — PR #46 squash-merged; C→D migration and retention audit completed
 
-- pre-close live verification: `origin/master=f5c4c6bbf9d3213fc15af75ceb57b4de23bb1559`;
-  before this close commit, PR #46 branch and `refs/pull/46/head` both pointed to
-  `00f6a6a583cf20d8b0bdf5a5058b88fe71bf39f1`; push run `34348922848` and
-  pull-request run `34348927072` were exact-head `success`. These are historical
-  provenance for the preceding head, not the current live-head invariant.
-- the docs-only close commit was then pushed to the same PR branch. On recovery,
-  re-read `origin/master`, the PR branch/ref, `HEAD`, `@{u}`, mergeability and exact-head
-  CI live; PR #46 remains the user-merge decision point and is not auto-merged.
+- user-authorized squash merge completed. PR #46 was merged into `master` at merge commit
+  `246700a72261bddde7da9148ecc18db0080da9be`; the source head at merge was
+  `7ae76985f39c53e5d3a9bbb046cecc4cd7ddc167`, with exact-head push run `34466803595` and
+  pull-request run `34466807793` both `success`. The source branch remains intact and was
+  not deleted.
+- after merge, re-read `origin/master`, the branch/ref, `HEAD`, `@{u}` and CI live at recovery;
+  the merge commit and CI numbers above are persisted provenance, not permanent live-state
+  invariants.
 - D recovery workspace: `D:\ChatGPT\A股项目开发`, branch
-  `codex/daily-report-review-usability-20260909`; require live `HEAD==@{u}` at recovery.
+  `codex/daily-report-review-usability-20260909` retains the migrated operational state;
+  use live `master` as the code recovery base and require live `HEAD==@{u}` when continuing.
 - migration: 85,372 selected local operational/evidence files, 9,332,547,439 bytes
   (8.692 GiB), copied without deleting C. T-close counts/bytes match C exactly;
   raw/sidecar pair sets are complete for each retained date; formal backup archive/chunk
@@ -30,7 +31,7 @@
   `2026-08-14` through `2026-09-10`; all present T-close dates are inside the window,
   so prune candidates are 0 files / 0 pairs / 0 bytes. Formal/recovery evidence and
   unknown/forbidden validation remain excluded. `DELETE=NO`.
-- terminal marker: `PR46_READY_FOR_USER_MERGE_DECISION`.
+- terminal marker: `PR46_SQUASH_MERGED`.
 
 - branch: `codex/daily-report-review-usability-20260909`; this remains the recovery pointer for
   PR #46 and the local workspace migration audit.
@@ -48,7 +49,7 @@
 - implementation: the review-oriented daily report and successful-run bundle wiring remain
   unchanged. This docs-only reconciliation creates a new branch head; re-read the live branch,
   PR and exact-head CI after push instead of treating this file as a permanent head/CI record.
-- terminal marker: `PR46_READY_FOR_USER_MERGE_DECISION`.
+- terminal marker: `PR46_SQUASH_MERGED`.
 - completed: the daily HTML is now review-oriented (yesterday review → today's new list/T+1
   observation → rolling review → data quality → collapsed audit); current-date signals are
   explicitly `T_PLUS_1_OBSERVATION_PENDING`; historical missing, UNVERIFIED return, same-bar,
@@ -60,8 +61,8 @@
   read only: 10,601 raw/sidecar pairs span `18:05:30–18:21:30 BJT`; no acquisition rerun or
   operational artifact overwrite was performed. The local dated checkpoint remains
   `LOCAL_INPUTS_VERIFIED`, not remote cloud `VERIFIED`.
-- next action: user decides whether to authorize squash merge PR #46. Do not auto-merge, delete
-  routine K-line evidence, delete C-source data, or perform any remote delete. Classification
+- next action: future work starts from live `master`. Do not delete routine K-line evidence,
+  C-source data, or any remote object without a separate explicit authorization. Classification
   remains STRICT PATH with no correctness semantic change.
 - prior task: `EXACT_DATE_IMMUTABLE_REVIEW_RECOVERY_AND_COMPLETENESS_GUARD`. PR #43 was
   squash-merged at `37551f88f34568f3d55a6ce602372e6135e20a61`; that task started from exact head
