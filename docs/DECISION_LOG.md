@@ -5,6 +5,21 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-10 — Complete bounded C→D migration and retention dry-run
+
+- classification：`product infrastructure + correctness/provenance + recovery`，属于
+  STRICT PATH；不改变 B strategy、review、provider、T+1、研究结论或正式 artifact 语义。
+- decision：采用 D 盘 fresh remote-recoverable workspace 作为后续恢复入口；C-local
+  operational/evidence state required for current review was copied and verified by exact
+  counts/bytes, SHA identities, raw/sidecar pair integrity and formal archive/chunk checks。
+- retention：复用 `ROUTINE_DAILY_EVIDENCE_ROLLING_20_SESSIONS` 规则，只做 inventory；截至
+  2026-09-10 所有 present T-close dates 均在最近 20 个 XSHG sessions 内，candidate 为
+  0 files / 0 pairs / 0 bytes。formal/frozen/recovery evidence、checkpoint/canonical
+  artifacts、unknown validation 和 forbidden validation 不进入 routine deletion。
+- boundary：C source remains intact；`DELETE=NO`；remote delete=0；acquisition/refetch=0；
+  `data/validation/continuous_speed_probe/` 未读取、未 hash、未复制、未修改、未删除。
+  下一步只剩 PR #46 的用户 squash-merge decision。
+
 ## 2026-09-09 — Reconcile PR #46 live head before C→D migration audit
 
 - classification：`product infrastructure + correctness/provenance + recovery`，属于 STRICT

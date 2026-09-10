@@ -1,5 +1,34 @@
 # CURRENT STATUS
 
+## Final migration and PR #46 verification — 2026-09-10
+
+The bounded `LOCAL_WORKSPACE_C_TO_D_MIGRATION_AND_EVIDENCE_RETENTION_AUDIT` is complete.
+Live `origin/master` is `f5c4c6bbf9d3213fc15af75ceb57b4de23bb1559`; PR #46 head is
+`00f6a6a583cf20d8b0bdf5a5058b88fe71bf39f1`, with exact-head push run `34348922848` and
+pull-request run `34348927072` both successful. The PR is open, clean/mergeable, and not
+merged.
+
+The fresh recovery workspace is `D:\ChatGPT\A股项目开发` with branch, `HEAD`, and upstream
+equal at the PR head. Selected C-local operational/evidence state copied to D is 85,372 files
+and 9,332,547,439 bytes; C was not deleted. T-close source/target file counts and bytes match,
+raw/sidecar pair sets are complete, formal archive/chunk verification is 50/50 exact, and
+canonical package/watchlist/tracker/report/checkpoint identities match. The local-only B
+diagnostic event file was copied with exact SHA; the tracked diagnostic summary remains the
+remote branch version and was not overwritten by C-local state.
+
+D preflight and D-path smoke passed without provider calls or acquisition rerun. Report/runner
+targeted tests are `35 passed`; a clean LF checkout full suite is `444 passed, 2 skipped`;
+compileall and PR diff check pass. The D main workspace contains intentionally migrated live
+operational state, so five full-suite assertions that expect older committed tracker/report or
+Windows-normalized formal bytes are environment/state checks, not PR code regressions.
+
+The rolling-20-session dry-run as of 2026-09-10 keeps sessions 2026-08-14 through 2026-09-10.
+All present routine T-close dates fall inside the window; prune candidates are 0 files, 0
+raw/sidecar pairs, and 0 bytes. Formal/frozen/recovery evidence, checkpoints, canonical
+artifacts, unknown validation, and the forbidden continuous-speed-probe directory are excluded.
+No routine evidence, C source, or remote object was deleted. Terminal state:
+`PR46_READY_FOR_USER_MERGE_DECISION`.
+
 ## Local workspace migration intake — PR #46 governance reconciliation — 2026-09-09
 
 本轮分类为 `product infrastructure + correctness/provenance + recovery` 的 STRICT PATH
