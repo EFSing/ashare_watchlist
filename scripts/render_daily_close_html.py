@@ -26,6 +26,11 @@ from track_perf import (
     REVIEW_POINT_CAPTURED,
     REVIEW_POINT_NOT_CAPTURED,
     REVIEW_OBSERVATION_INCOMPLETE,
+    EXECUTION_MODEL_DAILY_OHLC_T1_V1,
+    EXECUTION_T_PLUS_1_PENDING,
+    UNVERIFIED_MISSING_EXECUTION_OBSERVATION,
+    EXIT_REASON_AMBIGUOUS,
+    build_trade_performance_summary,
     load_tracker,
     parse_date,
     review_date,
@@ -67,6 +72,7 @@ class ReportModel:
     overview: dict[str, Any] | None = None
     data_quality: list[dict[str, Any]] | None = None
     rolling_review: dict[str, Any] | None = None
+    trade_performance: dict[str, Any] | None = None
 
 
 def _normalize_date(value: date | datetime | str) -> str:
@@ -141,6 +147,19 @@ def _status_text(status: Any) -> str:
         "loss": "LOSS / STOP_HIT",
         "expired": "EXPIRED",
         "AMBIGUOUS_SAME_BAR": "AMBIGUOUS_SAME_BAR",
+        EXECUTION_MODEL_DAILY_OHLC_T1_V1: EXECUTION_MODEL_DAILY_OHLC_T1_V1,
+        EXECUTION_T_PLUS_1_PENDING: EXECUTION_T_PLUS_1_PENDING,
+        UNVERIFIED_MISSING_EXECUTION_OBSERVATION: UNVERIFIED_MISSING_EXECUTION_OBSERVATION,
+        "STOP_GAP": "STOP_GAP",
+        "TARGET_GAP": "TARGET_GAP",
+        "STOP": "STOP",
+        "TARGET": "TARGET",
+        "TIME_EXIT": "TIME_EXIT",
+        "TIME_EXIT_PENDING_T1": "TIME_EXIT_PENDING_T1",
+        "TIME_EXIT_T1_DEFERRED": "TIME_EXIT_T1_DEFERRED",
+        "EXPIRED_UNTRIGGERED": "EXPIRED_UNTRIGGERED",
+        "UNTRIGGERED_ACTIVE": "未触发",
+        "VERIFIED": "VERIFIED",
         PATH_UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH: "UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH",
         REVIEW_POINT_CAPTURED: "CAPTURED",
         REVIEW_POINT_NOT_CAPTURED: _MISSING,
@@ -289,8 +308,11 @@ def _watchlist_rows(
     rows: list[dict[str, Any]] = []
     for rank, candidate in enumerate(candidates, start=1):
         signal = signals.get(candidate.get("signal_id"))
-        status = signal.get("status") if isinstance(signal, Mapping) else None
         is_new_signal = str(watchlist.get("date")) == report_date
+        # A historical/current-date report must not expose a state derived
+        # from observations after the report date.  New-list rows explicitly
+        # wait for T+1 even when the operational tracker has since advanced.
+        status = "pending" if is_new_signal else signal.get("status") if isinstance(signal, Mapping) else None
         observation_status = _T1_PENDING if is_new_signal else _UNVERIFIED
         status_explanation = "今日新信号，等待下一交易日观察" if is_new_signal else "状态待核验"
         if not is_new_signal and status is not None:
@@ -505,6 +527,12 @@ def build_report_model(
 
     cal = calendar or default_calendar()
     tracker, review_failures = _load_review_tracker(resolver, review_failure)
+    performance_tracker = tracker if tracker is not None else {"version": 2, "signals": {}}
+    trade_performance = build_trade_performance_summary(
+        performance_tracker,
+        normalized_date,
+        calendar=cal,
+    )
     review_sections, review_issues, missing_count = _review_rows(tracker, normalized_date, cal)
     review_coverage = (
         tracker.get('review_coverage')
@@ -739,6 +767,7 @@ def build_report_model(
         overview=overview,
         data_quality=data_quality,
         rolling_review=rolling_review,
+        trade_performance=trade_performance,
     )
 
 
@@ -868,6 +897,151 @@ def _rolling_review_html(review: Mapping[str, Any]) -> str:
     return _simple_table(("现有正式计数", "值"), body)
 
 
+def _performance_value(
+    performance: Mapping[str, Any],
+    key: str,
+    *,
+    percent: bool = False,
+    signed: bool = False,
+) -> str:
+    value = performance.get(key)
+    if value is None:
+        sample = performance.get("confirmed_closed_count", 0)
+        return f"N/A / sample={sample}" if sample == 0 else "N/A"
+    if percent:
+        return _percent(value, signed=signed)
+    return _number(value)
+
+
+def _performance_cards(performance: Mapping[str, Any]) -> str:
+    cards = [
+        ("可执行信号", performance.get("eligible_signals")),
+        ("已进入观察期", performance.get("observation_period_signals")),
+        ("已入场", performance.get("entered")),
+        ("触发率", _performance_value(performance, "trigger_rate", percent=True, signed=True)),
+        ("已确认结案", performance.get("confirmed_closed_count")),
+        ("当前持仓", performance.get("open_positions_count")),
+        ("胜率", _performance_value(performance, "win_rate", percent=True)),
+        ("平均收益", _performance_value(performance, "avg_return_pct", percent=True, signed=True)),
+        ("平均盈利", _performance_value(performance, "avg_win_pct", percent=True, signed=True)),
+        ("平均亏损", _performance_value(performance, "avg_loss_pct", percent=True, signed=True)),
+        ("盈亏比", _performance_value(performance, "payoff_ratio")),
+        ("Profit Factor", _performance_value(performance, "profit_factor")),
+        ("期望收益/笔", _performance_value(performance, "expectancy_pct", percent=True, signed=True)),
+        ("平均 R", _performance_value(performance, "avg_r", signed=True)),
+        ("平均持有交易日", _performance_value(performance, "avg_holding_sessions")),
+        ("平均 MFE", _performance_value(performance, "avg_mfe_pct", percent=True, signed=True)),
+        ("平均 MAE", _performance_value(performance, "avg_mae_pct", percent=True, signed=True)),
+    ]
+    return ''.join(
+        f'<div class="card"><div class="card-label">{_esc(label)}</div>'
+        f'<div class="card-value">{_esc(value)}</div></div>'
+        for label, value in cards
+    )
+
+
+def _performance_detail_table(performance: Mapping[str, Any]) -> str:
+    rows = [
+        ("Median return", _performance_value(performance, "median_return_pct", percent=True, signed=True)),
+        ("Median R", _performance_value(performance, "median_r", signed=True)),
+        ("Target exits / hit rate", f'{_esc(performance.get("target_exit_count", 0))} / {_esc(_performance_value(performance, "target_hit_rate", percent=True))}'),
+        ("Stop exits / hit rate", f'{_esc(performance.get("stop_exit_count", 0))} / {_esc(_performance_value(performance, "stop_hit_rate", percent=True))}'),
+        ("Time exits / rate", f'{_esc(performance.get("time_exit_count", 0))} / {_esc(_performance_value(performance, "time_exit_rate", percent=True))}'),
+        ("Median holding sessions", _performance_value(performance, "median_holding_sessions")),
+        ("Median MFE", _performance_value(performance, "median_mfe_pct", percent=True, signed=True)),
+        ("Median MAE", _performance_value(performance, "median_mae_pct", percent=True, signed=True)),
+        ("Open MTM average", _performance_value(performance, "open_mtm_avg_return_pct", percent=True, signed=True)),
+        ("Execution verified / unverified / T+1 pending",
+         f'{_esc(performance.get("execution_verified", 0))} / '
+         f'{_esc(performance.get("execution_unverified", 0))} / '
+         f'{_esc(performance.get("execution_pending", 0))}'),
+    ]
+    body = [f"<tr><td>{_esc(label)}</td><td>{value if '<' in str(value) else _esc(value)}</td></tr>" for label, value in rows]
+    return _simple_table(("详细交易绩效指标", "值"), body)
+
+
+def _trade_closed_table(rows: list[Mapping[str, Any]]) -> str:
+    headers = (
+        "信号日", "代码", "名称", "入场日", "入场价", "可卖日", "出场日", "出场价",
+        "出场原因", "毛收益 %", "R", "持有交易日", "MFE", "MAE",
+    )
+    if not rows:
+        return _simple_table(headers, [f'<tr><td colspan="{len(headers)}">暂无已确认结案交易。</td></tr>'])
+    body = []
+    for row in rows:
+        values = [_esc(row.get("signal_date")), _esc(row.get("code")), _esc(row.get("name")),
+                  _esc(row.get("entry_date")), _esc(_number(row.get("entry_price"))),
+                  _esc(row.get("sellable_from")), _esc(row.get("exit_date")),
+                  _esc(_number(row.get("exit_price"))), _esc(row.get("exit_reason")),
+                  _esc(_percent(row.get("realized_return_pct"), signed=True)),
+                  _esc(_number(row.get("realized_r"))), _esc(_number(row.get("holding_sessions"))),
+                  _esc(_percent(row.get("mfe_pct"), signed=True)), _esc(_percent(row.get("mae_pct"), signed=True))]
+        body.append("<tr>" + "".join(f"<td>{value}</td>" for value in values) + "</tr>")
+    return _simple_table(headers, body)
+
+
+def _trade_open_table(rows: list[Mapping[str, Any]]) -> str:
+    headers = (
+        "信号日", "代码", "名称", "入场日", "入场价", "可卖日", "最新观察日", "最新收盘",
+        "未实现 %", "未实现 R", "MFE", "MAE",
+    )
+    if not rows:
+        return _simple_table(headers, [f'<tr><td colspan="{len(headers)}">暂无已核验当前持仓。</td></tr>'])
+    body = []
+    for row in rows:
+        values = [_esc(row.get("signal_date")), _esc(row.get("code")), _esc(row.get("name")),
+                  _esc(row.get("entry_date")), _esc(_number(row.get("entry_price"))),
+                  _esc(row.get("sellable_from")), _esc(row.get("latest_observation_date")),
+                  _esc(_number(row.get("latest_mark_price"))),
+                  _esc(_percent(row.get("unrealized_return_pct"), signed=True)),
+                  _esc(_number(row.get("unrealized_r"))),
+                  _esc(_percent(row.get("mfe_pct"), signed=True)), _esc(_percent(row.get("mae_pct"), signed=True))]
+        body.append("<tr>" + "".join(f"<td>{value}</td>" for value in values) + "</tr>")
+    return _simple_table(headers, body)
+
+
+def _trade_excluded_table(rows: list[Mapping[str, Any]]) -> str:
+    headers = ("signal_id", "代码", "名称", "reason", "状态", "execution verification")
+    if not rows:
+        return _simple_table(headers, [f'<tr><td colspan="{len(headers)}">暂无排除或未核验记录。</td></tr>'])
+    body = []
+    for row in rows:
+        values = [_esc(row.get("signal_id")), _esc(row.get("code")), _esc(row.get("name")),
+                  _esc(row.get("reason")), _ui_badge(row.get("status")),
+                  _ui_badge(row.get("execution_verification_status"))]
+        body.append("<tr>" + "".join(f"<td>{value}</td>" for value in values) + "</tr>")
+    return _simple_table(headers, body)
+
+
+def _trade_performance_html(performance: Mapping[str, Any]) -> str:
+    sample_label = "SAMPLE_SMALL" if performance.get("sample_small") else "SAMPLE_READY"
+    closed_count = performance.get("confirmed_closed_count", 0)
+    return (
+        f'<p class="callout warning"><strong>{_esc(sample_label)}</strong>：'
+        f'confirmed closed sample = {_esc(closed_count)}；数字仍展示，'
+        f'但不足以代表稳定统计。口径：{_esc(performance.get("return_basis"))}。</p>'
+        f'<div class="cards">{_performance_cards(performance)}</div>'
+        f'<p class="note">样本漏斗：总信号 { _esc(performance.get("total_signals")) } · '
+        f'已进入可执行观察期 { _esc(performance.get("observation_period_signals")) } · '
+        f'execution-path verified 分母 { _esc(performance.get("eligible_signals")) } · '
+        f'已入场 { _esc(performance.get("entered")) } · '
+        f'未触发到期 { _esc(performance.get("untriggered_expired")) } · '
+        f'当前持仓 { _esc(performance.get("open_positions_count")) } · '
+        f'ambiguous { _esc(performance.get("ambiguous")) } · '
+        f'unverified { _esc(performance.get("unverified")) }。</p>'
+        '<p class="note">触发率分母只含已进入至少一个可执行 XSHG session 且 execution path verified 的信号；'
+        'fixed-horizon T+3/T+5/T+10 是 snapshot research return，不是 realized trade P&amp;L。</p>'
+        '<h3>指标明细</h3>'
+        f'{_performance_detail_table(performance)}'
+        '<h3>已结案交易</h3>'
+        f'{_trade_closed_table(performance.get("closed_trades", []))}'
+        '<h3>当前持仓</h3>'
+        f'{_trade_open_table(performance.get("open_position_rows", []))}'
+        '<h3>排除 / 未核验</h3>'
+        f'{_trade_excluded_table(performance.get("excluded_rows", []))}'
+    )
+
+
 def render_html(model: ReportModel) -> str:
     """Render a self-contained UTF-8 HTML document."""
 
@@ -876,6 +1050,10 @@ def render_html(model: ReportModel) -> str:
     overview = model.overview or {}
     quality_rows = model.data_quality or []
     rolling_review = model.rolling_review or {}
+    trade_performance = model.trade_performance or build_trade_performance_summary(
+        {"version": 2, "signals": {}},
+        metadata.get("review_date", date.today().isoformat()),
+    )
     cards = [
         ('T-close 日期', overview.get('t_close_date', metadata['review_date'])),
         ('今日新名单', overview.get('new_watchlist_count', metadata['candidate_count'])),
@@ -985,6 +1163,11 @@ footer {{ color:var(--muted); font-size:12px; padding:18px 0 4px; }}
 <h2>今日总览</h2>
 <div class="cards">{card_html}</div>
 <p class="callout{callout_class}">{_esc(model.summary_text)}</p>
+<section id="trade-performance">
+<h2>交易绩效 · T+1 可执行口径</h2>
+<p class="note">execution model：{_esc(trade_performance.get('execution_model'))} · 只统计 { _esc(trade_performance.get('strategy')) } · 返回为毛收益，未扣费用与滑点。</p>
+{_trade_performance_html(trade_performance)}
+</section>
 <section id="daily-review">
 <h2>昨日信号复盘 · {metadata['previous_date']}</h2>
 <p class="section-summary">总信号 {summary['previous_total']} · triggered {summary['previous_triggered']} · pending / 未触发 {summary['previous_pending']} · same-bar {summary['previous_ambiguous']}。默认按需注意、triggered、pending 排序。</p>

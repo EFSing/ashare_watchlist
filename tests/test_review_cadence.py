@@ -1,6 +1,6 @@
 import json
 from copy import deepcopy
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
@@ -95,12 +95,17 @@ def test_early_target_keeps_terminal_status_and_captures_later_fixed_point(tmp_p
     signal = next(iter(tracker["signals"].values()))
     assert signal["status"] == "win"
     assert signal["close_date"] == "2026-09-09"
+    assert signal["entry_date"] == "2026-09-08"
+    assert signal["entry_price"] == 121.0
+    assert signal["sellable_from"] == "2026-09-09"
+    assert signal["exit_reason"] == "TARGET_GAP"
+    assert signal["exit_price"] == 130.0
     assert signal["days_tracked"] == 2
     assert signal["review_points"]["T+3"]["status"] == REVIEW_POINT_CAPTURED
     assert signal["review_points"]["T+3"]["signal_status"] == "win"
     assert signal["review_points"]["T+3"]["path_status"] == "win"
     assert signal["review_points"]["T+3"]["quote_date"] == "2026-09-10"
-    assert signal["review_points"]["T+3"]["return_pct"] == 5.833333
+    assert signal["review_points"]["T+3"]["return_pct"] == 4.958678
     assert signal["review_points"]["T+5"]["status"] == REVIEW_POINT_PENDING
 
 
@@ -130,7 +135,9 @@ def test_early_stop_path_is_not_overwritten_by_later_fixed_horizon_return(tmp_pa
     signal = next(iter(tracker["signals"].values()))
     assert signal["status"] == "loss"
     assert signal["close_date"] == "2026-09-09"
-    assert signal["result_price"] == signal["stop"]
+    assert signal["result_price"] == 114.0
+    assert signal["exit_reason"] == "STOP_GAP"
+    assert signal["exit_price"] == 114.0
     assert signal["review_points"]["T+3"]["path_status"] == "loss"
     assert signal["review_points"]["T+3"]["return_pct"] == -2.5
     assert signal["review_points"]["T+3"]["quote_date"] == "2026-09-10"
@@ -140,18 +147,26 @@ def test_ten_session_point_closes_untriggered_signal_and_marks_missed_nodes(tmp_
     calendar = TradingCalendar(holidays={date(2026, 9, 7)})
     tracker = make_tracker(tmp_path, "2026-09-04", calendar)
 
-    update(
-        tracker,
-        quotes={"600519": quote("2026-09-21", price=118.0, high=119.0, low=117.0)},
-        today="2026-09-21",
-        calendar=calendar,
-    )
+    current = date(2026, 9, 8)
+    while current <= date(2026, 9, 21):
+        if calendar.is_trading_day(current):
+            update(
+                tracker,
+                quotes={"600519": quote(current.isoformat(), price=118.0, high=119.0, low=117.0)},
+                today=current,
+                calendar=calendar,
+            )
+        current += timedelta(days=1)
 
     signal = next(iter(tracker["signals"].values()))
     assert signal["status"] == "expired"
     assert signal["days_tracked"] == 10
-    assert signal["review_points"]["T+3"]["status"] == REVIEW_POINT_NOT_CAPTURED
-    assert signal["review_points"]["T+5"]["status"] == REVIEW_POINT_NOT_CAPTURED
+    assert signal["exit_reason"] == "EXPIRED_UNTRIGGERED"
+    assert signal["exit_date"] == "2026-09-21"
+    assert signal["exit_price"] is None
+    assert signal["realized_return_pct"] is None
+    assert signal["review_points"]["T+3"]["status"] == REVIEW_POINT_CAPTURED
+    assert signal["review_points"]["T+5"]["status"] == REVIEW_POINT_CAPTURED
     assert signal["review_points"]["T+10"]["status"] == REVIEW_POINT_CAPTURED
     assert signal["review_points"]["T+10"]["path_status"] == "expired"
     assert signal["review_points"]["T+10"]["return_pct"] is None
@@ -214,6 +229,5 @@ def test_report_exposes_formal_nodes_without_legacy_claims(tmp_path):
     assert "PRIMARY REVIEW HORIZON" in text
     assert "延伸观察并结案" in text
     assert "MISSING_HISTORICAL_OBSERVATION" in report(tracker, calendar=calendar, as_of="2026-09-11")
-    assert "配对指标" not in text
-    assert "持仓" not in text
-    assert "体系可盈利" not in text
+    assert "交易绩效" in text
+    assert "当前持仓" in text

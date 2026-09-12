@@ -480,3 +480,22 @@ def test_current_watchlist_events_do_not_enter_historical_summary(tmp_path):
     assert model.daily_summary['tracked'] == 0
     assert model.daily_summary['new_triggered'] == 0
     assert model.daily_summary['ambiguous'] == 0
+
+
+def test_trade_performance_section_is_before_audit_and_keeps_small_sample_visible(tmp_path):
+    watchlist = _write_watchlist(tmp_path, '20260911', [_candidate('600001', '绩效信号', 60)])
+    _write_tracker(tmp_path, watchlist)
+
+    model, dated, latest = renderer.render_daily_close('20260911', paths=_paths(tmp_path), calendar=CALENDAR)
+    text = dated.read_text(encoding='utf-8')
+
+    assert model.trade_performance is not None
+    assert text.index('id="trade-performance"') < text.index('id="daily-review"')
+    for marker in (
+        '交易绩效', 'SAMPLE_SMALL', '胜率', '平均收益', '平均盈利', '平均亏损',
+        '盈亏比', 'Profit Factor', '期望收益/笔', '平均 R', '平均持有交易日',
+        '平均 MFE', '平均 MAE', 'Median return', '已结案交易', '当前持仓', '排除 / 未核验',
+        'N/A / sample=0',
+    ):
+        assert marker in text
+    assert dated.read_bytes() == latest.read_bytes()
