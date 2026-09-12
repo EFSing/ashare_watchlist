@@ -11,12 +11,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import warnings
 from collections import Counter
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from statistics import mean, median
-from typing import Any, Mapping
+from typing import Any, Iterable, Mapping
 
 from data_paths import DataPaths
 from tencent_quotes import QuoteDataError, fetch_quotes, validate_quotes
@@ -55,6 +56,14 @@ EXIT_REASON_TIME_DEFERRED_T1 = "TIME_EXIT_T1_DEFERRED"
 EXIT_REASON_EXPIRED_UNTRIGGERED = "EXPIRED_UNTRIGGERED"
 EXIT_REASON_AMBIGUOUS = "AMBIGUOUS_SAME_BAR"
 RETURN_BASIS_GROSS = "GROSS / BEFORE_FEES_AND_SLIPPAGE"
+STRATEGY_RULE_PERFORMANCE_MODEL = "STRATEGY_RULE_PERFORMANCE_TRIGGER_STOP_TARGET_T1_V1"
+PERFORMANCE_DATA_INCOMPLETE = "PERFORMANCE_DATA_INCOMPLETE"
+STRATEGY_RULE_CONFIG_ERROR = "STRATEGY_RULE_CONFIG_ERROR"
+RULE_STATUS_NOT_YET_ELIGIBLE = "NOT_YET_ELIGIBLE"
+RULE_STATUS_UNTRIGGERED = "UNTRIGGERED"
+RULE_STATUS_OPEN = "OPEN"
+RULE_STATUS_CLOSED = "CLOSED"
+RULE_STATUS_AMBIGUOUS = EXIT_REASON_AMBIGUOUS
 SKIP_LEGACY_OR_OUT_OF_SCOPE_WATCHLIST = "SKIP_LEGACY_OR_OUT_OF_SCOPE_WATCHLIST"
 SOURCE_MODE_LIVE_DAILY_TRACKER_QUOTE = "LIVE_DAILY_TRACKER_QUOTE"
 SOURCE_MODE_EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1 = (
@@ -1201,6 +1210,642 @@ def _median_or_none(values: list[Any]) -> float | None:
     return round(median(numbers), 6) if numbers else None
 
 
+def _canonical_rule_signal_records(source: Any) -> list[dict[str, Any]]:
+    """Return immutable signal-shaped views of canonical watchlists or signals."""
+
+    if isinstance(source, Mapping):
+        if "candidates" in source:
+            items: list[Any] = [source]
+        elif "signals" in source and isinstance(source.get("signals"), Mapping):
+            items = list(source["signals"].values())
+        else:
+            items = [source]
+    elif isinstance(source, (list, tuple)):
+        items = list(source)
+    else:
+        items = list(source) if isinstance(source, Iterable) else []
+
+    records: list[dict[str, Any]] = []
+    for item in items:
+        if not isinstance(item, Mapping):
+            continue
+        candidates = item.get("candidates")
+        if isinstance(candidates, list):
+            list_date = item.get("date")
+            list_strategy = item.get("strategy_version")
+            for candidate in candidates:
+                if not isinstance(candidate, Mapping):
+                    continue
+                strategy = candidate.get("strategy_version", list_strategy)
+                setup = candidate.get("setup") or candidate.get("buy_type")
+                signal_date = candidate.get("date", list_date)
+                if signal_date is None or strategy is None or setup is None:
+                    continue
+                signal_date = parse_date(signal_date).isoformat()
+                code = str(candidate.get("code", ""))
+                records.append({
+                    "signal_id": candidate.get("signal_id") or stable_signal_id(
+                        str(strategy), signal_date, code, str(setup)
+                    ),
+                    "strategy_version": str(strategy),
+                    "date": signal_date,
+                    "code": code,
+                    "setup": str(setup),
+                    "name": candidate.get("name"),
+                    "buy_type": candidate.get("buy_type"),
+                    "score": candidate.get("score"),
+                    "trigger": candidate.get("trigger"),
+                    "stop": candidate.get("stop"),
+                    "target": candidate.get("target"),
+                    "rr": candidate.get("rr"),
+                })
+            continue
+        if item.get("date") is None or item.get("strategy_version") is None:
+            continue
+        records.append({
+            "signal_id": item.get("signal_id"),
+            "strategy_version": item.get("strategy_version"),
+            "date": parse_date(item["date"]).isoformat(),
+            "code": str(item.get("code", "")),
+            "setup": item.get("setup") or item.get("buy_type"),
+            "name": item.get("name"),
+            "buy_type": item.get("buy_type"),
+            "score": item.get("score"),
+            "trigger": item.get("trigger"),
+            "stop": item.get("stop"),
+            "target": item.get("target"),
+            "rr": item.get("rr"),
+        })
+    return records
+
+
+def _canonical_rule_signals(source: Any, report_date: date) -> list[dict[str, Any]]:
+    """Filter canonical signal identity at the report as-of boundary."""
+
+    by_id: dict[str, dict[str, Any]] = {}
+    for record in _canonical_rule_signal_records(source):
+        if record.get("strategy_version") != CURRENT_PROSPECTIVE_STRATEGY:
+            continue
+        if not record.get("signal_id"):
+            setup = record.get("setup") or record.get("buy_type") or "UNKNOWN_SETUP"
+            record["signal_id"] = stable_signal_id(
+                str(record["strategy_version"]), str(record["date"]),
+                str(record.get("code", "")), str(setup),
+            )
+        if parse_date(record["date"]) <= report_date:
+            by_id[str(record["signal_id"])] = record
+    return sorted(by_id.values(), key=lambda item: (str(item["date"]), str(item["signal_id"])))
+
+
+def _rule_history_value(historical_ohlc: Mapping[str, Any] | None, code: str) -> Any:
+    if not isinstance(historical_ohlc, Mapping):
+        return None
+    for key in (code, code.upper(), f"{code}.SH", f"{code}.SZ"):
+        if key in historical_ohlc:
+            return historical_ohlc[key]
+    return None
+
+
+def _rule_provenance_value(
+    historical_ohlc: Mapping[str, Any] | None,
+    historical_provenance: Mapping[str, Any] | None,
+    code: str,
+) -> Any:
+    if isinstance(historical_provenance, Mapping):
+        by_code = historical_provenance.get("by_code")
+        if isinstance(by_code, Mapping):
+            for key in (code, code.upper(), f"{code}.SH", f"{code}.SZ"):
+                if key in by_code:
+                    return by_code[key]
+        for key in (code, code.upper(), f"{code}.SH", f"{code}.SZ"):
+            if key in historical_provenance:
+                return historical_provenance[key]
+    raw = _rule_history_value(historical_ohlc, code)
+    if isinstance(raw, Mapping):
+        return raw.get("provenance")
+    return None
+
+
+def _finite_rule_number(value: Any) -> float | None:
+    number = _as_number(value)
+    return number if number is not None and math.isfinite(number) else None
+
+
+def _rule_history_bars(
+    raw_history: Any,
+    as_of_date: date,
+) -> tuple[dict[date, dict[str, float | None]], set[date], list[str]]:
+    """Normalize daily OHLC while ignoring bars after the report as-of date."""
+
+    if isinstance(raw_history, Mapping):
+        if "bars" in raw_history:
+            raw_bars = raw_history.get("bars")
+        elif "ohlc" in raw_history:
+            raw_bars = raw_history.get("ohlc")
+        elif "data" in raw_history:
+            raw_bars = raw_history.get("data")
+        else:
+            raw_bars = None
+    else:
+        raw_bars = raw_history
+    if not isinstance(raw_bars, (list, tuple)):
+        return {}, set(), ["historical daily OHLC is missing"]
+
+    bars: dict[date, dict[str, float | None]] = {}
+    invalid_days: set[date] = set()
+    errors: list[str] = []
+    for index, raw_bar in enumerate(raw_bars):
+        if not isinstance(raw_bar, Mapping):
+            errors.append(f"bar[{index}] is not an object")
+            continue
+        try:
+            bar_date = parse_date(raw_bar["date"])
+        except (KeyError, TypeError, ValueError) as exc:
+            errors.append(f"bar[{index}] has an invalid date: {type(exc).__name__}")
+            continue
+        if bar_date > as_of_date:
+            continue
+        opening = _finite_rule_number(raw_bar.get("open"))
+        high = _finite_rule_number(raw_bar.get("high"))
+        low = _finite_rule_number(raw_bar.get("low"))
+        closing = _finite_rule_number(raw_bar.get("close"))
+        if closing is None:
+            closing = _finite_rule_number(raw_bar.get("price"))
+        if high is None or low is None or closing is None:
+            invalid_days.add(bar_date)
+            errors.append(f"{bar_date.isoformat()} is missing usable high/low/close")
+            continue
+        if high < low or high < closing or low > closing:
+            invalid_days.add(bar_date)
+            errors.append(f"{bar_date.isoformat()} has conflicting OHLC")
+            continue
+        if bar_date in bars:
+            invalid_days.add(bar_date)
+            bars.pop(bar_date, None)
+            errors.append(f"duplicate historical bar: {bar_date.isoformat()}")
+            continue
+        bars[bar_date] = {
+            "open": opening,
+            "high": high,
+            "low": low,
+            "close": closing,
+        }
+    return bars, invalid_days, errors
+
+
+def _rule_history_source_label(provenance: Any, has_history: bool) -> str:
+    if isinstance(provenance, Mapping):
+        source = provenance.get("source") or provenance.get("source_identity") or provenance.get("provider")
+        if source:
+            return str(source)
+    elif provenance:
+        return str(provenance)
+    return "INJECTED_HISTORICAL_DAILY_OHLC" if has_history else "MISSING_HISTORICAL_DAILY_OHLC"
+
+
+def _rule_sessions_after(
+    signal_date: date,
+    report_date: date,
+    calendar: TradingCalendar,
+) -> list[date]:
+    sessions: list[date] = []
+    current = _next_session_after(signal_date, calendar)
+    while current <= report_date:
+        sessions.append(current)
+        current = _next_session_after(current, calendar)
+    return sessions
+
+
+def _strategy_rule_trade_row(
+    signal: Mapping[str, Any],
+    historical_ohlc: Mapping[str, Any] | None,
+    historical_provenance: Mapping[str, Any] | None,
+    report_date: date,
+    calendar: TradingCalendar,
+) -> dict[str, Any]:
+    signal_date = parse_date(signal["date"])
+    code = str(signal.get("code", ""))
+    provenance = _rule_provenance_value(historical_ohlc, historical_provenance, code)
+    raw_history = _rule_history_value(historical_ohlc, code)
+    has_history = raw_history is not None
+    source_label = _rule_history_source_label(provenance, has_history)
+    row: dict[str, Any] = {
+        "signal_id": signal.get("signal_id"),
+        "strategy_version": signal.get("strategy_version"),
+        "signal_date": signal_date.isoformat(),
+        "code": code,
+        "name": signal.get("name"),
+        "setup": signal.get("setup"),
+        "score": signal.get("score"),
+        "trigger": signal.get("trigger"),
+        "stop": signal.get("stop"),
+        "target": signal.get("target"),
+        "rr": signal.get("rr"),
+        "entry_date": None,
+        "trigger_date": None,
+        "entry_price": None,
+        "sellable_from": None,
+        "exit_date": None,
+        "exit_price": None,
+        "exit_reason": None,
+        "exit_type": None,
+        "ambiguous_low": None,
+        "ambiguous_high": None,
+        "realized_return_pct": None,
+        "return_pct": None,
+        "realized_r": None,
+        "r": None,
+        "holding_sessions": None,
+        "entry_day_stop_touched": False,
+        "entry_day_target_touched": False,
+        "mfe_pct": None,
+        "mae_pct": None,
+        "latest_bar_date": None,
+        "latest_close": None,
+        "mark_return_pct": None,
+        "unrealized_return_pct": None,
+        "unrealized_r": None,
+        "status": RULE_STATUS_NOT_YET_ELIGIBLE,
+        "reason": None,
+        "historical_data_status": "NOT_REQUIRED",
+        "historical_source": source_label,
+        "historical_provenance": provenance,
+    }
+    expected_sessions = _rule_sessions_after(signal_date, report_date, calendar)
+    if not expected_sessions:
+        row["reason"] = "signal has no T+1 opportunity by report_date"
+        return row
+
+    trigger = _finite_rule_number(signal.get("trigger"))
+    stop = _finite_rule_number(signal.get("stop"))
+    target = _finite_rule_number(signal.get("target"))
+    if trigger is None or stop is None or target is None or trigger <= stop or target <= trigger:
+        row["status"] = STRATEGY_RULE_CONFIG_ERROR
+        row["historical_data_status"] = "NOT_REQUIRED"
+        row["reason"] = "trigger/stop/target configuration is not a valid long rule"
+        return row
+
+    bars, invalid_days, history_errors = _rule_history_bars(raw_history, report_date)
+    row["historical_data_status"] = "COMPLETE"
+    entry_date: date | None = None
+    sellable_from: date | None = None
+    path_bars: list[dict[str, float | None]] = []
+    path_dates: list[date] = []
+    incomplete_reason: str | None = None
+    terminal = False
+
+    for day in expected_sessions:
+        if day in invalid_days or day not in bars:
+            incomplete_reason = (
+                f"missing or unusable historical daily OHLC: {day.isoformat()}"
+            )
+            if history_errors:
+                incomplete_reason += f" ({history_errors[0]})"
+            break
+        bar = bars[day]
+        if entry_date is None:
+            high = bar["high"]
+            low = bar["low"]
+            if high is not None and high >= trigger:
+                entry_date = day
+                sellable_from = _next_session_after(day, calendar)
+                path_bars.append(bar)
+                path_dates.append(day)
+                row["entry_date"] = day.isoformat()
+                row["trigger_date"] = day.isoformat()
+                row["entry_price"] = trigger
+                row["sellable_from"] = sellable_from.isoformat()
+                row["entry_day_stop_touched"] = low is not None and low <= stop
+                row["entry_day_target_touched"] = high >= target
+            continue
+
+        path_bars.append(bar)
+        path_dates.append(day)
+        if sellable_from is None or day < sellable_from:
+            continue
+        low = bar["low"]
+        high = bar["high"]
+        stop_hit = low is not None and low <= stop
+        target_hit = high is not None and high >= target
+        if stop_hit and target_hit:
+            row["status"] = RULE_STATUS_AMBIGUOUS
+            row["exit_date"] = day.isoformat()
+            row["exit_reason"] = EXIT_REASON_AMBIGUOUS
+            row["exit_type"] = EXIT_REASON_AMBIGUOUS
+            row["ambiguous_low"] = low
+            row["ambiguous_high"] = high
+            row["reason"] = "same sellable daily bar touched stop and target; intraday order unavailable"
+            terminal = True
+            break
+        if stop_hit:
+            row["status"] = RULE_STATUS_CLOSED
+            row["exit_date"] = day.isoformat()
+            row["exit_price"] = stop
+            row["exit_reason"] = EXIT_REASON_STOP
+            row["exit_type"] = EXIT_REASON_STOP
+            terminal = True
+            break
+        if target_hit:
+            row["status"] = RULE_STATUS_CLOSED
+            row["exit_date"] = day.isoformat()
+            row["exit_price"] = target
+            row["exit_reason"] = EXIT_REASON_TARGET
+            row["exit_type"] = EXIT_REASON_TARGET
+            terminal = True
+            break
+
+    if incomplete_reason is not None and not terminal:
+        row["status"] = PERFORMANCE_DATA_INCOMPLETE
+        row["historical_data_status"] = "INCOMPLETE"
+        row["reason"] = incomplete_reason
+    elif not terminal:
+        row["status"] = RULE_STATUS_OPEN if entry_date is not None else RULE_STATUS_UNTRIGGERED
+        if entry_date is None:
+            row["reason"] = "no post-signal daily high reached trigger by report_date"
+
+    if entry_date is not None and path_bars and row["historical_data_status"] == "COMPLETE":
+        highs = [bar["high"] for bar in path_bars if bar["high"] is not None]
+        lows = [bar["low"] for bar in path_bars if bar["low"] is not None]
+        row["mfe_pct"] = round(max((value / trigger - 1.0) * 100.0 for value in highs), 6)
+        row["mae_pct"] = round(min((value / trigger - 1.0) * 100.0 for value in lows), 6)
+
+    if row["status"] == RULE_STATUS_CLOSED:
+        exit_date = parse_date(row["exit_date"])
+        exit_price = _finite_rule_number(row["exit_price"])
+        row["holding_sessions"] = _session_span(entry_date, exit_date, calendar)
+        row["realized_return_pct"] = round((exit_price / trigger - 1.0) * 100.0, 6) if exit_price is not None else None
+        row["return_pct"] = row["realized_return_pct"]
+        row["realized_r"] = round((exit_price - trigger) / (trigger - stop), 6) if exit_price is not None else None
+        row["r"] = row["realized_r"]
+    elif row["status"] == RULE_STATUS_OPEN and path_bars:
+        latest_day = path_dates[-1]
+        latest_bar = path_bars[-1]
+        latest_close = latest_bar["close"]
+        row["latest_bar_date"] = latest_day.isoformat()
+        row["latest_close"] = latest_close
+        row["mark_return_pct"] = round((latest_close / trigger - 1.0) * 100.0, 6) if latest_close is not None else None
+        row["unrealized_return_pct"] = row["mark_return_pct"]
+        row["unrealized_r"] = round((latest_close - trigger) / (trigger - stop), 6) if latest_close is not None else None
+    if row["status"] == RULE_STATUS_AMBIGUOUS:
+        row["realized_return_pct"] = None
+        row["realized_r"] = None
+    return row
+
+
+def build_strategy_rule_performance(
+    canonical_watchlists: Any,
+    historical_ohlc: Mapping[str, Any] | None,
+    as_of_date: date | datetime | str,
+    calendar: TradingCalendar | None = None,
+    *,
+    historical_provenance: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Reconstruct theoretical trigger/stop/target performance from daily OHLC.
+
+    This is intentionally independent from prospective observations and from
+    :func:`build_trade_performance_summary`.  It uses the canonical signal
+    identity supplied by ``canonical_watchlists`` and only bars dated after
+    signal date and no later than ``as_of_date``.  Entry and exit prices are
+    always the canonical rule prices; daily ``open`` is never used as a fill.
+    """
+
+    cal = calendar or default_calendar()
+    report_date = parse_date(as_of_date)
+    signals = _canonical_rule_signals(canonical_watchlists, report_date)
+    rows = [
+        _strategy_rule_trade_row(signal, historical_ohlc, historical_provenance, report_date, cal)
+        for signal in signals
+    ]
+    eligible_rows = [row for row in rows if row["status"] != RULE_STATUS_NOT_YET_ELIGIBLE]
+    triggered_rows = [row for row in rows if row.get("entry_date") is not None]
+    target_rows = [row for row in rows if row["status"] == RULE_STATUS_CLOSED and row["exit_reason"] == EXIT_REASON_TARGET]
+    stop_rows = [row for row in rows if row["status"] == RULE_STATUS_CLOSED and row["exit_reason"] == EXIT_REASON_STOP]
+    closed_rows = target_rows + stop_rows
+    open_rows = [row for row in rows if row["status"] == RULE_STATUS_OPEN]
+    ambiguous_rows = [row for row in rows if row["status"] == RULE_STATUS_AMBIGUOUS]
+    incomplete_rows = [row for row in rows if row["status"] == PERFORMANCE_DATA_INCOMPLETE]
+    config_rows = [row for row in rows if row["status"] == STRATEGY_RULE_CONFIG_ERROR]
+    untriggered_rows = [row for row in rows if row["status"] == RULE_STATUS_UNTRIGGERED]
+    returns = [row["realized_return_pct"] for row in closed_rows]
+    r_values = [row["realized_r"] for row in closed_rows]
+    wins = [row["realized_return_pct"] for row in target_rows]
+    losses = [row["realized_return_pct"] for row in stop_rows]
+    mean_win = _mean_or_none(wins)
+    mean_loss = _mean_or_none(losses)
+    positive_sum = sum(_numeric_values(wins))
+    negative_sum = sum(_numeric_values(losses))
+    source_labels = sorted({
+        str(row["historical_source"])
+        for row in rows
+        if row.get("historical_source") and row["status"] != RULE_STATUS_NOT_YET_ELIGIBLE
+    })
+    by_code = (historical_provenance or {}).get("by_code", {}) if isinstance(historical_provenance, Mapping) else {}
+    cache_meta = (historical_provenance or {}).get("__meta__", {}) if isinstance(historical_provenance, Mapping) else {}
+    resolved_count = len(closed_rows)
+    return {
+        "as_of_date": report_date.isoformat(),
+        "strategy": CURRENT_PROSPECTIVE_STRATEGY,
+        "performance_model": STRATEGY_RULE_PERFORMANCE_MODEL,
+        "return_basis": RETURN_BASIS_GROSS,
+        "theoretical_rule_price": True,
+        "entry_rule": "first post-signal XSHG session with high >= canonical trigger; entry_price=canonical trigger",
+        "exit_rule": "sellable sessions only; low <= stop or high >= target at canonical rule price; same-bar both=AMBIGUOUS_SAME_BAR",
+        "t1_rule": "entry day cannot exit; sellable_from=next XSHG session",
+        "time_exit": False,
+        "total_signals": len(rows),
+        "signals_with_t1_opportunity": len(eligible_rows),
+        "eligible_signals": len(eligible_rows),
+        "triggered": len(triggered_rows),
+        "entered": len(triggered_rows),
+        "trigger_rate": round(len(triggered_rows) / len(eligible_rows) * 100.0, 6) if eligible_rows else None,
+        "resolved_target": len(target_rows),
+        "resolved_stop": len(stop_rows),
+        "target_wins": len(target_rows),
+        "stop_losses": len(stop_rows),
+        "resolved_closed_trades": resolved_count,
+        "confirmed_closed_count": resolved_count,
+        "open_rule_trades": len(open_rows),
+        "open_positions_count": len(open_rows),
+        "open_positions": len(open_rows),
+        "untriggered": len(untriggered_rows),
+        "ambiguous": len(ambiguous_rows),
+        "performance_data_incomplete": len(incomplete_rows),
+        "strategy_config_errors": len(config_rows),
+        "win_count": len(target_rows),
+        "loss_count": len(stop_rows),
+        "flat_count": 0,
+        "win_rate": round(len(target_rows) / resolved_count * 100.0, 6) if resolved_count else None,
+        "avg_return_pct": _mean_or_none(returns),
+        "median_return_pct": _median_or_none(returns),
+        "avg_win_pct": mean_win,
+        "avg_loss_pct": mean_loss,
+        "payoff_ratio": round(mean_win / abs(mean_loss), 6) if mean_win is not None and mean_loss not in (None, 0) else None,
+        "profit_factor": round(positive_sum / abs(negative_sum), 6) if negative_sum < 0 else None,
+        "expectancy_pct": _mean_or_none(returns),
+        "avg_r": _mean_or_none(r_values),
+        "median_r": _median_or_none(r_values),
+        "expectancy_r": _mean_or_none(r_values),
+        "target_exit_count": len(target_rows),
+        "stop_exit_count": len(stop_rows),
+        "time_exit_count": 0,
+        "target_hit_rate": round(len(target_rows) / resolved_count * 100.0, 6) if resolved_count else None,
+        "stop_hit_rate": round(len(stop_rows) / resolved_count * 100.0, 6) if resolved_count else None,
+        "time_exit_rate": None,
+        "avg_holding_sessions": _mean_or_none([row["holding_sessions"] for row in closed_rows]),
+        "median_holding_sessions": _median_or_none([row["holding_sessions"] for row in closed_rows]),
+        "avg_mfe_pct": _mean_or_none([row["mfe_pct"] for row in closed_rows]),
+        "avg_mae_pct": _mean_or_none([row["mae_pct"] for row in closed_rows]),
+        "median_mfe_pct": _median_or_none([row["mfe_pct"] for row in closed_rows]),
+        "median_mae_pct": _median_or_none([row["mae_pct"] for row in closed_rows]),
+        "open_mtm_avg_return_pct": _mean_or_none([row["mark_return_pct"] for row in open_rows]),
+        "historical_data_source": source_labels[0] if len(source_labels) == 1 else ("MIXED_OR_PARTIAL" if source_labels else "NO_HISTORICAL_SOURCE"),
+        "historical_provider_calls": cache_meta.get("provider_calls", 0),
+        "historical_cache_hits": cache_meta.get("cache_hits", len(by_code) if isinstance(by_code, Mapping) else 0),
+        "historical_symbols_loaded": len({
+            row["code"]
+            for row in rows
+            if row["status"] != RULE_STATUS_NOT_YET_ELIGIBLE
+            and row.get("historical_data_status") == "COMPLETE"
+        }),
+        "closed_trades": closed_rows,
+        "open_position_rows": open_rows,
+        "ambiguous_rows": ambiguous_rows,
+        "untriggered_rows": untriggered_rows,
+        "performance_data_incomplete_rows": incomplete_rows,
+        "config_error_rows": config_rows,
+        "excluded_rows": [
+            row for row in rows
+            if row not in closed_rows and row not in open_rows
+        ],
+        "all_rows": rows,
+    }
+
+
+def load_strategy_rule_historical_ohlc(
+    canonical_watchlists: Any,
+    as_of_date: date | datetime | str,
+    *,
+    paths: DataPaths | None = None,
+    calendar: TradingCalendar | None = None,
+) -> tuple[dict[str, list[dict[str, Any]]], dict[str, Any]]:
+    """Read already-captured daily K-lines for rule-performance reconstruction.
+
+    The loader is read-only.  It intentionally has no provider fallback: a
+    missing or invalid local historical bar is returned as a performance data
+    gap, while prospective tracker observations remain untouched.  The
+    existing immutable T-close K-line capture is the local cache/provenance
+    source when available.
+    """
+
+    resolver = paths or PATHS
+    cal = calendar or default_calendar()
+    report_date = parse_date(as_of_date)
+    signals = _canonical_rule_signals(canonical_watchlists, report_date)
+    eligible_codes = sorted({
+        str(signal.get("code", ""))
+        for signal in signals
+        if _rule_sessions_after(parse_date(signal["date"]), report_date, cal)
+    })
+    bars_by_code: dict[str, list[dict[str, Any]]] = {}
+    provenance_by_code: dict[str, Any] = {}
+    cache_hits = 0
+    cache_misses = 0
+    errors: list[str] = []
+    try:
+        from live_acquisition import (
+            DEFAULT_STOCK_BAR_COUNT,
+            TCloseEvidenceStore,
+            _history_capture_spec,
+            _load_captured_market_bars,
+        )
+    except Exception as exc:
+        errors.append(f"historical cache adapter unavailable: {type(exc).__name__}")
+        DEFAULT_STOCK_BAR_COUNT = 260
+        TCloseEvidenceStore = None  # type: ignore[assignment]
+        _history_capture_spec = None  # type: ignore[assignment]
+        _load_captured_market_bars = None  # type: ignore[assignment]
+
+    evidence_base = resolver.root / "t_close_evidence"
+    root_candidates = [evidence_base, evidence_base / report_date.strftime("%Y%m%d")]
+    seen_roots: set[Path] = set()
+    unique_roots: list[Path] = []
+    for root in root_candidates:
+        if root not in seen_roots:
+            seen_roots.add(root)
+            unique_roots.append(root)
+    root_candidates = unique_roots
+    for code in eligible_codes:
+        loaded = False
+        last_error: str | None = None
+        if TCloseEvidenceStore is not None and _history_capture_spec is not None and _load_captured_market_bars is not None:
+            logical_identity, thscode, _start_ms, _end_ms = _history_capture_spec(
+                code,
+                requested_count=DEFAULT_STOCK_BAR_COUNT,
+                as_of_date=report_date.isoformat(),
+                index=False,
+            )
+            for root in root_candidates:
+                if not root.exists():
+                    continue
+                store = TCloseEvidenceStore(root, report_date)
+                try:
+                    result = _load_captured_market_bars(
+                        store,
+                        logical_identity,
+                        thscode,
+                        minimum_acceptable_history=1,
+                        as_of_date=report_date.isoformat(),
+                        require_last_bar_date=False,
+                    )
+                except Exception as exc:
+                    last_error = f"{type(exc).__name__}: {str(exc)[:240]}"
+                    break
+                if result is None:
+                    continue
+                bars, resolution = result
+                record = store.latest("hithink_kline")
+                metadata = dict(record.metadata) if record is not None else {}
+                bars_by_code[code] = bars
+                provenance_by_code[code] = {
+                    "status": "COMPLETE",
+                    "provider": resolution.get("provider"),
+                    "source": resolution.get("source"),
+                    "source_identity": resolution.get("source"),
+                    "provider_version": metadata.get("provider_version"),
+                    "adjustment_mode": resolution.get("adjustment_mode"),
+                    "selection": resolution.get("selection"),
+                    "target_date": metadata.get("target_date", report_date.isoformat()),
+                    "effective_trading_date": metadata.get("effective_trading_date"),
+                    "logical_component_identity": logical_identity,
+                    "file_sha256": metadata.get("file_sha256"),
+                    "code_git_sha": metadata.get("code_git_sha"),
+                    "cache": "T_CLOSE_IMMUTABLE_KLINE_CAPTURE",
+                }
+                cache_hits += 1
+                loaded = True
+                break
+        if not loaded:
+            cache_misses += 1
+            provenance_by_code[code] = {
+                "status": "MISSING_OR_INVALID",
+                "source": "T_CLOSE_IMMUTABLE_KLINE_CAPTURE",
+                "reason": last_error or "no matching immutable daily K-line capture",
+            }
+            if last_error:
+                errors.append(f"{code}: {last_error}")
+    return bars_by_code, {
+        "by_code": provenance_by_code,
+        "__meta__": {
+            "source": "T_CLOSE_IMMUTABLE_KLINE_CAPTURE",
+            "provider_calls": 0,
+            "cache_hits": cache_hits,
+            "cache_misses": cache_misses,
+            "errors": errors,
+            "as_of_date": report_date.isoformat(),
+        },
+    }
+
+
 def _trade_row(signal: Mapping[str, Any], state: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "signal_id": signal.get("signal_id"),
@@ -1670,28 +2315,35 @@ def _review_point_text(
     return f"待 {point.get('scheduled_date', '—')}"
 
 
-def _performance_markdown(performance: Mapping[str, Any]) -> list[str]:
+def _performance_markdown(
+    performance: Mapping[str, Any],
+    audit_performance: Mapping[str, Any] | None = None,
+) -> list[str]:
+    audit_performance = audit_performance or {}
     def value(key: str, *, percent: bool = False) -> str:
         item = performance.get(key)
         if item is None:
-            return f"N/A / sample={performance.get('confirmed_closed_count', 0)}"
+            return f"— / sample={performance.get('resolved_closed_trades', 0)}"
         return f"{float(item):.2f}%" if percent else f"{float(item):.2f}"
 
     return [
-        "## 三、交易绩效 · T+1 可执行口径",
-        f"> execution model：{performance.get('execution_model')}；收益口径：{performance.get('return_basis')}。",
-        f"> 总信号 **{performance.get('total_signals', 0)}**；已进入可执行观察期 **{performance.get('observation_period_signals', 0)}**；"
-        f"execution-path verified 分母 **{performance.get('eligible_signals', 0)}**；已入场 **{performance.get('entered', 0)}**；"
-        f"触发率 **{value('trigger_rate', percent=True)}**。",
-        f"> confirmed closed **{performance.get('confirmed_closed_count', 0)}**；当前持仓 **{performance.get('open_positions_count', 0)}**；"
-        f"ambiguous **{performance.get('ambiguous', 0)}**；unverified **{performance.get('unverified', 0)}**。",
+        "## 三、策略规则绩效 · 交易绩效",
+        f"> performance model：{performance.get('performance_model')}；收益口径：{performance.get('return_basis')}。",
+        "> 理论规则价模拟：严格按 canonical trigger 入场、stop / target 规则价退出；买入当日不可卖出，遵守 A 股 T+1；不代表真实成交。",
+        f"> 总信号 **{performance.get('total_signals', 0)}**；T+1 可机会 **{performance.get('signals_with_t1_opportunity', 0)}**；"
+        f"已触发 **{performance.get('triggered', 0)}**；触发率 **{value('trigger_rate', percent=True)}**。",
+        f"> resolved target **{performance.get('resolved_target', 0)}**；resolved stop **{performance.get('resolved_stop', 0)}**；"
+        f"已结案 **{performance.get('resolved_closed_trades', 0)}**；当前持仓 **{performance.get('open_rule_trades', 0)}**；"
+        f"untriggered **{performance.get('untriggered', 0)}**；ambiguous **{performance.get('ambiguous', 0)}**。",
         f"> 胜率 **{value('win_rate', percent=True)}**；平均收益 **{value('avg_return_pct', percent=True)}**；"
         f"平均盈利 **{value('avg_win_pct', percent=True)}**；平均亏损 **{value('avg_loss_pct', percent=True)}**；"
         f"盈亏比 **{value('payoff_ratio')}**；Profit Factor **{value('profit_factor')}**。",
         f"> 期望收益/笔 **{value('expectancy_pct', percent=True)}**；平均 R **{value('avg_r')}**；"
         f"平均持有交易日 **{value('avg_holding_sessions')}**；平均 MFE **{value('avg_mfe_pct', percent=True)}**；"
         f"平均 MAE **{value('avg_mae_pct', percent=True)}**。",
-        "> confirmed metrics 不包含未平仓、AMBIGUOUS_SAME_BAR、UNVERIFIED 或未触发信号；"
+        f"> 策略绩效历史行情缺失 **{performance.get('performance_data_incomplete', 0)}**；"
+        f"prospective observation 缺失 **{audit_performance.get('execution_unverified', 0)}**（仅数据质量审计，不是策略绩效准入门槛）。",
+        "> confirmed metrics 不包含 OPEN、UNTRIGGERED、AMBIGUOUS_SAME_BAR、PERFORMANCE_DATA_INCOMPLETE；"
         "T+3/T+5/T+10 仍是 fixed-horizon snapshot research，不是 realized trade P&L。",
         "",
     ]
@@ -1715,7 +2367,21 @@ def report(
     closed = [s for s in signals if s["status"] in ("win", "loss", "expired")]
     pending = [s for s in signals if s["status"] in ("pending", "triggered")]
     ambiguous = [s for s in signals if s["status"] == "AMBIGUOUS_SAME_BAR"]
-    performance = build_trade_performance_summary(tracker, as_of_date, calendar=cal)
+    canonical_watchlists = current_prospective_watchlists(PATHS)
+    historical_ohlc, historical_provenance = load_strategy_rule_historical_ohlc(
+        canonical_watchlists,
+        as_of_date,
+        paths=PATHS,
+        calendar=cal,
+    )
+    performance = build_strategy_rule_performance(
+        canonical_watchlists,
+        historical_ohlc,
+        as_of_date,
+        calendar=cal,
+        historical_provenance=historical_provenance,
+    )
+    audit_performance = build_trade_performance_summary(tracker, as_of_date, calendar=cal)
 
     lines = [
         "# 信号复盘 · XSHG 交易日节点",
@@ -1763,7 +2429,7 @@ def report(
         f"- 已结案：**{len(closed)}** 个；仍在跟踪：**{len(pending)}** 个。",
         f"- same-bar 歧义：**{len(ambiguous)}** 个；保持 `AMBIGUOUS_SAME_BAR`，不猜测盘中顺序。",
         "",
-        *_performance_markdown(performance),
+        *_performance_markdown(performance, audit_performance),
         "## 四、逐信号节点明细",
         "| 信号ID | 策略版本 | 信号日 T | 代码 | setup | 触发价 | 止损 | 目标 | T+3 | T+5 | T+10 | 当前状态 | 结案日 |",
         "|---|---|---|---|---|---|---|---|---|---|---|---|---|",

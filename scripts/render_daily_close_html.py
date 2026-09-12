@@ -30,10 +30,16 @@ from track_perf import (
     EXECUTION_T_PLUS_1_PENDING,
     UNVERIFIED_MISSING_EXECUTION_OBSERVATION,
     EXIT_REASON_AMBIGUOUS,
+    STRATEGY_RULE_PERFORMANCE_MODEL,
+    PERFORMANCE_DATA_INCOMPLETE,
+    STRATEGY_RULE_CONFIG_ERROR,
     build_trade_performance_summary,
+    build_strategy_rule_performance,
+    load_strategy_rule_historical_ohlc,
     load_tracker,
     parse_date,
     review_date,
+    current_prospective_watchlists,
     current_prospective_tracker,
     is_current_prospective_signal,
     CURRENT_PROSPECTIVE_STRATEGY,
@@ -73,6 +79,7 @@ class ReportModel:
     data_quality: list[dict[str, Any]] | None = None
     rolling_review: dict[str, Any] | None = None
     trade_performance: dict[str, Any] | None = None
+    execution_audit: dict[str, Any] | None = None
 
 
 def _normalize_date(value: date | datetime | str) -> str:
@@ -529,7 +536,21 @@ def build_report_model(
     cal = calendar or default_calendar()
     tracker, review_failures = _load_review_tracker(resolver, review_failure)
     performance_tracker = tracker if tracker is not None else {"version": 2, "signals": {}}
-    trade_performance = build_trade_performance_summary(
+    canonical_watchlists = current_prospective_watchlists(resolver)
+    historical_ohlc, historical_provenance = load_strategy_rule_historical_ohlc(
+        canonical_watchlists,
+        normalized_date,
+        paths=resolver,
+        calendar=cal,
+    )
+    trade_performance = build_strategy_rule_performance(
+        canonical_watchlists,
+        historical_ohlc,
+        normalized_date,
+        calendar=cal,
+        historical_provenance=historical_provenance,
+    )
+    execution_audit = build_trade_performance_summary(
         performance_tracker,
         normalized_date,
         calendar=cal,
@@ -611,8 +632,30 @@ def build_report_model(
         + (1 if acquisition_status != "COMPLETE" else 0)
         + (1 if cloud_checkpoint_status != "VERIFIED" else 0)
         + sum(item != "NONE" for item in review_failures)
+        + int(trade_performance.get("performance_data_incomplete") or 0)
+        + int(trade_performance.get("strategy_config_errors") or 0)
     )
     data_quality = [
+        {
+            "category": "策略规则复算数据缺失",
+            "count": trade_performance.get("performance_data_incomplete", 0),
+            "status": PERFORMANCE_DATA_INCOMPLETE,
+            "reason": "历史 daily OHLC 不完整，不猜测触发或退出结果",
+            "signal_dates": ", ".join(
+                f"{row.get('signal_date')} ({row.get('code')})"
+                for row in trade_performance.get("performance_data_incomplete_rows", [])
+            ) or "—",
+        },
+        {
+            "category": "策略规则配置错误",
+            "count": trade_performance.get("strategy_config_errors", 0),
+            "status": STRATEGY_RULE_CONFIG_ERROR,
+            "reason": "trigger / stop / target 不满足多头规则约束，不进入绩效统计",
+            "signal_dates": ", ".join(
+                f"{row.get('signal_date')} ({row.get('code')})"
+                for row in trade_performance.get("config_error_rows", [])
+            ) or "—",
+        },
         {
             "category": "历史节点缺失",
             "count": missing_count,
@@ -626,6 +669,13 @@ def build_report_model(
             "status": _UNVERIFIED,
             "reason": "confirmed entry unavailable; return is unverified",
             "signal_dates": ", ".join(f"{d} ({n})" for d, n in sorted(unverified_dates.items())) or "—",
+        },
+        {
+            "category": "prospective observation 缺失",
+            "count": execution_audit.get("execution_unverified", 0),
+            "status": UNVERIFIED_MISSING_EXECUTION_OBSERVATION,
+            "reason": "实时 prospective 跟踪不完整；不影响独立规则价策略绩效复算",
+            "signal_dates": "—",
         },
         {
             "category": "同日顺序不明",
@@ -740,6 +790,9 @@ def build_report_model(
         "acquisition_status": acquisition_status,
         "review_status": review_status,
         "cloud_checkpoint_status": cloud_checkpoint_status,
+        "strategy_rule_performance_model": STRATEGY_RULE_PERFORMANCE_MODEL,
+        "strategy_rule_performance_source": trade_performance.get("historical_data_source"),
+        "strategy_rule_performance_provider_calls": trade_performance.get("historical_provider_calls", 0),
     }
     rolling_review = {
         "status": review_coverage.get("status", _UNVERIFIED) if review_coverage else _UNVERIFIED,
@@ -769,6 +822,7 @@ def build_report_model(
         data_quality=data_quality,
         rolling_review=rolling_review,
         trade_performance=trade_performance,
+        execution_audit=execution_audit,
     )
 
 
@@ -1005,27 +1059,35 @@ def _quality_table(
     rows,
     *,
     performance: Mapping[str, Any] | None = None,
+    audit_performance: Mapping[str, Any] | None = None,
     summary: Mapping[str, Any] | None = None,
     acquisition_status: str = 'COMPLETE',
     review_status: str = 'READY',
 ):
-    """Render only actionable quality items, using the performance denominator for execution gaps."""
+    """Render strategy reconstruction quality separately from prospective audit quality."""
 
     if performance is not None:
         summary = summary or {}
+        audit_performance = audit_performance or {}
         items = [
-            ('历史执行路径待核验', performance.get('execution_unverified', 0),
-             UNVERIFIED_MISSING_EXECUTION_OBSERVATION,
-             '历史观察记录不完整，不纳入正式绩效样本。'),
-            ('T+1 等待', performance.get('execution_pending', 0),
-             EXECUTION_T_PLUS_1_PENDING,
-             '正常状态：新信号等待下一交易日观察。'),
+            ('策略规则复算数据缺失', performance.get('performance_data_incomplete', 0),
+             PERFORMANCE_DATA_INCOMPLETE,
+             '历史 daily OHLC 不完整，不猜测策略规则路径。'),
+            ('策略规则配置错误', performance.get('strategy_config_errors', 0),
+             STRATEGY_RULE_CONFIG_ERROR,
+             'trigger / stop / target 配置不满足多头规则约束。'),
             ('同日顺序不明', performance.get('ambiguous', 0),
              'AMBIGUOUS_SAME_BAR',
              '保留安全口径，不猜测日内先后顺序。'),
-            ('当日数据缺失', summary.get('daily_missing', 0),
+            ('prospective observation 缺失', audit_performance.get('execution_unverified', 0),
+             UNVERIFIED_MISSING_EXECUTION_OBSERVATION,
+             '实时 prospective 跟踪不完整；不影响规则价策略绩效复算。'),
+            ('prospective T+1 等待', audit_performance.get('execution_pending', 0),
+             EXECUTION_T_PLUS_1_PENDING,
+             '正常状态：新信号等待下一交易日 observation。'),
+            ('历史节点 / 当日数据缺失', summary.get('daily_missing', 0) + summary.get('missing_observations', 0),
              _MISSING,
-             '当日观察缺失，暂不作交易结论。'),
+             'prospective review observation 缺失，不回填历史节点。'),
         ]
         if acquisition_status != 'COMPLETE':
             items.append(('行情证据', 1, acquisition_status, '行情证据采集状态待确认。'))
@@ -1033,8 +1095,8 @@ def _quality_table(
             items.append(('复盘读取', 1, review_status, '复盘读取未完成，名单仍可查看。'))
         visible = [(label, count, status, reason) for label, count, status, reason in items if count]
         ok_html = (
-            '<div class="quality-ok"><span class="badge positive">行情证据完整</span>'
-            '<span>采集状态正常。</span></div>'
+            '<div class="quality-ok"><span class="badge positive">质量分层正常</span>'
+            '<span>规则价绩效与 prospective observation audit 已分开。</span></div>'
             if acquisition_status == 'COMPLETE' else ''
         )
     else:
@@ -1045,7 +1107,7 @@ def _quality_table(
         ok_html = ''
 
     if not visible:
-        return ok_html or '<div class="quality-ok"><span class="badge positive">行情证据完整</span><span>未发现新的数据质量异常。</span></div>'
+        return ok_html or '<div class="quality-ok"><span class="badge positive">质量分层正常</span><span>未发现新的数据质量异常。</span></div>'
 
     body = []
     for label, count, status, reason in visible:
@@ -1093,14 +1155,15 @@ def _performance_cards(performance: Mapping[str, Any]) -> str:
         ("平均收益", "avg_return_pct", True, True, ""),
         ("盈亏比", "payoff_ratio", False, False, ""),
         ("Profit Factor", "profit_factor", False, False, "盈利因子"),
-        ("已确认结案", "confirmed_closed_count", False, False, ""),
-        ("当前持仓", "open_positions_count", False, False, ""),
+        ("已结案交易", "resolved_closed_trades", False, False, "TARGET / STOP"),
+        ("当前理论持仓（当前持仓）", "open_rule_trades", False, False, "不代表账户实际持仓"),
     ]
+    integer_keys = {"resolved_closed_trades", "open_rule_trades"}
     return ''.join(
         f'<article class="kpi-card primary-kpi" data-kpi="primary">'
         f'<div class="kpi-label">{_esc(label)}</div>'
         f'<div class="kpi-value {_numeric_tone(performance.get(key))}">'
-        f'{_esc(_integer(performance.get(key)) if key in {"confirmed_closed_count", "open_positions_count"} else _performance_value(performance, key, percent=percent, signed=signed))}</div>'
+        f'{_esc(_integer(performance.get(key)) if key in integer_keys else _performance_value(performance, key, percent=percent, signed=signed))}</div>'
         f'{f"<small>{_esc(note)}</small>" if note else ""}</article>'
         for label, key, percent, signed, note in cards
     )
@@ -1109,7 +1172,7 @@ def _performance_cards(performance: Mapping[str, Any]) -> str:
 def _performance_metric_strip(performance: Mapping[str, Any]) -> str:
     metrics = [
         ("触发率", "trigger_rate", True, True),
-        ("已入场", "entered", False, False),
+        ("已触发", "triggered", False, False),
         ("平均盈利", "avg_win_pct", True, True),
         ("平均亏损", "avg_loss_pct", True, True),
         ("期望收益", "expectancy_pct", True, True),
@@ -1121,7 +1184,7 @@ def _performance_metric_strip(performance: Mapping[str, Any]) -> str:
     return '<div class="metric-strip" aria-label="次级绩效指标">' + ''.join(
         f'<div class="metric-item"><span>{_esc(label)}</span>'
         f'<strong class="{_numeric_tone(performance.get(key))}">'
-        f'{_esc((_integer(performance.get(key), "0") + "*" if key == "entered" and _entered_has_unverified_path(performance) else _integer(performance.get(key), "0")) if key == "entered" else _performance_value(performance, key, percent=percent, signed=signed))}'
+        f'{_esc(_integer(performance.get(key), "0") if key == "triggered" else _performance_value(performance, key, percent=percent, signed=signed))}'
         f'</strong>{"<small>交易日</small>" if key == "avg_holding_sessions" else ""}</div>'
         for label, key, percent, signed in metrics
     ) + '</div>'
@@ -1138,17 +1201,19 @@ def _entered_has_unverified_path(performance: Mapping[str, Any]) -> bool:
 
 
 def _performance_funnel(performance: Mapping[str, Any]) -> str:
-    entered_value = _integer(performance.get('entered'), '0')
-    if _entered_has_unverified_path(performance):
-        entered_value += '*'
+    eligible = performance.get('signals_with_t1_opportunity', performance.get('eligible_signals'))
+    triggered_value = performance.get('triggered', performance.get('entered'))
+    if 'triggered' not in performance and _entered_has_unverified_path(performance):
+        triggered_value = f'{_integer(triggered_value, "0")}*'
     items = [
         ('总信号', performance.get('total_signals')),
-        ('已进入观察期', performance.get('observation_period_signals')),
-        ('可纳入执行统计', performance.get('eligible_signals')),
-        ('已入场', entered_value),
-        ('未触发到期', performance.get('untriggered_expired')),
-        ('已确认结案', performance.get('confirmed_closed_count')),
-        ('执行路径待核验', performance.get('execution_unverified')),
+        ('T+1 可机会', eligible),
+        ('已触发', triggered_value),
+        ('已结案', performance.get('resolved_closed_trades', performance.get('confirmed_closed_count'))),
+        ('当前理论持仓', performance.get('open_rule_trades', performance.get('open_positions_count'))),
+        ('未触发', performance.get('untriggered', performance.get('untriggered_expired'))),
+        ('同日顺序不明', performance.get('ambiguous')),
+        ('行情不完整', performance.get('performance_data_incomplete')),
     ]
     return '<div class="funnel">' + ''.join(
         f'<div class="funnel-item"><span>{_esc(label)}</span><strong>{_esc(value)}</strong></div>'
@@ -1160,17 +1225,14 @@ def _performance_detail_table(performance: Mapping[str, Any]) -> str:
     rows = [
         ("中位收益", _performance_value(performance, "median_return_pct", percent=True, signed=True)),
         ("中位 R", _performance_value(performance, "median_r", signed=True)),
-        ("止盈次数 / 命中率", f'{_esc(_integer(performance.get("target_exit_count"), "0"))} / {_esc(_performance_value(performance, "target_hit_rate", percent=True))}'),
-        ("止损次数 / 命中率", f'{_esc(_integer(performance.get("stop_exit_count"), "0"))} / {_esc(_performance_value(performance, "stop_hit_rate", percent=True))}'),
-        ("到期退出次数 / 比例", f'{_esc(_integer(performance.get("time_exit_count"), "0"))} / {_esc(_performance_value(performance, "time_exit_rate", percent=True))}'),
+        ("止盈次数 / resolved", _integer(performance.get("resolved_target"), "0")),
+        ("止损次数 / resolved", _integer(performance.get("resolved_stop"), "0")),
         ("中位持有交易日", _performance_value(performance, "median_holding_sessions")),
         ("中位 MFE", _performance_value(performance, "median_mfe_pct", percent=True, signed=True)),
         ("中位 MAE", _performance_value(performance, "median_mae_pct", percent=True, signed=True)),
-        ("当前持仓平均浮动收益", _performance_value(performance, "open_mtm_avg_return_pct", percent=True, signed=True)),
-        ("执行路径：已核验 / 待核验 / 等待 T+1",
-         f'{_esc(performance.get("execution_verified", 0))} / '
-         f'{_esc(performance.get("execution_unverified", 0))} / '
-          f'{_esc(performance.get("execution_pending", 0))}'),
+        ("当前理论持仓平均浮动收益", _performance_value(performance, "open_mtm_avg_return_pct", percent=True, signed=True)),
+        ("历史日线来源", _text(performance.get("historical_data_source"))),
+        ("策略绩效 provider calls", _integer(performance.get("historical_provider_calls"), "0")),
     ]
     body = [f"<tr><td>{_esc(label)}</td><td>{value if '<' in str(value) else _esc(value)}</td></tr>" for label, value in rows]
     return _simple_table(("补充交易绩效指标", "值"), body, table_class='metric-detail-table')
@@ -1178,11 +1240,11 @@ def _performance_detail_table(performance: Mapping[str, Any]) -> str:
 
 def _trade_closed_table(rows: list[Mapping[str, Any]]) -> str:
     headers = (
-        "信号日", "代码", "名称", "入场日", "入场价", "可卖日", "出场日", "出场价",
-        "出场原因", "毛收益 %", "R", "持有交易日", "MFE", "MAE",
+        "信号日", "代码", "名称", "触发日", "trigger", "最早可卖日", "退出日", "exit price",
+        "退出类型", "return %", "R", "holding sessions", "MFE", "MAE",
     )
     if not rows:
-        return '<div class="empty-state">暂无已核验结案交易。</div>'
+        return '<div class="empty-state">暂无已结案策略交易。</div>'
     body = []
     for row in rows:
         values = [_esc(row.get("signal_date")), _esc(row.get("code")), _esc(row.get("name")),
@@ -1198,20 +1260,34 @@ def _trade_closed_table(rows: list[Mapping[str, Any]]) -> str:
 
 def _trade_open_table(rows: list[Mapping[str, Any]]) -> str:
     headers = (
-        "信号日", "代码", "名称", "入场日", "入场价", "可卖日", "最新观察日", "最新收盘",
-        "未实现 %", "未实现 R", "MFE", "MAE",
+        "信号日", "代码", "名称", "触发日", "trigger", "stop", "target", "当前 close",
+        "浮动收益 %", "MFE", "MAE",
     )
     if not rows:
-        return '<div class="empty-state">当前无已核验持仓。</div>'
+        return '<div class="empty-state">当前无策略理论持仓（当前持仓不代表账户实际持仓）。</div>'
     body = []
     for row in rows:
         values = [_esc(row.get("signal_date")), _esc(row.get("code")), _esc(row.get("name")),
-                  _esc(row.get("entry_date")), _esc(_number(row.get("entry_price"))),
-                  _esc(row.get("sellable_from")), _esc(row.get("latest_observation_date")),
-                  _esc(_number(row.get("latest_mark_price"))),
-                   f'<span class="number {_numeric_tone(row.get("unrealized_return_pct"))}">{_esc(_percent(row.get("unrealized_return_pct"), signed=True))}</span>',
-                   _esc(_signed_number(row.get("unrealized_r"))),
+                  _esc(row.get("trigger_date")), _esc(_number(row.get("trigger"))),
+                  _esc(_number(row.get("stop"))), _esc(_number(row.get("target"))),
+                  _esc(_number(row.get("latest_close"))),
+                   f'<span class="number {_numeric_tone(row.get("mark_return_pct"))}">{_esc(_percent(row.get("mark_return_pct"), signed=True))}</span>',
                    _esc(_percent(row.get("mfe_pct"), signed=True)), _esc(_percent(row.get("mae_pct"), signed=True))]
+        body.append("<tr>" + "".join(f"<td>{value}</td>" for value in values) + "</tr>")
+    return _simple_table(headers, body, table_class='trade-table')
+
+
+def _trade_ambiguous_table(rows: list[Mapping[str, Any]]) -> str:
+    headers = ("date", "code", "名称", "stop", "target", "daily low", "daily high")
+    if not rows:
+        return '<div class="empty-state">暂无同日顺序不明策略交易。</div>'
+    body = []
+    for row in rows:
+        values = [
+            _esc(row.get("exit_date")), _esc(row.get("code")), _esc(row.get("name")),
+            _esc(_number(row.get("stop"))), _esc(_number(row.get("target"))),
+            _esc(_number(row.get("ambiguous_low"))), _esc(_number(row.get("ambiguous_high"))),
+        ]
         body.append("<tr>" + "".join(f"<td>{value}</td>" for value in values) + "</tr>")
     return _simple_table(headers, body, table_class='trade-table')
 
@@ -1236,61 +1312,53 @@ def _trade_performance_html(
     list_date: str = '—',
     earliest_execution: str = '—',
 ) -> str:
-    closed_count = int(performance.get('confirmed_closed_count') or 0)
+    closed_count = int(performance.get('resolved_closed_trades') or 0)
     if closed_count == 0:
         status_html = (
             '<div class="performance-status warning">'
             '<span class="badge warning">样本不足</span>'
-            '<div><strong>当前暂无可用于正式绩效统计的已核验结案交易。</strong>'
-            '<small>暂无正式样本的指标统一以 — 显示；已入场但路径待核验的记录不计入结案统计。</small></div>'
+            '<div><strong>当前暂无可用于正式绩效统计的已结案策略交易。</strong>'
+            '<small>指标只基于 resolved TARGET / STOP；OPEN、UNTRIGGERED、歧义和数据缺失不进入已结案统计。</small></div>'
             '</div>'
         )
-    elif performance.get('sample_small'):
+    elif closed_count < 10:
         status_html = (
             f'<div class="performance-status warning"><span class="badge warning">样本较小</span>'
-            f'<div><strong>当前已核验结案 {closed_count} 笔，结果仅供阶段性参考。</strong>'
-            '<small>正式统计只使用已核验、非歧义的结案交易。</small></div></div>'
+            f'<div><strong>当前已结案策略交易 {closed_count} 笔，结果仅供阶段性参考。</strong>'
+            '<small>规则价模拟只使用 resolved TARGET / STOP。</small></div></div>'
         )
     else:
         status_html = (
             f'<div class="performance-status ready"><span class="badge positive">统计可用</span>'
-            f'<div><strong>当前已核验结案 {closed_count} 笔。</strong>'
-            '<small>结果按 T+1 日线执行口径展示。</small></div></div>'
-        )
+            f'<div><strong>当前已结案策略交易 {closed_count} 笔。</strong>'
+            '<small>结果按 trigger / stop / target 规则价与 A 股 T+1 展示。</small></div></div>'
+    )
 
-    unverified_count = int(performance.get('execution_unverified') or 0)
-    if closed_count == 0 and unverified_count and new_signal_count:
-        closed_empty = (
-            '<div class="empty-state">'
-            f'<strong>暂无已核验结案交易</strong>'
-            f'<p>当前已有 {unverified_count} 个历史执行路径因观察记录不完整而不纳入正式统计；'
-            f'{new_signal_count} 个 { _esc(list_date) } 新信号等待下一个交易日。</p>'
-            f'<a href="#unverified-excluded">查看未核验样本（{unverified_count}）</a>'
-            '</div>'
-        )
-    else:
-        closed_empty = _trade_closed_table(performance.get('closed_trades', []))
-
+    closed_empty = _trade_closed_table(performance.get('closed_trades', []))
     excluded_rows = performance.get('excluded_rows', [])
+    ambiguous_rows = performance.get('ambiguous_rows', [])
     return (
         status_html +
         f'<div class="primary-kpis">{_performance_cards(performance)}</div>'
-        f'<div class="secondary-label"><span>辅助绩效指标</span><small>正式样本不足时显示 —</small></div>'
+        f'<div class="secondary-label"><span>辅助绩效指标</span><small>只对 resolved TARGET / STOP 计算；没有样本时显示 —</small></div>'
         f'{_performance_metric_strip(performance)}'
-        '<div class="subsection-head"><h3>样本漏斗</h3><small>* 表示已入场记录中含待核验执行路径，不纳入正式绩效样本。</small></div>'
+        '<div class="subsection-head"><h3>样本漏斗</h3><small>prospective observation 完整性不作为规则绩效样本准入门槛。</small></div>'
         f'{_performance_funnel(performance)}'
         '<details class="metric-details"><summary>查看补充统计</summary>'
         f'{_performance_detail_table(performance)}'
         '</details>'
-        '<div class="performance-block"><div class="subsection-head"><h3>当前持仓</h3>'
-        f'<span class="count-label">{_integer(performance.get("open_positions_count"), "0")} 笔</span></div>'
+        '<div class="performance-block"><div class="subsection-head"><h3>当前策略理论持仓</h3>'
+        f'<span class="count-label">{_integer(performance.get("open_rule_trades"), "0")} 笔 · 不代表账户实际持仓</span></div>'
         f'{_trade_open_table(performance.get("open_position_rows", []))}</div>'
-        '<div class="performance-block"><div class="subsection-head"><h3>已结案交易</h3>'
-        f'<span class="count-label">{_integer(performance.get("confirmed_closed_count"), "0")} 笔</span></div>'
+        '<div class="performance-block"><div class="subsection-head"><h3>已结案策略交易</h3>'
+        f'<span class="count-label">{_integer(performance.get("resolved_closed_trades"), "0")} 笔</span></div>'
         f'{closed_empty}</div>'
-        f'<details id="unverified-excluded" class="subtle-details"><summary>历史路径待核验 · {unverified_count}<span class="sr-only">排除 / 未核验</span></summary>'
-        '<p class="note">以下保留技术排除明细；未核验路径不会进入正式绩效样本。</p>'
-        f'{_trade_excluded_table(excluded_rows)}'
+        '<div class="performance-block"><div class="subsection-head"><h3>同日顺序不明</h3>'
+        f'<span class="count-label">{_integer(performance.get("ambiguous"), "0")} 笔</span></div>'
+        f'{_trade_ambiguous_table(ambiguous_rows)}</div>'
+        f'<details id="unverified-excluded" class="subtle-details"><summary>规则复算未纳入统计 · { _integer(len(excluded_rows), "0") }<span class="sr-only">排除 / 未核验</span></summary>'
+        '<p class="note">以下是 UNTRIGGERED、数据缺失、配置错误或 T+1 尚未到达的规则复算记录；不改写 prospective tracker。</p>'
+        f'{_trade_excluded_table([])}'
         '</details>'
     )
 
@@ -1382,10 +1450,12 @@ def render_html(model: ReportModel) -> str:
     overview = model.overview or {}
     quality_rows = model.data_quality or []
     rolling_review = model.rolling_review or {}
-    trade_performance = model.trade_performance or build_trade_performance_summary(
-        {"version": 2, "signals": {}},
+    trade_performance = model.trade_performance or build_strategy_rule_performance(
+        [],
+        {},
         metadata.get("review_date", date.today().isoformat()),
     )
+    audit_performance = model.execution_audit or {}
 
     audit_rows = model.watchlist_rows + model.previous_signals + model.active_signals + model.closed_today
     audit_rows += [r for rows in model.review_sections.values() for r in rows]
@@ -1407,15 +1477,25 @@ def render_html(model: ReportModel) -> str:
         audit_body,
         table_class='audit-table',
     )
-    sample_label = 'SAMPLE_SMALL' if trade_performance.get('sample_small') else 'SAMPLE_READY'
-    empty_sample_label = 'N/A / sample=0' if not trade_performance.get('confirmed_closed_count') else 'N/A'
+    rule_excluded_audit_html = (
+        '<details class="audit-details"><summary>规则复算未纳入统计 · '
+        f'{_esc(_integer(len(trade_performance.get("excluded_rows", [])), "0"))}</summary>'
+        '<div class="audit-content">'
+        f'{_trade_excluded_table(trade_performance.get("excluded_rows", []))}'
+        '</div></details>'
+    )
+    sample_label = 'SAMPLE_SMALL' if trade_performance.get('resolved_closed_trades', 0) < 10 else 'SAMPLE_READY'
+    empty_sample_label = 'N/A / sample=0' if not trade_performance.get('resolved_closed_trades') else 'N/A'
     technical_audit = (
         '<div class="audit-technical"><div><span>内部样本状态</span><code>'
         f'{_esc(sample_label)}</code></div><div><span>空样本兼容标记</span><code>'
         f'{_esc(empty_sample_label)}</code></div><div><span>执行模型</span><code>'
         f'{_esc(EXECUTION_MODEL_DAILY_OHLC_T1_V1)}</code></div><div><span>缺失执行状态</span><code>'
         f'{_esc(UNVERIFIED_MISSING_EXECUTION_OBSERVATION)}</code></div><div><span>节点标签（内部）</span><code>'
-        'T+5 PRIMARY REVIEW · T+10 EXTENSION / CLOSURE</code></div></div>'
+        'T+5 PRIMARY REVIEW · T+10 EXTENSION / CLOSURE</code></div>'
+        f'<div><span>策略规则绩效模型</span><code>{_esc(STRATEGY_RULE_PERFORMANCE_MODEL)}</code></div>'
+        f'<div><span>策略绩效历史日线来源</span><code>{_esc(trade_performance.get("historical_data_source"))}</code></div>'
+        f'<div><span>策略绩效 provider calls</span><code>{_esc(trade_performance.get("historical_provider_calls", 0))}</code></div></div>'
     )
     audit_summary = _esc(model.summary_text)
     issue_summary = _esc('；'.join(model.anomalies))
@@ -1426,7 +1506,7 @@ def render_html(model: ReportModel) -> str:
     visible_review_note = (
         '复盘读取未完成，名单仍可查看；待核验记录不会被当作正式交易。'
         if model.review_status == 'REVIEW_FAILED' else
-        '部分历史观察尚未完整覆盖；相关记录不进入正式绩效。'
+        'prospective observation 尚未完整覆盖；策略规则绩效仍按 canonical 参数与历史日线独立复算。'
         if model.review_status == REVIEW_OBSERVATION_INCOMPLETE else
         _action_summary(summary)
     )
@@ -1524,7 +1604,7 @@ input[type=search] {{ width: min(360px, 100%); padding: 8px 10px; border: 1px so
 .metric-item {{ min-width: 0; padding: 9px 11px; background: var(--surface-2); }}
 .metric-item strong {{ display: inline-block; margin-top: 3px; font-size: 16px; font-variant-numeric: tabular-nums; }}
 .metric-item small {{ margin-left: 3px; color: var(--muted); font-size: 10px; }}
-.funnel {{ display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 1px; border: 1px solid var(--border); background: var(--border); }}
+.funnel {{ display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 1px; border: 1px solid var(--border); background: var(--border); }}
 .funnel-item {{ min-width: 0; padding: 9px 10px; background: var(--surface-2); }}
 .funnel-item strong {{ display: block; margin-top: 3px; font-size: 17px; font-variant-numeric: tabular-nums; }}
 .performance-block {{ margin-top: 18px; }}
@@ -1661,12 +1741,12 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
 
 <section id="overview">
   <div class="section-head"><div><p class="section-kicker">01 · OVERVIEW</p><h2>今日总览</h2><p class="section-subtitle">先看行动信息，再看交易结果；技术细节收纳在审计区。</p></div><span class="badge {_status_class(data_state)}">数据状态：{_esc(data_state)}</span></div>
-  <div class="overview-grid"><div class="overview-lead"><span class="eyebrow">当前阅读重点</span><strong>{_esc(visible_review_note)}</strong><p>本报告按 T+1 执行与已核验记录展示，不对缺失路径作推断。</p></div><div class="overview-facts"><div><span>名单日期</span><strong>{_esc(metadata.get('list_date'))}</strong></div><div><span>最早执行</span><strong>{_esc(metadata.get('earliest_execution'))}</strong></div><div><span>候选数量</span><strong>{_esc(_integer(watchlist_count, '0'))}</strong></div></div></div>
+  <div class="overview-grid"><div class="overview-lead"><span class="eyebrow">当前阅读重点</span><strong>{_esc(visible_review_note)}</strong><p>策略规则绩效按 canonical trigger / stop / target 与历史 daily OHLC 理论复算；不代表真实成交。</p></div><div class="overview-facts"><div><span>名单日期</span><strong>{_esc(metadata.get('list_date'))}</strong></div><div><span>最早执行</span><strong>{_esc(metadata.get('earliest_execution'))}</strong></div><div><span>候选数量</span><strong>{_esc(_integer(watchlist_count, '0'))}</strong></div></div></div>
   <div class="review-callout{review_callout_class}">{_esc(visible_review_note)}</div>
 </section>
 
 <section id="trade-performance">
-  <div class="section-head"><div><p class="section-kicker">02 · PERFORMANCE</p><h2>交易绩效</h2><p class="section-subtitle">正式绩效只使用已核验的 T+1 执行路径；研究快照另行展示。</p></div></div>
+  <div class="section-head"><div><p class="section-kicker">02 · PERFORMANCE · 交易绩效</p><h2>策略规则绩效</h2><p class="section-subtitle">假设每个信号严格按 trigger 入场、stop / target 规则价退出；买入当日不可卖出，遵守 A 股 T+1。规则价模拟不代表用户真实成交。</p></div></div>
   {_trade_performance_html(trade_performance, new_signal_count=watchlist_count, list_date=metadata.get('list_date', '—'), earliest_execution=metadata.get('earliest_execution', '—'))}
 </section>
 
@@ -1694,7 +1774,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
 
 <section id="anomalies">
   <div class="section-head"><div><p class="section-kicker">06 · DATA QUALITY</p><h2>数据质量</h2><p class="section-subtitle">只显示需要关注的异常；正常采集状态合并为单一提示。</p></div></div>
-  {_quality_table(quality_rows, performance=trade_performance, summary=summary, acquisition_status=overview.get('acquisition_status', _UNVERIFIED), review_status=model.review_status)}
+  {_quality_table(quality_rows, performance=trade_performance, audit_performance=audit_performance, summary=summary, acquisition_status=overview.get('acquisition_status', _UNVERIFIED), review_status=model.review_status)}
 </section>
 
 <details id="audit">
@@ -1705,6 +1785,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
     <p class="note">内部复盘摘要</p><pre class="audit-text">{audit_summary}</pre>
     <p class="note">内部异常记录</p><pre class="audit-text">{issue_summary}</pre>
     {audit_html}
+    {rule_excluded_audit_html}
   </div>
 </details>
 <footer>本报告仅整理正式观察名单与 tracker 的真实记录。缺少记录统一显示为 —，不回填历史行情。</footer>
