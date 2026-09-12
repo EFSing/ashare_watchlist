@@ -249,6 +249,7 @@ def _calendar(holidays=None):
 
 def _acquire(
     *,
+    as_of_date=AS_OF,
     now_bjt=NOW,
     akshare_module=None,
     hithink_client=None,
@@ -259,13 +260,16 @@ def _acquire(
     **kwargs,
 ):
     return live.acquire_live_generation_inputs(
-        AS_OF,
+        as_of_date,
         now_bjt=now_bjt,
         calendar=calendar or _calendar(),
         sina_module=akshare_module or FakeAkShare(),
         akshare_version="1.18.94",
-        hithink_client=hithink_client or FakeHiThink(),
-        request_get=request_get or _request_get(),
+        hithink_client=hithink_client or FakeHiThink(
+            bars=_bars(last_date=as_of_date),
+            index_bars=_bars(last_date=as_of_date),
+        ),
+        request_get=request_get or _request_get(quote_date=as_of_date, bars=_bars(last_date=as_of_date)),
         quote_retries=1,
         kline_retries=1,
         stock_bar_count=stock_bar_count,
@@ -294,6 +298,68 @@ def test_wrong_observation_date_is_rejected_without_current_data_backfill():
     assert caught.value.status == INPUT_DATE_MISMATCH
     assert ak.member_calls == []
     assert calls == []
+
+
+def test_weekend_backfill_requires_explicit_opt_in_before_provider_calls():
+    calls = []
+    with pytest.raises(live.LiveAcquisitionError) as caught:
+        _acquire(
+            as_of_date="2026-09-11",
+            now_bjt="2026-09-12T15:05:00+08:00",
+            request_get=_request_get(calls=calls, quote_date="2026-09-11"),
+        )
+
+    assert caught.value.status == INPUT_DATE_MISMATCH
+    assert calls == []
+
+
+def test_authorized_weekend_backfill_preserves_t_signal_date_and_actual_retrieval_date():
+    package = _acquire(
+        as_of_date="2026-09-11",
+        now_bjt="2026-09-12T15:05:00+08:00",
+        allow_weekend_backfill=True,
+    )
+
+    assert package.generation_input_manifest.signal_date == "2026-09-11"
+    assert package.generation_input_manifest.quote_snapshot.retrieved_at_bjt.startswith("2026-09-12")
+    assert package.provenance["retrieved_at_bjt"].startswith("2026-09-12")
+    assert package.provenance["actual_retrieved_at_bjt"] == package.provenance["retrieved_at_bjt"]
+    assert package.provenance["acquisition_timing"] == live.AUTHORIZED_WEEKEND_BACKFILL
+    assert package.provenance["target_session"] == "2026-09-11"
+    assert package.provenance["actual_acquisition_date"] == "2026-09-12"
+    assert package.generation_input_manifest.run_context.provider_version_metadata["acquisition_timing"] == (
+        live.AUTHORIZED_WEEKEND_BACKFILL
+    )
+    assert package.generation_input_manifest.quote_snapshot.temporal_semantics == "LIVE_OBSERVED"
+
+
+@pytest.mark.parametrize(
+    ("as_of_date", "now_bjt"),
+    [
+        ("2026-09-10", "2026-09-12T15:05:00+08:00"),
+        ("2026-09-11", "2026-09-14T15:05:00+08:00"),
+    ],
+)
+def test_weekend_backfill_does_not_cross_or_end_on_another_trading_session(as_of_date, now_bjt):
+    with pytest.raises(live.LiveAcquisitionError) as caught:
+        _acquire(
+            as_of_date=as_of_date,
+            now_bjt=now_bjt,
+            allow_weekend_backfill=True,
+        )
+
+    assert caught.value.status == INPUT_DATE_MISMATCH
+
+
+def test_weekend_backfill_rejects_non_trading_target_session():
+    with pytest.raises(live.LiveAcquisitionError) as caught:
+        _acquire(
+            as_of_date="2026-09-12",
+            now_bjt="2026-09-13T15:05:00+08:00",
+            allow_weekend_backfill=True,
+        )
+
+    assert caught.value.status == "CALENDAR_ERROR"
 
 
 def test_sector_provider_unavailable_fails_closed():

@@ -37,6 +37,7 @@ import requests
 
 from b_breakout_retest_v1_1 import STRATEGY_SPEC_SHA256, STRATEGY_VERSION
 from generation_contract import (
+    AUTHORIZED_WEEKEND_BACKFILL,
     ASIA_SHANGHAI,
     EXCHANGE_CALENDARS_VERSION,
     FUTURE_DATA_DETECTED,
@@ -261,12 +262,16 @@ class TCloseEvidenceStore:
         as_of_date: date | datetime | str,
         *,
         code_git_sha: str | None = None,
+        actual_retrieved_at_bjt: datetime | str | None = None,
     ) -> None:
         self.root = Path(root)
         self.as_of_date = _canonical_date(as_of_date)
         self.code_git_sha = (
             code_git_sha or os.environ.get("ASHARE_CODE_GIT_SHA") or "UNKNOWN_ORIGIN"
         ).strip() or "UNKNOWN_ORIGIN"
+        self.actual_retrieved_at_bjt = _timestamp_text(
+            _canonical_timestamp(actual_retrieved_at_bjt or datetime.now(_BJT))
+        )
         self._latest: dict[str, CaptureRecord] = {}
         self._records: dict[tuple[str, str], CaptureRecord] = {}
 
@@ -365,7 +370,7 @@ class TCloseEvidenceStore:
         metadata: dict[str, Any] = {
             "schema_version": CAPTURE_SCHEMA,
             "target_date": self.as_of_date,
-            "actual_retrieved_at_bjt": _timestamp_text(datetime.now(_BJT)),
+            "actual_retrieved_at_bjt": self.actual_retrieved_at_bjt,
             "provider": provider,
             "source_identity": source_identity,
             "provider_version": provider_version,
@@ -1347,7 +1352,15 @@ def _runtime_versions(akshare_version: str) -> dict[str, Any]:
     }
 
 
-def _validate_close_window(as_of_date: str, now_bjt: datetime, calendar: TradingCalendar) -> datetime:
+def _validate_close_window(
+    as_of_date: str,
+    now_bjt: datetime,
+    calendar: TradingCalendar,
+    *,
+    allow_weekend_backfill: bool = False,
+) -> datetime:
+    if not isinstance(allow_weekend_backfill, bool):
+        _fail(INPUT_DATE_MISMATCH, "allow_weekend_backfill must be a boolean")
     try:
         if not calendar.is_trading_day(as_of_date):
             _fail("CALENDAR_ERROR", f"as_of_date {as_of_date} is not an XSHG trading session")
@@ -1361,8 +1374,40 @@ def _validate_close_window(as_of_date: str, now_bjt: datetime, calendar: Trading
     if session_close.tzinfo is None:
         _fail("CALENDAR_ERROR", "XSHG session close must be timezone-aware")
     session_close = session_close.astimezone(_BJT)
-    if now_bjt.date().isoformat() != as_of_date:
-        _fail(INPUT_DATE_MISMATCH, f"observation date {now_bjt.date().isoformat()} != as_of_date {as_of_date}")
+    observed_date = now_bjt.date()
+    target_date = date.fromisoformat(as_of_date)
+    if observed_date == target_date:
+        if now_bjt < session_close:
+            _fail(
+                SESSION_NOT_CLOSED,
+                f"now_bjt {now_bjt.isoformat()} is before session close {session_close.isoformat()}",
+            )
+        return session_close
+    if not allow_weekend_backfill:
+        _fail(INPUT_DATE_MISMATCH, f"observation date {observed_date.isoformat()} != as_of_date {as_of_date}")
+    if observed_date < target_date:
+        _fail(INPUT_DATE_MISMATCH, f"observation date {observed_date.isoformat()} precedes as_of_date {as_of_date}")
+    try:
+        if calendar.is_trading_day(observed_date):
+            _fail(
+                INPUT_DATE_MISMATCH,
+                f"weekend backfill acquisition date {observed_date.isoformat()} is an XSHG trading session",
+            )
+        current = target_date + timedelta(days=1)
+        while current < observed_date:
+            if calendar.is_trading_day(current):
+                _fail(
+                    INPUT_DATE_MISMATCH,
+                    "weekend backfill crosses an intervening XSHG trading session "
+                    f"{current.isoformat()}",
+                )
+            current += timedelta(days=1)
+    except LiveAcquisitionError:
+        raise
+    except CalendarUnavailable as exc:
+        _fail("CALENDAR_ERROR", str(exc))
+    except Exception as exc:
+        _fail("CALENDAR_ERROR", f"XSHG calendar failed: {type(exc).__name__}")
     if now_bjt < session_close:
         _fail(SESSION_NOT_CLOSED, f"now_bjt {now_bjt.isoformat()} is before session close {session_close.isoformat()}")
     return session_close
@@ -2350,8 +2395,28 @@ class LiveInputPackage:
         if not isinstance(retrieved_at, str):
             _fail(INPUT_DATE_MISMATCH, "provenance.retrieved_at_bjt is missing")
         retrieved_at_dt = _canonical_timestamp(retrieved_at)
-        if retrieved_at_dt.date().isoformat() != self.generation_input_manifest.signal_date:
-            _fail(INPUT_DATE_MISMATCH, "provenance.retrieved_at_bjt does not equal signal date")
+        acquisition_timing = provenance.get("acquisition_timing")
+        manifest_timing = self.generation_input_manifest.run_context.provider_version_metadata.get(
+            "acquisition_timing"
+        )
+        if acquisition_timing == AUTHORIZED_WEEKEND_BACKFILL:
+            if manifest_timing != AUTHORIZED_WEEKEND_BACKFILL:
+                _fail(INPUT_CONFLICT, "weekend backfill timing is missing from the generation manifest")
+            actual_retrieved_at = provenance.get("actual_retrieved_at_bjt")
+            if not isinstance(actual_retrieved_at, str):
+                _fail(INPUT_DATE_MISMATCH, "weekend backfill actual_retrieved_at_bjt is missing")
+            actual_retrieved_at_dt = _canonical_timestamp(actual_retrieved_at)
+            if actual_retrieved_at_dt != retrieved_at_dt:
+                _fail(INPUT_DATE_MISMATCH, "weekend backfill retrieval timestamps do not match")
+            if actual_retrieved_at_dt.date().isoformat() <= self.generation_input_manifest.signal_date:
+                _fail(INPUT_DATE_MISMATCH, "weekend backfill actual retrieval must follow the target session")
+        else:
+            if acquisition_timing is not None:
+                _fail(INPUT_CONFLICT, "unsupported acquisition timing marker")
+            if manifest_timing is not None:
+                _fail(INPUT_CONFLICT, "generation manifest acquisition timing is unsupported")
+            if retrieved_at_dt.date().isoformat() != self.generation_input_manifest.signal_date:
+                _fail(INPUT_DATE_MISMATCH, "provenance.retrieved_at_bjt does not equal signal date")
         candidate = provenance.get("candidate")
         if not isinstance(candidate, Mapping):
             _fail(INPUT_CONFLICT, "provenance candidate identity is missing")
@@ -2497,6 +2562,7 @@ def acquire_live_generation_inputs(
     *,
     calendar: TradingCalendar | None = None,
     now_bjt: datetime | str | None = None,
+    allow_weekend_backfill: bool = False,
     akshare_module: ModuleType | Any | None = None,
     akshare_version: str | None = None,
     request_get: Callable[..., Any] | None = None,
@@ -2523,12 +2589,23 @@ def acquire_live_generation_inputs(
     target_date = _canonical_date(as_of_date)
     observed_at = _canonical_timestamp(now_bjt or datetime.now(_BJT))
     cal = calendar or default_calendar()
-    _validate_close_window(target_date, observed_at, cal)
+    _validate_close_window(
+        target_date,
+        observed_at,
+        cal,
+        allow_weekend_backfill=allow_weekend_backfill,
+    )
+    weekend_backfill = observed_at.date().isoformat() != target_date
     if stock_bar_count <= 0 or index_bar_count <= 0:
         _fail(INCOMPLETE_COVERAGE, "bar counts must be positive")
 
     evidence_store = (
-        TCloseEvidenceStore(evidence_root, target_date, code_git_sha=code_git_sha)
+        TCloseEvidenceStore(
+            evidence_root,
+            target_date,
+            code_git_sha=code_git_sha,
+            actual_retrieved_at_bjt=observed_at,
+        )
         if evidence_root is not None
         else None
     )
@@ -3053,6 +3130,16 @@ def acquire_live_generation_inputs(
         "hithink_capability": hithink.capability_report(),
         "akshare_sina_capability": sina.capability_report(),
     }
+    if weekend_backfill:
+        provider_metadata.update(
+            {
+                "acquisition_timing": AUTHORIZED_WEEKEND_BACKFILL,
+                "target_session": target_date,
+                "actual_acquisition_date": observed_at.date().isoformat(),
+                "actual_retrieved_at_bjt": retrieved_at_bjt,
+                "authorization": "explicit user-authorized weekend backfill",
+            }
+        )
     if evidence_store is not None:
         provider_metadata["t_close_evidence"] = {
             "schema_version": CAPTURE_SCHEMA,
@@ -3078,6 +3165,7 @@ def acquire_live_generation_inputs(
             sector,
             calendar=cal,
             provider_version_metadata=provider_metadata,
+            allow_weekend_backfill=weekend_backfill,
         )
     except GenerationContractError as exc:
         raise LiveAcquisitionError(exc.status, str(exc)) from exc
@@ -3101,12 +3189,24 @@ def acquire_live_generation_inputs(
         },
         "sector_membership_quality": copy.deepcopy(sector_quality),
         "universe_scope": _tradable_universe_scope_metadata(),
-        "known_at_rule": "acquisition occurs only when retrieved_at_bjt >= XSHG session close on T",
+        "known_at_rule": (
+            "acquisition occurs after XSHG session close on T during an explicitly authorized "
+            "immediately-following non-trading-day backfill"
+            if weekend_backfill
+            else "acquisition occurs only when retrieved_at_bjt >= XSHG session close on T"
+        ),
         "candidate": {"strategy_version": STRATEGY_VERSION, "spec_sha256": STRATEGY_SPEC_SHA256},
         "calendar": {
             "name": "XSHG",
             "timezone": ASIA_SHANGHAI,
-            "session_close": _timestamp_text(_validate_close_window(target_date, observed_at, cal)),
+            "session_close": _timestamp_text(
+                _validate_close_window(
+                    target_date,
+                    observed_at,
+                    cal,
+                    allow_weekend_backfill=allow_weekend_backfill,
+                )
+            ),
             "earliest_execution_date": manifest.earliest_execution_date,
         },
         "provider_version_metadata": provider_metadata,
@@ -3134,6 +3234,16 @@ def acquire_live_generation_inputs(
             "formal_output_created": False,
         },
     }
+    if weekend_backfill:
+        provenance.update(
+            {
+                "acquisition_timing": AUTHORIZED_WEEKEND_BACKFILL,
+                "target_session": target_date,
+                "actual_acquisition_date": observed_at.date().isoformat(),
+                "actual_retrieved_at_bjt": retrieved_at_bjt,
+                "authorization": "explicit user-authorized weekend backfill",
+            }
+        )
     return LiveInputPackage(manifest, display_names, market_env, provenance)
 
 
