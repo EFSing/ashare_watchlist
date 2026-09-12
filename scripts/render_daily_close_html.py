@@ -119,11 +119,11 @@ def _number(value: Any, digits: int = 2, fallback: str = "—") -> str:
 
 def _percent(value: Any, signed: bool = False) -> str:
     if value is None or value == "":
-        return _UNVERIFIED
+        return "—"
     try:
         number = float(value)
     except (TypeError, ValueError):
-        return _UNVERIFIED
+        return "—"
     prefix = "+" if signed and number > 0 else ""
     return f"{prefix}{number:.2f}%"
 
@@ -172,14 +172,14 @@ def _status_text(status: Any) -> str:
 def _status_class(status: Any) -> str:
     value = str(status or "").upper()
     if "MISSING" in value or "UNVERIFIED" in value or "FAILED" in value:
-        return "missing"
+        return "warning"
     if "AMBIGUOUS" in value or value in {"PENDING", "TRIGGERED", "EXPIRED"}:
         return "warning"
     if "STOP" in value or value == "LOSS":
-        return "loss"
+        return "negative"
     if "TARGET" in value or value in {"WIN", "CAPTURED"}:
-        return "target"
-    return "normal"
+        return "positive"
+    return "neutral"
 
 
 def _package_metadata(paths: DataPaths, list_date: str) -> tuple[str, str]:
@@ -387,7 +387,8 @@ def _review_rows(
                     "signal_id": signal.get("signal_id"),
                     "list_date": signal.get("date"),
                     "review_date": scheduled,
-                    "horizon_return": _percent(return_value, signed=True),
+                    "horizon_return": _percent(return_value, signed=True) if return_value is not None else _UNVERIFIED,
+                    "horizon_return_value": return_value,
                     "path_status": _status_text(path_status),
                     "snapshot_status": snapshot_status,
                     "node_open": point.get("open"),
@@ -785,8 +786,25 @@ def _display_status(value):
         'AMBIGUOUS_SAME_BAR': '同日顺序不明',
         PATH_UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH: '路径未完整验证',
         'CAPTURED': '已记录', 'NOT_CAPTURED': '数据缺失',
-        _T1_PENDING: '等待下一交易日观察', 'VERIFIED': 'VERIFIED',
-        'COMPLETE': 'COMPLETE', 'LOCAL_INPUTS_VERIFIED': '本地输入已验证',
+        _T1_PENDING: '等待下一交易日观察',
+        'VERIFIED': '已核验', 'COMPLETE': '完整',
+        'LOCAL_INPUTS_VERIFIED': '本地输入已核验',
+        'UPLOADED_AND_VERIFIED': '已验证', 'NO_OP_ALREADY_VERIFIED': '已验证',
+        'EXECUTION_VERIFIED': '已核验',
+        EXECUTION_MODEL_DAILY_OHLC_T1_V1: 'T+1 日线执行模型',
+        UNVERIFIED_MISSING_EXECUTION_OBSERVATION: '执行路径待核验',
+        PATH_UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH: '路径未完整验证',
+        'MISSING_HISTORICAL_OBSERVATION': '历史数据缺失',
+        'MISSING_HISTORICAL_OBSERVATION / UNVERIFIED': '历史路径待核验',
+        'REVIEW_OBSERVATION_INCOMPLETE': '复盘覆盖不完整',
+        'REVIEW_FAILED': '复盘读取异常',
+        'EXPIRED_UNTRIGGERED': '到期未触发', 'UNTRIGGERED_ACTIVE': '仍待触发',
+        'NOT_A_CONFIRMED_CLOSED_TRADE': '未纳入正式结案',
+        'TIME_EXIT': '到期退出', 'TIME_EXIT_PENDING_T1': '等待 T+1 退出',
+        'TIME_EXIT_T1_DEFERRED': 'T+1 延后退出',
+        'STOP': '止损', 'TARGET': '目标达成', 'STOP_GAP': '跳空止损',
+        'TARGET_GAP': '跳空达标',
+        'SAMPLE_SMALL': '样本不足', 'SAMPLE_READY': '样本可用',
         _MISSING: '数据缺失', _UNVERIFIED: '待核验',
     }.get(value, value or '数据缺失')
 
@@ -795,8 +813,45 @@ def _ui_badge(value):
     return f'<span class="badge {_status_class(value)}">{_esc(_display_status(value))}</span>'
 
 
-def _simple_table(headers, body, table_id=''):
-    return (f'<div class="table-wrap"><table id="{table_id}"><thead><tr>'
+def _integer(value: Any, fallback: str = '—') -> str:
+    if value is None or value == '':
+        return fallback
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return _text(value, fallback)
+    if number.is_integer():
+        return str(int(number))
+    return f'{number:.2f}'
+
+
+def _signed_number(value: Any, digits: int = 2, fallback: str = '—') -> str:
+    if value is None or value == '':
+        return fallback
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return _text(value, fallback)
+    prefix = '+' if number > 0 else ''
+    return f'{prefix}{number:.{digits}f}'
+
+
+def _numeric_tone(value: Any) -> str:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return 'neutral'
+    if number > 0:
+        return 'positive'
+    if number < 0:
+        return 'negative'
+    return 'neutral'
+
+
+def _simple_table(headers, body, table_id='', table_class=''):
+    table_id_attr = f' id="{_esc(table_id)}"' if table_id else ''
+    class_attr = f' class="{_esc(table_class)}"' if table_class else ''
+    return (f'<div class="table-scroll"><table{table_id_attr}{class_attr}><thead><tr>'
             + ''.join(f'<th>{_esc(h)}</th>' for h in headers)
             + '</tr></thead><tbody>' + ''.join(body) + '</tbody></table></div>')
 
@@ -813,13 +868,16 @@ def _review_table(rows):
                 f"L={_number(row.get('node_low'))} "
                 f"C={_number(row.get('node_close'))}"
                 if any(row.get(key) is not None for key in ('node_open', 'node_high', 'node_low', 'node_close'))
-                else _UNVERIFIED
+                else '—'
             )
-        values += [_esc(node_ohlc), _esc(row.get('horizon_return', _UNVERIFIED)),
+        horizon_return = row.get('horizon_return', _UNVERIFIED)
+        if horizon_return in {_UNVERIFIED, _MISSING, 'N/A'}:
+            horizon_return = '—'
+        values += [_esc(node_ohlc), _esc(horizon_return),
                    _ui_badge(row.get('path_status')), _ui_badge(row.get('snapshot_status')),
                    _esc(row.get('snapshot_source', '已记录'))]
         body.append('<tr>' + ''.join(f'<td>{v}</td>' for v in values) + '</tr>')
-    return _simple_table(('代码', '名称', '名单日期', '节点 O/H/L/C', '节点收益', '路径结果', '节点快照状态', '节点来源'), body)
+    return _simple_table(('代码', '名称', '名单日期', '节点 O/H/L/C', '节点收益', '路径结果', '节点快照状态', '节点来源'), body, table_class='review-table')
 
 
 def _position(distance):
@@ -832,69 +890,184 @@ def _position(distance):
     return '等待触发'
 
 
-def _watchlist_table(rows):
+def _watchlist_table(rows, earliest_execution=None):
     body = []
     for row in rows:
-        values = [_esc(row.get(k)) for k in ('rank', 'code', 'name', 'score')]
-        values += [_esc(_number(row.get(k))) for k in ('close', 'trigger')]
         distance = row['distance_to_trigger_pct']
-        values += [_esc(_percent(distance, signed=True) if distance is not None else '—')
-                   + '<br><small>' + _esc(_position(distance)) + '</small>']
-        values += [_esc(_number(row.get(k))) for k in ('stop', 'target', 'rr')]
-        values += [_ui_badge(row.get('status')), _ui_badge(row.get('observation_status')),
-                   _esc(row.get('status_explanation')), _esc(row.get('sector'))]
         search = ' '.join(str(row.get(k, '')) for k in ('code', 'name', 'sector')).lower()
-        body.append(f'<tr data-search="{_esc(search)}">' + ''.join(f'<td>{v}</td>' for v in values) + '</tr>')
-    return _simple_table(('排名', '代码', '名称', 'Score', '收盘', 'Trigger', '距 Trigger',
-                          'Stop', 'Target', 'RR', '当前状态', '观察状态', '状态解释', '行业'), body, 'watchlist-table')
+        distance_value = _percent(distance, signed=True) if distance is not None else '—'
+        distance_tone = _numeric_tone(distance)
+        status = row.get('status')
+        observation_status = row.get('observation_status')
+        body.append(
+            f'<article class="watch-row" data-search="{_esc(search)}">'
+            f'<div class="watch-primary">'
+            f'<span class="watch-rank">{_esc(_integer(row.get("rank"), ""))}</span>'
+            f'<div class="security"><strong>{_esc(row.get("code"))}</strong>'
+            f'<span>{_esc(row.get("name"))}</span></div>'
+            f'<div class="watch-score"><span>Score</span><strong>{_esc(_integer(row.get("score")))}</strong></div>'
+            f'<div class="watch-state">{_ui_badge(observation_status)}'
+            f'<small>{_esc(_display_status(status))}</small></div>'
+            f'</div>'
+            f'<div class="watch-facts">'
+            f'<span><label>触发</label><strong>{_esc(_number(row.get("trigger")))}</strong></span>'
+            f'<span><label>止损</label><strong class="negative">{_esc(_number(row.get("stop")))}</strong></span>'
+            f'<span><label>目标</label><strong class="positive">{_esc(_number(row.get("target")))}</strong></span>'
+            f'<span><label>RR</label><strong>{_esc(_number(row.get("rr")))}</strong></span>'
+            f'<span><label>距触发</label><strong class="{distance_tone}">{_esc(distance_value)}</strong>'
+            f'<small>{_esc(_position(distance))}</small></span>'
+            f'<span><label>T+1</label><strong>{_esc(earliest_execution)}</strong></span>'
+            f'</div>'
+            f'<div class="watch-meta"><span>{_esc(row.get("sector"))}</span>'
+            f'<span>{_esc(row.get("status_explanation"))}</span></div>'
+            f'</article>'
+        )
+    if not body:
+        return '<div id="watchlist-table" class="empty-state">今日暂无新名单。</div>'
+    return f'<div id="watchlist-table" class="watchlist-list">{"".join(body)}</div>'
+
+
+def _daily_note(row: Mapping[str, Any]) -> str:
+    raw_status = row.get('raw_status')
+    if not row.get('observed'):
+        return '当日观察缺失，暂不作交易结论'
+    if raw_status == 'AMBIGUOUS_SAME_BAR':
+        return '同日触及条件，先后顺序无法确认'
+    if row.get('closed_today'):
+        if raw_status == 'win':
+            return '今日目标达成，交易结束'
+        if raw_status == 'loss':
+            return '今日止损，交易结束'
+        if raw_status == 'expired':
+            return '今日到期未触发，交易结束'
+        return '今日结束跟踪'
+    if row.get('new_triggered'):
+        return '今日新触发，进入持仓观察'
+    if raw_status == 'triggered':
+        return '已触发，继续观察'
+    if raw_status == 'pending':
+        return '继续等待触发'
+    return '按当日已记录状态展示'
+
+
+def _daily_tone(row: Mapping[str, Any]) -> str:
+    if row.get('raw_status') in {'win', 'loss'}:
+        return _status_class(row.get('raw_status'))
+    if not row.get('observed') or row.get('raw_status') == 'AMBIGUOUS_SAME_BAR':
+        return 'warning'
+    return 'neutral'
 
 
 def _daily_table(rows):
     if not rows:
-        return '<p class="note">暂无符合条件的记录。</p>'
+        return '<div class="empty-state">暂无需要处理的已核验事件。</div>'
     body = []
     for row in rows:
-        values = [_esc(row.get(k)) for k in ('code', 'name', 'list_date', 'score')]
-        values += [_esc(_number(row.get(k))) for k in
-                   ('original_trigger', 'today_open', 'today_high', 'today_low', 'today_close')]
-        values += [_esc(_percent(row.get('daily_change_pct'), signed=True))]
-        values += [_esc(_percent(row['close_vs_trigger_pct'], signed=True)
-                        if row['close_vs_trigger_pct'] is not None else '—')]
-        values += [_ui_badge(row['path_status']), _ui_badge(row.get('observation_status')),
-                   _esc(row.get('observation_source', '数据缺失')), _esc(row.get('status_explanation'))]
-        body.append('<tr>' + ''.join(f'<td>{v}</td>' for v in values) + '</tr>')
-    return _simple_table(('代码', '名称', '名单日期', 'Score', 'Trigger', '今日开盘',
-                          '今日最高', '今日最低', '今日收盘', '当日涨跌', '收盘较 Trigger %',
-                          'Trigger 状态', 'Observation 状态', '记录来源', '状态解释'), body)
+        change = row.get('daily_change_pct')
+        close_vs_trigger = row.get('close_vs_trigger_pct')
+        body.append(
+            f'<article class="action-row {_daily_tone(row)}">'
+            f'<div class="action-top"><div class="security"><strong>{_esc(row.get("code"))}</strong>'
+            f'<span>{_esc(row.get("name"))}</span></div>'
+            f'<div class="action-status">{_ui_badge(row.get("path_status"))}'
+            f'{_ui_badge(row.get("observation_status"))}</div></div>'
+            f'<div class="action-facts">'
+            f'<span><label>今日开盘</label><strong>{_esc(_number(row.get("today_open")))}</strong></span>'
+            f'<span><label>今日最高</label><strong>{_esc(_number(row.get("today_high")))}</strong></span>'
+            f'<span><label>今日最低</label><strong>{_esc(_number(row.get("today_low")))}</strong></span>'
+            f'<span><label>今日收盘</label><strong>{_esc(_number(row.get("today_close")))}</strong></span>'
+            f'<span><label>当日涨跌</label><strong class="{_numeric_tone(change)}">{_esc(_percent(change, signed=True))}</strong></span>'
+            f'<span><label>收盘较 Trigger %</label><strong class="{_numeric_tone(close_vs_trigger)}">'
+            f'{_esc(_percent(close_vs_trigger, signed=True) if close_vs_trigger is not None else "—")}</strong></span>'
+            f'</div>'
+            f'<div class="action-bottom"><span>{_esc(_daily_note(row))}</span>'
+            f'<small>{_esc(row.get("observation_source", "数据缺失"))}</small></div>'
+            f'</article>'
+        )
+    return f'<div class="action-list">{"".join(body)}</div>'
 
 
-def _quality_table(rows):
-    body = []
-    for row in rows:
-        values = [
-            _esc(row.get("category")),
-            _esc(row.get("count")),
-            _ui_badge(row.get("status")),
-            _esc(row.get("reason")),
-            _esc(row.get("signal_dates")),
+def _active_review_html(rows: list[Mapping[str, Any]]) -> str:
+    """Keep a large passive active-signal inventory out of the first view."""
+
+    if not rows:
+        return _daily_table(rows)
+    if len(rows) <= 8:
+        return _daily_table(rows)
+    return (
+        f'<details class="active-details"><summary>继续观察 · { _integer(len(rows), "0") } 个'
+        '<span class="note">（默认收起）</span></summary>'
+        f'{_daily_table(rows)}</details>'
+    )
+
+
+def _quality_table(
+    rows,
+    *,
+    performance: Mapping[str, Any] | None = None,
+    summary: Mapping[str, Any] | None = None,
+    acquisition_status: str = 'COMPLETE',
+    review_status: str = 'READY',
+):
+    """Render only actionable quality items, using the performance denominator for execution gaps."""
+
+    if performance is not None:
+        summary = summary or {}
+        items = [
+            ('历史执行路径待核验', performance.get('execution_unverified', 0),
+             UNVERIFIED_MISSING_EXECUTION_OBSERVATION,
+             '历史观察记录不完整，不纳入正式绩效样本。'),
+            ('T+1 等待', performance.get('execution_pending', 0),
+             EXECUTION_T_PLUS_1_PENDING,
+             '正常状态：新信号等待下一交易日观察。'),
+            ('同日顺序不明', performance.get('ambiguous', 0),
+             'AMBIGUOUS_SAME_BAR',
+             '保留安全口径，不猜测日内先后顺序。'),
+            ('当日数据缺失', summary.get('daily_missing', 0),
+             _MISSING,
+             '当日观察缺失，暂不作交易结论。'),
         ]
-        body.append("<tr>" + "".join(f"<td>{value}</td>" for value in values) + "</tr>")
-    return _simple_table(("类别", "数量", "状态", "解释", "Signal date"), body)
+        if acquisition_status != 'COMPLETE':
+            items.append(('行情证据', 1, acquisition_status, '行情证据采集状态待确认。'))
+        if review_status == 'REVIEW_FAILED':
+            items.append(('复盘读取', 1, review_status, '复盘读取未完成，名单仍可查看。'))
+        visible = [(label, count, status, reason) for label, count, status, reason in items if count]
+        ok_html = (
+            '<div class="quality-ok"><span class="badge positive">行情证据完整</span>'
+            '<span>采集状态正常。</span></div>'
+            if acquisition_status == 'COMPLETE' else ''
+        )
+    else:
+        visible = [
+            (row.get('category'), row.get('count'), row.get('status'), row.get('reason'))
+            for row in rows if row.get('count')
+        ]
+        ok_html = ''
+
+    if not visible:
+        return ok_html or '<div class="quality-ok"><span class="badge positive">行情证据完整</span><span>未发现新的数据质量异常。</span></div>'
+
+    body = []
+    for label, count, status, reason in visible:
+        body.append(
+            f'<div class="quality-item"><span>{_esc(label)}</span>'
+            f'<strong>{_esc(_integer(count))}</strong>{_ui_badge(status)}'
+            f'<small>{_esc(reason)}</small></div>'
+        )
+    return ok_html + f'<div class="quality-grid">{"".join(body)}</div>'
 
 
 def _rolling_review_html(review: Mapping[str, Any]) -> str:
-    rows = [
-        ("策略", review.get("strategy")),
-        ("Review guard", review.get("status")),
-        ("已验证 execution", f"{review.get('execution_captured', 0)} / {review.get('execution_expected', 0)}"),
-        ("已验证 fixed horizon", f"{review.get('horizon_captured', 0)} / {review.get('horizon_expected', 0)}"),
-        ("execution missing", review.get("execution_missing", 0)),
-        ("horizon missing", review.get("horizon_missing", 0)),
-        ("排除 UNVERIFIED", review.get("unverified_excluded", 0)),
-        ("排除 same-bar", review.get("ambiguous_excluded", 0)),
+    items = [
+        ('执行记录', f"{_integer(review.get('execution_captured'), '0')} / {_integer(review.get('execution_expected'), '0')}"),
+        ('节点快照', f"{_integer(review.get('horizon_captured'), '0')} / {_integer(review.get('horizon_expected'), '0')}"),
+        ('历史路径待核验', _integer(review.get('unverified_excluded'), '0')),
+        ('同日顺序不明', _integer(review.get('ambiguous_excluded'), '0')),
     ]
-    body = [f"<tr><td>{_esc(label)}</td><td>{_esc(value)}</td></tr>" for label, value in rows]
-    return _simple_table(("现有正式计数", "值"), body)
+    return '<div class="coverage-strip">' + ''.join(
+        f'<div><span>{_esc(label)}</span><strong>{_esc(value)}</strong></div>'
+        for label, value in items
+    ) + '</div>'
 
 
 def _performance_value(
@@ -906,58 +1079,101 @@ def _performance_value(
 ) -> str:
     value = performance.get(key)
     if value is None:
-        sample = performance.get("confirmed_closed_count", 0)
-        return f"N/A / sample={sample}" if sample == 0 else "N/A"
+        return '—'
     if percent:
         return _percent(value, signed=signed)
+    if signed:
+        return _signed_number(value)
     return _number(value)
 
 
 def _performance_cards(performance: Mapping[str, Any]) -> str:
     cards = [
-        ("可执行信号", performance.get("eligible_signals")),
-        ("已进入观察期", performance.get("observation_period_signals")),
-        ("已入场", performance.get("entered")),
-        ("触发率", _performance_value(performance, "trigger_rate", percent=True, signed=True)),
-        ("已确认结案", performance.get("confirmed_closed_count")),
-        ("当前持仓", performance.get("open_positions_count")),
-        ("胜率", _performance_value(performance, "win_rate", percent=True)),
-        ("平均收益", _performance_value(performance, "avg_return_pct", percent=True, signed=True)),
-        ("平均盈利", _performance_value(performance, "avg_win_pct", percent=True, signed=True)),
-        ("平均亏损", _performance_value(performance, "avg_loss_pct", percent=True, signed=True)),
-        ("盈亏比", _performance_value(performance, "payoff_ratio")),
-        ("Profit Factor", _performance_value(performance, "profit_factor")),
-        ("期望收益/笔", _performance_value(performance, "expectancy_pct", percent=True, signed=True)),
-        ("平均 R", _performance_value(performance, "avg_r", signed=True)),
-        ("平均持有交易日", _performance_value(performance, "avg_holding_sessions")),
-        ("平均 MFE", _performance_value(performance, "avg_mfe_pct", percent=True, signed=True)),
-        ("平均 MAE", _performance_value(performance, "avg_mae_pct", percent=True, signed=True)),
+        ("胜率", "win_rate", True, False, ""),
+        ("平均收益", "avg_return_pct", True, True, ""),
+        ("盈亏比", "payoff_ratio", False, False, ""),
+        ("Profit Factor", "profit_factor", False, False, "盈利因子"),
+        ("已确认结案", "confirmed_closed_count", False, False, ""),
+        ("当前持仓", "open_positions_count", False, False, ""),
     ]
     return ''.join(
-        f'<div class="card"><div class="card-label">{_esc(label)}</div>'
-        f'<div class="card-value">{_esc(value)}</div></div>'
-        for label, value in cards
+        f'<article class="kpi-card primary-kpi" data-kpi="primary">'
+        f'<div class="kpi-label">{_esc(label)}</div>'
+        f'<div class="kpi-value {_numeric_tone(performance.get(key))}">'
+        f'{_esc(_integer(performance.get(key)) if key in {"confirmed_closed_count", "open_positions_count"} else _performance_value(performance, key, percent=percent, signed=signed))}</div>'
+        f'{f"<small>{_esc(note)}</small>" if note else ""}</article>'
+        for label, key, percent, signed, note in cards
     )
+
+
+def _performance_metric_strip(performance: Mapping[str, Any]) -> str:
+    metrics = [
+        ("触发率", "trigger_rate", True, True),
+        ("已入场", "entered", False, False),
+        ("平均盈利", "avg_win_pct", True, True),
+        ("平均亏损", "avg_loss_pct", True, True),
+        ("期望收益", "expectancy_pct", True, True),
+        ("平均 R", "avg_r", False, True),
+        ("平均持有", "avg_holding_sessions", False, False),
+        ("平均 MFE", "avg_mfe_pct", True, True),
+        ("平均 MAE", "avg_mae_pct", True, True),
+    ]
+    return '<div class="metric-strip" aria-label="次级绩效指标">' + ''.join(
+        f'<div class="metric-item"><span>{_esc(label)}</span>'
+        f'<strong class="{_numeric_tone(performance.get(key))}">'
+        f'{_esc((_integer(performance.get(key), "0") + "*" if key == "entered" and _entered_has_unverified_path(performance) else _integer(performance.get(key), "0")) if key == "entered" else _performance_value(performance, key, percent=percent, signed=signed))}'
+        f'</strong>{"<small>交易日</small>" if key == "avg_holding_sessions" else ""}</div>'
+        for label, key, percent, signed in metrics
+    ) + '</div>'
+
+
+def _entered_has_unverified_path(performance: Mapping[str, Any]) -> bool:
+    try:
+        entered = int(performance.get('entered') or 0)
+        eligible = int(performance.get('eligible_signals') or 0)
+        unverified = int(performance.get('execution_unverified') or 0)
+    except (TypeError, ValueError):
+        return False
+    return entered > 0 and unverified > 0 and entered > eligible
+
+
+def _performance_funnel(performance: Mapping[str, Any]) -> str:
+    entered_value = _integer(performance.get('entered'), '0')
+    if _entered_has_unverified_path(performance):
+        entered_value += '*'
+    items = [
+        ('总信号', performance.get('total_signals')),
+        ('已进入观察期', performance.get('observation_period_signals')),
+        ('可纳入执行统计', performance.get('eligible_signals')),
+        ('已入场', entered_value),
+        ('未触发到期', performance.get('untriggered_expired')),
+        ('已确认结案', performance.get('confirmed_closed_count')),
+        ('执行路径待核验', performance.get('execution_unverified')),
+    ]
+    return '<div class="funnel">' + ''.join(
+        f'<div class="funnel-item"><span>{_esc(label)}</span><strong>{_esc(value)}</strong></div>'
+        for label, value in items
+    ) + '</div>'
 
 
 def _performance_detail_table(performance: Mapping[str, Any]) -> str:
     rows = [
-        ("Median return", _performance_value(performance, "median_return_pct", percent=True, signed=True)),
-        ("Median R", _performance_value(performance, "median_r", signed=True)),
-        ("Target exits / hit rate", f'{_esc(performance.get("target_exit_count", 0))} / {_esc(_performance_value(performance, "target_hit_rate", percent=True))}'),
-        ("Stop exits / hit rate", f'{_esc(performance.get("stop_exit_count", 0))} / {_esc(_performance_value(performance, "stop_hit_rate", percent=True))}'),
-        ("Time exits / rate", f'{_esc(performance.get("time_exit_count", 0))} / {_esc(_performance_value(performance, "time_exit_rate", percent=True))}'),
-        ("Median holding sessions", _performance_value(performance, "median_holding_sessions")),
-        ("Median MFE", _performance_value(performance, "median_mfe_pct", percent=True, signed=True)),
-        ("Median MAE", _performance_value(performance, "median_mae_pct", percent=True, signed=True)),
-        ("Open MTM average", _performance_value(performance, "open_mtm_avg_return_pct", percent=True, signed=True)),
-        ("Execution verified / unverified / T+1 pending",
+        ("中位收益", _performance_value(performance, "median_return_pct", percent=True, signed=True)),
+        ("中位 R", _performance_value(performance, "median_r", signed=True)),
+        ("止盈次数 / 命中率", f'{_esc(_integer(performance.get("target_exit_count"), "0"))} / {_esc(_performance_value(performance, "target_hit_rate", percent=True))}'),
+        ("止损次数 / 命中率", f'{_esc(_integer(performance.get("stop_exit_count"), "0"))} / {_esc(_performance_value(performance, "stop_hit_rate", percent=True))}'),
+        ("到期退出次数 / 比例", f'{_esc(_integer(performance.get("time_exit_count"), "0"))} / {_esc(_performance_value(performance, "time_exit_rate", percent=True))}'),
+        ("中位持有交易日", _performance_value(performance, "median_holding_sessions")),
+        ("中位 MFE", _performance_value(performance, "median_mfe_pct", percent=True, signed=True)),
+        ("中位 MAE", _performance_value(performance, "median_mae_pct", percent=True, signed=True)),
+        ("当前持仓平均浮动收益", _performance_value(performance, "open_mtm_avg_return_pct", percent=True, signed=True)),
+        ("执行路径：已核验 / 待核验 / 等待 T+1",
          f'{_esc(performance.get("execution_verified", 0))} / '
          f'{_esc(performance.get("execution_unverified", 0))} / '
-         f'{_esc(performance.get("execution_pending", 0))}'),
+          f'{_esc(performance.get("execution_pending", 0))}'),
     ]
     body = [f"<tr><td>{_esc(label)}</td><td>{value if '<' in str(value) else _esc(value)}</td></tr>" for label, value in rows]
-    return _simple_table(("详细交易绩效指标", "值"), body)
+    return _simple_table(("补充交易绩效指标", "值"), body, table_class='metric-detail-table')
 
 
 def _trade_closed_table(rows: list[Mapping[str, Any]]) -> str:
@@ -966,18 +1182,18 @@ def _trade_closed_table(rows: list[Mapping[str, Any]]) -> str:
         "出场原因", "毛收益 %", "R", "持有交易日", "MFE", "MAE",
     )
     if not rows:
-        return _simple_table(headers, [f'<tr><td colspan="{len(headers)}">暂无已确认结案交易。</td></tr>'])
+        return '<div class="empty-state">暂无已核验结案交易。</div>'
     body = []
     for row in rows:
         values = [_esc(row.get("signal_date")), _esc(row.get("code")), _esc(row.get("name")),
                   _esc(row.get("entry_date")), _esc(_number(row.get("entry_price"))),
                   _esc(row.get("sellable_from")), _esc(row.get("exit_date")),
-                  _esc(_number(row.get("exit_price"))), _esc(row.get("exit_reason")),
-                  _esc(_percent(row.get("realized_return_pct"), signed=True)),
-                  _esc(_number(row.get("realized_r"))), _esc(_number(row.get("holding_sessions"))),
-                  _esc(_percent(row.get("mfe_pct"), signed=True)), _esc(_percent(row.get("mae_pct"), signed=True))]
+                   _esc(_number(row.get("exit_price"))), _ui_badge(row.get("exit_reason")),
+                   f'<span class="number {_numeric_tone(row.get("realized_return_pct"))}">{_esc(_percent(row.get("realized_return_pct"), signed=True))}</span>',
+                   _esc(_signed_number(row.get("realized_r"))), _esc(_number(row.get("holding_sessions"))),
+                   _esc(_percent(row.get("mfe_pct"), signed=True)), _esc(_percent(row.get("mae_pct"), signed=True))]
         body.append("<tr>" + "".join(f"<td>{value}</td>" for value in values) + "</tr>")
-    return _simple_table(headers, body)
+    return _simple_table(headers, body, table_class='trade-table')
 
 
 def _trade_open_table(rows: list[Mapping[str, Any]]) -> str:
@@ -986,60 +1202,176 @@ def _trade_open_table(rows: list[Mapping[str, Any]]) -> str:
         "未实现 %", "未实现 R", "MFE", "MAE",
     )
     if not rows:
-        return _simple_table(headers, [f'<tr><td colspan="{len(headers)}">暂无已核验当前持仓。</td></tr>'])
+        return '<div class="empty-state">当前无已核验持仓。</div>'
     body = []
     for row in rows:
         values = [_esc(row.get("signal_date")), _esc(row.get("code")), _esc(row.get("name")),
                   _esc(row.get("entry_date")), _esc(_number(row.get("entry_price"))),
                   _esc(row.get("sellable_from")), _esc(row.get("latest_observation_date")),
                   _esc(_number(row.get("latest_mark_price"))),
-                  _esc(_percent(row.get("unrealized_return_pct"), signed=True)),
-                  _esc(_number(row.get("unrealized_r"))),
-                  _esc(_percent(row.get("mfe_pct"), signed=True)), _esc(_percent(row.get("mae_pct"), signed=True))]
+                   f'<span class="number {_numeric_tone(row.get("unrealized_return_pct"))}">{_esc(_percent(row.get("unrealized_return_pct"), signed=True))}</span>',
+                   _esc(_signed_number(row.get("unrealized_r"))),
+                   _esc(_percent(row.get("mfe_pct"), signed=True)), _esc(_percent(row.get("mae_pct"), signed=True))]
         body.append("<tr>" + "".join(f"<td>{value}</td>" for value in values) + "</tr>")
-    return _simple_table(headers, body)
+    return _simple_table(headers, body, table_class='trade-table')
 
 
 def _trade_excluded_table(rows: list[Mapping[str, Any]]) -> str:
-    headers = ("signal_id", "代码", "名称", "reason", "状态", "execution verification")
+    headers = ("技术 ID", "代码", "名称", "排除原因", "状态", "执行路径")
     if not rows:
-        return _simple_table(headers, [f'<tr><td colspan="{len(headers)}">暂无排除或未核验记录。</td></tr>'])
+        return '<div class="empty-state">暂无排除或待核验记录。</div>'
     body = []
     for row in rows:
         values = [_esc(row.get("signal_id")), _esc(row.get("code")), _esc(row.get("name")),
-                  _esc(row.get("reason")), _ui_badge(row.get("status")),
+                  _ui_badge(row.get("reason")), _ui_badge(row.get("status")),
                   _ui_badge(row.get("execution_verification_status"))]
         body.append("<tr>" + "".join(f"<td>{value}</td>" for value in values) + "</tr>")
-    return _simple_table(headers, body)
+    return _simple_table(headers, body, table_class='audit-table')
 
 
-def _trade_performance_html(performance: Mapping[str, Any]) -> str:
-    sample_label = "SAMPLE_SMALL" if performance.get("sample_small") else "SAMPLE_READY"
-    closed_count = performance.get("confirmed_closed_count", 0)
+def _trade_performance_html(
+    performance: Mapping[str, Any],
+    *,
+    new_signal_count: int = 0,
+    list_date: str = '—',
+    earliest_execution: str = '—',
+) -> str:
+    closed_count = int(performance.get('confirmed_closed_count') or 0)
+    if closed_count == 0:
+        status_html = (
+            '<div class="performance-status warning">'
+            '<span class="badge warning">样本不足</span>'
+            '<div><strong>当前暂无可用于正式绩效统计的已核验结案交易。</strong>'
+            '<small>暂无正式样本的指标统一以 — 显示；已入场但路径待核验的记录不计入结案统计。</small></div>'
+            '</div>'
+        )
+    elif performance.get('sample_small'):
+        status_html = (
+            f'<div class="performance-status warning"><span class="badge warning">样本较小</span>'
+            f'<div><strong>当前已核验结案 {closed_count} 笔，结果仅供阶段性参考。</strong>'
+            '<small>正式统计只使用已核验、非歧义的结案交易。</small></div></div>'
+        )
+    else:
+        status_html = (
+            f'<div class="performance-status ready"><span class="badge positive">统计可用</span>'
+            f'<div><strong>当前已核验结案 {closed_count} 笔。</strong>'
+            '<small>结果按 T+1 日线执行口径展示。</small></div></div>'
+        )
+
+    unverified_count = int(performance.get('execution_unverified') or 0)
+    if closed_count == 0 and unverified_count and new_signal_count:
+        closed_empty = (
+            '<div class="empty-state">'
+            f'<strong>暂无已核验结案交易</strong>'
+            f'<p>当前已有 {unverified_count} 个历史执行路径因观察记录不完整而不纳入正式统计；'
+            f'{new_signal_count} 个 { _esc(list_date) } 新信号等待下一个交易日。</p>'
+            f'<a href="#unverified-excluded">查看未核验样本（{unverified_count}）</a>'
+            '</div>'
+        )
+    else:
+        closed_empty = _trade_closed_table(performance.get('closed_trades', []))
+
+    excluded_rows = performance.get('excluded_rows', [])
     return (
-        f'<p class="callout warning"><strong>{_esc(sample_label)}</strong>：'
-        f'confirmed closed sample = {_esc(closed_count)}；数字仍展示，'
-        f'但不足以代表稳定统计。口径：{_esc(performance.get("return_basis"))}。</p>'
-        f'<div class="cards">{_performance_cards(performance)}</div>'
-        f'<p class="note">样本漏斗：总信号 { _esc(performance.get("total_signals")) } · '
-        f'已进入可执行观察期 { _esc(performance.get("observation_period_signals")) } · '
-        f'execution-path verified 分母 { _esc(performance.get("eligible_signals")) } · '
-        f'已入场 { _esc(performance.get("entered")) } · '
-        f'未触发到期 { _esc(performance.get("untriggered_expired")) } · '
-        f'当前持仓 { _esc(performance.get("open_positions_count")) } · '
-        f'ambiguous { _esc(performance.get("ambiguous")) } · '
-        f'unverified { _esc(performance.get("unverified")) }。</p>'
-        '<p class="note">触发率分母只含已进入至少一个可执行 XSHG session 且 execution path verified 的信号；'
-        'fixed-horizon T+3/T+5/T+10 是 snapshot research return，不是 realized trade P&amp;L。</p>'
-        '<h3>指标明细</h3>'
+        status_html +
+        f'<div class="primary-kpis">{_performance_cards(performance)}</div>'
+        f'<div class="secondary-label"><span>辅助绩效指标</span><small>正式样本不足时显示 —</small></div>'
+        f'{_performance_metric_strip(performance)}'
+        '<div class="subsection-head"><h3>样本漏斗</h3><small>* 表示已入场记录中含待核验执行路径，不纳入正式绩效样本。</small></div>'
+        f'{_performance_funnel(performance)}'
+        '<details class="metric-details"><summary>查看补充统计</summary>'
         f'{_performance_detail_table(performance)}'
-        '<h3>已结案交易</h3>'
-        f'{_trade_closed_table(performance.get("closed_trades", []))}'
-        '<h3>当前持仓</h3>'
-        f'{_trade_open_table(performance.get("open_position_rows", []))}'
-        '<h3>排除 / 未核验</h3>'
-        f'{_trade_excluded_table(performance.get("excluded_rows", []))}'
+        '</details>'
+        '<div class="performance-block"><div class="subsection-head"><h3>当前持仓</h3>'
+        f'<span class="count-label">{_integer(performance.get("open_positions_count"), "0")} 笔</span></div>'
+        f'{_trade_open_table(performance.get("open_position_rows", []))}</div>'
+        '<div class="performance-block"><div class="subsection-head"><h3>已结案交易</h3>'
+        f'<span class="count-label">{_integer(performance.get("confirmed_closed_count"), "0")} 笔</span></div>'
+        f'{closed_empty}</div>'
+        f'<details id="unverified-excluded" class="subtle-details"><summary>历史路径待核验 · {unverified_count}<span class="sr-only">排除 / 未核验</span></summary>'
+        '<p class="note">以下保留技术排除明细；未核验路径不会进入正式绩效样本。</p>'
+        f'{_trade_excluded_table(excluded_rows)}'
+        '</details>'
     )
+
+
+def _average_horizon_return(rows: list[Mapping[str, Any]]) -> str:
+    values = []
+    for row in rows:
+        value = row.get('horizon_return_value')
+        if value is None:
+            rendered = str(row.get('horizon_return') or '')
+            if rendered.endswith('%'):
+                rendered = rendered[:-1]
+            try:
+                value = float(rendered)
+            except (TypeError, ValueError):
+                value = None
+        if isinstance(value, (int, float)):
+            values.append(float(value))
+    return _percent(sum(values) / len(values), signed=True) if values else '—'
+
+
+def _research_panel(horizon: str, title: str, rows: list[Mapping[str, Any]]) -> str:
+    captured = sum(row.get('snapshot_status') == 'CAPTURED' for row in rows)
+    detail = _review_table(rows) if rows else '<p class="empty-state">今日无该节点到期信号。</p>'
+    return (
+        f'<article class="research-panel"><div class="research-panel-head">'
+        f'<div><span class="research-horizon">{_esc(horizon)}</span><h3>{_esc(title)}</h3></div>'
+        f'<span class="badge {"positive" if captured else "neutral"}">{_esc(_integer(captured, "0"))} 已采集</span></div>'
+        f'<div class="research-stats"><div><span>到期</span><strong>{_esc(_integer(len(rows), "0"))}</strong></div>'
+        f'<div><span>已采集</span><strong>{_esc(_integer(captured, "0"))}</strong></div>'
+        f'<div><span>平均收益</span><strong class="{_numeric_tone(_average_horizon_return(rows))}">{_esc(_average_horizon_return(rows))}</strong></div></div>'
+        f'<details class="research-detail"><summary>查看 { _esc(horizon) } 明细</summary>{detail}</details>'
+        '</article>'
+    )
+
+
+def _action_summary(summary: Mapping[str, Any]) -> str:
+    actions = []
+    if summary.get('new_triggered'):
+        actions.append(f"今日新触发 {summary['new_triggered']} 个")
+    if summary.get('target_hits'):
+        actions.append(f"今日止盈 {summary['target_hits']} 个")
+    if summary.get('stop_hits'):
+        actions.append(f"今日止损 {summary['stop_hits']} 个")
+    if summary.get('active_signals'):
+        actions.append(f"当前持仓观察 {summary['active_signals']} 个")
+    if summary.get('previous_pending'):
+        actions.append(f"继续等待 {summary['previous_pending']} 个")
+    return '；'.join(actions) if actions else '昨日无需要执行的已核验交易事件'
+
+
+def _friendly_data_state(model: ReportModel, overview: Mapping[str, Any]) -> str:
+    if model.review_status == 'REVIEW_FAILED':
+        return '待处理'
+    if model.review_status == REVIEW_OBSERVATION_INCOMPLETE:
+        return '覆盖不完整'
+    if overview.get('acquisition_status') != 'COMPLETE':
+        return '待核验'
+    return 'READY'
+
+
+def _status_pill(label: str, value: str, tone: str = 'neutral') -> str:
+    return f'<span class="status-pill {tone}"><span>{_esc(label)}</span><strong>{_esc(value)}</strong></span>'
+
+
+def _audit_metadata_html(metadata: Mapping[str, Any]) -> str:
+    labels = {
+        'list_date': '名单日期', 'review_date': '报告日期', 'previous_date': '上一交易日',
+        'earliest_execution': '最早执行日', 'strategy': '策略版本',
+        'frozen_candidate': '候选身份冻结', 'package_sha': '输入包 SHA',
+        'generation_fingerprint': '生成 fingerprint', 'watchlist_sha': 'watchlist SHA',
+        'candidate_count': '候选数量', 'report_generated_at': '生成时间',
+        'review_guard': '复盘 guard', 'execution_coverage': '执行覆盖',
+        'horizon_coverage': '节点覆盖', 'recovery_policy': '恢复策略',
+        'recovery_evidence_root': '恢复证据根目录', 'recovery_integrity': '恢复完整性',
+        'recovery_provider_calls': '恢复 provider calls',
+    }
+    return '<dl class="audit-metadata">' + ''.join(
+        f'<div><dt>{_esc(labels.get(key, key))}</dt><dd><code>{_esc(value)}</code></dd></div>'
+        for key, value in metadata.items()
+    ) + '</dl>'
 
 
 def render_html(model: ReportModel) -> str:
@@ -1054,168 +1386,338 @@ def render_html(model: ReportModel) -> str:
         {"version": 2, "signals": {}},
         metadata.get("review_date", date.today().isoformat()),
     )
-    cards = [
-        ('T-close 日期', overview.get('t_close_date', metadata['review_date'])),
-        ('今日新名单', overview.get('new_watchlist_count', metadata['candidate_count'])),
-        ('昨日信号', overview.get('previous_signal_count', 0)),
-        ('昨日 triggered', overview.get('triggered_count', 0)),
-        ('昨日 pending / 未触发', overview.get('pending_count', 0)),
-        ('昨日 same-bar', overview.get('ambiguous_count', 0)),
-        ('UNVERIFIED / 数据质量例外', overview.get('quality_exception_count', 0)),
-        ('acquisition', overview.get('acquisition_status', _UNVERIFIED)),
-        ('review', overview.get('review_status', _UNVERIFIED)),
-        ('cloud checkpoint', overview.get('cloud_checkpoint_status', _UNVERIFIED)),
-    ]
-    card_html = ''.join(f'<div class="card"><div class="card-label">{label}</div>'
-                        f'<div class="card-value">{_esc(value)}</div></div>' for label, value in cards)
-    metadata_html = ''.join(f'<div class="meta-item"><span>{_esc(k)}</span>'
-                            f'<strong>{_esc(v)}</strong></div>' for k, v in metadata.items())
+
     audit_rows = model.watchlist_rows + model.previous_signals + model.active_signals + model.closed_today
     audit_rows += [r for rows in model.review_sections.values() for r in rows]
     audit_by_id = {}
     for row in audit_rows:
-        audit_by_id.setdefault(row['signal_id'], {}).update({k: v for k, v in row.items() if v is not None})
+        key = row.get('signal_id') or f"{row.get('code', 'unknown')}:{row.get('list_date', '')}"
+        audit_by_id.setdefault(key, {}).update({k: v for k, v in row.items() if v is not None})
     audit_rows = list(audit_by_id.values())
-    audit_html = ''.join('<tr>' + ''.join(f'<td>{_esc(row.get(k))}</td>' for k in
-                        ('code', 'signal_id', 'setup', 'status', 'raw_status', 'path_status',
-                         'snapshot_status', 'snapshot_source', 'observation_source', 'source_mode'))
-                        + '</tr>' for row in audit_rows)
-    audit_html = _simple_table(('代码', 'signal_id', 'Setup', 'technical status', 'raw status',
-                               'Execution / Path Result', 'Fixed Horizon Snapshot', 'Snapshot Source',
-                               'Execution Source', 'Source Mode'), [audit_html])
-    issues = [a for a in model.anomalies if a != 'NONE']
-    anomaly_html = (
-        '<p class="note">其他异常：' + _esc('；'.join(issues)) + '</p>'
-        if issues else '<p class="note">其他异常：无</p>'
+    audit_body = [
+        '<tr>' + ''.join(f'<td>{_esc(row.get(k))}</td>' for k in
+                         ('code', 'signal_id', 'setup', 'status', 'raw_status', 'path_status',
+                          'snapshot_status', 'snapshot_source', 'observation_source', 'source_mode'))
+        + '</tr>' for row in audit_rows
+    ]
+    audit_html = _simple_table(
+        ('代码', 'signal_id', 'Setup', 'technical status', 'raw status',
+         'Execution / Path Result', 'Fixed Horizon Snapshot', 'Snapshot Source',
+         'Execution Source', 'Source Mode'),
+        audit_body,
+        table_class='audit-table',
     )
-    review_html = []
-    for horizon, label in (('T+5', 'T+5 PRIMARY REVIEW'), ('T+3', 'T+3 短期复盘'),
-                           ('T+10', 'T+10 EXTENSION / CLOSURE')):
-        rows = model.review_sections[horizon]
-        if rows:
-            review_html.append(f'<div class="horizon {"primary" if horizon == "T+5" else ""}">'
-                               f'<h3>{label}</h3>{_review_table(rows)}</div>')
-        else:
-            review_html.append(f'<p class="note" aria-label="{label}">今日无 {horizon} 到期信号</p>')
-
-    callout_class = (
-        ' warning'
-        if model.review_status == REVIEW_OBSERVATION_INCOMPLETE
-        or (model.review_coverage and model.review_coverage.get('status') == REVIEW_OBSERVATION_INCOMPLETE)
-        else ''
+    sample_label = 'SAMPLE_SMALL' if trade_performance.get('sample_small') else 'SAMPLE_READY'
+    empty_sample_label = 'N/A / sample=0' if not trade_performance.get('confirmed_closed_count') else 'N/A'
+    technical_audit = (
+        '<div class="audit-technical"><div><span>内部样本状态</span><code>'
+        f'{_esc(sample_label)}</code></div><div><span>空样本兼容标记</span><code>'
+        f'{_esc(empty_sample_label)}</code></div><div><span>执行模型</span><code>'
+        f'{_esc(EXECUTION_MODEL_DAILY_OHLC_T1_V1)}</code></div><div><span>缺失执行状态</span><code>'
+        f'{_esc(UNVERIFIED_MISSING_EXECUTION_OBSERVATION)}</code></div><div><span>节点标签（内部）</span><code>'
+        'T+5 PRIMARY REVIEW · T+10 EXTENSION / CLOSURE</code></div></div>'
     )
+    audit_summary = _esc(model.summary_text)
+    issue_summary = _esc('；'.join(model.anomalies))
+    acquisition_complete = overview.get('acquisition_status') == 'COMPLETE'
+    cloud_verified = overview.get('cloud_checkpoint_status') == 'VERIFIED'
+    review_ready = model.review_status == 'READY'
+    data_state = _friendly_data_state(model, overview)
+    visible_review_note = (
+        '复盘读取未完成，名单仍可查看；待核验记录不会被当作正式交易。'
+        if model.review_status == 'REVIEW_FAILED' else
+        '部分历史观察尚未完整覆盖；相关记录不进入正式绩效。'
+        if model.review_status == REVIEW_OBSERVATION_INCOMPLETE else
+        _action_summary(summary)
+    )
+    review_callout_class = (
+        ' warning' if model.review_status in {'REVIEW_FAILED', REVIEW_OBSERVATION_INCOMPLETE} else ''
+    )
+    watchlist_count = len(model.watchlist_rows)
+    research_panels = ''.join([
+        _research_panel('T+3', '短期观察', model.review_sections['T+3']),
+        _research_panel('T+5', '主评价', model.review_sections['T+5']),
+        _research_panel('T+10', '延伸观察', model.review_sections['T+10']),
+    ])
 
     return f"""<!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>A股交易系统 — 每日收盘报告</title>
+<title>A股策略复盘 · { _esc(metadata.get('review_date')) }</title>
 <style>
-:root {{ color-scheme: light; --ink:#17212b; --muted:#5d6b78; --line:#dce3e8; --surface:#fff; --bg:#f4f7f9; --accent:#1f6feb; --warn:#9a6700; --loss:#b42318; --target:#087443; --missing:#7a3e00; }}
-* {{ box-sizing:border-box; }}
-body {{ margin:0; background:var(--bg); color:var(--ink); font-family:Arial,"Microsoft YaHei",sans-serif; line-height:1.45; }}
-main {{ max-width:1500px; margin:0 auto; padding:24px; }}
-h1 {{ margin:0 0 6px; font-size:clamp(24px,4vw,36px); }}
-h2 {{ margin:28px 0 8px; font-size:22px; }}
-h3 {{ margin:18px 0 8px; }}
-.subtitle,.note {{ color:var(--muted); margin:4px 0 14px; }}
-.section-summary {{ margin:8px 0 14px; font-weight:600; }}
-.meta-grid {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:8px; margin:20px 0; }}
-.meta-item {{ background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:10px 12px; min-width:0; }}
-.meta-item span {{ display:block; color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.04em; }}
-.meta-item strong {{ display:block; overflow-wrap:anywhere; font-size:13px; }}
-.cards {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin:14px 0 28px; }}
-.card {{ background:var(--surface); border:1px solid var(--line); border-top:4px solid var(--accent); border-radius:8px; padding:12px; }}
-.card.warning {{ border-top-color:var(--warn); }} .card.loss {{ border-top-color:var(--loss); }} .card.target {{ border-top-color:var(--target); }} .card.missing {{ border-top-color:var(--missing); }}
-.card-label {{ color:var(--muted); font-size:12px; }} .card-value {{ font-size:24px; font-weight:700; margin-top:4px; overflow-wrap:anywhere; }}
-section {{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:16px; margin:18px 0; overflow:hidden; }}
-.toolbar {{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:12px 0; }}
-input[type=search] {{ width:min(420px,100%); padding:10px 12px; border:1px solid #aebbc5; border-radius:6px; font-size:15px; }}
-.table-wrap {{ overflow-x:auto; }}
-td {{ font-variant-numeric:tabular-nums; }}
-.primary {{ border-left:4px solid var(--accent); padding-left:14px; }}
-summary {{ cursor:pointer; padding:14px 0; }}
-table {{ border-collapse:collapse; width:100%; min-width:1050px; font-size:13px; }}
-th,td {{ border-bottom:1px solid var(--line); padding:8px 9px; text-align:left; vertical-align:top; white-space:nowrap; }}
-th {{ background:#eef3f6; color:#33404c; position:sticky; top:0; z-index:1; cursor:pointer; }}
-th:hover {{ background:#e2ebf0; }}
-.review-table,.active-table {{ min-width:1250px; }}
-.signal-id {{ font-family:Consolas,monospace; font-size:12px; white-space:normal; min-width:250px; overflow-wrap:anywhere; }}
-.badge {{ display:inline-block; border-radius:999px; border:1px solid currentColor; padding:2px 7px; font-size:12px; line-height:1.4; }}
-.badge.normal {{ color:#38546b; }} .badge.warning {{ color:var(--warn); }} .badge.loss {{ color:var(--loss); }} .badge.target {{ color:var(--target); }} .badge.missing {{ color:var(--missing); }}
-.callout {{ padding:12px 14px; border-left:4px solid var(--accent); background:#edf5ff; margin:12px 0; }}
-.callout.warning {{ border-left-color:var(--warn); background:#fff8e1; }}
-.anomalies {{ margin:0; padding-left:20px; }} .anomalies li {{ margin:5px 0; }}
-.empty {{ color:var(--muted); text-align:center; padding:18px; }}
-code {{ overflow-wrap:anywhere; }}
-footer {{ color:var(--muted); font-size:12px; padding:18px 0 4px; }}
-@media (max-width:700px) {{ main {{ padding:12px; }} section {{ padding:11px; }} th,td {{ padding:7px; }} }}
+:root {{
+  color-scheme: light;
+  --bg: #f3f5f7;
+  --surface: #ffffff;
+  --surface-2: #f7f9fa;
+  --text: #18232d;
+  --muted: #667581;
+  --border: #d9e0e5;
+  --positive: #c43e3e;
+  --negative: #23825a;
+  --warning: #a56700;
+  --accent: #28658a;
+  --radius: 7px;
+}}
+* {{ box-sizing: border-box; }}
+html {{ scroll-behavior: smooth; }}
+body {{ margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; line-height: 1.45; }}
+main {{ width: min(1440px, 100%); margin: 0 auto; padding: 18px 24px 34px; }}
+h1, h2, h3, p {{ margin-top: 0; }}
+h1 {{ margin-bottom: 4px; font-size: clamp(24px, 3vw, 32px); letter-spacing: -.02em; }}
+h2 {{ margin-bottom: 0; font-size: 20px; letter-spacing: -.01em; }}
+h3 {{ margin-bottom: 0; font-size: 15px; }}
+.site-header {{ padding: 2px 0 0; }}
+.header-main {{ display: flex; align-items: flex-start; justify-content: space-between; gap: 28px; padding: 2px 0 14px; }}
+.eyebrow, .section-kicker, .research-horizon {{ color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }}
+.eyebrow {{ margin-bottom: 5px; }}
+.header-strategy {{ color: var(--muted); font-size: 13px; }}
+.header-aside {{ display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px 18px; color: var(--muted); font-size: 13px; text-align: right; }}
+.header-aside strong {{ color: var(--text); font-size: 17px; font-variant-numeric: tabular-nums; }}
+.status-pills {{ display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0 12px; }}
+.status-pill {{ display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--border); border-radius: 999px; padding: 3px 9px; background: var(--surface); color: var(--muted); font-size: 12px; white-space: nowrap; }}
+.status-pill strong {{ color: var(--text); font-weight: 650; }}
+.status-pill.positive {{ border-color: #d8b0b0; color: var(--positive); }}
+.status-pill.positive strong {{ color: var(--positive); }}
+.status-pill.warning {{ border-color: #e4c990; color: var(--warning); }}
+.status-pill.warning strong {{ color: var(--warning); }}
+.section-nav {{ position: sticky; top: 0; z-index: 10; display: flex; gap: 2px; overflow-x: auto; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--bg) 94%, transparent); backdrop-filter: blur(8px); }}
+.section-nav a {{ flex: 0 0 auto; padding: 9px 12px; color: var(--muted); font-size: 13px; text-decoration: none; white-space: nowrap; }}
+.section-nav a:hover, .section-nav a:focus {{ color: var(--accent); background: var(--surface); outline: none; }}
+section {{ margin: 18px 0; padding: 18px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }}
+.toolbar {{ display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0; }}
+input[type=search] {{ width: min(360px, 100%); padding: 8px 10px; border: 1px solid #b7c3cb; border-radius: 5px; background: var(--surface); color: var(--text); font: inherit; font-size: 13px; }}
+.section-head {{ display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 14px; }}
+.section-kicker {{ margin: 0 0 2px; }}
+.section-subtitle, .note {{ margin: 5px 0 0; color: var(--muted); font-size: 13px; }}
+.overview-grid {{ display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(340px, 1fr); gap: 1px; border: 1px solid var(--border); background: var(--border); }}
+.overview-lead, .overview-facts {{ padding: 16px; background: var(--surface-2); }}
+.overview-lead strong {{ display: block; margin: 2px 0 4px; font-size: 20px; }}
+.overview-lead p:last-child {{ margin-bottom: 0; color: var(--muted); font-size: 13px; }}
+.overview-facts {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; background: var(--surface); }}
+.overview-facts span, .metric-item span, .funnel-item span, .research-stats span, .watch-facts label {{ display: block; color: var(--muted); font-size: 12px; }}
+.overview-facts strong {{ display: block; margin-top: 4px; font-size: 14px; font-variant-numeric: tabular-nums; }}
+.review-callout {{ margin: 14px 0 0; padding: 11px 13px; border-left: 3px solid var(--accent); background: #eef5f9; color: var(--text); font-size: 14px; }}
+.review-callout.warning {{ border-left-color: var(--warning); background: #fff8e8; }}
+.primary-kpis {{ display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }}
+.kpi-card {{ min-width: 0; padding: 13px 13px 12px; border: 1px solid var(--border); border-top: 2px solid var(--accent); border-radius: var(--radius); background: var(--surface); }}
+.kpi-label {{ color: var(--muted); font-size: 12px; }}
+.kpi-value {{ margin-top: 7px; color: var(--text); font-size: 25px; font-weight: 720; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }}
+.kpi-value.positive, .number.positive, .metric-item strong.positive, .watch-facts strong.positive, .research-stats strong.positive {{ color: var(--positive); }}
+.kpi-value.negative, .number.negative, .metric-item strong.negative, .watch-facts strong.negative, .research-stats strong.negative {{ color: var(--negative); }}
+.kpi-value.neutral, .number.neutral, .metric-item strong.neutral {{ color: var(--text); }}
+.kpi-card small, .performance-status small {{ display: block; margin-top: 5px; color: var(--muted); font-size: 11px; }}
+.performance-status {{ display: flex; align-items: flex-start; gap: 10px; margin-bottom: 14px; padding: 11px 13px; border: 1px solid var(--border); border-left: 3px solid var(--accent); background: var(--surface-2); }}
+.performance-status.warning {{ border-left-color: var(--warning); background: #fff8e8; }}
+.performance-status strong {{ display: block; font-size: 14px; }}
+.badge {{ display: inline-block; border: 1px solid currentColor; border-radius: 999px; padding: 2px 7px; color: var(--muted); font-size: 11px; line-height: 1.35; white-space: nowrap; }}
+.badge.positive {{ color: var(--positive); }}
+.badge.negative {{ color: var(--negative); }}
+.badge.warning {{ color: var(--warning); }}
+.badge.neutral {{ color: #61727f; }}
+.secondary-label, .subsection-head {{ display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 17px 0 7px; }}
+.secondary-label {{ color: var(--text); font-size: 13px; font-weight: 650; }}
+.secondary-label small, .subsection-head small, .count-label {{ color: var(--muted); font-size: 11px; font-weight: 400; }}
+.metric-strip {{ display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border: 1px solid var(--border); background: var(--border); gap: 1px; }}
+.metric-item {{ min-width: 0; padding: 9px 11px; background: var(--surface-2); }}
+.metric-item strong {{ display: inline-block; margin-top: 3px; font-size: 16px; font-variant-numeric: tabular-nums; }}
+.metric-item small {{ margin-left: 3px; color: var(--muted); font-size: 10px; }}
+.funnel {{ display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 1px; border: 1px solid var(--border); background: var(--border); }}
+.funnel-item {{ min-width: 0; padding: 9px 10px; background: var(--surface-2); }}
+.funnel-item strong {{ display: block; margin-top: 3px; font-size: 17px; font-variant-numeric: tabular-nums; }}
+.performance-block {{ margin-top: 18px; }}
+.empty-state {{ padding: 20px 15px; border: 1px dashed var(--border); background: var(--surface-2); color: var(--muted); text-align: center; }}
+.empty-state strong {{ display: block; color: var(--text); font-size: 15px; }}
+.empty-state p {{ max-width: 680px; margin: 7px auto 0; font-size: 13px; }}
+.empty-state a {{ display: inline-block; margin-top: 10px; color: var(--accent); font-size: 13px; }}
+.watchlist-list {{ display: grid; gap: 7px; }}
+.watch-row {{ padding: 12px 13px; border: 1px solid var(--border); border-left: 3px solid var(--accent); background: var(--surface); }}
+.watch-row:hover, .action-row:hover {{ background: #fbfcfd; border-color: #bdcbd4; }}
+.watch-primary {{ display: grid; grid-template-columns: 28px minmax(170px, 1fr) 90px minmax(150px, auto); align-items: center; gap: 10px; }}
+.watch-rank {{ color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; text-align: center; }}
+.security {{ display: flex; align-items: baseline; gap: 8px; min-width: 0; }}
+.security strong {{ color: var(--text); font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; }}
+.security span {{ min-width: 0; overflow: hidden; color: var(--muted); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }}
+.watch-score {{ text-align: right; }}
+.watch-score span {{ color: var(--muted); font-size: 11px; }}
+.watch-score strong {{ display: block; color: var(--accent); font-size: 19px; font-variant-numeric: tabular-nums; }}
+.watch-state {{ display: flex; align-items: center; justify-content: flex-end; gap: 7px; }}
+.watch-state small {{ color: var(--muted); font-size: 11px; }}
+.watch-facts {{ display: flex; flex-wrap: wrap; gap: 5px 24px; margin: 10px 0 0 38px; }}
+.watch-facts span {{ min-width: 54px; }}
+.watch-facts strong {{ display: block; margin-top: 2px; font-size: 14px; font-variant-numeric: tabular-nums; }}
+.watch-facts span:last-child strong {{ color: var(--text); }}
+.watch-facts small {{ display: block; color: var(--muted); font-size: 10px; }}
+.watch-meta {{ display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 7px 0 0 38px; color: var(--muted); font-size: 11px; }}
+.action-list {{ display: grid; gap: 7px; }}
+.action-row {{ padding: 12px 13px; border: 1px solid var(--border); border-left: 3px solid var(--accent); background: var(--surface); }}
+.action-row.positive {{ border-left-color: var(--positive); }}
+.action-row.negative {{ border-left-color: var(--negative); }}
+.action-row.warning {{ border-left-color: var(--warning); }}
+.action-top {{ display: flex; align-items: center; justify-content: space-between; gap: 12px; }}
+.action-status {{ display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }}
+.action-facts {{ display: grid; grid-template-columns: repeat(6, minmax(90px, 1fr)); gap: 10px; margin-top: 10px; }}
+.action-facts strong {{ display: block; margin-top: 2px; font-size: 13px; font-variant-numeric: tabular-nums; }}
+.action-bottom {{ display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 9px; color: var(--muted); font-size: 12px; }}
+.action-bottom small {{ font-size: 11px; }}
+.research-panels {{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }}
+.research-panel {{ min-width: 0; padding: 13px; border: 1px solid var(--border); background: var(--surface-2); }}
+.research-panel-head {{ display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }}
+.research-horizon {{ display: block; margin-bottom: 2px; }}
+.research-stats {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin: 14px 0; }}
+.research-stats strong {{ display: block; margin-top: 3px; font-size: 15px; font-variant-numeric: tabular-nums; }}
+.research-detail {{ border-top: 1px solid var(--border); }}
+summary {{ cursor: pointer; padding: 9px 0 2px; color: var(--accent); font-size: 12px; }}
+summary:focus {{ outline: 2px solid #9bc0d6; outline-offset: 2px; }}
+.table-scroll {{ width: 100%; overflow-x: auto; }}
+table {{ width: 100%; min-width: 1020px; border-collapse: collapse; font-size: 12px; }}
+th, td {{ padding: 7px 8px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; white-space: nowrap; }}
+th {{ position: sticky; top: 0; z-index: 1; background: #edf2f5; color: #40515e; font-weight: 650; }}
+tbody tr:nth-child(even) {{ background: #fbfcfd; }}
+tbody tr:hover {{ background: #f1f6f8; }}
+td:nth-child(n+4) {{ font-variant-numeric: tabular-nums; }}
+.metric-details {{ margin-top: 12px; }}
+.metric-detail-table {{ min-width: 560px; }}
+.trade-table {{ min-width: 1260px; }}
+.audit-table {{ min-width: 1180px; }}
+.quality-grid {{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }}
+.quality-item {{ display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 10px 11px; border: 1px solid var(--border); background: var(--surface-2); }}
+.quality-item > span {{ color: var(--muted); font-size: 12px; }}
+.quality-item > strong {{ font-size: 18px; font-variant-numeric: tabular-nums; }}
+.quality-item .badge {{ grid-column: 1 / -1; justify-self: start; }}
+.quality-item small {{ grid-column: 1 / -1; color: var(--muted); font-size: 11px; }}
+.quality-ok {{ display: flex; align-items: center; gap: 9px; padding: 11px 12px; border: 1px solid var(--border); background: var(--surface-2); color: var(--muted); font-size: 13px; }}
+.coverage-strip {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; border: 1px solid var(--border); background: var(--border); }}
+.coverage-strip div {{ padding: 9px 10px; background: var(--surface-2); }}
+.coverage-strip strong {{ display: block; margin-top: 3px; font-variant-numeric: tabular-nums; }}
+.subtle-details {{ margin-top: 18px; border-top: 1px solid var(--border); }}
+.subtle-details > summary {{ color: var(--text); font-weight: 650; }}
+#audit, .audit-details {{ margin: 18px 0 0; border: 1px solid var(--border); background: var(--surface-2); }}
+#audit > summary, .audit-details > summary {{ padding: 12px 14px; color: var(--text); font-weight: 650; }}
+.audit-content {{ padding: 0 14px 14px; }}
+.audit-metadata {{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin: 0 0 14px; border: 1px solid var(--border); background: var(--border); }}
+.audit-metadata div {{ min-width: 0; padding: 8px 10px; background: var(--surface); }}
+.audit-metadata dt {{ color: var(--muted); font-size: 11px; }}
+.audit-metadata dd {{ margin: 3px 0 0; overflow-wrap: anywhere; font-size: 12px; }}
+.audit-technical {{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin: 0 0 14px; }}
+.audit-technical div {{ min-width: 0; padding: 8px 10px; border: 1px solid var(--border); background: var(--surface); }}
+.audit-technical span {{ display: block; color: var(--muted); font-size: 11px; }}
+.audit-technical code {{ display: block; margin-top: 3px; overflow-wrap: anywhere; font-size: 11px; }}
+.audit-text {{ max-height: 170px; overflow: auto; padding: 9px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font: 11px/1.45 Consolas, "SFMono-Regular", monospace; white-space: pre-wrap; }}
+code {{ overflow-wrap: anywhere; }}
+footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
+.sr-only {{ position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }}
+@media (max-width: 1050px) {{
+  .primary-kpis {{ grid-template-columns: repeat(3, 1fr); }}
+  .funnel {{ grid-template-columns: repeat(4, 1fr); }}
+  .quality-grid {{ grid-template-columns: repeat(2, 1fr); }}
+}}
+@media (max-width: 760px) {{
+  main {{ padding: 12px 10px 24px; }}
+  .header-main, .section-head {{ display: block; }}
+  .header-aside {{ justify-content: flex-start; margin-top: 12px; text-align: left; }}
+  section {{ padding: 13px; }}
+  .overview-grid {{ grid-template-columns: 1fr; }}
+  .overview-facts {{ grid-template-columns: repeat(3, 1fr); }}
+  .primary-kpis {{ grid-template-columns: repeat(2, 1fr); }}
+  .metric-strip {{ grid-template-columns: repeat(3, 1fr); }}
+  .funnel {{ grid-template-columns: repeat(2, 1fr); }}
+  .watch-primary {{ grid-template-columns: 24px minmax(0, 1fr) auto; }}
+  .watch-state {{ grid-column: 2 / -1; justify-content: flex-start; }}
+  .watch-facts, .watch-meta {{ margin-left: 32px; }}
+  .action-facts {{ grid-template-columns: repeat(3, 1fr); }}
+  .research-panels {{ grid-template-columns: 1fr; }}
+  .coverage-strip {{ grid-template-columns: repeat(2, 1fr); }}
+  .audit-metadata, .audit-technical {{ grid-template-columns: 1fr; }}
+}}
+@media (max-width: 460px) {{
+  .overview-facts {{ grid-template-columns: 1fr; gap: 8px; }}
+  .metric-strip, .action-facts {{ grid-template-columns: repeat(2, 1fr); }}
+  .watch-facts {{ gap: 5px 15px; }}
+}}
 </style>
 </head>
 <body>
 <main>
-<header>
-<h1>A股交易系统 · {metadata['review_date']} 收盘</h1>
-<p class="subtitle">明日执行日：{metadata['earliest_execution']}</p>
-<p class="note">策略：{_esc(metadata['strategy'])} · {'FROZEN CANDIDATE' if metadata['frozen_candidate'] == 'YES' else '状态待核验'}</p>
+<header class="site-header">
+  <div class="eyebrow">A 股策略复盘</div>
+  <div class="header-main">
+    <div><h1>{_esc(metadata.get('review_date'))} · {_esc(metadata.get('strategy'))}</h1>
+      <div class="header-strategy">{_esc(metadata.get('review_date'))} {_esc('周' + '一二三四五六日'[parse_date(metadata.get('review_date')).weekday()])} · T-close</div></div>
+    <div class="header-aside"><span>新名单 <strong>{_esc(_integer(watchlist_count, '0'))}</strong> 只</span><span>最早执行 <strong>{_esc(metadata.get('earliest_execution'))}</strong></span></div>
+  </div>
+  <div class="status-pills">
+    {_status_pill('T+1', '日线', 'neutral')}
+    {_status_pill('证据', '完整' if acquisition_complete else '待核验', 'positive' if acquisition_complete else 'warning')}
+    {_status_pill('复盘', '就绪' if review_ready else '待处理', 'positive' if review_ready else 'warning')}
+    {_status_pill('云端', '已验证' if cloud_verified else '仅本地', 'positive' if cloud_verified else 'neutral')}
+  </div>
+  <nav class="section-nav" aria-label="报告章节导航">
+    <a href="#overview">总览</a><a href="#trade-performance">绩效</a><a href="#tomorrow-watchlist">新名单</a><a href="#daily-review">复盘</a><a href="#formal-review">节点研究</a><a href="#anomalies">数据质量</a>
+  </nav>
 </header>
-<h2>今日总览</h2>
-<div class="cards">{card_html}</div>
-<p class="callout{callout_class}">{_esc(model.summary_text)}</p>
+
+<section id="overview">
+  <div class="section-head"><div><p class="section-kicker">01 · OVERVIEW</p><h2>今日总览</h2><p class="section-subtitle">先看行动信息，再看交易结果；技术细节收纳在审计区。</p></div><span class="badge {_status_class(data_state)}">数据状态：{_esc(data_state)}</span></div>
+  <div class="overview-grid"><div class="overview-lead"><span class="eyebrow">当前阅读重点</span><strong>{_esc(visible_review_note)}</strong><p>本报告按 T+1 执行与已核验记录展示，不对缺失路径作推断。</p></div><div class="overview-facts"><div><span>名单日期</span><strong>{_esc(metadata.get('list_date'))}</strong></div><div><span>最早执行</span><strong>{_esc(metadata.get('earliest_execution'))}</strong></div><div><span>候选数量</span><strong>{_esc(_integer(watchlist_count, '0'))}</strong></div></div></div>
+  <div class="review-callout{review_callout_class}">{_esc(visible_review_note)}</div>
+</section>
+
 <section id="trade-performance">
-<h2>交易绩效 · T+1 可执行口径</h2>
-<p class="note">execution model：{_esc(trade_performance.get('execution_model'))} · 只统计 { _esc(trade_performance.get('strategy')) } · 返回为毛收益，未扣费用与滑点。</p>
-{_trade_performance_html(trade_performance)}
+  <div class="section-head"><div><p class="section-kicker">02 · PERFORMANCE</p><h2>交易绩效</h2><p class="section-subtitle">正式绩效只使用已核验的 T+1 执行路径；研究快照另行展示。</p></div></div>
+  {_trade_performance_html(trade_performance, new_signal_count=watchlist_count, list_date=metadata.get('list_date', '—'), earliest_execution=metadata.get('earliest_execution', '—'))}
 </section>
-<section id="daily-review">
-<h2>昨日信号复盘 · {metadata['previous_date']}</h2>
-<p class="section-summary">总信号 {summary['previous_total']} · triggered {summary['previous_triggered']} · pending / 未触发 {summary['previous_pending']} · same-bar {summary['previous_ambiguous']}。默认按需注意、triggered、pending 排序。</p>
-<h3>昨日名单今日表现 · {metadata['previous_date']}</h3>
-{_daily_table(model.previous_signals)}
-<h3>历史仍在观察</h3>
-{_daily_table(model.active_signals)}
-{('<h3>今日结束</h3>' + _daily_table(model.closed_today)) if model.closed_today else ''}
-</section>
+
 <section id="tomorrow-watchlist">
-<h2>今日新名单 / 明日观察</h2>
-<p class="note">共 {metadata['candidate_count']} 个 · 按 Score 从高到低排列。位置标签仅供阅读，不改变筛选或交易规则。</p>
-<div class="toolbar"><label for="watchlist-search">搜索：</label><input id="watchlist-search" type="search" placeholder="输入代码、名称或行业" autocomplete="off"></div>
-{_watchlist_table(model.watchlist_rows)}
+  <div class="section-head"><div><p class="section-kicker">03 · WATCHLIST</p><h2>今日新名单 · {watchlist_count}</h2><p class="section-subtitle">按 Score 从高到低；触发、止损、目标和 RR 为计划参数。</p></div></div>
+  <div class="toolbar"><label for="watchlist-search" class="note">搜索名单：</label><input id="watchlist-search" type="search" placeholder="输入代码、名称或行业" autocomplete="off"></div>
+  {_watchlist_table(model.watchlist_rows, metadata.get('earliest_execution'))}
 </section>
+
+<section id="daily-review">
+  <div class="section-head"><div><p class="section-kicker">04 · REVIEW</p><h2>昨日 / 活跃信号复盘</h2><p class="section-subtitle">优先显示今日新触发、止盈、止损、持仓与等待事项。</p></div></div>
+  <p class="section-summary">昨日名单今日表现 · {_esc(metadata.get('previous_date'))} · 共 {_esc(_integer(summary.get('previous_total'), '0'))} 个信号</p>
+  <h3>昨日名单今日表现 · {_esc(metadata.get('previous_date'))}</h3>
+  {_daily_table(model.previous_signals)}
+  <h3 class="subsection-title">历史仍在观察 · {_esc(_integer(len(model.active_signals), '0'))}</h3>
+  {_active_review_html(model.active_signals)}
+  {('<h3 class="subsection-title">今日结束 · ' + _esc(_integer(len(model.closed_today), '0')) + '</h3>' + _daily_table(model.closed_today)) if model.closed_today else ''}
+</section>
+
 <section id="formal-review">
-<h2>策略滚动复盘</h2>
-<p class="note">只展示 tracker 已定义且已验证的 execution / fixed-horizon coverage；UNVERIFIED、未成熟窗口和 same-bar 结果不被临时归类或计算新指标。</p>
-{_rolling_review_html(rolling_review)}
-<h3>正式节点明细</h3>
-<p class="note">节点收益是固定期限快照，与触发、目标及止损等路径结果分开记录。</p>
-{''.join(review_html)}
+  <div class="section-head"><div><p class="section-kicker">05 · RESEARCH</p><h2>固定节点研究</h2><p class="section-subtitle">T+3 / T+5 / T+10 为研究快照，不等同于真实交易盈亏。</p></div></div>
+  <div class="research-panels">{research_panels}</div>
+  <details class="metric-details"><summary>查看节点覆盖</summary>{_rolling_review_html(rolling_review)}</details>
 </section>
-<section id="anomalies"><h2>异常与数据质量</h2>
-<p class="note">“今日新信号等待 T+1”是正常状态，不计入缺失；历史缺口、UNVERIFIED、same-bar 和云端/采集状态分别列出。</p>
-{_quality_table(quality_rows)}
-{anomaly_html}
+
+<section id="anomalies">
+  <div class="section-head"><div><p class="section-kicker">06 · DATA QUALITY</p><h2>数据质量</h2><p class="section-subtitle">只显示需要关注的异常；正常采集状态合并为单一提示。</p></div></div>
+  {_quality_table(quality_rows, performance=trade_performance, summary=summary, acquisition_status=overview.get('acquisition_status', _UNVERIFIED), review_status=model.review_status)}
 </section>
-<details id="audit"><summary>审计详情</summary>
-<div class="meta-grid">{metadata_html}</div>
-<p>review status: {_esc(model.review_status)}</p>
-<p>{_esc('；'.join(model.anomalies))}</p>
-{audit_html}
+
+<details id="audit">
+  <summary>技术与审计信息</summary>
+  <div class="audit-content">
+    {_audit_metadata_html(metadata)}
+    {technical_audit}
+    <p class="note">内部复盘摘要</p><pre class="audit-text">{audit_summary}</pre>
+    <p class="note">内部异常记录</p><pre class="audit-text">{issue_summary}</pre>
+    {audit_html}
+  </div>
 </details>
-<footer>本报告仅整理正式观察名单与 tracker 的真实记录。缺少记录显示 —，不回填历史行情。</footer>
+<footer>本报告仅整理正式观察名单与 tracker 的真实记录。缺少记录统一显示为 —，不回填历史行情。</footer>
 </main>
 <script>
 (function () {{
   const search = document.getElementById('watchlist-search');
-  const table = document.getElementById('watchlist-table');
-  if (!search || !table) return;
-  const body = table.querySelector('tbody');
-  const rows = () => Array.from(body.querySelectorAll('tr'));
+  const list = document.getElementById('watchlist-table');
+  if (!search || !list) return;
+  const rows = () => Array.from(list.querySelectorAll('.watch-row'));
   search.addEventListener('input', function () {{
     const query = search.value.trim().toLowerCase();
-    rows().forEach(function (row) {{
-      row.hidden = query !== '' && !(row.dataset.search || '').includes(query);
-    }});
+    rows().forEach(function (row) {{ row.hidden = query !== '' && !(row.dataset.search || '').includes(query); }});
   }});
 }})();
 </script>

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import date, datetime, timezone
 from pathlib import Path
 
@@ -166,11 +167,16 @@ def test_report_information_architecture_has_overview_yesterday_new_list_quality
     text = renderer.render_html(model)
 
     for marker in (
-        "T-close 日期", "昨日信号复盘", "今日新名单 / 明日观察", "策略滚动复盘",
-        "异常与数据质量", "审计详情", "今日新信号，等待下一交易日观察",
+        "T-close", "昨日 / 活跃信号复盘", "今日新名单", "固定节点研究",
+        "数据质量", "技术与审计信息", "今日新信号，等待下一交易日观察",
     ):
         assert marker in text
-    assert text.index('id="daily-review"') < text.index('id="tomorrow-watchlist"') < text.index('id="formal-review"') < text.index('id="anomalies"') < text.index('id="audit"')
+    assert (
+        text.index('id="overview"') < text.index('id="trade-performance"')
+        < text.index('id="tomorrow-watchlist"') < text.index('id="daily-review"')
+        < text.index('id="formal-review"') < text.index('id="anomalies"')
+        < text.index('id="audit"')
+    )
     assert (tmp_path / "data" / "watchlist_20260910.json").read_bytes() == current_before
     assert tracker_path.read_bytes() == tracker_before
     assert current["candidates"][0]["signal_id"] in text
@@ -379,7 +385,7 @@ def test_complete_previous_session_includes_terminal_states(tmp_path, status):
     assert renderer._display_status(status) in main
     assert 'package_sha' not in main
     assert '<details id="audit" open' not in text
-    assert text.index('id="daily-review"') < text.index('id="tomorrow-watchlist"') < text.index('id="formal-review"')
+    assert text.index('id="tomorrow-watchlist"') < text.index('id="daily-review"') < text.index('id="formal-review"')
 
 
 def test_previous_watchlist_missing_tracker_identity_is_not_dropped(tmp_path):
@@ -413,13 +419,13 @@ def test_formal_empty_keeps_rolling_summary_and_primary_is_first(tmp_path):
     _write_tracker(tmp_path, watchlist)
     model = renderer.build_report_model('20260910', paths=_paths(tmp_path), calendar=CALENDAR)
     text = renderer.render_html(model).split('<section id="formal-review">')[1].split('</section>')[0]
-    assert '现有正式计数' in text
-    assert '今日无 T+5 到期信号' in text
+    assert '查看节点覆盖' in text
+    assert '今日无该节点到期信号' in text
     row = dict(code='600001', name='Old', list_date='2026-09-03', horizon_return='+2.00%', path_status='loss', snapshot_status='CAPTURED', signal_id='hidden')
     model.review_sections['T+5'].append(row)
     model.review_sections['T+3'].append(row)
     text = renderer.render_html(model).split('<section id="formal-review">')[1].split('</section>')[0]
-    assert text.index('T+5 PRIMARY REVIEW') < text.index('T+3')
+    assert text.index('查看 T+3 明细') < text.index('查看 T+5 明细')
     assert '止损' in text and '已记录' in text and '+2.00%' in text
     assert 'hidden' not in text
 
@@ -492,10 +498,47 @@ def test_trade_performance_section_is_before_audit_and_keeps_small_sample_visibl
     assert model.trade_performance is not None
     assert text.index('id="trade-performance"') < text.index('id="daily-review"')
     for marker in (
-        '交易绩效', 'SAMPLE_SMALL', '胜率', '平均收益', '平均盈利', '平均亏损',
-        '盈亏比', 'Profit Factor', '期望收益/笔', '平均 R', '平均持有交易日',
-        '平均 MFE', '平均 MAE', 'Median return', '已结案交易', '当前持仓', '排除 / 未核验',
-        'N/A / sample=0',
+        '交易绩效', '样本不足', '胜率', '平均收益', '平均盈利', '平均亏损',
+        '盈亏比', 'Profit Factor', '期望收益', '平均 R', '平均持有',
+        '平均 MFE', '平均 MAE', '中位收益', '已结案交易', '当前持仓', '排除 / 未核验',
+        'SAMPLE_SMALL', 'N/A / sample=0',
     ):
         assert marker in text
     assert dated.read_bytes() == latest.read_bytes()
+
+
+def test_presentation_regression_has_compact_sections_and_collapsed_technical_detail(tmp_path):
+    candidates = [_candidate(f'6000{i:02d}', f'候选{i}', 80 - i) for i in range(5)]
+    watchlist = _write_watchlist(tmp_path, '20260911', candidates)
+    _write_tracker(tmp_path, watchlist)
+
+    model, dated, latest = renderer.render_daily_close('20260911', paths=_paths(tmp_path), calendar=CALENDAR)
+    text = dated.read_text(encoding='utf-8')
+    main = text.split('<details id="audit">', 1)[0]
+    audit = text.split('<details id="audit">', 1)[1]
+
+    assert len(re.findall(r'<article class="kpi-card primary-kpi"', text)) == 6
+    assert text.index('id="trade-performance"') < text.index('id="tomorrow-watchlist"')
+    assert text.index('id="tomorrow-watchlist"') < text.index('id="daily-review"') < text.index('id="formal-review"')
+    assert '<details id="unverified-excluded"' in text
+    assert '<details class="research-detail"><summary>查看 T+3 明细' in text
+    assert text.count('sample=0') <= 1
+    assert 'N/A' not in main
+    for literal in ('UNVERIFIED_MISSING_EXECUTION_OBSERVATION', 'EXECUTION_MODEL_DAILY_OHLC_T1_V1'):
+        assert literal not in main
+        assert literal in audit
+    assert len(re.findall(r'<article class="watch-row"', text)) == 5
+    assert all(candidate['code'] in main and candidate['name'] in main for candidate in candidates)
+    assert '<table class="trade-table">' not in text
+    assert 'font-variant-numeric: tabular-nums' in text
+    assert 'class="positive"' in text and 'class="negative"' in text
+    assert dated.read_bytes() == latest.read_bytes()
+
+
+def test_entered_unverified_paths_are_marked_in_the_compact_funnel():
+    performance = {
+        'entered': 21,
+        'eligible_signals': 0,
+        'execution_unverified': 70,
+    }
+    assert '21*' in renderer._performance_funnel(performance)
