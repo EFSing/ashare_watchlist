@@ -27,7 +27,7 @@
 - formal `B_BREAKOUT_RETEST_LEGACY_V1_1`, spec SHA
   `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`, Main Board-only policy,
   shadow definitions, Final OOS boundary, and historical artifacts are unchanged. Local full
-  regression is `542 passed, 2 skipped, 10 warnings` with a short Windows basetemp.
+  regression is `547 passed, 2 skipped, 11 warnings` with a short Windows basetemp.
 - next action: run clean-room cross-device validation, commit/push source, open the PR, then use
   exact-head CI. Merge and cloud preflight remain gated by the requested correctness checks and
   the configured `HITHINK_FINANCE_API_KEY` secret.

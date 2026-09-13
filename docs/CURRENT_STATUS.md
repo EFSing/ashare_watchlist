@@ -25,7 +25,7 @@ the existing regime definition requires the prior 60 closes plus the current clo
 
 Formal B, spec SHA `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`, Main
 Board-only universe, shadow semantics, Final OOS boundary, and historical artifacts are unchanged.
-Local regression is `542 passed, 2 skipped, 10 warnings`; PR and exact-head CI are pending.
+Local regression is `547 passed, 2 skipped, 11 warnings`; PR and exact-head CI are pending.
 
 ## USER_UNIVERSE_POLICY_DECISION — PR #49 squash-merged; future production universe is Main Board only — 2026-09-13
 
