@@ -47,7 +47,7 @@ _DATE_TOKEN = re.compile(r"^\d{8}$")
 _WATCHLIST_NAME = re.compile(r"^watchlist_\d{8}\.json$")
 _DATED_REPORT_NAME = re.compile(r"^daily_close_\d{8}\.html$")
 _CHECKPOINT_NAME = re.compile(r"^daily_checkpoint_\d{8}\.json$")
-_ALLOWED_TOP_LEVEL = {RUNTIME_STATE_FILE, "data", ".git"}
+_ALLOWED_TOP_LEVEL = {RUNTIME_STATE_FILE, ".gitattributes", "data", ".git"}
 
 
 class RuntimeStateError(ValueError):
