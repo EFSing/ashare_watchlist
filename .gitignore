@@ -38,3 +38,6 @@ data/validation/b_turnover_x_relative_volume_incremental_v1/cohort_manifest.json
 # Operational daily-close HTML is reproducible output, not daily source.
 data/reports/daily_close_*.html
 data/reports/latest.html
+
+# Prospective shadow monitor runtime state; source code and tests are tracked.
+data/shadow_monitor/

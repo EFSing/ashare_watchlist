@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from data_paths import DataPaths
+from b_shadow_monitor import ShadowMonitorError, build_report_view, load_store
 from track_perf import (
     REVIEW_HORIZONS,
     REVIEW_POINT_CAPTURED,
@@ -80,6 +81,7 @@ class ReportModel:
     rolling_review: dict[str, Any] | None = None
     trade_performance: dict[str, Any] | None = None
     execution_audit: dict[str, Any] | None = None
+    shadow_monitor: dict[str, Any] | None = None
 
 
 def _normalize_date(value: date | datetime | str) -> str:
@@ -301,10 +303,49 @@ def _load_review_tracker(
         return None, failures
 
 
+def _load_shadow_monitor(
+    paths: DataPaths,
+    report_date: str,
+    watchlist: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Read shadow state fail-soft; formal report rendering remains available."""
+
+    shadow_path = paths.root / "shadow_monitor" / "b_shadow_monitor.json"
+    if not shadow_path.exists():
+        return build_report_view(None, report_date, watchlist=watchlist)
+    try:
+        store = load_store(shadow_path.parent, missing_ok=False)
+        return build_report_view(store, report_date, watchlist=watchlist)
+    except (OSError, ValueError, ShadowMonitorError) as exc:
+        expected = len(watchlist.get("candidates", [])) if isinstance(watchlist, Mapping) else 0
+        return {
+            "status": "SHADOW_CAPTURE_INCOMPLETE",
+            "epoch_start": None,
+            "as_of_date": report_date,
+            "empty": expected == 0,
+            "overall": {
+                "signals": 0, "eligible": 0, "triggered": 0, "resolved": 0,
+                "target": 0, "stop": 0, "open": 0, "untriggered": 0,
+                "ambiguous": 0, "fast_stop_count": 0, "fast_stop_rate": None,
+                "profit_factor": None, "expectancy": None, "avg_r": None,
+            },
+            "trend_rows": [],
+            "vol_rows": [],
+            "reactivation_rows": [],
+            "reactivation_mode": "CONTINUOUS_MEDIAN_NO_FROZEN_BINS",
+            "current_regime": "—",
+            "current_signal_context": {},
+            "reference_only": {},
+            "capture": {"expected": expected, "complete": 0, "incomplete": expected, "status": "SHADOW_CAPTURE_INCOMPLETE"},
+            "error": f"{type(exc).__name__}: {exc}",
+        }
+
+
 def _watchlist_rows(
     watchlist: Mapping[str, Any],
     tracker: Mapping[str, Any] | None,
     report_date: str,
+    shadow_monitor: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     signals = tracker.get("signals", {}) if isinstance(tracker, Mapping) else {}
     signals = signals if isinstance(signals, Mapping) else {}
@@ -313,6 +354,8 @@ def _watchlist_rows(
         key=lambda item: (-float(item.get("score", float("-inf"))), str(item.get("code", ""))),
     )
     rows: list[dict[str, Any]] = []
+    shadow_context = shadow_monitor.get("current_signal_context", {}) if isinstance(shadow_monitor, Mapping) else {}
+    shadow_context = shadow_context if isinstance(shadow_context, Mapping) else {}
     for rank, candidate in enumerate(candidates, start=1):
         signal = signals.get(candidate.get("signal_id"))
         is_new_signal = str(watchlist.get("date")) == report_date
@@ -343,6 +386,9 @@ def _watchlist_rows(
                 "observation_status": observation_status,
                 "status_explanation": status_explanation,
                 "signal_id": candidate.get("signal_id"),
+                "shadow_context": dict(shadow_context.get(candidate.get("signal_id"), {}))
+                if isinstance(shadow_context.get(candidate.get("signal_id")), Mapping)
+                else {},
             }
         )
     return rows
@@ -550,6 +596,7 @@ def build_report_model(
         calendar=cal,
         historical_provenance=historical_provenance,
     )
+    shadow_monitor = _load_shadow_monitor(resolver, normalized_date, watchlist)
     execution_audit = build_trade_performance_summary(
         performance_tracker,
         normalized_date,
@@ -567,7 +614,7 @@ def build_report_model(
     previous_signals, active_signals, closed_today = _daily_collections(
         tracker, normalized_date, previous_date, resolver, review_failures
     )
-    watchlist_rows = _watchlist_rows(watchlist, tracker, normalized_date)
+    watchlist_rows = _watchlist_rows(watchlist, tracker, normalized_date, shadow_monitor)
 
     anomalies = list(review_failures)
     anomalies.extend(review_issues)
@@ -706,6 +753,15 @@ def build_report_model(
             "signal_dates": normalized_date,
         },
     ]
+    shadow_capture = shadow_monitor.get("capture", {}) if isinstance(shadow_monitor, Mapping) else {}
+    if shadow_capture.get("status") == "SHADOW_CAPTURE_INCOMPLETE":
+        data_quality.append({
+            "category": "Prospective Shadow Monitor",
+            "count": shadow_capture.get("incomplete", 0),
+            "status": "SHADOW_CAPTURE_INCOMPLETE",
+            "reason": f"Shadow monitor data incomplete: {shadow_capture.get('complete', 0)}/{shadow_capture.get('expected', 0)}",
+            "signal_dates": normalized_date,
+        })
     summary = {
         'tracked': len(daily_rows),
         'active_signals': sum(row['raw_status'] in {'pending', 'triggered'} and row['observed'] for row in daily_rows),
@@ -793,6 +849,7 @@ def build_report_model(
         "strategy_rule_performance_model": STRATEGY_RULE_PERFORMANCE_MODEL,
         "strategy_rule_performance_source": trade_performance.get("historical_data_source"),
         "strategy_rule_performance_provider_calls": trade_performance.get("historical_provider_calls", 0),
+        "shadow_monitor_status": shadow_monitor.get("status", "UNVERIFIED"),
     }
     rolling_review = {
         "status": review_coverage.get("status", _UNVERIFIED) if review_coverage else _UNVERIFIED,
@@ -823,6 +880,7 @@ def build_report_model(
         rolling_review=rolling_review,
         trade_performance=trade_performance,
         execution_audit=execution_audit,
+        shadow_monitor=shadow_monitor,
     )
 
 
@@ -953,6 +1011,9 @@ def _watchlist_table(rows, earliest_execution=None):
         distance_tone = _numeric_tone(distance)
         status = row.get('status')
         observation_status = row.get('observation_status')
+        shadow = row.get('shadow_context') if isinstance(row.get('shadow_context'), Mapping) else {}
+        shadow_market = shadow.get('market') or '—'
+        shadow_reactivation = _number(shadow.get('reactivation_vs_breakout_ratio'), 2)
         body.append(
             f'<article class="watch-row" data-search="{_esc(search)}">'
             f'<div class="watch-primary">'
@@ -971,6 +1032,8 @@ def _watchlist_table(rows, earliest_execution=None):
             f'<span><label>距触发</label><strong class="{distance_tone}">{_esc(distance_value)}</strong>'
             f'<small>{_esc(_position(distance))}</small></span>'
             f'<span><label>T+1</label><strong>{_esc(earliest_execution)}</strong></span>'
+            f'<span><label>市场</label><strong>{_esc(shadow_market)}</strong></span>'
+            f'<span><label>再启动量能</label><strong>{_esc(shadow_reactivation)}× breakout</strong></span>'
             f'</div>'
             f'<div class="watch-meta"><span>{_esc(row.get("sector"))}</span>'
             f'<span>{_esc(row.get("status_explanation"))}</span></div>'
@@ -1063,6 +1126,7 @@ def _quality_table(
     summary: Mapping[str, Any] | None = None,
     acquisition_status: str = 'COMPLETE',
     review_status: str = 'READY',
+    shadow_monitor: Mapping[str, Any] | None = None,
 ):
     """Render strategy reconstruction quality separately from prospective audit quality."""
 
@@ -1089,6 +1153,14 @@ def _quality_table(
              _MISSING,
              'prospective review observation 缺失，不回填历史节点。'),
         ]
+        shadow_capture = shadow_monitor.get('capture', {}) if isinstance(shadow_monitor, Mapping) else {}
+        if shadow_capture.get('status') == 'SHADOW_CAPTURE_INCOMPLETE':
+            items.append((
+                'Prospective Shadow Monitor',
+                shadow_capture.get('incomplete', 0),
+                'SHADOW_CAPTURE_INCOMPLETE',
+                f"Shadow monitor data incomplete: {shadow_capture.get('complete', 0)}/{shadow_capture.get('expected', 0)}",
+            ))
         if acquisition_status != 'COMPLETE':
             items.append(('行情证据', 1, acquisition_status, '行情证据采集状态待确认。'))
         if review_status == 'REVIEW_FAILED':
@@ -1442,6 +1514,82 @@ def _audit_metadata_html(metadata: Mapping[str, Any]) -> str:
     ) + '</dl>'
 
 
+def _shadow_monitor_html(shadow: Mapping[str, Any]) -> str:
+    """Render the observational panel without recommendation language."""
+
+    overall = shadow.get("overall", {}) if isinstance(shadow.get("overall"), Mapping) else {}
+    capture = shadow.get("capture", {}) if isinstance(shadow.get("capture"), Mapping) else {}
+    if shadow.get("empty") and not capture.get("incomplete"):
+        return (
+            '<div class="empty-state"><strong>暂无 prospective shadow 样本</strong>'
+            '<p>监控已接入，等待实际部署后的新 canonical B signal；历史信号不回填为 prospective snapshot。</p></div>'
+        )
+    cards = [
+        ("Shadow epoch 起始日", shadow.get("epoch_start") or "—"),
+        ("累计信号", _integer(overall.get("signals"), "0")),
+        ("已触发", _integer(overall.get("triggered"), "0")),
+        ("FAST_STOP", _integer(overall.get("fast_stop_count"), "0")),
+        ("当前 regime", shadow.get("current_regime") or "—"),
+    ]
+    stats = '<div class="metric-strip">' + ''.join(
+        f'<div class="metric-item"><span>{_esc(label)}</span><strong>{_esc(value)}</strong></div>'
+        for label, value in cards
+    ) + '</div>'
+    if capture.get("status") == "SHADOW_CAPTURE_INCOMPLETE":
+        stats += (
+            '<div class="review-callout warning">'
+            f'Shadow monitor data incomplete: {_esc(_integer(capture.get("complete"), "0"))}/'
+            f'{_esc(_integer(capture.get("expected"), "0"))}'
+            '</div>'
+        )
+
+    def market_rows(rows: Any) -> str:
+        if not isinstance(rows, list) or not rows:
+            return '<div class="empty-state">暂无可分层的 market regime 样本。</div>'
+        body = []
+        for row in rows:
+            body.append([
+                _text(row.get("environment")),
+                _integer(row.get("n"), "0"),
+                _integer(row.get("fast_stop_count"), "0"),
+                _percent(row.get("fast_stop_rate")),
+                _number(row.get("profit_factor")),
+                _percent(row.get("expectancy"), signed=True),
+            ])
+        return _simple_table(
+            ("环境", "样本", "FAST_STOP", "FAST_STOP rate", "PF", "Expectancy"),
+            ['<tr>' + ''.join(f'<td>{_esc(cell)}</td>' for cell in row) + '</tr>' for row in body],
+            table_class="metric-detail-table",
+        )
+
+    reactivation_rows = shadow.get("reactivation_rows")
+    if isinstance(reactivation_rows, list) and reactivation_rows:
+        reactivation_body = []
+        for row in reactivation_rows:
+            reactivation_body.append([
+                _text(row.get("bucket")),
+                _integer(row.get("sample"), "0"),
+                _number(row.get("median_reactivation_vs_breakout_ratio")),
+            ])
+        reactivation_html = _simple_table(
+            ("Outcome", "样本", "median reactivation / breakout"),
+            ['<tr>' + ''.join(f'<td>{_esc(cell)}</td>' for cell in row) + '</tr>' for row in reactivation_body],
+            table_class="metric-detail-table",
+        )
+    else:
+        reactivation_html = '<div class="empty-state">暂无 reactivation 描述统计。</div>'
+
+    return (
+        stats
+        + '<div class="secondary-label"><span>Market regime</span><small>仅描述，不参与正式 signal path</small></div>'
+        + '<div class="table-scroll">' + market_rows(shadow.get("trend_rows")) + '</div>'
+        + '<div class="secondary-label"><span>Volatility regime</span><small>固定定义版本 ' + _esc(shadow.get("definition_version", "—")) + '</small></div>'
+        + '<div class="table-scroll">' + market_rows(shadow.get("vol_rows")) + '</div>'
+        + '<div class="secondary-label"><span>Reactivation</span><small>continuous median；无 frozen bins</small></div>'
+        + '<div class="table-scroll">' + reactivation_html + '</div>'
+    )
+
+
 def render_html(model: ReportModel) -> str:
     """Render a self-contained UTF-8 HTML document."""
 
@@ -1514,6 +1662,8 @@ def render_html(model: ReportModel) -> str:
         ' warning' if model.review_status in {'REVIEW_FAILED', REVIEW_OBSERVATION_INCOMPLETE} else ''
     )
     watchlist_count = len(model.watchlist_rows)
+    shadow_monitor = model.shadow_monitor or {}
+    shadow_html = _shadow_monitor_html(shadow_monitor)
     research_panels = ''.join([
         _research_panel('T+3', '短期观察', model.review_sections['T+3']),
         _research_panel('T+5', '主评价', model.review_sections['T+5']),
@@ -1735,7 +1885,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
     {_status_pill('云端', '已验证' if cloud_verified else '仅本地', 'positive' if cloud_verified else 'neutral')}
   </div>
   <nav class="section-nav" aria-label="报告章节导航">
-    <a href="#overview">总览</a><a href="#trade-performance">绩效</a><a href="#tomorrow-watchlist">新名单</a><a href="#daily-review">复盘</a><a href="#formal-review">节点研究</a><a href="#anomalies">数据质量</a>
+    <a href="#overview">总览</a><a href="#trade-performance">绩效</a><a href="#tomorrow-watchlist">新名单</a><a href="#shadow-monitor">Shadow Monitor</a><a href="#daily-review">复盘</a><a href="#formal-review">节点研究</a><a href="#anomalies">数据质量</a>
   </nav>
 </header>
 
@@ -1756,8 +1906,13 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   {_watchlist_table(model.watchlist_rows, metadata.get('earliest_execution'))}
 </section>
 
+<section id="shadow-monitor">
+  <div class="section-head"><div><p class="section-kicker">04 · PROSPECTIVE SHADOW MONITOR</p><h2>Prospective Shadow Monitor</h2><p class="section-subtitle">仅记录市场环境、再启动量能与后续结果；不参与正式名单、评分、排序或交易参数。</p></div></div>
+  {shadow_html}
+</section>
+
 <section id="daily-review">
-  <div class="section-head"><div><p class="section-kicker">04 · REVIEW</p><h2>昨日 / 活跃信号复盘</h2><p class="section-subtitle">优先显示今日新触发、止盈、止损、持仓与等待事项。</p></div></div>
+  <div class="section-head"><div><p class="section-kicker">05 · REVIEW</p><h2>昨日 / 活跃信号复盘</h2><p class="section-subtitle">优先显示今日新触发、止盈、止损、持仓与等待事项。</p></div></div>
   <p class="section-summary">昨日名单今日表现 · {_esc(metadata.get('previous_date'))} · 共 {_esc(_integer(summary.get('previous_total'), '0'))} 个信号</p>
   <h3>昨日名单今日表现 · {_esc(metadata.get('previous_date'))}</h3>
   {_daily_table(model.previous_signals)}
@@ -1767,14 +1922,14 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
 </section>
 
 <section id="formal-review">
-  <div class="section-head"><div><p class="section-kicker">05 · RESEARCH</p><h2>固定节点研究</h2><p class="section-subtitle">T+3 / T+5 / T+10 为研究快照，不等同于真实交易盈亏。</p></div></div>
+  <div class="section-head"><div><p class="section-kicker">06 · RESEARCH</p><h2>固定节点研究</h2><p class="section-subtitle">T+3 / T+5 / T+10 为研究快照，不等同于真实交易盈亏。</p></div></div>
   <div class="research-panels">{research_panels}</div>
   <details class="metric-details"><summary>查看节点覆盖</summary>{_rolling_review_html(rolling_review)}</details>
 </section>
 
 <section id="anomalies">
-  <div class="section-head"><div><p class="section-kicker">06 · DATA QUALITY</p><h2>数据质量</h2><p class="section-subtitle">只显示需要关注的异常；正常采集状态合并为单一提示。</p></div></div>
-  {_quality_table(quality_rows, performance=trade_performance, audit_performance=audit_performance, summary=summary, acquisition_status=overview.get('acquisition_status', _UNVERIFIED), review_status=model.review_status)}
+  <div class="section-head"><div><p class="section-kicker">07 · DATA QUALITY</p><h2>数据质量</h2><p class="section-subtitle">只显示需要关注的异常；正常采集状态合并为单一提示。</p></div></div>
+  {_quality_table(quality_rows, performance=trade_performance, audit_performance=audit_performance, summary=summary, acquisition_status=overview.get('acquisition_status', _UNVERIFIED), review_status=model.review_status, shadow_monitor=shadow_monitor)}
 </section>
 
 <details id="audit">
