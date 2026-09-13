@@ -16,7 +16,7 @@ import os
 import tempfile
 from collections import Counter
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
@@ -33,6 +33,11 @@ from b_breakout_retest_v1_1 import (
     evaluate_universe as evaluate_b_universe,
 )
 from generation_contract import GenerationInputManifest, READY_FOR_STRATEGY_EVALUATION
+from universe_policy import (
+    UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1,
+    is_live_universe_eligible,
+    universe_policy_metadata,
+)
 from watchlist_schema import WatchlistSchemaError, load_watchlist, validate_watchlist
 
 
@@ -96,6 +101,57 @@ B_STRATEGY_BINDING = StrategyBinding(
     evaluate_universe=evaluate_b_universe,
 )
 INVALIDATED_WRONG_EVALUATOR_A_ON_B_INPUT = "INVALIDATED_WRONG_EVALUATOR_A_ON_B_INPUT"
+
+
+def _requires_production_universe_policy(binding: StrategyBinding) -> bool:
+    return (
+        binding.strategy_version == B_STRATEGY_VERSION
+        and binding.strategy_spec_sha256 == B_STRATEGY_SPEC_SHA256
+    )
+
+
+def _apply_b_production_universe_policy(manifest: GenerationInputManifest) -> GenerationInputManifest:
+    """Filter the input view before the bound B evaluator sees any symbol."""
+
+    policy = universe_policy_metadata()
+    metadata = copy.deepcopy(dict(manifest.provider_version_metadata))
+    existing_policy = metadata.get("universe_policy")
+    if existing_policy is not None and existing_policy != UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1:
+        raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, "generation manifest universe policy is unsupported")
+    existing_metadata = metadata.get("universe_policy_metadata")
+    if existing_metadata is not None and existing_metadata != policy:
+        raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, "generation manifest universe policy metadata is invalid")
+
+    original_symbols = tuple(manifest.universe.symbols)
+    eligible_symbols = tuple(symbol for symbol in original_symbols if is_live_universe_eligible(symbol))
+    if not eligible_symbols:
+        raise DevelopmentCandidateError(
+            RUN_EVALUATION_FAILURE,
+            "production universe policy retained no Main Board symbols",
+        )
+
+    metadata["universe_policy"] = UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1
+    metadata["universe_policy_metadata"] = policy
+    filtered_universe = replace(manifest.universe, symbols=eligible_symbols)
+    filtered_quotes = replace(
+        manifest.quote_snapshot,
+        quotes={symbol: manifest.quote_snapshot.quotes[symbol] for symbol in eligible_symbols},
+    )
+    eligible_set = set(eligible_symbols)
+    filtered_klines = tuple(item for item in manifest.stock_klines if item.symbol in eligible_set)
+    filtered_context = replace(
+        manifest.run_context,
+        provider_version_metadata=metadata,
+    )
+    return replace(
+        manifest,
+        run_context=filtered_context,
+        universe=filtered_universe,
+        quote_snapshot=filtered_quotes,
+        stock_klines=filtered_klines,
+        provider_version_metadata=metadata,
+        input_fingerprint=None,
+    )
 
 
 def _binding_for_call(strategy_binding: StrategyBinding | None) -> StrategyBinding:
@@ -428,6 +484,8 @@ def _generation_identity(
         "buy_type": binding.buy_type,
         "auxiliary_inputs": auxiliary_values,
     }
+    if manifest.provider_version_metadata.get("universe_policy") == UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1:
+        payload["universe_policy"] = universe_policy_metadata()
     return _sha256_bytes(_canonical_json(payload)), payload, auxiliary_inputs
 
 
@@ -522,6 +580,9 @@ class DevelopmentCandidateStore:
             "evaluation_counts": dict(sorted(evaluation_counts.items())),
             "candidate_count": candidate_count,
         }
+        if manifest.provider_version_metadata.get("universe_policy") == UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1:
+            record["universe_policy"] = UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1
+            record["universe_policy_metadata"] = universe_policy_metadata()
         if output_sha256 is not None:
             record["output"] = {
                 "logical_identity": f"watchlist_{manifest.signal_date.replace('-', '')}.json",
@@ -610,6 +671,13 @@ class DevelopmentCandidateStore:
             return False
         if generation_payload.get("development_candidate_schema") != DEVELOPMENT_CANDIDATE_SCHEMA:
             return False
+        if "universe_policy" in generation_payload:
+            if (
+                generation_payload.get("universe_policy") != universe_policy_metadata()
+                or record.get("universe_policy") != UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1
+                or record.get("universe_policy_metadata") != universe_policy_metadata()
+            ):
+                return False
         payload_strategy = generation_payload.get("strategy_identity")
         record_strategy = record.get("strategy_identity")
         if not isinstance(payload_strategy, Mapping) or not isinstance(record_strategy, Mapping):
@@ -710,6 +778,8 @@ class DevelopmentCandidateStore:
 
         binding = _binding_for_call(strategy_binding)
         try:
+            if _requires_production_universe_policy(binding):
+                manifest = _apply_b_production_universe_policy(manifest)
             if strategy_binding is not None:
                 _validate_nominated_candidate(binding, input_provenance)
             evaluations = list(binding.evaluate_universe(manifest))
@@ -771,16 +841,17 @@ class DevelopmentCandidateStore:
             candidates.sort(key=lambda item: item["code"])
             if len({item["code"] for item in candidates}) != len(candidates):
                 raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, "multiple symbols collapse to one A-share code")
-            payload = validate_watchlist(
-                {
-                    "date": manifest.signal_date,
-                    "mode": manifest.run_context.mode,
-                    "market_env": copy.deepcopy(dict(market_env)),
-                    "sectors": _sector_payload(list(final_qualified)),
-                    "candidates": candidates,
-                    "strategy_version": binding.strategy_version,
-                }
-            )
+            watchlist_payload = {
+                "date": manifest.signal_date,
+                "mode": manifest.run_context.mode,
+                "market_env": copy.deepcopy(dict(market_env)),
+                "sectors": _sector_payload(list(final_qualified)),
+                "candidates": candidates,
+                "strategy_version": binding.strategy_version,
+            }
+            if manifest.provider_version_metadata.get("universe_policy") == UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1:
+                watchlist_payload["universe_policy"] = UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1
+            payload = validate_watchlist(watchlist_payload)
         except DevelopmentCandidateError as exc:
             generation_fingerprint, generation_payload, auxiliary_inputs = self._identity_for_failure(
                 manifest, binding=binding, names=names, market_env=market_env

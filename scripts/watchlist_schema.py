@@ -29,6 +29,7 @@ TOP_LEVEL_ALLOWED = {
     "sectors",
     "candidates",
     "strategy_version",
+    "universe_policy",
 }
 CANDIDATE_REQUIRED = {
     "code",
@@ -121,6 +122,10 @@ def validate_watchlist(payload: Any) -> dict[str, Any]:
     strategy_version = payload.get("strategy_version", DEFAULT_STRATEGY_VERSION)
     if not isinstance(strategy_version, str) or not strategy_version.strip():
         raise WatchlistSchemaError("strategy_version must be a non-empty string")
+    if "universe_policy" in payload and (
+        not isinstance(payload["universe_policy"], str) or not payload["universe_policy"].strip()
+    ):
+        raise WatchlistSchemaError("universe_policy must be a non-empty string")
 
     normalized = copy.deepcopy(payload)
     normalized["strategy_version"] = strategy_version

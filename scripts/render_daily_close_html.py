@@ -48,6 +48,7 @@ from track_perf import (
     SOURCE_MODE_EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1,
 )
 from trading_calendar import TradingCalendar, default_calendar, previous_trading_day
+from universe_policy import policy_display_label
 from watchlist_schema import load_watchlist
 
 
@@ -806,6 +807,8 @@ def build_report_model(
         "review_date": normalized_date,
         "earliest_execution": earliest_execution,
         "strategy": watchlist.get("strategy_version", "UNVERIFIED"),
+        "universe": policy_display_label(watchlist.get("universe_policy")),
+        "universe_policy": watchlist.get("universe_policy", "UNVERIFIED"),
         "frozen_candidate": "YES" if watchlist.get("strategy_version") == _FROZEN_STRATEGY else "UNVERIFIED",
         "package_sha": package_sha,
         "generation_fingerprint": generation_fingerprint,
@@ -1500,6 +1503,7 @@ def _audit_metadata_html(metadata: Mapping[str, Any]) -> str:
     labels = {
         'list_date': '名单日期', 'review_date': '报告日期', 'previous_date': '上一交易日',
         'earliest_execution': '最早执行日', 'strategy': '策略版本',
+        'universe': '股票池', 'universe_policy': 'Universe Policy',
         'frozen_candidate': '候选身份冻结', 'package_sha': '输入包 SHA',
         'generation_fingerprint': '生成 fingerprint', 'watchlist_sha': 'watchlist SHA',
         'candidate_count': '候选数量', 'report_generated_at': '生成时间',
@@ -1875,7 +1879,8 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   <div class="eyebrow">A 股策略复盘</div>
   <div class="header-main">
     <div><h1>{_esc(metadata.get('review_date'))} · {_esc(metadata.get('strategy'))}</h1>
-      <div class="header-strategy">{_esc(metadata.get('review_date'))} {_esc('周' + '一二三四五六日'[parse_date(metadata.get('review_date')).weekday()])} · T-close</div></div>
+      <div class="header-strategy">{_esc(metadata.get('review_date'))} {_esc('周' + '一二三四五六日'[parse_date(metadata.get('review_date')).weekday()])} · T-close</div>
+      <div class="header-universe">股票池：<strong>{_esc(metadata.get('universe'))}</strong></div></div>
     <div class="header-aside"><span>新名单 <strong>{_esc(_integer(watchlist_count, '0'))}</strong> 只</span><span>最早执行 <strong>{_esc(metadata.get('earliest_execution'))}</strong></span></div>
   </div>
   <div class="status-pills">
