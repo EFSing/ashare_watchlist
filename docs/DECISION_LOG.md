@@ -5,6 +5,27 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-13 — Adopt user-defined Main Board-only future production universe
+
+- decision：未来 live universe 固定为既有 eligible universe ∩ Main Board，policy literal 为
+  `ASHARE_MAIN_BOARD_ONLY_V1`。canonical `ASHARE_BOARD_TAXONOMY_V1` 是唯一板块分类来源：
+  00/60 系列为 `Main`，30 系列为 `ChiNext`，68 系列为 `STAR`，其他代码为 `Unknown`；
+  ChiNext 与 STAR 不进入未来 canonical live signals。
+- scope：这是用户已经明确作出的生产交易范围决定，不是研究假设；不进行阈值搜索、性能重证、
+  历史重写或 B evaluator 改动。政策在 live acquisition 的 quote/kline 之前生效，并在 B
+  evaluator 前的 input boundary 保留同一 canonical filter，防止绕过 acquisition 的调用进入。
+- provenance：future package/run manifest/generation identity/watchlist 记录 policy；日报 header
+  显示 `沪深主板 / Main Board Only`，技术 literal 只在 audit 中出现。effective boundary 为
+  `FIRST_GENUINE_T_CLOSE_RUN_AFTER_DEPLOYMENT`。
+- invariants：`B_BREAKOUT_RETEST_LEGACY_V1_1` 的 evaluator、score、ranking、trigger、stop、
+  target、RR 以及 spec SHA `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`
+  保持不变；shadow monitor 继续旁路消费 canonical watchlist，不新增第二个 board filter。
+  旧 artifact 缺少 policy 字段时仍可读取，且不被补写或伪造新范围。
+- boundary/verification：不重跑 acquisition，不改写 2026-09-11 watchlist/tracker/report/evidence，
+  不读取 Final OOS 或 `data/validation/continuous_speed_probe/`。PR #49 为 open、base `master`、
+  branch `codex/main-board-only-universe`；implementation head 的 local full suite 为
+  `529 passed, 10 warnings`，两个 implementation exact-head correctness runs 均 `success`。
+
 ## 2026-09-13 — Merge PR #47/#48 and activate prospective B shadow monitor
 
 - live outcome：PR #47 exact head `1cf1ab419ab6e6bc6f6d1cfeadbef94b886d7ecf` squash-merged为
