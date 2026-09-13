@@ -91,6 +91,27 @@ def test_canonical_watchlist_is_score_sorted_and_distance_is_display_only(tmp_pa
     assert model.metadata["earliest_execution"] == "2026-09-11"
 
 
+def test_report_displays_main_board_universe_and_keeps_policy_literal_in_audit(tmp_path):
+    data_root = tmp_path / "data"
+    data_root.mkdir(parents=True, exist_ok=True)
+    payload = _payload("20260910", [_candidate("600018", "主板信号", 70)])
+    payload["universe_policy"] = "ASHARE_MAIN_BOARD_ONLY_V1"
+    path = data_root / "watchlist_20260910.json"
+    path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    watchlist = load_watchlist(path)
+    _write_tracker(tmp_path, watchlist)
+
+    model = renderer.build_report_model("20260910", paths=_paths(tmp_path), calendar=CALENDAR)
+    text = renderer.render_html(model)
+    main = text.split('<details id="audit">', 1)[0]
+    audit = text.split('<details id="audit">', 1)[1]
+
+    assert model.metadata["universe"] == "沪深主板 / Main Board Only"
+    assert "股票池：<strong>沪深主板 / Main Board Only</strong>" in main
+    assert "ASHARE_MAIN_BOARD_ONLY_V1" not in main
+    assert "ASHARE_MAIN_BOARD_ONLY_V1" in audit
+
+
 def test_t_day_new_signal_is_explicitly_waiting_for_t1_not_missing(tmp_path):
     watchlist = _write_watchlist(tmp_path, "20260910", [_candidate("600018", "今日新信号", 70)])
     _write_tracker(tmp_path, watchlist)

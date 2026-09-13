@@ -72,6 +72,15 @@ from tencent_quotes import (
     to_symbol,
 )
 from trading_calendar import CalendarUnavailable, TradingCalendar, default_calendar
+from universe_policy import (
+    BOARD_UNKNOWN,
+    UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1,
+    build_board_policy_audit,
+    classify_board,
+    is_live_universe_eligible,
+    universe_policy_metadata,
+    validate_board_policy_audit,
+)
 
 
 LIVE_INPUT_PACKAGE_SCHEMA = "CANDIDATE_BOUND_LIVE_INPUT_PACKAGE_V4"
@@ -1552,7 +1561,7 @@ def _build_universe(
         thscode = _text(_field(row, ("thscode",), f"universe[{index}].thscode"), "universe thscode").upper()
         if not thscode.endswith(f".{exchange}"):
             _fail(INPUT_CONFLICT, f"HiThink universe exchange/thscode conflict for {symbol}")
-        if not symbol.startswith(("60", "68", "00", "30")):
+        if classify_board(symbol) == BOARD_UNKNOWN:
             continue
         name = _display_name(
             _field(row, ("name",), f"universe[{index}].name"),
@@ -1565,10 +1574,12 @@ def _build_universe(
         _fail(INCOMPLETE_COVERAGE, "universe has no symbols")
     hithink_symbols = set(names)
     official_symbols = set(official_roster)
+    scope_symbols = hithink_symbols & official_symbols
+    board_policy_audit = build_board_policy_audit(scope_symbols)
     retained_names = {
         symbol: name
         for symbol, name in names.items()
-        if symbol in official_symbols
+        if symbol in official_symbols and is_live_universe_eligible(symbol)
     }
     universe_quality = copy.deepcopy(dict(roster_audit))
     universe_quality.update(
@@ -1579,11 +1590,13 @@ def _build_universe(
             "hithink_only_symbols": sorted(hithink_symbols - official_symbols),
             "roster_only_count": len(official_symbols - hithink_symbols),
             "roster_only_symbols": sorted(official_symbols - hithink_symbols),
+            "universe_policy": universe_policy_metadata(),
+            "board_policy_audit": board_policy_audit,
             "retained_count": len(retained_names),
         }
     )
     if not retained_names:
-        _fail(INCOMPLETE_COVERAGE, "HiThink universe and official exchange roster do not intersect")
+        _fail(INCOMPLETE_COVERAGE, "HiThink universe and official roster have no Main Board symbols")
     return (
         UniverseManifest(
             as_of_date=as_of_date,
@@ -2179,6 +2192,12 @@ def _validate_universe_roster_quality(value: Any, as_of_date: str) -> None:
         _fail(INPUT_DATE_MISMATCH, "official-roster as_of_date does not match the generation date")
     if value.get("listing_date_rule") != "listing_date <= as_of_date":
         _fail(PROVIDER_FAILURE, "official-roster listing-date rule is missing or unsupported")
+    if value.get("universe_policy") != universe_policy_metadata():
+        _fail(PROVIDER_FAILURE, "official-roster production universe policy is missing or unsupported")
+    try:
+        validate_board_policy_audit(value.get("board_policy_audit"))
+    except ValueError as exc:
+        _fail(PROVIDER_FAILURE, f"official-roster board policy audit is invalid: {exc}")
     counts = value.get("source_row_counts")
     if not isinstance(counts, Mapping) or set(counts) != {"sse_main_board", "sse_star", "szse_a_share"}:
         _fail(PROVIDER_FAILURE, "official-roster source row counts are invalid")
@@ -2245,6 +2264,10 @@ def _generation_identity_payload(
         _fail(PROVIDER_FAILURE, "manifest resolved sector membership identity is invalid")
     roster_quality = manifest.provider_version_metadata.get("universe_roster_quality")
     _validate_universe_roster_quality(roster_quality, manifest.signal_date)
+    if manifest.provider_version_metadata.get("universe_policy") != UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1:
+        _fail(INPUT_CONFLICT, "manifest production universe policy is missing or unsupported")
+    if manifest.provider_version_metadata.get("universe_policy_metadata") != universe_policy_metadata():
+        _fail(INPUT_CONFLICT, "manifest production universe policy metadata is invalid")
     return {
         "schema_version": GENERATION_IDENTITY_SCHEMA,
         "input_package_schema": LIVE_INPUT_PACKAGE_SCHEMA,
@@ -2260,6 +2283,7 @@ def _generation_identity_payload(
             "name": manifest.universe.universe_scope,
             "version": manifest.universe.universe_scope_version,
         },
+        "universe_policy": universe_policy_metadata(),
         "display_name_normalization": {
             "version": DISPLAY_NAME_NORMALIZATION_VERSION,
             "zero_width_codepoints": [
@@ -2327,6 +2351,15 @@ class LiveInputPackage:
         provenance = _copy_json(dict(self.provenance), "provenance")
         if provenance.get("contract") != PROSPECTIVE_PROVENANCE_CONTRACT:
             _fail(PROVIDER_FAILURE, "provenance contract is missing or unsupported")
+        if provenance.get("universe_policy") != UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1:
+            _fail(INPUT_CONFLICT, "provenance production universe policy is missing or unsupported")
+        if provenance.get("universe_policy_metadata") != universe_policy_metadata():
+            _fail(INPUT_CONFLICT, "provenance production universe policy metadata is invalid")
+        manifest_metadata = self.generation_input_manifest.provider_version_metadata
+        if manifest_metadata.get("universe_policy") != UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1:
+            _fail(INPUT_CONFLICT, "generation manifest production universe policy is missing or unsupported")
+        if manifest_metadata.get("universe_policy_metadata") != universe_policy_metadata():
+            _fail(INPUT_CONFLICT, "generation manifest production universe policy metadata is invalid")
         if provenance.get("display_name_consistency_policy") != _display_name_policy_metadata():
             _fail(INPUT_CONFLICT, "provenance display-name consistency policy is missing or unsupported")
         display_name_diagnostics = provenance.get("display_name_diagnostics")
@@ -3064,6 +3097,8 @@ def acquire_live_generation_inputs(
     }
     provider_metadata = {
         "runtime": runtime_versions,
+        "universe_policy": UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1,
+        "universe_policy_metadata": universe_policy_metadata(),
         "display_name_consistency_policy": _display_name_policy_metadata(),
         "universe_roster_quality": copy.deepcopy(universe_quality),
         "display_name_diagnostics": {
@@ -3091,6 +3126,7 @@ def acquire_live_generation_inputs(
                 "broad_source": "HiThink Financial-API",
                 "official_listed_roster": roster_client.capability_report(),
                 "selection_rule": "HITHINK_BROAD_INTERSECT_OFFICIAL_ROSTER_EXCHANGE_LISTED_AS_OF_T",
+                "production_policy": universe_policy_metadata(),
             },
             "sector": {
                 "provider": "AkShare",
@@ -3189,6 +3225,8 @@ def acquire_live_generation_inputs(
         },
         "sector_membership_quality": copy.deepcopy(sector_quality),
         "universe_scope": _tradable_universe_scope_metadata(),
+        "universe_policy": UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1,
+        "universe_policy_metadata": universe_policy_metadata(),
         "known_at_rule": (
             "acquisition occurs after XSHG session close on T during an explicitly authorized "
             "immediately-following non-trading-day backfill"
@@ -3302,6 +3340,7 @@ __all__ = [
     "TENCENT_KLINE_SOURCE",
     "TRADABLE_UNIVERSE_SCOPE_V1",
     "TRADABLE_UNIVERSE_SCOPE_VERSION",
+    "UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1",
     "acquire_live_generation_inputs",
     "akshare_runtime_capability",
     "normalize_display_name",

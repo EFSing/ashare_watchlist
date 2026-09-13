@@ -557,7 +557,7 @@ def test_listed_suspended_st_symbol_is_retained_before_final_user_eligibility():
     assert names["002731"] == "*ST萃华"
 
 
-def test_ordinary_sh_sz_and_star_listed_symbols_are_retained_by_exact_symbol_join():
+def test_main_board_symbols_are_retained_and_star_is_excluded_by_exact_symbol_join():
     frame = FakeFrame(
         [
             {"thscode": "600519.SH", "ticker": "600519", "name": "沪市", "exchange": "SH", "asset_type": "a-share"},
@@ -579,7 +579,40 @@ def test_ordinary_sh_sz_and_star_listed_symbols_are_retained_by_exact_symbol_joi
         {"identity": live.EXCHANGE_OFFICIAL_LISTED_ROSTER_VERSION, "as_of_date": AS_OF},
     )
 
-    assert universe.symbols == ("000001", "600519", "688001")
+    assert universe.symbols == ("000001", "600519")
+
+
+def test_chinext_and_star_are_excluded_before_quote_and_kline():
+    calls = []
+    hithink = FakeHiThink(
+        universe=[
+            {"thscode": "600519.SH", "ticker": "600519", "name": "沪市", "exchange": "SH", "asset_type": "a-share"},
+            {"thscode": "300001.SZ", "ticker": "300001", "name": "创业板", "exchange": "SZ", "asset_type": "a-share"},
+            {"thscode": "688001.SH", "ticker": "688001", "name": "科创板", "exchange": "SH", "asset_type": "a-share"},
+        ]
+    )
+    ak = FakeAkShare(
+        official_roster={
+            "主板A股": [{"证券代码": "600519", "上市日期": "2001-08-23"}],
+            "科创板": [{"证券代码": "688001", "上市日期": "2020-07-22"}],
+            "A股列表": [
+                {"A股代码": "300001", "A股上市日期": "2010-01-01"},
+            ],
+        }
+    )
+
+    package = _acquire(
+        hithink_client=hithink,
+        akshare_module=ak,
+        request_get=_request_get(calls=calls),
+    )
+
+    assert package.generation_input_manifest.universe.symbols == ("600519",)
+    assert all("300001" not in call and "688001" not in call for call in calls)
+    assert all(symbol in {"600519.SH", "000001.SH"} for symbol, _index in hithink.kline_calls)
+    audit = package.provenance["universe_roster_quality"]["board_policy_audit"]
+    assert audit["board_counts"] == {"ChiNext": 1, "Main": 1, "STAR": 1, "Unknown": 0}
+    assert audit["excluded_symbols"] == {"ChiNext": ["300001"], "STAR": ["688001"], "Unknown": []}
 
 
 def test_official_roster_invalid_listing_date_fails_closed():
@@ -1407,6 +1440,9 @@ def test_complete_package_has_t_plus_one_market_env_and_provenance():
     )
     assert package.generation_input_manifest.universe.universe_scope == "SH_SZ_A_SHARE_ONLY"
     assert package.generation_input_manifest.universe.universe_scope_version == "TRADABLE_UNIVERSE_SCOPE_V1"
+    assert package.provenance["universe_policy"] == "ASHARE_MAIN_BOARD_ONLY_V1"
+    assert package.provenance["universe_policy_metadata"]["allowed_boards"] == ["Main"]
+    assert package.generation_identity_payload["universe_policy"]["name"] == "ASHARE_MAIN_BOARD_ONLY_V1"
     assert package.generation_input_manifest.index.provider == "HiThink Financial-API"
     assert package.generation_input_manifest.index.adjustment_mode == "PROVIDER_RAW_SNAPSHOT"
     assert package.provenance["provider_version_metadata"]["providers"]["sector"]["taxonomy"] == "新浪行业"

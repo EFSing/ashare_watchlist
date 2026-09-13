@@ -4,6 +4,31 @@
 > 本文件不是历史归档；历史 provenance 在 Git 历史中，正式状态与长期决策分别见
 > `docs/CURRENT_STATUS.md` 与 `docs/DECISION_LOG.md`（仅当前任务需要时读取）。
 
+## 2026-09-13 — PR #49 open; future production universe restricted to Main Board
+
+- live base at intake：`origin/master` 为 `88acfaed0372f3bc17bbbe969287b0731548c322`；
+  implementation branch 为 `codex/main-board-only-universe`，PR #49 base 为 `master`，
+  implementation commit 为 `5fb21198064f1641cc14de2d6475e0865a3c3774`。
+- user decision：未来 live universe 固定为既有 eligible universe ∩ Main Board，policy literal
+  为 `ASHARE_MAIN_BOARD_ONLY_V1`；canonical `ASHARE_BOARD_TAXONOMY_V1` 将 00/60 系列归为
+  `Main`，30 系列归为 `ChiNext`，68 系列归为 `STAR`，其余为 `Unknown`。该决定是生产范围
+  约束，不是研究假设，不重做阈值或历史结论。
+- implementation：live acquisition 在 quote/kline 前执行主板筛选；B-bound generation input
+  在 evaluator 前再以同一 helper fail-closed 过滤，并把 policy 写入 future provenance、run
+  manifest、generation identity 和 canonical watchlist。B evaluator、score、ranking、
+  trigger、stop、target、RR 及 spec SHA 未改。
+- effective boundary：`FIRST_GENUINE_T_CLOSE_RUN_AFTER_DEPLOYMENT`；不重跑 acquisition、不
+  改写历史 watchlist/tracker/report/evidence。2026-09-11 watchlist SHA
+  `80e6198e8e8af869d6718f14874be8e6eaa36cf3f63e7af1f381fb83c78db12b` 与 input package SHA
+  `d729c3f4c3261f45036cd748cd75db2e191c7af3939c66f8707f802f6ca659cd` 已核对未变。
+- shadow monitor 继续只消费 canonical watchlist，不增加第二个 board filter；旧 watchlist
+  缺少 policy 字段仍可读取，历史 artifact 报告显示未记录而不伪造主板标签。
+- validation：project `.venv` full suite `529 passed, 10 warnings`；implementation head
+  的 exact-head correctness push run `34763466511` 与 pull-request run `34763477122` 均
+  `success`。治理 docs push 后必须重新读取 branch/upstream、PR #49 和 exact-head CI；不自动
+  merge，终点是用户 merge decision。
+- terminal marker：`MAIN_BOARD_ONLY_UNIVERSE_PR_READY_FOR_USER_MERGE_DECISION`。
+
 ## 2026-09-13 — PR #47/#48 merged; prospective shadow monitor active
 
 - merge sequence：PR #47 从 head `1cf1ab419ab6e6bc6f6d1cfeadbef94b886d7ecf` squash-merged

@@ -1,5 +1,29 @@
 # CURRENT STATUS
 
+## PR #49 open — future production universe is Main Board only — 2026-09-13
+
+User has made the production scope decision: future live signals use the existing eligible
+universe intersected with Main Board only. `ASHARE_MAIN_BOARD_ONLY_V1` is implemented with one
+canonical `ASHARE_BOARD_TAXONOMY_V1` classifier; ChiNext and STAR are excluded before quote/kline
+acquisition and before the B evaluator boundary. This is a production policy decision, not a new
+research hypothesis or threshold search.
+
+The policy is recorded in future acquisition provenance, generation identity, run manifests and
+canonical watchlists. Reports show `沪深主板 / Main Board Only` in the user-facing header and keep
+the technical literal in audit metadata. The effective boundary is
+`FIRST_GENUINE_T_CLOSE_RUN_AFTER_DEPLOYMENT`; historical watchlists, tracker/reports/evidence and
+the 2026-09-11 watchlist/input hashes remain unchanged. B
+`B_BREAKOUT_RETEST_LEGACY_V1_1`, including its values/ranking and spec SHA
+`f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`, is unchanged. Shadow
+monitor semantics remain unchanged and consume the canonical output without a second board filter.
+
+PR #49 is open against `master` from `codex/main-board-only-universe`; implementation head
+`5fb21198064f1641cc14de2d6475e0865a3c3774` was live-verified with exact-head correctness runs
+`34763466511` and `34763477122`, both passing. Local `.venv` full suite is `529 passed, 10
+warnings`; no Final OOS or `data/validation/continuous_speed_probe/` was read/touched. The
+governance-only follow-up must be followed by a fresh live head/CI reread. Terminal state:
+`MAIN_BOARD_ONLY_UNIVERSE_PR_READY_FOR_USER_MERGE_DECISION`.
+
 ## PR #47/#48 merged — prospective B shadow monitor active — 2026-09-13
 
 PR #47 已 squash-merged 为 `9bb23d63bff058d13b64de8f7864ea1da6222ba2`；PR #48 在
