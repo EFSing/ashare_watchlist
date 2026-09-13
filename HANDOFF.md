@@ -4,12 +4,12 @@
 > 本文件不是历史归档；历史 provenance 在 Git 历史中，正式状态与长期决策分别见
 > `docs/CURRENT_STATUS.md` 与 `docs/DECISION_LOG.md`（仅当前任务需要时读取）。
 
-## 2026-09-13 — PR #49 open; future production universe restricted to Main Board
+## 2026-09-13 — PR #49 squash-merged; Main Board-only future production universe active
 
 - live base at intake：`origin/master` 为 `88acfaed0372f3bc17bbbe969287b0731548c322`；
   implementation branch 为 `codex/main-board-only-universe`，PR #49 base 为 `master`，
   implementation commit 为 `5fb21198064f1641cc14de2d6475e0865a3c3774`。
-- user decision：未来 live universe 固定为既有 eligible universe ∩ Main Board，policy literal
+- decision class：`USER_UNIVERSE_POLICY_DECISION`。未来 live universe 固定为既有 eligible universe ∩ Main Board，policy literal
   为 `ASHARE_MAIN_BOARD_ONLY_V1`；canonical `ASHARE_BOARD_TAXONOMY_V1` 将 00/60 系列归为
   `Main`，30 系列归为 `ChiNext`，68 系列归为 `STAR`，其余为 `Unknown`。该决定是生产范围
   约束，不是研究假设，不重做阈值或历史结论。
@@ -23,11 +23,14 @@
   `d729c3f4c3261f45036cd748cd75db2e191c7af3939c66f8707f802f6ca659cd` 已核对未变。
 - shadow monitor 继续只消费 canonical watchlist，不增加第二个 board filter；旧 watchlist
   缺少 policy 字段仍可读取，历史 artifact 报告显示未记录而不伪造主板标签。
+- merge outcome：PR #49 final head `76c4635c768db07c2d721aa5e0bdb1373f473aa5` 于
+  `2026-09-13T15:04:08Z` squash-merged，merge SHA 为
+  `14b43e81686f537debb713fc710f20c40a50ae63`；merge-time live `origin/master` 已核对为同一 SHA。
+- post-merge governance：本条目所在 commit 是唯一的 docs-only governance sync；不改变生效边界、策略或历史 artifact。
 - validation：project `.venv` full suite `529 passed, 10 warnings`；implementation head
   的 exact-head correctness push run `34763466511` 与 pull-request run `34763477122` 均
-  `success`。治理 docs push 后必须重新读取 branch/upstream、PR #49 和 exact-head CI；不自动
-  merge，终点是用户 merge decision。
-- terminal marker：`MAIN_BOARD_ONLY_UNIVERSE_PR_READY_FOR_USER_MERGE_DECISION`。
+  `success`；merge 后已重新读取 PR #49、fetch origin，并核对 `origin/master`。
+- terminal marker：`PR49_MERGED_MAIN_BOARD_ONLY_UNIVERSE_ACTIVE`。
 
 ## 2026-09-13 — PR #47/#48 merged; prospective shadow monitor active
 

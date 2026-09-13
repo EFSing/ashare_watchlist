@@ -1,6 +1,6 @@
 # CURRENT STATUS
 
-## PR #49 open — future production universe is Main Board only — 2026-09-13
+## USER_UNIVERSE_POLICY_DECISION — PR #49 squash-merged; future production universe is Main Board only — 2026-09-13
 
 User has made the production scope decision: future live signals use the existing eligible
 universe intersected with Main Board only. `ASHARE_MAIN_BOARD_ONLY_V1` is implemented with one
@@ -17,12 +17,16 @@ the 2026-09-11 watchlist/input hashes remain unchanged. B
 `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`, is unchanged. Shadow
 monitor semantics remain unchanged and consume the canonical output without a second board filter.
 
-PR #49 is open against `master` from `codex/main-board-only-universe`; implementation head
-`5fb21198064f1641cc14de2d6475e0865a3c3774` was live-verified with exact-head correctness runs
-`34763466511` and `34763477122`, both passing. Local `.venv` full suite is `529 passed, 10
-warnings`; no Final OOS or `data/validation/continuous_speed_probe/` was read/touched. The
-governance-only follow-up must be followed by a fresh live head/CI reread. Terminal state:
-`MAIN_BOARD_ONLY_UNIVERSE_PR_READY_FOR_USER_MERGE_DECISION`.
+PR #49 against `master` from `codex/main-board-only-universe` is squash-merged: final head
+`76c4635c768db07c2d721aa5e0bdb1373f473aa5`, merge SHA
+`14b43e81686f537debb713fc710f20c40a50ae63`, merged at `2026-09-13T15:04:08Z`; live
+merge-time `origin/master` was fetched and was the same SHA. This entry is the only post-merge
+docs-only governance sync; it does not change the effective boundary, strategy, or historical
+artifacts. The implementation head was verified by
+exact-head correctness runs `34763466511` and `34763477122`, both passing. Local `.venv` full
+suite is `529 passed, 10 warnings`; no Final OOS or `data/validation/continuous_speed_probe/`
+was read/touched. Terminal state:
+`PR49_MERGED_MAIN_BOARD_ONLY_UNIVERSE_ACTIVE`.
 
 ## PR #47/#48 merged — prospective B shadow monitor active — 2026-09-13
 

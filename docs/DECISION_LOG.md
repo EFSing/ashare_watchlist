@@ -5,7 +5,7 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
-## 2026-09-13 — Adopt user-defined Main Board-only future production universe
+## 2026-09-13 — USER_UNIVERSE_POLICY_DECISION — Main Board-only future production universe adopted and merged
 
 - decision：未来 live universe 固定为既有 eligible universe ∩ Main Board，policy literal 为
   `ASHARE_MAIN_BOARD_ONLY_V1`。canonical `ASHARE_BOARD_TAXONOMY_V1` 是唯一板块分类来源：
@@ -22,8 +22,11 @@
   保持不变；shadow monitor 继续旁路消费 canonical watchlist，不新增第二个 board filter。
   旧 artifact 缺少 policy 字段时仍可读取，且不被补写或伪造新范围。
 - boundary/verification：不重跑 acquisition，不改写 2026-09-11 watchlist/tracker/report/evidence，
-  不读取 Final OOS 或 `data/validation/continuous_speed_probe/`。PR #49 为 open、base `master`、
-  branch `codex/main-board-only-universe`；implementation head 的 local full suite 为
+  不读取 Final OOS 或 `data/validation/continuous_speed_probe/`。PR #49 base `master`、branch
+  `codex/main-board-only-universe`，final head `76c4635c768db07c2d721aa5e0bdb1373f473aa5` 于
+  `2026-09-13T15:04:08Z` squash-merged 为 `14b43e81686f537debb713fc710f20c40a50ae63`；
+  merge-time live `origin/master` 已核对为该 merge SHA；本条目仅记录唯一的 post-merge
+  docs-only governance sync。implementation head 的 local full suite 为
   `529 passed, 10 warnings`，两个 implementation exact-head correctness runs 均 `success`。
 
 ## 2026-09-13 — Merge PR #47/#48 and activate prospective B shadow monitor
