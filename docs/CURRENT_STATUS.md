@@ -1,32 +1,30 @@
 # CURRENT STATUS
 
-## Prospective B shadow monitor — stacked implementation ready — 2026-09-13
+## PR #47/#48 merged — prospective B shadow monitor active — 2026-09-13
 
-本轮新增 `PROSPECTIVE_B_SHADOW_MONITOR_V1`，严格旁路于冻结的
-`B_BREAKOUT_RETEST_LEGACY_V1_1`。T-close 只固化 market regime、复用
+PR #47 已 squash-merged 为 `9bb23d63bff058d13b64de8f7864ea1da6222ba2`；PR #48 在
+retarget 到 `master` 后重建为 shadow-only diff，最终 squash-merged 为
+`105289cb1e0da318a0f7d07bb1dfd7a2af8d5054`。PR #48 的 stacked graph divergence 是正常
+squash 拓扑差异，不是新的治理冲突。
+
+正式 master 现在包含 `PROSPECTIVE_B_SHADOW_MONITOR_V1`。它严格旁路于冻结的
+`B_BREAKOUT_RETEST_LEGACY_V1_1`：T-close 固化 market regime、复用
 `b_phase_volume_path_diagnostic.py` 的 reactivation ratios 与 structural context；后续只按
 canonical trigger/stop/target 规则价记录 `TARGET`、`STOP`、`OPEN`、`UNTRIGGERED`、
 `AMBIGUOUS`、固定 `FAST_STOP` 以及 STOP 后 +3/+5/+10 XSHG sessions recovery。pre-outcome
 immutable，shadow failure 标记 `SHADOW_CAPTURE_INCOMPLETE` 并进入日报 data quality，不阻塞
 正式 watchlist、runner、tracker 或 report。
 
-prospective epoch 从实际首次部署后的 capture 开始，不做历史 prospective backfill；
+prospective epoch 从首次真实 post-deployment capture 开始，不做历史 prospective backfill；
 `PROSPECTIVE_CAPTURED` 与 `RETROSPECTIVE_RECONSTRUCTED` 分离，历史 stop-timing 仅为
 `REFERENCE_ONLY` metadata。reactivation 只做 continuous median descriptive aggregation，
-没有 outcome-derived threshold。日报在新名单之后、固定节点研究之前新增轻量
-`Prospective Shadow Monitor` section，并在当日候选 detail 显示观察 context；不输出 BUY/AVOID。
+没有 outcome-derived threshold；不授权自动策略修改。
 
-治理接手时旧 HANDOFF 记录的 PR #47 head 与 live 状态不一致，已标记
-`PROJECT_GOVERNANCE_STATE_CONFLICT` 并以 live truth 纠正：PR #47 为 `OPEN / CLEAN / UNMERGED`，
-exact head `1cf1ab419ab6e6bc6f6d1cfeadbef94b886d7ecf`；实现 branch
-`codex/prospective-b-shadow-monitor` 从该 exact head stacked。正式 B spec SHA
-`f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd` unchanged。9/11 watchlist/input
-SHA 已再次核对，未重跑 acquisition；Final OOS 与 forbidden continuous-speed-probe remain
-unread/untouched。
-
-本地验证：shadow targeted `22 passed`；`.venv` full suite `508 passed, 10 warnings`；
-最终状态 `PROSPECTIVE_B_SHADOW_MONITOR_PR_READY_FOR_USER_DECISION`。下一个边界是用户决定
-stacked PR #47 dependency 的合并顺序，不自动 merge。
+正式 B spec SHA `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd` unchanged。
+2026-09-11 watchlist SHA 与 input package SHA 已核对且未重跑 acquisition；Final OOS 与
+`data/validation/continuous_speed_probe/` remain unread/untouched。retarget 后 targeted shadow
+tests `22 passed`，full suite `508 passed, 10 warnings`，exact-head CI `2/2 pass`，diff check
+通过。Terminal state：`PR47_PR48_MERGED_PROSPECTIVE_SHADOW_MONITOR_ACTIVE`。
 
 ## PR #46 squash-merged; migration audit complete — 2026-09-10
 

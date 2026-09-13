@@ -4,17 +4,15 @@
 > 本文件不是历史归档；历史 provenance 在 Git 历史中，正式状态与长期决策分别见
 > `docs/CURRENT_STATUS.md` 与 `docs/DECISION_LOG.md`（仅当前任务需要时读取）。
 
-## 2026-09-13 — Prospective B shadow monitor stacked implementation
+## 2026-09-13 — PR #47/#48 merged; prospective shadow monitor active
 
-- governance reconciliation：接手时旧 top entry 将 PR #47 pushed head 记录为
-  `ec578a65363e691bf9350b3d90765936161cd491`，但 live GitHub 状态是 PR #47
-  `OPEN / CLEAN / UNMERGED`，base `master`，head
-  `1cf1ab419ab6e6bc6f6d1cfeadbef94b886d7ecf`，exact-head correctness checks
-  `34707025768` 与 `34707023019` 均 `COMPLETED / SUCCESS`。该差异标记为
-  `PROJECT_GOVERNANCE_STATE_CONFLICT`；旧值保留为历史 provenance，本入口以 live 状态为准。
-- current branch：`codex/prospective-b-shadow-monitor`，从 PR #47 exact head
-  `1cf1ab419ab6e6bc6f6d1cfeadbef94b886d7ecf` 建立；PR #47 仍是 stacked dependency，
-  不自动 merge。
+- merge sequence：PR #47 从 head `1cf1ab419ab6e6bc6f6d1cfeadbef94b886d7ecf` squash-merged
+  为 `9bb23d63bff058d13b64de8f7864ea1da6222ba2`；PR #48 retarget 到 `master` 后因正常
+  squash graph divergence 重建 shadow-only head `1d31a6d2e4c0bd17370a4f99e328189ea2f9083a`，
+  最终 squash-merged 为 `105289cb1e0da318a0f7d07bb1dfd7a2af8d5054`。该 graph divergence
+  不是 `PROJECT_GOVERNANCE_STATE_CONFLICT`。
+- current branch：`master`；PR #47/#48 已 merged，正式 master 现在包含 rule-price
+  performance 与 `PROSPECTIVE_B_SHADOW_MONITOR_V1`。
 - implementation：新增 `PROSPECTIVE_B_SHADOW_MONITOR_V1`，只在 canonical B
   watchlist 产生后旁路捕获 T-close market regime、reactivation volume path 与 structural
   context；只更新独立的 theoretical rule-price outcomes、`FAST_STOP` 和 +3/+5/+10
@@ -33,9 +31,11 @@
 - validation：shadow targeted tests `22 passed`; project `.venv` full suite `508 passed,
   10 warnings` using a short external Windows basetemp。未读取 Final OOS，未读取或触碰
   `data/validation/continuous_speed_probe/`，未 stage runtime data/report/watchlist/tracker/evidence。
-- terminal marker：`PROSPECTIVE_B_SHADOW_MONITOR_PR_READY_FOR_USER_DECISION`。
+- prospective epoch：尚未开始；首次真实 post-deployment T-close capture 时建立，不人为
+  生成 snapshot，不把 retrospective data 标成 `PROSPECTIVE_CAPTURED`。
+- terminal marker：`PR47_PR48_MERGED_PROSPECTIVE_SHADOW_MONITOR_ACTIVE`。
 
-## 2026-09-13 — PR #47 rule-price strategy performance review ready
+## Historical pre-merge — PR #47 rule-price strategy performance review ready
 
 - current branch: `codex/weekend-tclose-backfill-20260911`; PR #47 remains `OPEN`, base
   `master`, and must not be merged automatically. Current pushed head is

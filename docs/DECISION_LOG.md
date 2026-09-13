@@ -5,7 +5,25 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
-## 2026-09-13 — Add prospective B shadow monitor without changing frozen B
+## 2026-09-13 — Merge PR #47/#48 and activate prospective B shadow monitor
+
+- live outcome：PR #47 exact head `1cf1ab419ab6e6bc6f6d1cfeadbef94b886d7ecf` squash-merged为
+  `9bb23d63bff058d13b64de8f7864ea1da6222ba2`；PR #48 retarget 后只保留 shadow/source/test/docs
+  增量，final head `1d31a6d2e4c0bd17370a4f99e328189ea2f9083a` squash-merged 为
+  `105289cb1e0da318a0f7d07bb1dfd7a2af8d5054`。
+- decision：`PR47_PR48_MERGED_PROSPECTIVE_SHADOW_MONITOR_ACTIVE`。正式 B 仍冻结；rule-price
+  theoretical performance 与 observational shadow monitor 已进入 master，但 shadow 不参与任何
+  candidate qualification、score、ranking、trigger、stop、target、RR、generation、live
+  acquisition qualification 或 canonical identity。
+- deployment boundary：prospective epoch 只有在首次真实 post-deployment T-close capture 时建立；
+  不人为生成部署前 snapshot，不把 retrospective reconstruction 标成
+  `PROSPECTIVE_CAPTURED`。FAST_STOP 固定为首个/第二个可卖 XSHG session 的 STOP；STOP recovery
+  固定观察 +3/+5/+10 XSHG sessions，且不改变原 STOP outcome。
+- verification：retarget 后 shadow targeted `22 passed`、full suite `508 passed, 10 warnings`、
+  exact-head CI `2/2 pass`、diff check PASS；正式 B spec SHA 与 2026-09-11 canonical
+  watchlist/input SHA unchanged。Final OOS 与 forbidden continuous-speed-probe 未读取。
+
+## Pre-merge decision — Add prospective B shadow monitor without changing frozen B
 
 - decision：在正式 `B_BREAKOUT_RETEST_LEGACY_V1_1` canonical output 之后增加独立的
   `PROSPECTIVE_B_SHADOW_MONITOR_V1`。它只观察 T-close market regime、既有 volume-path
