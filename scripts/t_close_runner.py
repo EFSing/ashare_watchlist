@@ -35,7 +35,7 @@ from live_acquisition import (
     acquire_live_generation_inputs,
     persist_live_input_package,
 )
-from trading_calendar import default_calendar
+from trading_calendar import CalendarUnavailable, default_calendar
 from upload_daily_checkpoint import (
     CLOUD_CHECKPOINT_FAILED,
     CheckpointError,
@@ -52,6 +52,8 @@ T_CLOSE_SUCCESS_STATUS = "T_CLOSE_EVIDENCE_PACKAGE_AND_WATCHLIST_PERSISTED"
 # standalone runner deliberately has no credentials or second Drive SDK.
 DAILY_CLOUD_CHECKPOINT_CLIENT: Any | None = None
 DAILY_CLOUD_ROOT_FOLDER_ID_ENV = "ASHARE_DAILY_CLOUD_ROOT_FOLDER_ID"
+DISABLE_DRIVE_CHECKPOINT_ENV = "ASHARE_DISABLE_DRIVE_CHECKPOINT"
+DRIVE_CHECKPOINT_DISABLED = "DRIVE_CHECKPOINT_DISABLED_FOR_CLOUD"
 
 
 def _bounded_process_detail(completed: subprocess.CompletedProcess[str]) -> str:
@@ -77,6 +79,15 @@ def _daily_cloud_checkpoint(as_of_date: str, data_root: Path, *, tracker_failure
             "status": CLOUD_CHECKPOINT_FAILED,
             "reason": reason,
             "message": f"[CLOUD] FAILED {reason}",
+        }
+
+    if os.environ.get(DISABLE_DRIVE_CHECKPOINT_ENV, "").strip() == "1":
+        return {
+            "status": DRIVE_CHECKPOINT_DISABLED,
+            "reason": "explicit cloud deployment mode; local manifest retained",
+            "manifest_path": prepared["manifest_path"],
+            "manifest_sha256": prepared["persist"]["sha256"],
+            "message": "[CLOUD] DRIVE CHECKPOINT DISABLED",
         }
 
     root_folder_id = os.environ.get(DAILY_CLOUD_ROOT_FOLDER_ID_ENV, "").strip()
@@ -310,6 +321,56 @@ def _preflight(
         if weekend_backfill and allow_weekend_backfill
         else "SAME_CALENDAR_DATE"
     )
+
+    package_versions = {
+        "requests": _package_version("requests"),
+        "akshare": _package_version("akshare"),
+        "exchange_calendars": _package_version("exchange-calendars"),
+    }
+    packages_ready = all(value != "UNKNOWN_ORIGIN" for value in package_versions.values())
+    credential_ready = bool(os.environ.get(HITHINK_API_KEY_ENV, "").strip())
+    _check_writable(data_root)
+    _check_writable(evidence_root)
+
+    try:
+        is_session = calendar.is_trading_day(target_date)
+    except CalendarUnavailable as exc:
+        return {
+            "status": "CALENDAR_UNAVAILABLE",
+            "as_of_date": target_date,
+            "target_session": target_date,
+            "actual_acquisition_date": actual_acquisition_date,
+            "now_bjt": now_bjt.isoformat(),
+            "acquisition_timing": acquisition_timing,
+            "provider_calls": "NOT_RUN",
+            "xshg_session": "UNKNOWN",
+            "credential_context": "READY" if credential_ready else "MISSING_HITHINK_FINANCE_API_KEY",
+            "runtime_packages": "READY" if packages_ready else "NOT_READY",
+            "detail": str(exc)[:1000],
+            "packages": package_versions,
+        }
+
+    if not is_session:
+        return {
+            "status": "SKIPPED_NON_TRADING_DAY",
+            "as_of_date": target_date,
+            "target_session": target_date,
+            "actual_acquisition_date": actual_acquisition_date,
+            "now_bjt": now_bjt.isoformat(),
+            "acquisition_timing": acquisition_timing,
+            "provider_calls": "NOT_RUN",
+            "xshg_session": "NO",
+            "session_close_passed": "NOT_APPLICABLE",
+            "data_root_writable": True,
+            "evidence_root_writable": True,
+            "credential_context": "READY" if credential_ready else "MISSING_HITHINK_FINANCE_API_KEY",
+            "runtime_packages": "READY" if packages_ready else "NOT_READY",
+            "python": sys.executable,
+            "code_git_sha": _git_sha(),
+            "data_root": str(data_root),
+            "evidence_root": str(evidence_root),
+            "packages": package_versions,
+        }
     try:
         session_close = _validate_close_window(
             target_date,
@@ -330,14 +391,13 @@ def _preflight(
             "error_status": exc.status,
             "detail": str(exc)[:1000],
         }
-    _check_writable(data_root)
-    _check_writable(evidence_root)
-    credential_ready = bool(os.environ.get(HITHINK_API_KEY_ENV, "").strip())
     if weekend_backfill:
         status = "AUTHORIZED_WEEKEND_BACKFILL_READY"
     else:
         status = "PRE_CLOSE_DIAGNOSTIC_READY" if now_bjt < session_close else "POST_CLOSE_DIAGNOSTIC_READY"
-    if not credential_ready:
+    if not packages_ready:
+        status = "RUNTIME_PACKAGES_NOT_READY"
+    elif not credential_ready:
         status = "SCHEDULED_TASK_CREDENTIAL_CONTEXT_NOT_READY"
     return {
         "status": status,
@@ -353,16 +413,17 @@ def _preflight(
             else "not_applicable"
         ),
         "provider_calls": "NOT_RUN_BEFORE_T_CLOSE",
+        "xshg_session": "YES",
+        "session_close_passed": True,
+        "data_root_writable": True,
+        "evidence_root_writable": True,
         "credential_context": "READY" if credential_ready else "MISSING_HITHINK_FINANCE_API_KEY",
+        "runtime_packages": "READY" if packages_ready else "NOT_READY",
         "python": sys.executable,
         "code_git_sha": _git_sha(),
         "data_root": str(data_root),
         "evidence_root": str(evidence_root),
-        "packages": {
-            "requests": _package_version("requests"),
-            "akshare": _package_version("akshare"),
-            "exchange_calendars": _package_version("exchange-calendars"),
-        },
+        "packages": package_versions,
     }
 
 
@@ -506,6 +567,8 @@ def main(argv: list[str] | None = None) -> int:
         "CALENDAR_CONTEXT_NOT_READY",
         "CLOSE_WINDOW_NOT_READY",
         "SCHEDULED_TASK_CREDENTIAL_CONTEXT_NOT_READY",
+        "RUNTIME_PACKAGES_NOT_READY",
+        "CALENDAR_UNAVAILABLE",
     } else 1
 
 

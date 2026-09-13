@@ -5,6 +5,32 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-14 — GITHUB_ACTIONS_DAILY_RUNTIME_V1 — unattended cloud runtime boundary
+
+- decision：每日生产计算使用临时 GitHub-hosted `ubuntu-latest` runner；GitHub Actions 是
+  正常的唯一 production-state writer，远端 `runtime-state` branch 是跨设备生产状态权威，
+  home/work PC 只读或本地复现。workflow 以 `ASHARE_DATA_ROOT` 统一定位临时数据目录，不依赖
+  任一设备路径、浏览器、Excel、SQLite 或桌面 connector。
+- schedule：使用 18:17 与 19:17 BJT 两个 bounded wake-up，实际是否运行完全复用
+  `default_calendar()` 的 XSHG session 判断；非交易日只输出 `SKIPPED_NON_TRADING_DAY`，
+  不生成名单、日报、tracker update 或 shadow capture。workflow 提供 `workflow_dispatch`
+  的 `preflight-only` 模式，且不授权 weekend backfill。
+- durable boundary：只允许 formal B canonical watchlists、`perf_tracker`、现有 shadow store、
+  final daily reports 与已验证的 daily checkpoint manifest 进入 `runtime-state`。raw provider
+  responses、K-lines、quotes、sectors、generation input package、`t_close_evidence` 与
+  `prospective_inputs` 仅在 runner 临时目录存在，workflow 结束后随 runner 销毁。
+- performance parity：若没有本地 immutable K-line evidence，cloud mode 只为报告实际需要的
+  canonical signal codes 临时读取历史 OHLC，并标记
+  `EPHEMERAL_PROVIDER_RULE_PERFORMANCE_RECONSTRUCTION`。该读取是理论 rule-price、只读、
+  不回填 prospective observation，不写 tracker/canonical/shadow/runtime-state，不改变正式
+  B 的 entry/exit/T+1/same-bar/sample semantics；provider failure 不静默降级为 N/A。
+- correctness：shadow regime 的既有定义需要至少 61 根指数 bar，因此把默认 input count
+  从 60 修正为 61；这是数据充足性修复，不是 threshold、regime 或策略修改。Drive checkpoint
+  在 cloud mode 仅显式禁用 connector，仍保留本地 manifest 与默认本地行为。
+- invariant：正式 `B_BREAKOUT_RETEST_LEGACY_V1_1` 与 spec SHA
+  `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`、
+  `ASHARE_MAIN_BOARD_ONLY_V1`、shadow semantics、Final OOS boundary 与历史 artifact 均不变。
+
 ## 2026-09-13 — USER_UNIVERSE_POLICY_DECISION — Main Board-only future production universe adopted and merged
 
 - decision：未来 live universe 固定为既有 eligible universe ∩ Main Board，policy literal 为

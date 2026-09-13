@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import warnings
 from collections import Counter
 from datetime import date, datetime, timedelta
@@ -72,6 +73,12 @@ SOURCE_MODE_EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1 = (
 PATH_UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH = "UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH"
 CONFIRMED_ENTRY_UNAVAILABLE = "CONFIRMED_ENTRY_UNAVAILABLE"
 REVIEW_OBSERVATION_INCOMPLETE = "REVIEW_OBSERVATION_INCOMPLETE"
+EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION_ENV = (
+    "ASHARE_EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION"
+)
+EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION = (
+    "EPHEMERAL_PROVIDER_RULE_PERFORMANCE_RECONSTRUCTION"
+)
 
 
 class TrackerSchemaError(ValueError):
@@ -1728,13 +1735,15 @@ def load_strategy_rule_historical_ohlc(
     paths: DataPaths | None = None,
     calendar: TradingCalendar | None = None,
 ) -> tuple[dict[str, list[dict[str, Any]]], dict[str, Any]]:
-    """Read already-captured daily K-lines for rule-performance reconstruction.
+    """Read or temporarily reconstruct daily K-lines for rule performance.
 
-    The loader is read-only.  It intentionally has no provider fallback: a
-    missing or invalid local historical bar is returned as a performance data
-    gap, while prospective tracker observations remain untouched.  The
-    existing immutable T-close K-line capture is the local cache/provenance
-    source when available.
+    The default local behavior is unchanged: the existing immutable T-close
+    K-line capture is the only historical source, and a missing bar is a
+    performance data gap.  Cloud production explicitly enables the
+    ``ASHARE_EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION`` switch.  In that
+    mode, missing symbols are read through the existing provider/fallback
+    adapter into memory only; no raw response, bar, tracker observation, or
+    prospective input is persisted.
     """
 
     resolver = paths or PATHS
@@ -1753,17 +1762,44 @@ def load_strategy_rule_historical_ohlc(
     errors: list[str] = []
     try:
         from live_acquisition import (
+            ALLOW_TENCENT_KLINE_FALLBACK,
             DEFAULT_STOCK_BAR_COUNT,
+            HiThinkClient,
             TCloseEvidenceStore,
+            _resolve_market_bars,
             _history_capture_spec,
             _load_captured_market_bars,
         )
     except Exception as exc:
         errors.append(f"historical cache adapter unavailable: {type(exc).__name__}")
         DEFAULT_STOCK_BAR_COUNT = 260
+        ALLOW_TENCENT_KLINE_FALLBACK = True
+        HiThinkClient = None  # type: ignore[assignment]
         TCloseEvidenceStore = None  # type: ignore[assignment]
+        _resolve_market_bars = None  # type: ignore[assignment]
         _history_capture_spec = None  # type: ignore[assignment]
         _load_captured_market_bars = None  # type: ignore[assignment]
+
+    ephemeral_enabled = os.environ.get(
+        EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION_ENV, ""
+    ).strip().lower() in {"1", "true", "yes"}
+    ephemeral_client: Any | None = None
+    provider_calls = 0
+    if ephemeral_enabled and eligible_codes:
+        if HiThinkClient is None or _resolve_market_bars is None:
+            raise TrackerSchemaError(
+                f"{EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION}: "
+                "provider adapter unavailable"
+            )
+        try:
+            from requests import get as request_get
+
+            ephemeral_client = HiThinkClient(capture_store=None)
+        except Exception as exc:
+            raise TrackerSchemaError(
+                f"{EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION}: "
+                f"provider client unavailable: {type(exc).__name__}: {exc}"
+            ) from exc
 
     evidence_base = resolver.root / "t_close_evidence"
     root_candidates = [evidence_base, evidence_base / report_date.strftime("%Y%m%d")]
@@ -1824,6 +1860,48 @@ def load_strategy_rule_historical_ohlc(
                 cache_hits += 1
                 loaded = True
                 break
+        if not loaded and ephemeral_enabled:
+            assert ephemeral_client is not None
+            assert _resolve_market_bars is not None
+            try:
+                bars, resolution = _resolve_market_bars(
+                    ephemeral_client,
+                    code,
+                    requested_count=DEFAULT_STOCK_BAR_COUNT,
+                    minimum_acceptable_history=1,
+                    as_of_date=report_date.isoformat(),
+                    timeout=15.0,
+                    request_get=request_get,
+                    retries=3,
+                    index=False,
+                    allow_tencent_fallback=ALLOW_TENCENT_KLINE_FALLBACK,
+                    allow_stale_as_of=False,
+                )
+            except Exception as exc:
+                raise TrackerSchemaError(
+                    f"{EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION}: "
+                    f"historical bars unavailable for {code}: "
+                    f"{type(exc).__name__}: {exc}"
+                ) from exc
+            bars_by_code[code] = bars
+            provenance_by_code[code] = {
+                "status": "COMPLETE",
+                "source": EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION,
+                "source_identity": resolution.get("source"),
+                "provider_source": resolution.get("source"),
+                "provider": resolution.get("provider"),
+                "adjustment_mode": resolution.get("adjustment_mode"),
+                "selection": resolution.get("selection"),
+                "target_date": report_date.isoformat(),
+                "read_only": True,
+                "persisted": False,
+                "bars_persisted": False,
+                "prospective_tracker_mutated": False,
+                "cache": EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION,
+                "provenance_contract": EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION,
+            }
+            provider_calls += 1
+            loaded = True
         if not loaded:
             cache_misses += 1
             provenance_by_code[code] = {
@@ -1836,12 +1914,19 @@ def load_strategy_rule_historical_ohlc(
     return bars_by_code, {
         "by_code": provenance_by_code,
         "__meta__": {
-            "source": "T_CLOSE_IMMUTABLE_KLINE_CAPTURE",
-            "provider_calls": 0,
+            "source": (
+                EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION
+                if ephemeral_enabled
+                else "T_CLOSE_IMMUTABLE_KLINE_CAPTURE"
+            ),
+            "provider_calls": provider_calls,
             "cache_hits": cache_hits,
             "cache_misses": cache_misses,
             "errors": errors,
             "as_of_date": report_date.isoformat(),
+            "read_only": True,
+            "bars_persisted": False,
+            "prospective_tracker_mutated": False,
         },
     }
 

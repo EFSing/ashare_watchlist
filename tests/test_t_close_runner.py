@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, time, timezone
+from datetime import date, datetime, time, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -121,4 +121,60 @@ def test_preflight_marks_authorized_weekend_backfill_without_provider_calls(monk
     assert result["target_session"] == "2026-09-11"
     assert result["actual_acquisition_date"] == "2026-09-12"
     assert result["authorization"] == "explicit user-authorized weekend backfill"
+    assert result["provider_calls"] == "NOT_RUN_BEFORE_T_CLOSE"
+
+
+def test_preflight_cleanly_skips_non_xshg_session_without_provider_calls(monkeypatch, tmp_path):
+    monkeypatch.delenv("HITHINK_FINANCE_API_KEY", raising=False)
+    monkeypatch.setattr(
+        runner,
+        "default_calendar",
+        lambda: TradingCalendar(holidays={date(2026, 9, 14)}, session_close_time=time(15, 0)),
+    )
+
+    result = runner._preflight(
+        "2026-09-14",
+        tmp_path / "data",
+        tmp_path / "evidence",
+        now_bjt=datetime(2026, 9, 14, 18, 17, tzinfo=runner._BJT),
+    )
+
+    assert result["status"] == "SKIPPED_NON_TRADING_DAY"
+    assert result["xshg_session"] == "NO"
+    assert result["provider_calls"] == "NOT_RUN"
+    assert result["credential_context"] == "MISSING_HITHINK_FINANCE_API_KEY"
+
+
+def test_preflight_fails_safe_when_calendar_is_unavailable(monkeypatch, tmp_path):
+    monkeypatch.setenv("HITHINK_FINANCE_API_KEY", "test-only-key")
+    monkeypatch.setattr(runner, "default_calendar", lambda: TradingCalendar())
+
+    result = runner._preflight(
+        "2026-09-14",
+        tmp_path / "data",
+        tmp_path / "evidence",
+        now_bjt=datetime(2026, 9, 14, 18, 17, tzinfo=runner._BJT),
+    )
+
+    assert result["status"] == "CALENDAR_UNAVAILABLE"
+    assert result["provider_calls"] == "NOT_RUN"
+
+
+def test_preflight_reports_missing_credential_on_a_trading_session(monkeypatch, tmp_path):
+    monkeypatch.delenv("HITHINK_FINANCE_API_KEY", raising=False)
+    monkeypatch.setattr(
+        runner,
+        "default_calendar",
+        lambda: TradingCalendar(holidays=set(), session_close_time=time(15, 0)),
+    )
+
+    result = runner._preflight(
+        "2026-09-14",
+        tmp_path / "data",
+        tmp_path / "evidence",
+        now_bjt=datetime(2026, 9, 14, 18, 17, tzinfo=runner._BJT),
+    )
+
+    assert result["status"] == "SCHEDULED_TASK_CREDENTIAL_CONTEXT_NOT_READY"
+    assert result["credential_context"] == "MISSING_HITHINK_FINANCE_API_KEY"
     assert result["provider_calls"] == "NOT_RUN_BEFORE_T_CLOSE"

@@ -1,0 +1,293 @@
+name: daily-t-close
+
+on:
+  schedule:
+    - cron: "17 10 * * 1-5"
+    - cron: "17 11 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Cloud validation mode"
+        required: true
+        default: preflight-only
+        type: choice
+        options:
+          - preflight-only
+          - production
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ashare-daily-production
+  cancel-in-progress: false
+
+jobs:
+  daily:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      RUN_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'production' }}
+      HITHINK_FINANCE_API_KEY: ${{ secrets.HITHINK_FINANCE_API_KEY }}
+      ASHARE_DISABLE_DRIVE_CHECKPOINT: "1"
+      ASHARE_EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION: "1"
+      ASHARE_SKIP_PRODUCTION: "0"
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - name: Checkout source master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install pinned runtime and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[test]"
+
+      - name: Configure ephemeral cloud data root and BJT date
+        shell: bash
+        run: |
+          set -euo pipefail
+          data_root="$RUNNER_TEMP/ashare_data"
+          echo "ASHARE_DATA_ROOT=$data_root" >> "$GITHUB_ENV"
+          echo "ASHARE_EVIDENCE_ROOT=$data_root/t_close_evidence" >> "$GITHUB_ENV"
+          as_of_date="$(python -c 'from datetime import datetime, timedelta, timezone; print(datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=8))).date().isoformat())')"
+          echo "AS_OF_DATE=$as_of_date" >> "$GITHUB_ENV"
+          echo "SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Checkout runtime-state separately
+        uses: actions/checkout@v4
+        with:
+          ref: runtime-state
+          path: runtime-state
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Restore and validate durable runtime state
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/cloud_runtime_state.py restore \
+            --state-root "$GITHUB_WORKSPACE/runtime-state" \
+            --data-root "$ASHARE_DATA_ROOT"
+          python scripts/cloud_runtime_state.py validate \
+            --state-root "$GITHUB_WORKSPACE/runtime-state" \
+            --data-root "$ASHARE_DATA_ROOT"
+          test "$(git -C runtime-state rev-parse --abbrev-ref HEAD)" = "runtime-state"
+
+      - name: Check same-day completion before provider calls
+        if: env.RUN_MODE == 'production' && env.ASHARE_SKIP_PRODUCTION != '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$RUNNER_TEMP/completed.json"
+          python scripts/cloud_runtime_state.py check-completed \
+            --data-root "$ASHARE_DATA_ROOT" \
+            --date "$AS_OF_DATE" > "$output"
+          status="$(python - "$output" <<'PY'
+          import json
+          import sys
+          print(json.loads(open(sys.argv[1], encoding="utf-8").read())["status"])
+          PY
+          )"
+          if [[ "$status" == "ALREADY_COMPLETED" ]]; then
+            echo "ASHARE_SKIP_PRODUCTION=1" >> "$GITHUB_ENV"
+            echo "ASHARE_SUMMARY_RESULT=$output" >> "$GITHUB_ENV"
+            echo "ASHARE_SUMMARY_STATUS=ALREADY_COMPLETED" >> "$GITHUB_ENV"
+          fi
+
+      - name: Cloud preflight before any provider production call
+        if: env.ASHARE_SKIP_PRODUCTION != '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$RUNNER_TEMP/preflight.json"
+          set +e
+          python scripts/t_close_runner.py --preflight \
+            --as-of-date "$AS_OF_DATE" \
+            --data-root "$ASHARE_DATA_ROOT" \
+            --evidence-root "$ASHARE_EVIDENCE_ROOT" > "$output"
+          rc=$?
+          set -e
+          echo "PREFLIGHT_RESULT=$output" >> "$GITHUB_ENV"
+          status="$(python - "$output" <<'PY'
+          import json
+          import sys
+          lines = open(sys.argv[1], encoding="utf-8").read().strip().splitlines()
+          print(json.loads(lines[-1])["status"] if lines else "PREFLIGHT_OUTPUT_MISSING")
+          PY
+          )"
+          credential="$(python - "$output" <<'PY'
+          import json
+          import sys
+          lines = open(sys.argv[1], encoding="utf-8").read().strip().splitlines()
+          print(json.loads(lines[-1]).get("credential_context", "UNKNOWN") if lines else "UNKNOWN")
+          PY
+          )"
+          packages="$(python - "$output" <<'PY'
+          import json
+          import sys
+          lines = open(sys.argv[1], encoding="utf-8").read().strip().splitlines()
+          print(json.loads(lines[-1]).get("runtime_packages", "UNKNOWN") if lines else "UNKNOWN")
+          PY
+          )"
+          echo "PREFLIGHT_STATUS=$status" >> "$GITHUB_ENV"
+          if [[ "$ASHARE_SKIP_PRODUCTION" == "1" ]]; then
+            exit 0
+          fi
+          if (( rc != 0 )); then
+            cat "$output"
+            exit "$rc"
+          fi
+          if [[ "$RUN_MODE" == "preflight-only" ]]; then
+            if [[ "$credential" != "READY" || "$packages" != "READY" ]]; then
+              cat "$output"
+              exit 1
+            fi
+            echo "ASHARE_SKIP_PRODUCTION=1" >> "$GITHUB_ENV"
+            echo "ASHARE_SUMMARY_RESULT=$output" >> "$GITHUB_ENV"
+            echo "ASHARE_SUMMARY_STATUS=$status" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          if [[ "$status" == "SKIPPED_NON_TRADING_DAY" ]]; then
+            echo "ASHARE_SKIP_PRODUCTION=1" >> "$GITHUB_ENV"
+            echo "ASHARE_SUMMARY_RESULT=$output" >> "$GITHUB_ENV"
+            echo "ASHARE_SUMMARY_STATUS=$status" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          if [[ "$status" != "POST_CLOSE_DIAGNOSTIC_READY" || "$credential" != "READY" || "$packages" != "READY" ]]; then
+            cat "$output"
+            exit 1
+          fi
+
+      - name: Publish non-production preflight or skip summary
+        if: env.ASHARE_SKIP_PRODUCTION == '1' && env.ASHARE_SUMMARY_STATUS != 'ALREADY_COMPLETED'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/cloud_runtime_state.py summary \
+            --data-root "$ASHARE_DATA_ROOT" \
+            --date "$AS_OF_DATE" \
+            --status "$ASHARE_SUMMARY_STATUS" \
+            --state-commit "$(git -C runtime-state rev-parse HEAD)" \
+            --result-file "$ASHARE_SUMMARY_RESULT" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish already-completed summary
+        if: env.ASHARE_SKIP_PRODUCTION == '1' && env.ASHARE_SUMMARY_STATUS == 'ALREADY_COMPLETED'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/cloud_runtime_state.py summary \
+            --data-root "$ASHARE_DATA_ROOT" \
+            --date "$AS_OF_DATE" \
+            --status "$ASHARE_SUMMARY_STATUS" \
+            --state-commit "$(git -C runtime-state rev-parse HEAD)" \
+            --result-file "$ASHARE_SUMMARY_RESULT" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Run genuine XSHG T-close production chain
+        if: env.RUN_MODE == 'production' && env.ASHARE_SKIP_PRODUCTION != '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$RUNNER_TEMP/production.json"
+          set +e
+          python scripts/t_close_runner.py \
+            --as-of-date "$AS_OF_DATE" \
+            --data-root "$ASHARE_DATA_ROOT" \
+            --evidence-root "$ASHARE_EVIDENCE_ROOT" > "$output"
+          rc=$?
+          set -e
+          echo "PRODUCTION_RESULT=$output" >> "$GITHUB_ENV"
+          if (( rc != 0 )); then
+            cat "$output"
+            exit "$rc"
+          fi
+          python - "$output" <<'PY'
+          import json
+          import sys
+
+          lines = open(sys.argv[1], encoding="utf-8").read().strip().splitlines()
+          result = json.loads(lines[-1]) if lines else {}
+          bundle = result.get("daily_close_bundle") or {}
+          tracker = bundle.get("track_perf") or {}
+          renderer = bundle.get("renderer") or {}
+          checkpoint = bundle.get("cloud_checkpoint") or {}
+          if result.get("status") != "T_CLOSE_EVIDENCE_PACKAGE_AND_WATCHLIST_PERSISTED":
+              raise SystemExit(f"production status is not successful: {result.get('status')}")
+          if tracker.get("status") != "SUCCESS":
+              raise SystemExit(f"tracker failed: {tracker.get('status')}")
+          if renderer.get("status") != "SUCCESS":
+              raise SystemExit(f"renderer failed: {renderer.get('status')}")
+          if checkpoint.get("status") != "DRIVE_CHECKPOINT_DISABLED_FOR_CLOUD":
+              raise SystemExit(f"unexpected cloud checkpoint status: {checkpoint.get('status')}")
+          if bundle.get("status") in {"REPORT_FAILED", "REVIEW_FAILED_REPORT_READY"}:
+              raise SystemExit(f"daily report bundle failed: {bundle.get('status')}")
+          print("production canonical chain verified")
+          PY
+
+      - name: Validate production outputs before state copy
+        if: env.RUN_MODE == 'production' && env.ASHARE_SKIP_PRODUCTION != '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/cloud_runtime_state.py validate --data-root "$ASHARE_DATA_ROOT"
+          python scripts/cloud_runtime_state.py check-completed \
+            --data-root "$ASHARE_DATA_ROOT" \
+            --date "$AS_OF_DATE" | tee "$RUNNER_TEMP/validated-completion.json"
+          python - "$RUNNER_TEMP/validated-completion.json" <<'PY'
+          import json
+          import sys
+          value = json.loads(open(sys.argv[1], encoding="utf-8").read())
+          if value.get("status") != "ALREADY_COMPLETED":
+              raise SystemExit(f"production output checkpoint is incomplete: {value}")
+          PY
+
+      - name: Copy allowlisted durable outputs into runtime-state checkout
+        if: env.RUN_MODE == 'production' && env.ASHARE_SKIP_PRODUCTION != '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/cloud_runtime_state.py persist \
+            --state-root "$GITHUB_WORKSPACE/runtime-state" \
+            --data-root "$ASHARE_DATA_ROOT"
+
+      - name: Atomically commit and push runtime-state with GITHUB_TOKEN
+        if: env.RUN_MODE == 'production' && env.ASHARE_SKIP_PRODUCTION != '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t stage_paths < <(python scripts/cloud_runtime_state.py list --state-root "$GITHUB_WORKSPACE/runtime-state" --paths-only)
+          (cd runtime-state && git add -- "${stage_paths[@]}")
+          git -C runtime-state diff --cached --check
+          unexpected="$(git -C runtime-state diff --cached --name-only | python -c 'import sys; staged={line.strip() for line in sys.stdin if line.strip()}; allowed=set(sys.argv[1:]); print("\n".join(sorted(staged - allowed)))' "${stage_paths[@]}")"
+          if [[ -n "$unexpected" ]]; then
+            echo "unexpected staged runtime-state paths: $unexpected"
+            exit 1
+          fi
+          if git -C runtime-state diff --cached --quiet; then
+            state_sha="$(git -C runtime-state rev-parse HEAD)"
+          else
+            git -C runtime-state config user.name "github-actions[bot]"
+            git -C runtime-state config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C runtime-state commit -m "runtime: persist daily state $AS_OF_DATE"
+            git -C runtime-state push origin HEAD:runtime-state
+            state_sha="$(git -C runtime-state rev-parse HEAD)"
+          fi
+          echo "RUNTIME_STATE_SHA=$state_sha" >> "$GITHUB_ENV"
+
+      - name: Write production Actions summary
+        if: env.RUN_MODE == 'production' && env.ASHARE_SKIP_PRODUCTION != '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/cloud_runtime_state.py summary \
+            --data-root "$ASHARE_DATA_ROOT" \
+            --date "$AS_OF_DATE" \
+            --status "SUCCESS" \
+            --state-commit "$RUNTIME_STATE_SHA" \
+            --result-file "$PRODUCTION_RESULT" >> "$GITHUB_STEP_SUMMARY"

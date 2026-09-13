@@ -388,6 +388,18 @@ def test_runner_cloud_failure_is_fail_soft_and_local_manifest_is_ready(tmp_path)
     assert result["message"] == "[CLOUD] FAILED DRIVE_CONNECTOR_NOT_CONFIGURED"
 
 
+def test_runner_cloud_drive_checkpoint_disable_keeps_local_manifest(monkeypatch, tmp_path):
+    data_root = _write_operational_files(tmp_path)
+    monkeypatch.setenv(runner.DISABLE_DRIVE_CHECKPOINT_ENV, "1")
+
+    result = runner._daily_cloud_checkpoint(DATE, data_root, tracker_failure=None)
+
+    assert result["status"] == runner.DRIVE_CHECKPOINT_DISABLED
+    assert Path(result["manifest_path"]).is_file()
+    assert result["manifest_sha256"]
+    assert result["message"] == "[CLOUD] DRIVE CHECKPOINT DISABLED"
+
+
 def test_real_20260908_watchlist_sha_is_exact_when_local_artifact_is_available():
     path = Path(__file__).resolve().parents[1] / "data" / "watchlist_20260908.json"
     if not path.exists():

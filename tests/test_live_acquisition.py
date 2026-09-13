@@ -1352,6 +1352,10 @@ def test_hithink_stock_history_can_be_shorter_than_retrieval_target(available_ba
     assert stock.adjustment_mode == "PROVIDER_QFQ_SNAPSHOT"
 
 
+def test_default_index_history_meets_shadow_market_regime_requirement():
+    assert live.DEFAULT_INDEX_BAR_COUNT >= 61
+
+
 def test_hithink_stock_history_below_b_minimum_remains_manifest_valid_and_b_reports_insufficient_data():
     package = _acquire(
         hithink_client=FakeHiThink(bars=_bars(count=119)),

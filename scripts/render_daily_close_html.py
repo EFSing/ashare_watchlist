@@ -3,8 +3,9 @@
 """Render one self-contained offline daily close bundle.
 
 The renderer is deliberately a read-only consumer of the canonical watchlist
-and the signal-level tracker.  It never evaluates a strategy, fetches quotes,
-or reconstructs a historical path from a current quote.
+and the signal-level tracker.  It never evaluates a strategy.  Local runs use
+the immutable historical evidence cache; the cloud deployment may explicitly
+enable the tracker's read-only, in-memory historical reconstruction switch.
 """
 
 from __future__ import annotations
