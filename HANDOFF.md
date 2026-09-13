@@ -4,6 +4,29 @@
 > 本文件不是历史归档；历史 provenance 在 Git 历史中，正式状态与长期决策分别见
 > `docs/CURRENT_STATUS.md` 与 `docs/DECISION_LOG.md`（仅当前任务需要时读取）。
 
+## 2026-09-14 — source merged; cloud runtime waiting for the required secret
+
+- PR #50 (`feat: add unattended daily cloud runtime`) was squash-merged into `master`: final
+  implementation head `468411f661211eb74140d89a7f489587bf8821a8`, merge SHA
+  `cf1bbf53e4727bffdc6b1096f3d61b9bc5e03df4`; `origin/master` was fetched and matches the merge
+  SHA. Post-merge correctness run `34771128198` is exact-head `success`.
+- the remote `runtime-state` branch exists at `140d8dce20d2aa4a16802787ca9f8342390f48a7` and is
+  operational-state-only. It contains the validated formal B watchlists, tracker, and final
+  reports; stale checkpoint manifests and the legacy non-B 2026-08-20 list were omitted. The
+  2026-09-11 watchlist SHA remains
+  `80e6198e8e8af869d6718f14874be8e6eaa36cf3f63e7af1f381fb83c78db12b`.
+- the master workflow schedule is active at 18:17/19:17 BJT with XSHG gating, isolated temporary
+  data, and no raw/intermediate persistence. No production T-close run, weekend backfill, or
+  manual cloud preflight was dispatched during this deployment session.
+- repository Actions secret metadata currently reports zero configured secrets. The required
+  `HITHINK_FINANCE_API_KEY` therefore cannot be verified from Codex; do not dispatch production
+  until the user adds it in GitHub: `Settings → Secrets and variables → Actions → New repository
+  secret`, name `HITHINK_FINANCE_API_KEY`, paste the provider key, and save. Never place the value
+  in Git, workflow text, logs, or runtime-state.
+- terminal marker: `GITHUB_ACTIONS_HITHINK_SECRET_REQUIRED`; after the one-time user action,
+  dispatch `daily-t-close` with `mode=preflight-only` and verify the cloud preflight before the
+  first genuine scheduled XSHG T-close.
+
 ## 2026-09-14 — GitHub Actions unattended cloud runtime implementation in progress
 
 - live source base is `origin/master` at `306db219a8a9afdbb755450a184d43cdd9d95998`;

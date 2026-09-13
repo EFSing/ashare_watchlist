@@ -1,5 +1,26 @@
 # CURRENT STATUS
 
+## GITHUB_ACTIONS_DAILY_RUNTIME_V1 — merged; waiting for HITHINK secret — 2026-09-14
+
+The unattended cloud runtime is merged in `origin/master` at
+`cf1bbf53e4727bffdc6b1096f3d61b9bc5e03df4` from PR #50 final head
+`468411f661211eb74140d89a7f489587bf8821a8`. Exact post-merge correctness run `34771128198`
+passed. The schedule is active at 18:17 and 19:17 BJT, but all production execution remains
+XSHG-gated and uses a temporary GitHub-hosted runner data root.
+
+The remote `runtime-state` branch is the cross-device production-state authority at
+`140d8dce20d2aa4a16802787ca9f8342390f48a7`. It contains only the validated formal B watchlists,
+tracker, and final reports; raw/provider/intermediate data is not persisted. The 2026-09-11
+watchlist SHA is unchanged at
+`80e6198e8e8af869d6718f14874be8e6eaa36cf3f63e7af1f381fb83c78db12b`.
+
+Actions secret metadata reports `total_count=0`, so `HITHINK_FINANCE_API_KEY` is not configured.
+No manual preflight or production run was dispatched, and no credential success is claimed. The
+real blocker is `GITHUB_ACTIONS_HITHINK_SECRET_REQUIRED`: add the repository secret, then manually
+dispatch `daily-t-close` with `preflight-only` and verify the cloud environment. Formal B/spec SHA,
+Main Board-only universe, shadow semantics, performance semantics, Final OOS boundary, and
+historical artifacts remain unchanged.
+
 ## GITHUB_ACTIONS_DAILY_RUNTIME_V1 — implementation in progress — 2026-09-14
 
 The deployment scope is an unattended GitHub Actions cloud runtime for the existing daily

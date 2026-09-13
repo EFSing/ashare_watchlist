@@ -5,6 +5,20 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-14 — GITHUB_ACTIONS_DAILY_RUNTIME_V1 — post-merge deployment gate
+
+- outcome：PR #50 final head `468411f661211eb74140d89a7f489587bf8821a8` squash-merged into
+  `master` as `cf1bbf53e4727bffdc6b1096f3d61b9bc5e03df4`; exact post-merge correctness run
+  `34771128198` passed. Remote `runtime-state` is established at
+  `140d8dc` and remains separate from source history.
+- gate：the repository has zero configured Actions secrets in metadata. The workflow must stop at
+  `GITHUB_ACTIONS_HITHINK_SECRET_REQUIRED` until the user adds `HITHINK_FINANCE_API_KEY`; no
+  credential value is read, printed, committed, or fabricated. No cloud preflight, production
+  T-close, weekend backfill, or provider call was performed during deployment.
+- next boundary：after the secret is added, run only `workflow_dispatch` `preflight-only` first;
+  the first production run remains the next genuine XSHG T-close. Formal B, Main Board-only
+  universe, shadow and rule-performance semantics, and all historical/OOS boundaries are frozen.
+
 ## 2026-09-14 — GITHUB_ACTIONS_DAILY_RUNTIME_V1 — unattended cloud runtime boundary
 
 - decision：每日生产计算使用临时 GitHub-hosted `ubuntu-latest` runner；GitHub Actions 是
