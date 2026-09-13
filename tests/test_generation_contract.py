@@ -5,6 +5,7 @@ from datetime import date, time, timedelta
 import pytest
 
 from generation_contract import (
+    AUTHORIZED_WEEKEND_BACKFILL,
     ASIA_SHANGHAI,
     CALENDAR_ERROR,
     EXCHANGE_CALENDARS_VERSION,
@@ -185,6 +186,44 @@ def test_live_observed_timestamp_date_must_equal_t():
         _freeze(retrieved_at="2026-08-26T15:30:00+08:00")
 
     assert caught.value.status == INPUT_DATE_MISMATCH
+
+
+def test_default_generation_contract_rejects_weekend_observation_for_prior_t():
+    with pytest.raises(GenerationContractError) as caught:
+        _freeze(
+            as_of_date="2026-09-11",
+            retrieved_at="2026-09-12T15:05:00+08:00",
+        )
+
+    assert caught.value.status == INPUT_DATE_MISMATCH
+
+
+def test_explicit_weekend_backfill_accepts_immediately_following_non_trading_observation():
+    values = list(
+        _inputs(
+            as_of_date="2026-09-11",
+            retrieved_at="2026-09-12T15:05:00+08:00",
+        )
+    )
+    values[0] = RunContext(
+        as_of_date="2026-09-11",
+        provider_version_metadata={
+            "exchange_calendars": EXCHANGE_CALENDARS_VERSION,
+            "acquisition_timing": AUTHORIZED_WEEKEND_BACKFILL,
+        },
+    )
+
+    manifest = freeze_generation_inputs(
+        *values,
+        calendar=TradingCalendar(holidays=set(), session_close_time=time(15, 0)),
+        allow_weekend_backfill=True,
+    )
+
+    assert manifest.signal_date == "2026-09-11"
+    assert manifest.quote_snapshot.retrieved_at_bjt.startswith("2026-09-12")
+    assert manifest.run_context.provider_version_metadata["acquisition_timing"] == (
+        AUTHORIZED_WEEKEND_BACKFILL
+    )
 
 
 def test_stock_kline_future_bar_fails_fast():

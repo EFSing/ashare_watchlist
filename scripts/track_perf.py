@@ -11,10 +11,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import warnings
+from collections import Counter
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from statistics import mean, median
+from typing import Any, Iterable, Mapping
 
 from data_paths import DataPaths
 from tencent_quotes import QuoteDataError, fetch_quotes, validate_quotes
@@ -39,6 +42,28 @@ REVIEW_POINT_CAPTURED = "CAPTURED"
 REVIEW_POINT_NOT_CAPTURED = "NOT_CAPTURED"
 CURRENT_PROSPECTIVE_EPOCH_START = "2026-09-03"
 CURRENT_PROSPECTIVE_STRATEGY = "B_BREAKOUT_RETEST_LEGACY_V1_1"
+EXECUTION_MODEL_DAILY_OHLC_T1_V1 = "EXECUTION_MODEL_DAILY_OHLC_T1_V1"
+EXECUTION_VERIFIED = "VERIFIED"
+EXECUTION_T_PLUS_1_PENDING = "T_PLUS_1_OBSERVATION_PENDING"
+UNVERIFIED_MISSING_EXECUTION_OBSERVATION = "UNVERIFIED_MISSING_EXECUTION_OBSERVATION"
+EXIT_REASON_STOP_GAP = "STOP_GAP"
+EXIT_REASON_TARGET_GAP = "TARGET_GAP"
+EXIT_REASON_STOP = "STOP"
+EXIT_REASON_TARGET = "TARGET"
+EXIT_REASON_TIME = "TIME_EXIT"
+EXIT_REASON_TIME_PENDING_T1 = "TIME_EXIT_PENDING_T1"
+EXIT_REASON_TIME_DEFERRED_T1 = "TIME_EXIT_T1_DEFERRED"
+EXIT_REASON_EXPIRED_UNTRIGGERED = "EXPIRED_UNTRIGGERED"
+EXIT_REASON_AMBIGUOUS = "AMBIGUOUS_SAME_BAR"
+RETURN_BASIS_GROSS = "GROSS / BEFORE_FEES_AND_SLIPPAGE"
+STRATEGY_RULE_PERFORMANCE_MODEL = "STRATEGY_RULE_PERFORMANCE_TRIGGER_STOP_TARGET_T1_V1"
+PERFORMANCE_DATA_INCOMPLETE = "PERFORMANCE_DATA_INCOMPLETE"
+STRATEGY_RULE_CONFIG_ERROR = "STRATEGY_RULE_CONFIG_ERROR"
+RULE_STATUS_NOT_YET_ELIGIBLE = "NOT_YET_ELIGIBLE"
+RULE_STATUS_UNTRIGGERED = "UNTRIGGERED"
+RULE_STATUS_OPEN = "OPEN"
+RULE_STATUS_CLOSED = "CLOSED"
+RULE_STATUS_AMBIGUOUS = EXIT_REASON_AMBIGUOUS
 SKIP_LEGACY_OR_OUT_OF_SCOPE_WATCHLIST = "SKIP_LEGACY_OR_OUT_OF_SCOPE_WATCHLIST"
 SOURCE_MODE_LIVE_DAILY_TRACKER_QUOTE = "LIVE_DAILY_TRACKER_QUOTE"
 SOURCE_MODE_EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1 = (
@@ -309,7 +334,28 @@ def _signal_from_candidate(
         "target": candidate["target"],
         "rr": candidate["rr"],
         "status": "pending",
+        "execution_model": EXECUTION_MODEL_DAILY_OHLC_T1_V1,
+        "execution_verification_status": EXECUTION_T_PLUS_1_PENDING,
+        "execution_verification_reason": None,
+        "entry_date": None,
         "entry_price": None,
+        "sellable_from": None,
+        "exit_date": None,
+        "exit_price": None,
+        "exit_reason": None,
+        "realized_return_pct": None,
+        "realized_r": None,
+        "holding_sessions": None,
+        "entry_day_stop_touched": False,
+        "entry_day_target_touched": False,
+        "mfe_pct": None,
+        "mae_pct": None,
+        "mfe_mae_verification_status": None,
+        "latest_observation_date": None,
+        "latest_mark_price": None,
+        "unrealized_return_pct": None,
+        "unrealized_r": None,
+        "return_basis": RETURN_BASIS_GROSS,
         "result_price": None,
         "days_tracked": 0,
         "first_trigger_date": None,
@@ -610,6 +656,1407 @@ def _capture_exact_review_point(
     return True
 
 
+def _as_number(value: Any) -> float | None:
+    """Return a finite numeric value when a stored OHLC field is usable."""
+
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number
+
+
+def _next_session_after(value: date | datetime | str, calendar: TradingCalendar) -> date:
+    current = parse_date(value) + timedelta(days=1)
+    while not calendar.is_trading_day(current):
+        current += timedelta(days=1)
+    return current
+
+
+def _session_span(
+    start: date | datetime | str,
+    end: date | datetime | str,
+    calendar: TradingCalendar,
+) -> int:
+    first, last = parse_date(start), parse_date(end)
+    if last < first:
+        return 0
+    current = first
+    count = 0
+    while current <= last:
+        if calendar.is_trading_day(current):
+            count += 1
+        current += timedelta(days=1)
+    return count
+
+
+def _execution_horizon_sessions(
+    signal_date: date,
+    calendar: TradingCalendar,
+) -> list[date]:
+    sessions: list[date] = []
+    current = signal_date
+    while len(sessions) < TRACK_DAYS:
+        current = _next_session_after(current, calendar)
+        sessions.append(current)
+    return sessions
+
+
+def _execution_state_defaults() -> dict[str, Any]:
+    return {
+        "status": "pending",
+        "execution_model": EXECUTION_MODEL_DAILY_OHLC_T1_V1,
+        "execution_verification_status": EXECUTION_T_PLUS_1_PENDING,
+        "execution_verification_reason": None,
+        "entry_date": None,
+        "entry_price": None,
+        "sellable_from": None,
+        "exit_date": None,
+        "exit_price": None,
+        "exit_reason": None,
+        "realized_return_pct": None,
+        "realized_r": None,
+        "holding_sessions": None,
+        "entry_day_stop_touched": False,
+        "entry_day_target_touched": False,
+        "mfe_pct": None,
+        "mae_pct": None,
+        "mfe_mae_verification_status": None,
+        "latest_observation_date": None,
+        "latest_mark_price": None,
+        "unrealized_return_pct": None,
+        "unrealized_r": None,
+        "return_basis": RETURN_BASIS_GROSS,
+        # Existing v2 compatibility fields are always synchronized below.
+        "result_price": None,
+        "days_tracked": 0,
+        "first_trigger_date": None,
+        "close_date": None,
+        "ambiguity_reason": None,
+    }
+
+
+def _entry_fill_price(signal: Mapping[str, Any], observation: Mapping[str, Any]) -> float | None:
+    trigger = _as_number(signal.get("trigger"))
+    if trigger is None:
+        return None
+    opening = _as_number(observation.get("open"))
+    if opening is not None and opening >= trigger:
+        return opening
+    high = _as_number(observation.get("high"))
+    if high is not None and high >= trigger:
+        return trigger
+    return None
+
+
+def _sellable_exit_decision(
+    signal: Mapping[str, Any],
+    observation: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    """Resolve a sellable daily bar using open-first gap semantics."""
+
+    stop = _as_number(signal.get("stop"))
+    target = _as_number(signal.get("target"))
+    opening = _as_number(observation.get("open"))
+    if opening is not None and stop is not None and opening <= stop:
+        return {"exit_reason": EXIT_REASON_STOP_GAP, "exit_price": opening}
+    if opening is not None and target is not None and opening >= target:
+        return {"exit_reason": EXIT_REASON_TARGET_GAP, "exit_price": opening}
+
+    low = _as_number(observation.get("low"))
+    high = _as_number(observation.get("high"))
+    stop_hit = low is not None and stop is not None and low <= stop
+    target_hit = high is not None and target is not None and high >= target
+    if stop_hit and target_hit:
+        return {
+            "exit_reason": EXIT_REASON_AMBIGUOUS,
+            "exit_price": None,
+            "reason": "same sellable bar touched stop and target; intrabar order is unavailable",
+        }
+    if stop_hit:
+        return {"exit_reason": EXIT_REASON_STOP, "exit_price": stop}
+    if target_hit:
+        return {"exit_reason": EXIT_REASON_TARGET, "exit_price": target}
+    return None
+
+
+def _time_exit_t1_decision(signal: Mapping[str, Any], observation: Mapping[str, Any]) -> dict[str, Any] | None:
+    """Exit a T+10 entry on its first legal sellable session."""
+
+    opening = _as_number(observation.get("open"))
+    stop = _as_number(signal.get("stop"))
+    target = _as_number(signal.get("target"))
+    if opening is None:
+        return {"invalid": True, "reason": "sellable T+1 observation has no usable open"}
+    if stop is not None and opening <= stop:
+        return {"exit_reason": EXIT_REASON_STOP_GAP, "exit_price": opening}
+    if target is not None and opening >= target:
+        return {"exit_reason": EXIT_REASON_TARGET_GAP, "exit_price": opening}
+    return {"exit_reason": EXIT_REASON_TIME_DEFERRED_T1, "exit_price": opening}
+
+
+def _apply_replay_exit(state: dict[str, Any], day: date, decision: Mapping[str, Any]) -> None:
+    reason = str(decision["exit_reason"])
+    state["exit_date"] = day.isoformat()
+    state["exit_price"] = decision.get("exit_price")
+    state["exit_reason"] = reason
+    state["close_date"] = state["exit_date"]
+    state["result_price"] = state["exit_price"]
+    if reason == EXIT_REASON_AMBIGUOUS:
+        state["status"] = "AMBIGUOUS_SAME_BAR"
+        state["ambiguity_reason"] = decision.get("reason")
+    elif reason in {EXIT_REASON_TARGET, EXIT_REASON_TARGET_GAP}:
+        state["status"] = "win"
+        state["ambiguity_reason"] = None
+    elif reason in {EXIT_REASON_STOP, EXIT_REASON_STOP_GAP}:
+        state["status"] = "loss"
+        state["ambiguity_reason"] = None
+    elif reason in {EXIT_REASON_TIME, EXIT_REASON_TIME_DEFERRED_T1, EXIT_REASON_EXPIRED_UNTRIGGERED}:
+        state["status"] = "expired"
+        state["ambiguity_reason"] = None
+
+
+def _set_trade_returns(state: dict[str, Any], signal: Mapping[str, Any]) -> None:
+    entry = _as_number(state.get("entry_price"))
+    exit_price = _as_number(state.get("exit_price"))
+    if state.get("exit_reason") == EXIT_REASON_AMBIGUOUS:
+        state["realized_return_pct"] = "UNVERIFIED"
+        state["realized_r"] = "UNVERIFIED"
+        return
+    if entry is None or exit_price is None or entry <= 0:
+        state["realized_return_pct"] = None
+        state["realized_r"] = None
+        return
+    state["realized_return_pct"] = round((exit_price / entry - 1.0) * 100.0, 6)
+    stop = _as_number(signal.get("stop"))
+    risk = entry - stop if stop is not None else None
+    state["realized_r"] = round((exit_price - entry) / risk, 6) if risk and risk > 0 else None
+
+
+def _set_excursions(
+    state: dict[str, Any],
+    observations: Mapping[date, Mapping[str, Any]],
+    signal: Mapping[str, Any],
+    as_of_date: date,
+    calendar: TradingCalendar,
+    *,
+    path_end: date | None,
+    incomplete: bool,
+) -> None:
+    entry_date_text = state.get("entry_date")
+    entry = _as_number(state.get("entry_price"))
+    if entry_date_text is None or entry is None or entry <= 0:
+        state["mfe_mae_verification_status"] = None
+        return
+    entry_date = parse_date(entry_date_text)
+    end = path_end or as_of_date
+    expected = []
+    current = entry_date
+    while current <= end:
+        if calendar.is_trading_day(current):
+            expected.append(current)
+        current += timedelta(days=1)
+    if incomplete or any(day not in observations for day in expected):
+        state["mfe_pct"] = None
+        state["mae_pct"] = None
+        state["mfe_mae_verification_status"] = UNVERIFIED_MISSING_EXECUTION_OBSERVATION
+        return
+    highs = [_as_number(observations[day].get("high")) for day in expected]
+    lows = [_as_number(observations[day].get("low")) for day in expected]
+    if any(value is None for value in highs + lows):
+        state["mfe_pct"] = None
+        state["mae_pct"] = None
+        state["mfe_mae_verification_status"] = UNVERIFIED_MISSING_EXECUTION_OBSERVATION
+        return
+    state["mfe_pct"] = round(max(0.0, max((value / entry - 1.0) * 100.0 for value in highs if value is not None)), 6)
+    state["mae_pct"] = round(min(0.0, min((value / entry - 1.0) * 100.0 for value in lows if value is not None)), 6)
+    state["mfe_mae_verification_status"] = EXECUTION_VERIFIED
+
+
+def rebuild_execution_state_from_observations(
+    signal: Mapping[str, Any],
+    calendar: TradingCalendar | None = None,
+    as_of: date | datetime | str | None = None,
+) -> dict[str, Any]:
+    """Replay one signal from stored daily OHLC observations under A-share T+1.
+
+    This function is deliberately provider-free and does not mutate ``signal``
+    or its fixed-horizon review points.  A missing required XSHG session makes
+    the execution path unverified; later observations cannot silently repair
+    that gap.
+    """
+
+    cal = calendar or default_calendar()
+    signal_date = parse_date(signal["date"])
+    raw_observations = signal.get("observations")
+    raw_observations = raw_observations if isinstance(raw_observations, list) else []
+    parsed_observations: dict[date, Mapping[str, Any]] = {}
+    observed_dates: list[date] = []
+    for observation in raw_observations:
+        if not isinstance(observation, Mapping) or observation.get("date") is None:
+            continue
+        observation_date = parse_date(observation["date"])
+        observed_dates.append(observation_date)
+        parsed_observations[observation_date] = observation
+
+    as_of_date = parse_date(as_of) if as_of is not None else max(observed_dates or [signal_date])
+    visible_observations = {
+        day: observation
+        for day, observation in parsed_observations.items()
+        if signal_date < day <= as_of_date
+    }
+    state = _execution_state_defaults()
+    if as_of_date <= signal_date:
+        state["execution_verification_reason"] = "waiting for the next XSHG session"
+        return state
+
+    horizon = _execution_horizon_sessions(signal_date, cal)
+    first_execution = horizon[0]
+    if as_of_date < first_execution:
+        state["execution_verification_reason"] = "waiting for the next XSHG session"
+        return state
+
+    terminal = False
+    missing_day: date | None = None
+    missing_reason: str | None = None
+    last_processed = signal_date
+    entry_date: date | None = None
+
+    for day in horizon:
+        if day > as_of_date:
+            break
+        observation = visible_observations.get(day)
+        if observation is None:
+            missing_day = day
+            missing_reason = f"missing required XSHG execution observation: {day.isoformat()}"
+            break
+        last_processed = day
+        if state["status"] == "pending":
+            fill = _entry_fill_price(signal, observation)
+            if fill is not None:
+                entry_date = day
+                state["status"] = "triggered"
+                state["entry_date"] = day.isoformat()
+                state["entry_price"] = fill
+                state["first_trigger_date"] = day.isoformat()
+                state["sellable_from"] = _next_session_after(day, cal).isoformat()
+                low = _as_number(observation.get("low"))
+                high = _as_number(observation.get("high"))
+                stop = _as_number(signal.get("stop"))
+                target = _as_number(signal.get("target"))
+                state["entry_day_stop_touched"] = low is not None and stop is not None and low <= stop
+                state["entry_day_target_touched"] = high is not None and target is not None and high >= target
+                if day == horizon[-1]:
+                    state["exit_reason"] = EXIT_REASON_TIME_PENDING_T1
+            elif day == horizon[-1]:
+                _apply_replay_exit(
+                    state,
+                    day,
+                    {"exit_reason": EXIT_REASON_EXPIRED_UNTRIGGERED, "exit_price": None},
+                )
+                terminal = True
+            continue
+
+        if state["status"] != "triggered":
+            terminal = True
+            break
+        if entry_date is None:
+            entry_date = parse_date(state["entry_date"])
+        sellable_from = parse_date(state["sellable_from"])
+        if day < sellable_from:
+            continue
+        decision = _sellable_exit_decision(signal, observation)
+        if decision is not None:
+            _apply_replay_exit(state, day, decision)
+            terminal = True
+            break
+        if day == horizon[-1]:
+            close = _as_number(observation.get("price"))
+            if close is None:
+                missing_day = day
+                missing_reason = f"T+10 observation has no usable close: {day.isoformat()}"
+                break
+            _apply_replay_exit(
+                state,
+                day,
+                {"exit_reason": EXIT_REASON_TIME, "exit_price": close},
+            )
+            terminal = True
+            break
+
+    # A signal entering on T+10 can only be closed on the following XSHG
+    # session.  It is never sold on the entry day.
+    if (
+        not terminal
+        and missing_day is None
+        and state["status"] == "triggered"
+        and entry_date == horizon[-1]
+    ):
+        sellable_from = parse_date(state["sellable_from"])
+        state["exit_reason"] = EXIT_REASON_TIME_PENDING_T1
+        if as_of_date >= sellable_from:
+            observation = visible_observations.get(sellable_from)
+            if observation is None:
+                missing_day = sellable_from
+                missing_reason = f"missing required T+1 exit observation: {sellable_from.isoformat()}"
+            else:
+                last_processed = sellable_from
+                decision = _time_exit_t1_decision(signal, observation)
+                if decision and decision.get("invalid"):
+                    missing_day = sellable_from
+                    missing_reason = str(decision.get("reason"))
+                elif decision:
+                    _apply_replay_exit(state, sellable_from, decision)
+                    terminal = True
+
+    if missing_day is not None:
+        state["execution_verification_status"] = UNVERIFIED_MISSING_EXECUTION_OBSERVATION
+        state["execution_verification_reason"] = missing_reason
+        # Keep a proven entry, but never retain an unverified later exit.
+        if not terminal:
+            state["exit_date"] = None
+            state["exit_price"] = None
+            state["realized_return_pct"] = None
+            state["realized_r"] = None
+            state["close_date"] = None
+            state["result_price"] = None
+            state["ambiguity_reason"] = None
+            if state["status"] != "triggered":
+                state["entry_date"] = None
+                state["entry_price"] = None
+                state["first_trigger_date"] = None
+                state["sellable_from"] = None
+                state["entry_day_stop_touched"] = False
+                state["entry_day_target_touched"] = False
+            state["exit_reason"] = (
+                EXIT_REASON_TIME_PENDING_T1
+                if state["status"] == "triggered" and entry_date == horizon[-1]
+                else None
+            )
+    else:
+        state["execution_verification_status"] = EXECUTION_VERIFIED
+        state["execution_verification_reason"] = None
+
+    if state.get("entry_date"):
+        entry_date = parse_date(state["entry_date"])
+        end_date = parse_date(state["exit_date"]) if state.get("exit_date") else last_processed
+        state["holding_sessions"] = _session_span(entry_date, end_date, cal)
+    else:
+        state["holding_sessions"] = None
+
+    tracked_through = parse_date(state["exit_date"]) if state.get("exit_date") else last_processed
+    state["days_tracked"] = trading_days_after(signal_date, tracked_through, calendar=cal)
+    if state.get("entry_date"):
+        _set_trade_returns(state, signal)
+        path_end = parse_date(state["exit_date"]) if state.get("exit_date") else last_processed
+        _set_excursions(
+            state,
+            visible_observations,
+            signal,
+            as_of_date,
+            cal,
+            path_end=path_end,
+            incomplete=missing_day is not None,
+        )
+        visible_after_entry = [day for day in visible_observations if day >= parse_date(state["entry_date"])]
+        if visible_after_entry:
+            latest_day = max(visible_after_entry)
+            latest_price = _as_number(visible_observations[latest_day].get("price"))
+            state["latest_observation_date"] = latest_day.isoformat()
+            state["latest_mark_price"] = latest_price
+            if state["status"] == "triggered" and latest_price is not None:
+                entry = _as_number(state["entry_price"])
+                stop = _as_number(signal.get("stop"))
+                state["unrealized_return_pct"] = round((latest_price / entry - 1.0) * 100.0, 6) if entry else None
+                risk = entry - stop if entry is not None and stop is not None else None
+                state["unrealized_r"] = round((latest_price - entry) / risk, 6) if risk and risk > 0 else None
+    if state.get("exit_reason") == EXIT_REASON_AMBIGUOUS:
+        state["realized_return_pct"] = "UNVERIFIED"
+        state["realized_r"] = "UNVERIFIED"
+
+    state["first_trigger_date"] = state.get("entry_date")
+    state["close_date"] = state.get("exit_date")
+    state["result_price"] = state.get("exit_price")
+    return state
+
+
+_REPLAY_COMPATIBILITY_FIELDS = (
+    "status", "execution_model", "execution_verification_status", "execution_verification_reason",
+    "entry_date", "entry_price", "sellable_from", "exit_date", "exit_price", "exit_reason",
+    "realized_return_pct", "realized_r", "holding_sessions", "entry_day_stop_touched",
+    "entry_day_target_touched", "mfe_pct", "mae_pct", "mfe_mae_verification_status",
+    "latest_observation_date", "latest_mark_price", "unrealized_return_pct", "unrealized_r",
+    "return_basis", "result_price", "days_tracked", "first_trigger_date", "close_date",
+    "ambiguity_reason",
+)
+
+
+def _apply_rebuilt_execution_state(signal: dict[str, Any], state: Mapping[str, Any]) -> int:
+    changed = 0
+    for field in _REPLAY_COMPATIBILITY_FIELDS:
+        value = state.get(field)
+        if signal.get(field) != value:
+            signal[field] = value
+            changed += 1
+    return changed
+
+
+def build_execution_reconciliation_audit(
+    tracker: Mapping[str, Any],
+    as_of_date: date | datetime | str,
+    calendar: TradingCalendar | None = None,
+) -> dict[str, Any]:
+    """Return a read-only old-versus-new execution audit."""
+
+    cal = calendar or default_calendar()
+    report_date = parse_date(as_of_date)
+    signals = [
+        signal for signal in (tracker.get("signals", {}) or {}).values()
+        if isinstance(signal, Mapping)
+        and is_current_prospective_signal(signal)
+        and parse_date(signal["date"]) <= report_date
+    ]
+    status_changes: Counter[str] = Counter()
+    entry_date_changes = 0
+    close_date_changes = 0
+    states = []
+    for signal in signals:
+        state = rebuild_execution_state_from_observations(signal, calendar=cal, as_of=report_date)
+        old_status = signal.get("status")
+        new_status = state.get("status")
+        if old_status != new_status:
+            status_changes[f"{old_status} -> {new_status}"] += 1
+        if signal.get("first_trigger_date") != state.get("entry_date"):
+            entry_date_changes += 1
+        if signal.get("close_date") != state.get("exit_date"):
+            close_date_changes += 1
+        states.append(state)
+    verified = sum(state.get("execution_verification_status") == EXECUTION_VERIFIED for state in states)
+    unverified = sum(state.get("execution_verification_status") == UNVERIFIED_MISSING_EXECUTION_OBSERVATION for state in states)
+    entered = sum(state.get("entry_date") is not None for state in states)
+    closed_confirmed = sum(
+        state.get("execution_verification_status") == EXECUTION_VERIFIED
+        and isinstance(state.get("realized_return_pct"), (int, float))
+        and state.get("exit_price") is not None
+        for state in states
+    )
+    open_positions = sum(
+        state.get("execution_verification_status") == EXECUTION_VERIFIED
+        and state.get("status") == "triggered"
+        and state.get("entry_date") is not None
+        for state in states
+    )
+    return {
+        "as_of_date": report_date.isoformat(),
+        "execution_model": EXECUTION_MODEL_DAILY_OHLC_T1_V1,
+        "provider_calls": 0,
+        "signals_total": len(signals),
+        "execution_verified": verified,
+        "execution_unverified": unverified,
+        "entered": entered,
+        "closed_confirmed": closed_confirmed,
+        "open_positions": open_positions,
+        "untriggered_expired": sum(state.get("exit_reason") == EXIT_REASON_EXPIRED_UNTRIGGERED for state in states),
+        "ambiguous_exits": sum(state.get("exit_reason") == EXIT_REASON_AMBIGUOUS for state in states),
+        "status_changed_count": sum(status_changes.values()),
+        "status_changes": dict(sorted(status_changes.items())),
+        "entry_date_changed_count": entry_date_changes,
+        "close_date_changed_count": close_date_changes,
+    }
+
+
+def reconcile_tracker_execution(
+    tracker: dict[str, Any],
+    as_of_date: date | datetime | str,
+    calendar: TradingCalendar | None = None,
+) -> dict[str, Any]:
+    """Apply deterministic T+1 replay to current prospective signals only."""
+
+    _validate_tracker(tracker)
+    cal = calendar or default_calendar()
+    report_date = parse_date(as_of_date)
+    audit = build_execution_reconciliation_audit(tracker, report_date, cal)
+    changed = 0
+    for signal in tracker["signals"].values():
+        if not isinstance(signal, dict):
+            continue
+        if not is_current_prospective_signal(signal) or parse_date(signal["date"]) > report_date:
+            continue
+        state = rebuild_execution_state_from_observations(signal, calendar=cal, as_of=report_date)
+        changed += _apply_rebuilt_execution_state(signal, state)
+    tracker["execution_reconciliation"] = {
+        "as_of_date": report_date.isoformat(),
+        "execution_model": EXECUTION_MODEL_DAILY_OHLC_T1_V1,
+        "source": "canonical watchlist identity + stored tracker observations + XSHG calendar",
+        "provider_calls": 0,
+        "status": "LOCAL_DETERMINISTIC_REPLAY",
+        "signals_reconciled": audit["signals_total"],
+        "fields_changed": changed,
+    }
+    return {**audit, "fields_changed": changed}
+
+
+def _numeric_values(values: list[Any]) -> list[float]:
+    return [value for value in (_as_number(item) for item in values) if value is not None]
+
+
+def _mean_or_none(values: list[Any]) -> float | None:
+    numbers = _numeric_values(values)
+    return round(mean(numbers), 6) if numbers else None
+
+
+def _median_or_none(values: list[Any]) -> float | None:
+    numbers = _numeric_values(values)
+    return round(median(numbers), 6) if numbers else None
+
+
+def _canonical_rule_signal_records(source: Any) -> list[dict[str, Any]]:
+    """Return immutable signal-shaped views of canonical watchlists or signals."""
+
+    if isinstance(source, Mapping):
+        if "candidates" in source:
+            items: list[Any] = [source]
+        elif "signals" in source and isinstance(source.get("signals"), Mapping):
+            items = list(source["signals"].values())
+        else:
+            items = [source]
+    elif isinstance(source, (list, tuple)):
+        items = list(source)
+    else:
+        items = list(source) if isinstance(source, Iterable) else []
+
+    records: list[dict[str, Any]] = []
+    for item in items:
+        if not isinstance(item, Mapping):
+            continue
+        candidates = item.get("candidates")
+        if isinstance(candidates, list):
+            list_date = item.get("date")
+            list_strategy = item.get("strategy_version")
+            for candidate in candidates:
+                if not isinstance(candidate, Mapping):
+                    continue
+                strategy = candidate.get("strategy_version", list_strategy)
+                setup = candidate.get("setup") or candidate.get("buy_type")
+                signal_date = candidate.get("date", list_date)
+                if signal_date is None or strategy is None or setup is None:
+                    continue
+                signal_date = parse_date(signal_date).isoformat()
+                code = str(candidate.get("code", ""))
+                records.append({
+                    "signal_id": candidate.get("signal_id") or stable_signal_id(
+                        str(strategy), signal_date, code, str(setup)
+                    ),
+                    "strategy_version": str(strategy),
+                    "date": signal_date,
+                    "code": code,
+                    "setup": str(setup),
+                    "name": candidate.get("name"),
+                    "buy_type": candidate.get("buy_type"),
+                    "score": candidate.get("score"),
+                    "trigger": candidate.get("trigger"),
+                    "stop": candidate.get("stop"),
+                    "target": candidate.get("target"),
+                    "rr": candidate.get("rr"),
+                })
+            continue
+        if item.get("date") is None or item.get("strategy_version") is None:
+            continue
+        records.append({
+            "signal_id": item.get("signal_id"),
+            "strategy_version": item.get("strategy_version"),
+            "date": parse_date(item["date"]).isoformat(),
+            "code": str(item.get("code", "")),
+            "setup": item.get("setup") or item.get("buy_type"),
+            "name": item.get("name"),
+            "buy_type": item.get("buy_type"),
+            "score": item.get("score"),
+            "trigger": item.get("trigger"),
+            "stop": item.get("stop"),
+            "target": item.get("target"),
+            "rr": item.get("rr"),
+        })
+    return records
+
+
+def _canonical_rule_signals(source: Any, report_date: date) -> list[dict[str, Any]]:
+    """Filter canonical signal identity at the report as-of boundary."""
+
+    by_id: dict[str, dict[str, Any]] = {}
+    for record in _canonical_rule_signal_records(source):
+        if record.get("strategy_version") != CURRENT_PROSPECTIVE_STRATEGY:
+            continue
+        if not record.get("signal_id"):
+            setup = record.get("setup") or record.get("buy_type") or "UNKNOWN_SETUP"
+            record["signal_id"] = stable_signal_id(
+                str(record["strategy_version"]), str(record["date"]),
+                str(record.get("code", "")), str(setup),
+            )
+        if parse_date(record["date"]) <= report_date:
+            by_id[str(record["signal_id"])] = record
+    return sorted(by_id.values(), key=lambda item: (str(item["date"]), str(item["signal_id"])))
+
+
+def _rule_history_value(historical_ohlc: Mapping[str, Any] | None, code: str) -> Any:
+    if not isinstance(historical_ohlc, Mapping):
+        return None
+    for key in (code, code.upper(), f"{code}.SH", f"{code}.SZ"):
+        if key in historical_ohlc:
+            return historical_ohlc[key]
+    return None
+
+
+def _rule_provenance_value(
+    historical_ohlc: Mapping[str, Any] | None,
+    historical_provenance: Mapping[str, Any] | None,
+    code: str,
+) -> Any:
+    if isinstance(historical_provenance, Mapping):
+        by_code = historical_provenance.get("by_code")
+        if isinstance(by_code, Mapping):
+            for key in (code, code.upper(), f"{code}.SH", f"{code}.SZ"):
+                if key in by_code:
+                    return by_code[key]
+        for key in (code, code.upper(), f"{code}.SH", f"{code}.SZ"):
+            if key in historical_provenance:
+                return historical_provenance[key]
+    raw = _rule_history_value(historical_ohlc, code)
+    if isinstance(raw, Mapping):
+        return raw.get("provenance")
+    return None
+
+
+def _finite_rule_number(value: Any) -> float | None:
+    number = _as_number(value)
+    return number if number is not None and math.isfinite(number) else None
+
+
+def _rule_history_bars(
+    raw_history: Any,
+    as_of_date: date,
+) -> tuple[dict[date, dict[str, float | None]], set[date], list[str]]:
+    """Normalize daily OHLC while ignoring bars after the report as-of date."""
+
+    if isinstance(raw_history, Mapping):
+        if "bars" in raw_history:
+            raw_bars = raw_history.get("bars")
+        elif "ohlc" in raw_history:
+            raw_bars = raw_history.get("ohlc")
+        elif "data" in raw_history:
+            raw_bars = raw_history.get("data")
+        else:
+            raw_bars = None
+    else:
+        raw_bars = raw_history
+    if not isinstance(raw_bars, (list, tuple)):
+        return {}, set(), ["historical daily OHLC is missing"]
+
+    bars: dict[date, dict[str, float | None]] = {}
+    invalid_days: set[date] = set()
+    errors: list[str] = []
+    for index, raw_bar in enumerate(raw_bars):
+        if not isinstance(raw_bar, Mapping):
+            errors.append(f"bar[{index}] is not an object")
+            continue
+        try:
+            bar_date = parse_date(raw_bar["date"])
+        except (KeyError, TypeError, ValueError) as exc:
+            errors.append(f"bar[{index}] has an invalid date: {type(exc).__name__}")
+            continue
+        if bar_date > as_of_date:
+            continue
+        opening = _finite_rule_number(raw_bar.get("open"))
+        high = _finite_rule_number(raw_bar.get("high"))
+        low = _finite_rule_number(raw_bar.get("low"))
+        closing = _finite_rule_number(raw_bar.get("close"))
+        if closing is None:
+            closing = _finite_rule_number(raw_bar.get("price"))
+        if high is None or low is None or closing is None:
+            invalid_days.add(bar_date)
+            errors.append(f"{bar_date.isoformat()} is missing usable high/low/close")
+            continue
+        if high < low or high < closing or low > closing:
+            invalid_days.add(bar_date)
+            errors.append(f"{bar_date.isoformat()} has conflicting OHLC")
+            continue
+        if bar_date in bars:
+            invalid_days.add(bar_date)
+            bars.pop(bar_date, None)
+            errors.append(f"duplicate historical bar: {bar_date.isoformat()}")
+            continue
+        bars[bar_date] = {
+            "open": opening,
+            "high": high,
+            "low": low,
+            "close": closing,
+        }
+    return bars, invalid_days, errors
+
+
+def _rule_history_source_label(provenance: Any, has_history: bool) -> str:
+    if isinstance(provenance, Mapping):
+        source = provenance.get("source") or provenance.get("source_identity") or provenance.get("provider")
+        if source:
+            return str(source)
+    elif provenance:
+        return str(provenance)
+    return "INJECTED_HISTORICAL_DAILY_OHLC" if has_history else "MISSING_HISTORICAL_DAILY_OHLC"
+
+
+def _rule_sessions_after(
+    signal_date: date,
+    report_date: date,
+    calendar: TradingCalendar,
+) -> list[date]:
+    sessions: list[date] = []
+    current = _next_session_after(signal_date, calendar)
+    while current <= report_date:
+        sessions.append(current)
+        current = _next_session_after(current, calendar)
+    return sessions
+
+
+def _strategy_rule_trade_row(
+    signal: Mapping[str, Any],
+    historical_ohlc: Mapping[str, Any] | None,
+    historical_provenance: Mapping[str, Any] | None,
+    report_date: date,
+    calendar: TradingCalendar,
+) -> dict[str, Any]:
+    signal_date = parse_date(signal["date"])
+    code = str(signal.get("code", ""))
+    provenance = _rule_provenance_value(historical_ohlc, historical_provenance, code)
+    raw_history = _rule_history_value(historical_ohlc, code)
+    has_history = raw_history is not None
+    source_label = _rule_history_source_label(provenance, has_history)
+    row: dict[str, Any] = {
+        "signal_id": signal.get("signal_id"),
+        "strategy_version": signal.get("strategy_version"),
+        "signal_date": signal_date.isoformat(),
+        "code": code,
+        "name": signal.get("name"),
+        "setup": signal.get("setup"),
+        "score": signal.get("score"),
+        "trigger": signal.get("trigger"),
+        "stop": signal.get("stop"),
+        "target": signal.get("target"),
+        "rr": signal.get("rr"),
+        "entry_date": None,
+        "trigger_date": None,
+        "entry_price": None,
+        "sellable_from": None,
+        "exit_date": None,
+        "exit_price": None,
+        "exit_reason": None,
+        "exit_type": None,
+        "ambiguous_low": None,
+        "ambiguous_high": None,
+        "realized_return_pct": None,
+        "return_pct": None,
+        "realized_r": None,
+        "r": None,
+        "holding_sessions": None,
+        "entry_day_stop_touched": False,
+        "entry_day_target_touched": False,
+        "mfe_pct": None,
+        "mae_pct": None,
+        "latest_bar_date": None,
+        "latest_close": None,
+        "mark_return_pct": None,
+        "unrealized_return_pct": None,
+        "unrealized_r": None,
+        "status": RULE_STATUS_NOT_YET_ELIGIBLE,
+        "reason": None,
+        "historical_data_status": "NOT_REQUIRED",
+        "historical_source": source_label,
+        "historical_provenance": provenance,
+    }
+    expected_sessions = _rule_sessions_after(signal_date, report_date, calendar)
+    if not expected_sessions:
+        row["reason"] = "signal has no T+1 opportunity by report_date"
+        return row
+
+    trigger = _finite_rule_number(signal.get("trigger"))
+    stop = _finite_rule_number(signal.get("stop"))
+    target = _finite_rule_number(signal.get("target"))
+    if trigger is None or stop is None or target is None or trigger <= stop or target <= trigger:
+        row["status"] = STRATEGY_RULE_CONFIG_ERROR
+        row["historical_data_status"] = "NOT_REQUIRED"
+        row["reason"] = "trigger/stop/target configuration is not a valid long rule"
+        return row
+
+    bars, invalid_days, history_errors = _rule_history_bars(raw_history, report_date)
+    row["historical_data_status"] = "COMPLETE"
+    entry_date: date | None = None
+    sellable_from: date | None = None
+    path_bars: list[dict[str, float | None]] = []
+    path_dates: list[date] = []
+    incomplete_reason: str | None = None
+    terminal = False
+
+    for day in expected_sessions:
+        if day in invalid_days or day not in bars:
+            incomplete_reason = (
+                f"missing or unusable historical daily OHLC: {day.isoformat()}"
+            )
+            if history_errors:
+                incomplete_reason += f" ({history_errors[0]})"
+            break
+        bar = bars[day]
+        if entry_date is None:
+            high = bar["high"]
+            low = bar["low"]
+            if high is not None and high >= trigger:
+                entry_date = day
+                sellable_from = _next_session_after(day, calendar)
+                path_bars.append(bar)
+                path_dates.append(day)
+                row["entry_date"] = day.isoformat()
+                row["trigger_date"] = day.isoformat()
+                row["entry_price"] = trigger
+                row["sellable_from"] = sellable_from.isoformat()
+                row["entry_day_stop_touched"] = low is not None and low <= stop
+                row["entry_day_target_touched"] = high >= target
+            continue
+
+        path_bars.append(bar)
+        path_dates.append(day)
+        if sellable_from is None or day < sellable_from:
+            continue
+        low = bar["low"]
+        high = bar["high"]
+        stop_hit = low is not None and low <= stop
+        target_hit = high is not None and high >= target
+        if stop_hit and target_hit:
+            row["status"] = RULE_STATUS_AMBIGUOUS
+            row["exit_date"] = day.isoformat()
+            row["exit_reason"] = EXIT_REASON_AMBIGUOUS
+            row["exit_type"] = EXIT_REASON_AMBIGUOUS
+            row["ambiguous_low"] = low
+            row["ambiguous_high"] = high
+            row["reason"] = "same sellable daily bar touched stop and target; intraday order unavailable"
+            terminal = True
+            break
+        if stop_hit:
+            row["status"] = RULE_STATUS_CLOSED
+            row["exit_date"] = day.isoformat()
+            row["exit_price"] = stop
+            row["exit_reason"] = EXIT_REASON_STOP
+            row["exit_type"] = EXIT_REASON_STOP
+            terminal = True
+            break
+        if target_hit:
+            row["status"] = RULE_STATUS_CLOSED
+            row["exit_date"] = day.isoformat()
+            row["exit_price"] = target
+            row["exit_reason"] = EXIT_REASON_TARGET
+            row["exit_type"] = EXIT_REASON_TARGET
+            terminal = True
+            break
+
+    if incomplete_reason is not None and not terminal:
+        row["status"] = PERFORMANCE_DATA_INCOMPLETE
+        row["historical_data_status"] = "INCOMPLETE"
+        row["reason"] = incomplete_reason
+    elif not terminal:
+        row["status"] = RULE_STATUS_OPEN if entry_date is not None else RULE_STATUS_UNTRIGGERED
+        if entry_date is None:
+            row["reason"] = "no post-signal daily high reached trigger by report_date"
+
+    if entry_date is not None and path_bars and row["historical_data_status"] == "COMPLETE":
+        highs = [bar["high"] for bar in path_bars if bar["high"] is not None]
+        lows = [bar["low"] for bar in path_bars if bar["low"] is not None]
+        row["mfe_pct"] = round(max((value / trigger - 1.0) * 100.0 for value in highs), 6)
+        row["mae_pct"] = round(min((value / trigger - 1.0) * 100.0 for value in lows), 6)
+
+    if row["status"] == RULE_STATUS_CLOSED:
+        exit_date = parse_date(row["exit_date"])
+        exit_price = _finite_rule_number(row["exit_price"])
+        row["holding_sessions"] = _session_span(entry_date, exit_date, calendar)
+        row["realized_return_pct"] = round((exit_price / trigger - 1.0) * 100.0, 6) if exit_price is not None else None
+        row["return_pct"] = row["realized_return_pct"]
+        row["realized_r"] = round((exit_price - trigger) / (trigger - stop), 6) if exit_price is not None else None
+        row["r"] = row["realized_r"]
+    elif row["status"] == RULE_STATUS_OPEN and path_bars:
+        latest_day = path_dates[-1]
+        latest_bar = path_bars[-1]
+        latest_close = latest_bar["close"]
+        row["latest_bar_date"] = latest_day.isoformat()
+        row["latest_close"] = latest_close
+        row["mark_return_pct"] = round((latest_close / trigger - 1.0) * 100.0, 6) if latest_close is not None else None
+        row["unrealized_return_pct"] = row["mark_return_pct"]
+        row["unrealized_r"] = round((latest_close - trigger) / (trigger - stop), 6) if latest_close is not None else None
+    if row["status"] == RULE_STATUS_AMBIGUOUS:
+        row["realized_return_pct"] = None
+        row["realized_r"] = None
+    return row
+
+
+def build_strategy_rule_performance(
+    canonical_watchlists: Any,
+    historical_ohlc: Mapping[str, Any] | None,
+    as_of_date: date | datetime | str,
+    calendar: TradingCalendar | None = None,
+    *,
+    historical_provenance: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Reconstruct theoretical trigger/stop/target performance from daily OHLC.
+
+    This is intentionally independent from prospective observations and from
+    :func:`build_trade_performance_summary`.  It uses the canonical signal
+    identity supplied by ``canonical_watchlists`` and only bars dated after
+    signal date and no later than ``as_of_date``.  Entry and exit prices are
+    always the canonical rule prices; daily ``open`` is never used as a fill.
+    """
+
+    cal = calendar or default_calendar()
+    report_date = parse_date(as_of_date)
+    signals = _canonical_rule_signals(canonical_watchlists, report_date)
+    rows = [
+        _strategy_rule_trade_row(signal, historical_ohlc, historical_provenance, report_date, cal)
+        for signal in signals
+    ]
+    eligible_rows = [row for row in rows if row["status"] != RULE_STATUS_NOT_YET_ELIGIBLE]
+    triggered_rows = [row for row in rows if row.get("entry_date") is not None]
+    target_rows = [row for row in rows if row["status"] == RULE_STATUS_CLOSED and row["exit_reason"] == EXIT_REASON_TARGET]
+    stop_rows = [row for row in rows if row["status"] == RULE_STATUS_CLOSED and row["exit_reason"] == EXIT_REASON_STOP]
+    closed_rows = target_rows + stop_rows
+    open_rows = [row for row in rows if row["status"] == RULE_STATUS_OPEN]
+    ambiguous_rows = [row for row in rows if row["status"] == RULE_STATUS_AMBIGUOUS]
+    incomplete_rows = [row for row in rows if row["status"] == PERFORMANCE_DATA_INCOMPLETE]
+    config_rows = [row for row in rows if row["status"] == STRATEGY_RULE_CONFIG_ERROR]
+    untriggered_rows = [row for row in rows if row["status"] == RULE_STATUS_UNTRIGGERED]
+    returns = [row["realized_return_pct"] for row in closed_rows]
+    r_values = [row["realized_r"] for row in closed_rows]
+    wins = [row["realized_return_pct"] for row in target_rows]
+    losses = [row["realized_return_pct"] for row in stop_rows]
+    mean_win = _mean_or_none(wins)
+    mean_loss = _mean_or_none(losses)
+    positive_sum = sum(_numeric_values(wins))
+    negative_sum = sum(_numeric_values(losses))
+    source_labels = sorted({
+        str(row["historical_source"])
+        for row in rows
+        if row.get("historical_source") and row["status"] != RULE_STATUS_NOT_YET_ELIGIBLE
+    })
+    by_code = (historical_provenance or {}).get("by_code", {}) if isinstance(historical_provenance, Mapping) else {}
+    cache_meta = (historical_provenance or {}).get("__meta__", {}) if isinstance(historical_provenance, Mapping) else {}
+    resolved_count = len(closed_rows)
+    return {
+        "as_of_date": report_date.isoformat(),
+        "strategy": CURRENT_PROSPECTIVE_STRATEGY,
+        "performance_model": STRATEGY_RULE_PERFORMANCE_MODEL,
+        "return_basis": RETURN_BASIS_GROSS,
+        "theoretical_rule_price": True,
+        "entry_rule": "first post-signal XSHG session with high >= canonical trigger; entry_price=canonical trigger",
+        "exit_rule": "sellable sessions only; low <= stop or high >= target at canonical rule price; same-bar both=AMBIGUOUS_SAME_BAR",
+        "t1_rule": "entry day cannot exit; sellable_from=next XSHG session",
+        "time_exit": False,
+        "total_signals": len(rows),
+        "signals_with_t1_opportunity": len(eligible_rows),
+        "eligible_signals": len(eligible_rows),
+        "triggered": len(triggered_rows),
+        "entered": len(triggered_rows),
+        "trigger_rate": round(len(triggered_rows) / len(eligible_rows) * 100.0, 6) if eligible_rows else None,
+        "resolved_target": len(target_rows),
+        "resolved_stop": len(stop_rows),
+        "target_wins": len(target_rows),
+        "stop_losses": len(stop_rows),
+        "resolved_closed_trades": resolved_count,
+        "confirmed_closed_count": resolved_count,
+        "open_rule_trades": len(open_rows),
+        "open_positions_count": len(open_rows),
+        "open_positions": len(open_rows),
+        "untriggered": len(untriggered_rows),
+        "ambiguous": len(ambiguous_rows),
+        "performance_data_incomplete": len(incomplete_rows),
+        "strategy_config_errors": len(config_rows),
+        "win_count": len(target_rows),
+        "loss_count": len(stop_rows),
+        "flat_count": 0,
+        "win_rate": round(len(target_rows) / resolved_count * 100.0, 6) if resolved_count else None,
+        "avg_return_pct": _mean_or_none(returns),
+        "median_return_pct": _median_or_none(returns),
+        "avg_win_pct": mean_win,
+        "avg_loss_pct": mean_loss,
+        "payoff_ratio": round(mean_win / abs(mean_loss), 6) if mean_win is not None and mean_loss not in (None, 0) else None,
+        "profit_factor": round(positive_sum / abs(negative_sum), 6) if negative_sum < 0 else None,
+        "expectancy_pct": _mean_or_none(returns),
+        "avg_r": _mean_or_none(r_values),
+        "median_r": _median_or_none(r_values),
+        "expectancy_r": _mean_or_none(r_values),
+        "target_exit_count": len(target_rows),
+        "stop_exit_count": len(stop_rows),
+        "time_exit_count": 0,
+        "target_hit_rate": round(len(target_rows) / resolved_count * 100.0, 6) if resolved_count else None,
+        "stop_hit_rate": round(len(stop_rows) / resolved_count * 100.0, 6) if resolved_count else None,
+        "time_exit_rate": None,
+        "avg_holding_sessions": _mean_or_none([row["holding_sessions"] for row in closed_rows]),
+        "median_holding_sessions": _median_or_none([row["holding_sessions"] for row in closed_rows]),
+        "avg_mfe_pct": _mean_or_none([row["mfe_pct"] for row in closed_rows]),
+        "avg_mae_pct": _mean_or_none([row["mae_pct"] for row in closed_rows]),
+        "median_mfe_pct": _median_or_none([row["mfe_pct"] for row in closed_rows]),
+        "median_mae_pct": _median_or_none([row["mae_pct"] for row in closed_rows]),
+        "open_mtm_avg_return_pct": _mean_or_none([row["mark_return_pct"] for row in open_rows]),
+        "historical_data_source": source_labels[0] if len(source_labels) == 1 else ("MIXED_OR_PARTIAL" if source_labels else "NO_HISTORICAL_SOURCE"),
+        "historical_provider_calls": cache_meta.get("provider_calls", 0),
+        "historical_cache_hits": cache_meta.get("cache_hits", len(by_code) if isinstance(by_code, Mapping) else 0),
+        "historical_symbols_loaded": len({
+            row["code"]
+            for row in rows
+            if row["status"] != RULE_STATUS_NOT_YET_ELIGIBLE
+            and row.get("historical_data_status") == "COMPLETE"
+        }),
+        "closed_trades": closed_rows,
+        "open_position_rows": open_rows,
+        "ambiguous_rows": ambiguous_rows,
+        "untriggered_rows": untriggered_rows,
+        "performance_data_incomplete_rows": incomplete_rows,
+        "config_error_rows": config_rows,
+        "excluded_rows": [
+            row for row in rows
+            if row not in closed_rows and row not in open_rows
+        ],
+        "all_rows": rows,
+    }
+
+
+def load_strategy_rule_historical_ohlc(
+    canonical_watchlists: Any,
+    as_of_date: date | datetime | str,
+    *,
+    paths: DataPaths | None = None,
+    calendar: TradingCalendar | None = None,
+) -> tuple[dict[str, list[dict[str, Any]]], dict[str, Any]]:
+    """Read already-captured daily K-lines for rule-performance reconstruction.
+
+    The loader is read-only.  It intentionally has no provider fallback: a
+    missing or invalid local historical bar is returned as a performance data
+    gap, while prospective tracker observations remain untouched.  The
+    existing immutable T-close K-line capture is the local cache/provenance
+    source when available.
+    """
+
+    resolver = paths or PATHS
+    cal = calendar or default_calendar()
+    report_date = parse_date(as_of_date)
+    signals = _canonical_rule_signals(canonical_watchlists, report_date)
+    eligible_codes = sorted({
+        str(signal.get("code", ""))
+        for signal in signals
+        if _rule_sessions_after(parse_date(signal["date"]), report_date, cal)
+    })
+    bars_by_code: dict[str, list[dict[str, Any]]] = {}
+    provenance_by_code: dict[str, Any] = {}
+    cache_hits = 0
+    cache_misses = 0
+    errors: list[str] = []
+    try:
+        from live_acquisition import (
+            DEFAULT_STOCK_BAR_COUNT,
+            TCloseEvidenceStore,
+            _history_capture_spec,
+            _load_captured_market_bars,
+        )
+    except Exception as exc:
+        errors.append(f"historical cache adapter unavailable: {type(exc).__name__}")
+        DEFAULT_STOCK_BAR_COUNT = 260
+        TCloseEvidenceStore = None  # type: ignore[assignment]
+        _history_capture_spec = None  # type: ignore[assignment]
+        _load_captured_market_bars = None  # type: ignore[assignment]
+
+    evidence_base = resolver.root / "t_close_evidence"
+    root_candidates = [evidence_base, evidence_base / report_date.strftime("%Y%m%d")]
+    seen_roots: set[Path] = set()
+    unique_roots: list[Path] = []
+    for root in root_candidates:
+        if root not in seen_roots:
+            seen_roots.add(root)
+            unique_roots.append(root)
+    root_candidates = unique_roots
+    for code in eligible_codes:
+        loaded = False
+        last_error: str | None = None
+        if TCloseEvidenceStore is not None and _history_capture_spec is not None and _load_captured_market_bars is not None:
+            logical_identity, thscode, _start_ms, _end_ms = _history_capture_spec(
+                code,
+                requested_count=DEFAULT_STOCK_BAR_COUNT,
+                as_of_date=report_date.isoformat(),
+                index=False,
+            )
+            for root in root_candidates:
+                if not root.exists():
+                    continue
+                store = TCloseEvidenceStore(root, report_date)
+                try:
+                    result = _load_captured_market_bars(
+                        store,
+                        logical_identity,
+                        thscode,
+                        minimum_acceptable_history=1,
+                        as_of_date=report_date.isoformat(),
+                        require_last_bar_date=False,
+                    )
+                except Exception as exc:
+                    last_error = f"{type(exc).__name__}: {str(exc)[:240]}"
+                    break
+                if result is None:
+                    continue
+                bars, resolution = result
+                record = store.latest("hithink_kline")
+                metadata = dict(record.metadata) if record is not None else {}
+                bars_by_code[code] = bars
+                provenance_by_code[code] = {
+                    "status": "COMPLETE",
+                    "provider": resolution.get("provider"),
+                    "source": resolution.get("source"),
+                    "source_identity": resolution.get("source"),
+                    "provider_version": metadata.get("provider_version"),
+                    "adjustment_mode": resolution.get("adjustment_mode"),
+                    "selection": resolution.get("selection"),
+                    "target_date": metadata.get("target_date", report_date.isoformat()),
+                    "effective_trading_date": metadata.get("effective_trading_date"),
+                    "logical_component_identity": logical_identity,
+                    "file_sha256": metadata.get("file_sha256"),
+                    "code_git_sha": metadata.get("code_git_sha"),
+                    "cache": "T_CLOSE_IMMUTABLE_KLINE_CAPTURE",
+                }
+                cache_hits += 1
+                loaded = True
+                break
+        if not loaded:
+            cache_misses += 1
+            provenance_by_code[code] = {
+                "status": "MISSING_OR_INVALID",
+                "source": "T_CLOSE_IMMUTABLE_KLINE_CAPTURE",
+                "reason": last_error or "no matching immutable daily K-line capture",
+            }
+            if last_error:
+                errors.append(f"{code}: {last_error}")
+    return bars_by_code, {
+        "by_code": provenance_by_code,
+        "__meta__": {
+            "source": "T_CLOSE_IMMUTABLE_KLINE_CAPTURE",
+            "provider_calls": 0,
+            "cache_hits": cache_hits,
+            "cache_misses": cache_misses,
+            "errors": errors,
+            "as_of_date": report_date.isoformat(),
+        },
+    }
+
+
+def _trade_row(signal: Mapping[str, Any], state: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "signal_id": signal.get("signal_id"),
+        "signal_date": signal.get("date"),
+        "code": signal.get("code"),
+        "name": signal.get("name"),
+        "entry_date": state.get("entry_date"),
+        "entry_price": state.get("entry_price"),
+        "sellable_from": state.get("sellable_from"),
+        "exit_date": state.get("exit_date"),
+        "exit_price": state.get("exit_price"),
+        "exit_reason": state.get("exit_reason"),
+        "realized_return_pct": state.get("realized_return_pct"),
+        "realized_r": state.get("realized_r"),
+        "holding_sessions": state.get("holding_sessions"),
+        "mfe_pct": state.get("mfe_pct"),
+        "mae_pct": state.get("mae_pct"),
+        "latest_observation_date": state.get("latest_observation_date"),
+        "latest_mark_price": state.get("latest_mark_price"),
+        "unrealized_return_pct": state.get("unrealized_return_pct"),
+        "unrealized_r": state.get("unrealized_r"),
+        "status": state.get("status"),
+        "execution_verification_status": state.get("execution_verification_status"),
+        "execution_verification_reason": state.get("execution_verification_reason"),
+        "return_basis": state.get("return_basis", RETURN_BASIS_GROSS),
+    }
+
+
+def build_trade_performance_summary(
+    tracker: Mapping[str, Any],
+    as_of_date: date | datetime | str,
+    calendar: TradingCalendar | None = None,
+) -> dict[str, Any]:
+    """Build confirmed T+1 trade metrics from a strict as-of local replay."""
+
+    cal = calendar or default_calendar()
+    report_date = parse_date(as_of_date)
+    if isinstance(tracker, dict):
+        _validate_tracker(tracker)
+    raw_signals = tracker.get("signals", {}) if isinstance(tracker, Mapping) else {}
+    signals = [
+        signal for signal in raw_signals.values()
+        if isinstance(signal, Mapping)
+        and signal.get("strategy_version") == CURRENT_PROSPECTIVE_STRATEGY
+        and parse_date(signal["date"]) <= report_date
+    ]
+    signals.sort(key=lambda signal: (str(signal.get("date")), str(signal.get("signal_id"))))
+
+    state_rows: list[tuple[Mapping[str, Any], dict[str, Any], bool]] = []
+    for signal in signals:
+        state = rebuild_execution_state_from_observations(signal, calendar=cal, as_of=report_date)
+        first_execution = _next_session_after(parse_date(signal["date"]), cal)
+        mature = first_execution <= report_date
+        state_rows.append((signal, state, mature))
+
+    execution_verified = sum(
+        state.get("execution_verification_status") == EXECUTION_VERIFIED
+        for _signal, state, _mature in state_rows
+    )
+    execution_unverified = sum(
+        state.get("execution_verification_status") == UNVERIFIED_MISSING_EXECUTION_OBSERVATION
+        for _signal, state, mature in state_rows
+        if mature
+    )
+    execution_pending = sum(
+        state.get("execution_verification_status") == EXECUTION_T_PLUS_1_PENDING
+        for _signal, state, _mature in state_rows
+    )
+    observation_period_signals = sum(mature for _signal, _state, mature in state_rows)
+    eligible_rows = [
+        (signal, state) for signal, state, mature in state_rows
+        if mature and state.get("execution_verification_status") == EXECUTION_VERIFIED
+    ]
+    entered_rows = [
+        (signal, state) for signal, state, mature in state_rows
+        if mature and state.get("entry_date") is not None
+    ]
+    closed_rows = [
+        (signal, state) for signal, state, mature in state_rows
+        if mature
+        and state.get("execution_verification_status") == EXECUTION_VERIFIED
+        and state.get("exit_price") is not None
+        and isinstance(state.get("realized_return_pct"), (int, float))
+        and state.get("exit_reason") != EXIT_REASON_AMBIGUOUS
+    ]
+    open_rows = [
+        (signal, state) for signal, state, mature in state_rows
+        if mature
+        and state.get("execution_verification_status") == EXECUTION_VERIFIED
+        and state.get("status") == "triggered"
+        and state.get("entry_date") is not None
+        and state.get("exit_date") is None
+    ]
+    ambiguous_rows = [
+        (signal, state) for signal, state, mature in state_rows
+        if mature and state.get("exit_reason") == EXIT_REASON_AMBIGUOUS
+    ]
+    untriggered_expired_rows = [
+        (signal, state) for signal, state, mature in state_rows
+        if mature and state.get("exit_reason") == EXIT_REASON_EXPIRED_UNTRIGGERED
+    ]
+
+    closed_returns = [state.get("realized_return_pct") for _signal, state in closed_rows]
+    closed_r = [state.get("realized_r") for _signal, state in closed_rows]
+    positive_returns = [value for value in _numeric_values(closed_returns) if value > 0]
+    negative_returns = [value for value in _numeric_values(closed_returns) if value < 0]
+    flat_count = sum(value == 0 for value in _numeric_values(closed_returns))
+    average_win = _mean_or_none(positive_returns)
+    average_loss = _mean_or_none(negative_returns)
+    negative_sum = sum(negative_returns)
+    positive_sum = sum(positive_returns)
+    confirmed_count = len(closed_rows)
+    payoff_ratio = (
+        round(average_win / abs(average_loss), 6)
+        if average_win is not None and average_loss is not None and average_loss != 0
+        else None
+    )
+    profit_factor = round(positive_sum / abs(negative_sum), 6) if negative_sum < 0 else None
+    holding_values = [state.get("holding_sessions") for _signal, state in closed_rows]
+    mfe_rows = [
+        state for _signal, state, mature in state_rows
+        if mature
+        and state.get("execution_verification_status") == EXECUTION_VERIFIED
+        and state.get("entry_date") is not None
+        and state.get("exit_reason") != EXIT_REASON_AMBIGUOUS
+        and _as_number(state.get("mfe_pct")) is not None
+        and _as_number(state.get("mae_pct")) is not None
+    ]
+    target_reasons = {EXIT_REASON_TARGET, EXIT_REASON_TARGET_GAP}
+    stop_reasons = {EXIT_REASON_STOP, EXIT_REASON_STOP_GAP}
+    time_reasons = {EXIT_REASON_TIME, EXIT_REASON_TIME_DEFERRED_T1}
+    target_exit_count = sum(state.get("exit_reason") in target_reasons for _signal, state in closed_rows)
+    stop_exit_count = sum(state.get("exit_reason") in stop_reasons for _signal, state in closed_rows)
+    time_exit_count = sum(state.get("exit_reason") in time_reasons for _signal, state in closed_rows)
+    open_mtm = [state.get("unrealized_return_pct") for _signal, state in open_rows]
+
+    excluded_rows: list[dict[str, Any]] = []
+    for signal, state, mature in state_rows:
+        if not mature:
+            reason = state.get("execution_verification_status") or EXECUTION_T_PLUS_1_PENDING
+        elif state.get("execution_verification_status") != EXECUTION_VERIFIED:
+            reason = state.get("execution_verification_status") or UNVERIFIED_MISSING_EXECUTION_OBSERVATION
+        elif state.get("exit_reason") == EXIT_REASON_AMBIGUOUS:
+            reason = EXIT_REASON_AMBIGUOUS
+        elif state.get("exit_reason") == EXIT_REASON_EXPIRED_UNTRIGGERED:
+            reason = EXIT_REASON_EXPIRED_UNTRIGGERED
+        elif state.get("status") == "pending":
+            reason = "UNTRIGGERED_ACTIVE"
+        else:
+            reason = "NOT_A_CONFIRMED_CLOSED_TRADE"
+        if (signal, state) not in closed_rows and (signal, state) not in open_rows:
+            row = _trade_row(signal, state)
+            row["reason"] = reason
+            excluded_rows.append(row)
+
+    trigger_rate = round(len([row for row in entered_rows if row[1].get("execution_verification_status") == EXECUTION_VERIFIED]) / len(eligible_rows) * 100.0, 6) if eligible_rows else None
+    win_count = sum(value > 0 for value in _numeric_values(closed_returns))
+    loss_count = sum(value < 0 for value in _numeric_values(closed_returns))
+    return {
+        "as_of_date": report_date.isoformat(),
+        "strategy": CURRENT_PROSPECTIVE_STRATEGY,
+        "execution_model": EXECUTION_MODEL_DAILY_OHLC_T1_V1,
+        "return_basis": RETURN_BASIS_GROSS,
+        "sample_small": confirmed_count < 10,
+        "total_signals": len(signals),
+        "observation_period_signals": observation_period_signals,
+        "eligible_signals": len(eligible_rows),
+        "execution_verified": execution_verified,
+        "execution_unverified": execution_unverified,
+        "execution_pending": execution_pending,
+        "entered": len(entered_rows),
+        "untriggered_expired": len(untriggered_expired_rows),
+        "open_positions": len(open_rows),
+        "ambiguous": len(ambiguous_rows),
+        "unverified": execution_unverified,
+        "trigger_rate": trigger_rate,
+        "confirmed_closed_count": confirmed_count,
+        "win_count": win_count,
+        "loss_count": loss_count,
+        "flat_count": flat_count,
+        "win_rate": round(win_count / confirmed_count * 100.0, 6) if confirmed_count else None,
+        "avg_return_pct": _mean_or_none(closed_returns),
+        "median_return_pct": _median_or_none(closed_returns),
+        "avg_win_pct": average_win,
+        "avg_loss_pct": average_loss,
+        "payoff_ratio": payoff_ratio,
+        "profit_factor": profit_factor,
+        "expectancy_pct": _mean_or_none(closed_returns),
+        "avg_r": _mean_or_none(closed_r),
+        "median_r": _median_or_none(closed_r),
+        "expectancy_r": _mean_or_none(closed_r),
+        "target_exit_count": target_exit_count,
+        "stop_exit_count": stop_exit_count,
+        "time_exit_count": time_exit_count,
+        "target_hit_rate": round(target_exit_count / confirmed_count * 100.0, 6) if confirmed_count else None,
+        "stop_hit_rate": round(stop_exit_count / confirmed_count * 100.0, 6) if confirmed_count else None,
+        "time_exit_rate": round(time_exit_count / confirmed_count * 100.0, 6) if confirmed_count else None,
+        "avg_holding_sessions": _mean_or_none(holding_values),
+        "median_holding_sessions": _median_or_none(holding_values),
+        "avg_mfe_pct": _mean_or_none([state.get("mfe_pct") for state in mfe_rows]),
+        "avg_mae_pct": _mean_or_none([state.get("mae_pct") for state in mfe_rows]),
+        "median_mfe_pct": _median_or_none([state.get("mfe_pct") for state in mfe_rows]),
+        "median_mae_pct": _median_or_none([state.get("mae_pct") for state in mfe_rows]),
+        "open_positions_count": len(open_rows),
+        "open_mtm_avg_return_pct": _mean_or_none(open_mtm),
+        "closed_trades": [_trade_row(signal, state) for signal, state in closed_rows],
+        "open_position_rows": [_trade_row(signal, state) for signal, state in open_rows],
+        "excluded_rows": excluded_rows,
+    }
+
+
 def _apply_execution_bar(
     signal: dict[str, Any],
     quote: dict[str, Any],
@@ -619,58 +2066,18 @@ def _apply_execution_bar(
     source_mode: str = SOURCE_MODE_LIVE_DAILY_TRACKER_QUOTE,
     provenance: dict[str, Any] | None = None,
 ) -> int:
-    """Apply one dated quote to the execution path using existing semantics."""
+    """Append one quote, then replay the complete stored path under T+1."""
 
     if signal["status"] not in ("pending", "triggered"):
         return 0
-    changed = 0
-    list_date = parse_date(signal["date"])
-    days_tracked = trading_days_after(list_date, today_date, calendar=calendar)
-    if signal.get("days_tracked") != days_tracked:
-        signal["days_tracked"] = days_tracked
-        changed += 1
-    changed += int(_append_observation(
+    changed = int(_append_observation(
         signal,
         quote,
         source_mode=source_mode,
         provenance=provenance,
     ))
-    decision = classify_signal_bar(
-        status=signal["status"],
-        trigger=signal.get("trigger"),
-        stop=signal.get("stop"),
-        target=signal.get("target"),
-        high=quote.get("high"),
-        low=quote.get("low"),
-        price=quote.get("price"),
-    )
-    today_text = today_date.isoformat()
-    next_status = decision["status"]
-    if next_status == "triggered" and signal["status"] == "pending":
-        signal["status"] = "triggered"
-        signal["entry_price"] = signal.get("trigger")
-        signal["first_trigger_date"] = today_text
-        changed += 1
-        if days_tracked >= TRACK_DAYS:
-            signal["status"] = "expired"
-            signal["result_price"] = quote["price"]
-            signal["close_date"] = today_text
-            changed += 1
-    elif next_status in ("win", "loss", "AMBIGUOUS_SAME_BAR"):
-        signal["status"] = next_status
-        signal["close_date"] = today_text
-        signal["ambiguity_reason"] = decision.get("reason") if next_status == "AMBIGUOUS_SAME_BAR" else None
-        if next_status == "win":
-            signal["result_price"] = signal.get("target")
-        elif next_status == "loss":
-            signal["result_price"] = signal.get("stop")
-        changed += 1
-    elif days_tracked >= TRACK_DAYS:
-        signal["status"] = "expired"
-        signal["close_date"] = today_text
-        if next_status == "triggered":
-            signal["result_price"] = quote["price"]
-        changed += 1
+    state = rebuild_execution_state_from_observations(signal, calendar=calendar, as_of=today_date)
+    changed += _apply_rebuilt_execution_state(signal, state)
     return changed
 
 
@@ -908,6 +2315,40 @@ def _review_point_text(
     return f"待 {point.get('scheduled_date', '—')}"
 
 
+def _performance_markdown(
+    performance: Mapping[str, Any],
+    audit_performance: Mapping[str, Any] | None = None,
+) -> list[str]:
+    audit_performance = audit_performance or {}
+    def value(key: str, *, percent: bool = False) -> str:
+        item = performance.get(key)
+        if item is None:
+            return f"— / sample={performance.get('resolved_closed_trades', 0)}"
+        return f"{float(item):.2f}%" if percent else f"{float(item):.2f}"
+
+    return [
+        "## 三、策略规则绩效 · 交易绩效",
+        f"> performance model：{performance.get('performance_model')}；收益口径：{performance.get('return_basis')}。",
+        "> 理论规则价模拟：严格按 canonical trigger 入场、stop / target 规则价退出；买入当日不可卖出，遵守 A 股 T+1；不代表真实成交。",
+        f"> 总信号 **{performance.get('total_signals', 0)}**；T+1 可机会 **{performance.get('signals_with_t1_opportunity', 0)}**；"
+        f"已触发 **{performance.get('triggered', 0)}**；触发率 **{value('trigger_rate', percent=True)}**。",
+        f"> resolved target **{performance.get('resolved_target', 0)}**；resolved stop **{performance.get('resolved_stop', 0)}**；"
+        f"已结案 **{performance.get('resolved_closed_trades', 0)}**；当前持仓 **{performance.get('open_rule_trades', 0)}**；"
+        f"untriggered **{performance.get('untriggered', 0)}**；ambiguous **{performance.get('ambiguous', 0)}**。",
+        f"> 胜率 **{value('win_rate', percent=True)}**；平均收益 **{value('avg_return_pct', percent=True)}**；"
+        f"平均盈利 **{value('avg_win_pct', percent=True)}**；平均亏损 **{value('avg_loss_pct', percent=True)}**；"
+        f"盈亏比 **{value('payoff_ratio')}**；Profit Factor **{value('profit_factor')}**。",
+        f"> 期望收益/笔 **{value('expectancy_pct', percent=True)}**；平均 R **{value('avg_r')}**；"
+        f"平均持有交易日 **{value('avg_holding_sessions')}**；平均 MFE **{value('avg_mfe_pct', percent=True)}**；"
+        f"平均 MAE **{value('avg_mae_pct', percent=True)}**。",
+        f"> 策略绩效历史行情缺失 **{performance.get('performance_data_incomplete', 0)}**；"
+        f"prospective observation 缺失 **{audit_performance.get('execution_unverified', 0)}**（仅数据质量审计，不是策略绩效准入门槛）。",
+        "> confirmed metrics 不包含 OPEN、UNTRIGGERED、AMBIGUOUS_SAME_BAR、PERFORMANCE_DATA_INCOMPLETE；"
+        "T+3/T+5/T+10 仍是 fixed-horizon snapshot research，不是 realized trade P&L。",
+        "",
+    ]
+
+
 def report(
     tracker: dict[str, Any],
     calendar: TradingCalendar | None = None,
@@ -926,6 +2367,21 @@ def report(
     closed = [s for s in signals if s["status"] in ("win", "loss", "expired")]
     pending = [s for s in signals if s["status"] in ("pending", "triggered")]
     ambiguous = [s for s in signals if s["status"] == "AMBIGUOUS_SAME_BAR"]
+    canonical_watchlists = current_prospective_watchlists(PATHS)
+    historical_ohlc, historical_provenance = load_strategy_rule_historical_ohlc(
+        canonical_watchlists,
+        as_of_date,
+        paths=PATHS,
+        calendar=cal,
+    )
+    performance = build_strategy_rule_performance(
+        canonical_watchlists,
+        historical_ohlc,
+        as_of_date,
+        calendar=cal,
+        historical_provenance=historical_provenance,
+    )
+    audit_performance = build_trade_performance_summary(tracker, as_of_date, calendar=cal)
 
     lines = [
         "# 信号复盘 · XSHG 交易日节点",
@@ -973,7 +2429,8 @@ def report(
         f"- 已结案：**{len(closed)}** 个；仍在跟踪：**{len(pending)}** 个。",
         f"- same-bar 歧义：**{len(ambiguous)}** 个；保持 `AMBIGUOUS_SAME_BAR`，不猜测盘中顺序。",
         "",
-        "## 三、逐信号节点明细",
+        *_performance_markdown(performance, audit_performance),
+        "## 四、逐信号节点明细",
         "| 信号ID | 策略版本 | 信号日 T | 代码 | setup | 触发价 | 止损 | 目标 | T+3 | T+5 | T+10 | 当前状态 | 结案日 |",
         "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]

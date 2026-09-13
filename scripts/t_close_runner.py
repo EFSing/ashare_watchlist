@@ -15,7 +15,7 @@ import os
 import subprocess
 import sys
 import tempfile
-from datetime import datetime, timezone, timedelta
+from datetime import date, datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -28,12 +28,14 @@ from development_candidate import (
     RUN_SUCCESS,
 )
 from live_acquisition import (
+    AUTHORIZED_WEEKEND_BACKFILL,
     HITHINK_API_KEY_ENV,
     LiveAcquisitionError,
+    _validate_close_window,
     acquire_live_generation_inputs,
     persist_live_input_package,
 )
-from trading_calendar import CalendarUnavailable, default_calendar
+from trading_calendar import default_calendar
 from upload_daily_checkpoint import (
     CLOUD_CHECKPOINT_FAILED,
     CheckpointError,
@@ -251,28 +253,66 @@ def _check_writable(root: Path) -> None:
         pass
 
 
-def _preflight(as_of_date: str, data_root: Path, evidence_root: Path) -> dict[str, Any]:
+def _preflight(
+    as_of_date: str,
+    data_root: Path,
+    evidence_root: Path,
+    *,
+    allow_weekend_backfill: bool = False,
+    now_bjt: datetime | None = None,
+) -> dict[str, Any]:
     calendar = default_calendar()
+    now_bjt = now_bjt or datetime.now(_BJT)
+    target_date = date.fromisoformat(str(as_of_date).replace("/", "-")).isoformat()
+    actual_acquisition_date = now_bjt.date().isoformat()
+    weekend_backfill = actual_acquisition_date != target_date
+    acquisition_timing = (
+        AUTHORIZED_WEEKEND_BACKFILL
+        if weekend_backfill and allow_weekend_backfill
+        else "SAME_CALENDAR_DATE"
+    )
     try:
-        session_close = calendar.session_close(as_of_date)
-    except CalendarUnavailable as exc:
+        session_close = _validate_close_window(
+            target_date,
+            now_bjt,
+            calendar,
+            allow_weekend_backfill=allow_weekend_backfill,
+        )
+    except LiveAcquisitionError as exc:
         return {
-            "status": "CALENDAR_CONTEXT_NOT_READY",
-            "as_of_date": as_of_date,
-            "detail": type(exc).__name__,
+            "status": "CLOSE_WINDOW_NOT_READY",
+            "as_of_date": target_date,
+            "target_session": target_date,
+            "actual_acquisition_date": actual_acquisition_date,
+            "now_bjt": now_bjt.isoformat(),
+            "acquisition_timing": acquisition_timing,
+            "allow_weekend_backfill": allow_weekend_backfill,
+            "provider_calls": "NOT_RUN",
+            "error_status": exc.status,
+            "detail": str(exc)[:1000],
         }
     _check_writable(data_root)
     _check_writable(evidence_root)
-    now_bjt = datetime.now(_BJT)
     credential_ready = bool(os.environ.get(HITHINK_API_KEY_ENV, "").strip())
-    status = "PRE_CLOSE_DIAGNOSTIC_READY" if now_bjt < session_close else "POST_CLOSE_DIAGNOSTIC_READY"
+    if weekend_backfill:
+        status = "AUTHORIZED_WEEKEND_BACKFILL_READY"
+    else:
+        status = "PRE_CLOSE_DIAGNOSTIC_READY" if now_bjt < session_close else "POST_CLOSE_DIAGNOSTIC_READY"
     if not credential_ready:
         status = "SCHEDULED_TASK_CREDENTIAL_CONTEXT_NOT_READY"
     return {
         "status": status,
-        "as_of_date": as_of_date,
+        "as_of_date": target_date,
+        "target_session": target_date,
+        "actual_acquisition_date": actual_acquisition_date,
         "session_close_bjt": session_close.isoformat(),
         "now_bjt": now_bjt.isoformat(),
+        "acquisition_timing": acquisition_timing,
+        "authorization": (
+            "explicit user-authorized weekend backfill"
+            if weekend_backfill
+            else "not_applicable"
+        ),
         "provider_calls": "NOT_RUN_BEFORE_T_CLOSE",
         "credential_context": "READY" if credential_ready else "MISSING_HITHINK_FINANCE_API_KEY",
         "python": sys.executable,
@@ -287,11 +327,19 @@ def _preflight(as_of_date: str, data_root: Path, evidence_root: Path) -> dict[st
     }
 
 
-def run(as_of_date: str, data_root: Path, evidence_root: Path, now_bjt: str | None = None) -> dict[str, Any]:
+def run(
+    as_of_date: str,
+    data_root: Path,
+    evidence_root: Path,
+    now_bjt: str | None = None,
+    *,
+    allow_weekend_backfill: bool = False,
+) -> dict[str, Any]:
     code_git_sha = _git_sha()
     package = acquire_live_generation_inputs(
         as_of_date,
         now_bjt=now_bjt,
+        allow_weekend_backfill=allow_weekend_backfill,
         evidence_root=evidence_root,
         code_git_sha=code_git_sha,
     )
@@ -332,6 +380,11 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--data-root", type=Path, default=None)
     parser.add_argument("--evidence-root", type=Path, default=None)
     parser.add_argument("--now-bjt", default=None, help="Optional aware timestamp for controlled execution")
+    parser.add_argument(
+        "--allow-weekend-backfill",
+        action="store_true",
+        help="Explicitly authorize an immediately-following non-trading-day acquisition for the target session",
+    )
     parser.add_argument("--preflight", action="store_true", help="Validate the scheduled execution context without provider calls")
     return parser
 
@@ -342,9 +395,20 @@ def main(argv: list[str] | None = None) -> int:
     evidence_root = (args.evidence_root or data_root / "t_close_evidence").expanduser().resolve()
     try:
         result = (
-            _preflight(args.as_of_date, data_root, evidence_root)
+            _preflight(
+                args.as_of_date,
+                data_root,
+                evidence_root,
+                allow_weekend_backfill=args.allow_weekend_backfill,
+            )
             if args.preflight
-            else run(args.as_of_date, data_root, evidence_root, args.now_bjt)
+            else run(
+                args.as_of_date,
+                data_root,
+                evidence_root,
+                args.now_bjt,
+                allow_weekend_backfill=args.allow_weekend_backfill,
+            )
         )
         if not args.preflight and result.get("status") == T_CLOSE_SUCCESS_STATUS and result.get("watchlist", {}).get("path"):
             result["daily_close_bundle"] = _run_daily_close_reporting(args.as_of_date, data_root)
@@ -361,7 +425,11 @@ def main(argv: list[str] | None = None) -> int:
     bundle = result.get("daily_close_bundle")
     if isinstance(bundle, dict) and bundle.get("status") == "REPORT_FAILED":
         return 1
-    return 0 if result.get("status") not in {"CALENDAR_CONTEXT_NOT_READY", "SCHEDULED_TASK_CREDENTIAL_CONTEXT_NOT_READY"} else 1
+    return 0 if result.get("status") not in {
+        "CALENDAR_CONTEXT_NOT_READY",
+        "CLOSE_WINDOW_NOT_READY",
+        "SCHEDULED_TASK_CREDENTIAL_CONTEXT_NOT_READY",
+    } else 1
 
 
 if __name__ == "__main__":

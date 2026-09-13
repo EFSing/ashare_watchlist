@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, time, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
 import t_close_runner as runner
+from trading_calendar import TradingCalendar
 
 
 def test_runner_persists_input_package_before_generating_watchlist(monkeypatch, tmp_path):
@@ -80,7 +82,7 @@ def test_main_persists_daily_close_bundle_after_successful_tclose_run(monkeypatc
     monkeypatch.setattr(
         runner,
         "run",
-        lambda as_of_date, data_root, evidence_root, now_bjt=None: {
+        lambda as_of_date, data_root, evidence_root, now_bjt=None, **kwargs: {
             "status": runner.T_CLOSE_SUCCESS_STATUS,
             "watchlist": {"path": str(watchlist_path)},
         },
@@ -96,3 +98,27 @@ def test_main_persists_daily_close_bundle_after_successful_tclose_run(monkeypatc
 
     assert result["status"] == runner.T_CLOSE_SUCCESS_STATUS
     assert result["daily_close_bundle"] == bundle
+
+
+def test_preflight_marks_authorized_weekend_backfill_without_provider_calls(monkeypatch, tmp_path):
+    monkeypatch.setenv("HITHINK_FINANCE_API_KEY", "test-only-key")
+    monkeypatch.setattr(
+        runner,
+        "default_calendar",
+        lambda: TradingCalendar(holidays=set(), session_close_time=time(15, 0)),
+    )
+
+    result = runner._preflight(
+        "2026-09-11",
+        tmp_path / "data",
+        tmp_path / "evidence",
+        allow_weekend_backfill=True,
+        now_bjt=datetime(2026, 9, 12, 15, 5, tzinfo=timezone.utc).astimezone(runner._BJT),
+    )
+
+    assert result["status"] == "AUTHORIZED_WEEKEND_BACKFILL_READY"
+    assert result["acquisition_timing"] == runner.AUTHORIZED_WEEKEND_BACKFILL
+    assert result["target_session"] == "2026-09-11"
+    assert result["actual_acquisition_date"] == "2026-09-12"
+    assert result["authorization"] == "explicit user-authorized weekend backfill"
+    assert result["provider_calls"] == "NOT_RUN_BEFORE_T_CLOSE"

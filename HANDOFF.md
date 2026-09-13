@@ -4,6 +4,37 @@
 > 本文件不是历史归档；历史 provenance 在 Git 历史中，正式状态与长期决策分别见
 > `docs/CURRENT_STATUS.md` 与 `docs/DECISION_LOG.md`（仅当前任务需要时读取）。
 
+## 2026-09-13 — PR #47 rule-price strategy performance review ready
+
+- current branch: `codex/weekend-tclose-backfill-20260911`; PR #47 remains `OPEN`, base
+  `master`, and must not be merged automatically. Current pushed head is
+  `ec578a65363e691bf9350b3d90765936161cd491`.
+- implementation: added the derived
+  `STRATEGY_RULE_PERFORMANCE_TRIGGER_STOP_TARGET_T1_V1` evaluator and made it the HTML/
+  markdown primary performance model. Canonical `B_BREAKOUT_RETEST_LEGACY_V1_1` signals,
+  watchlists, trigger/stop/target/RR, identities, generation logic and the existing
+  `EXECUTION_MODEL_DAILY_OHLC_T1_V1` prospective audit remain intact. Rule-price replay is
+  read-only: it never backfills tracker observations; T+3/T+5/T+10 remain fixed-horizon
+  research snapshots; OPEN rule trades are theoretical and do not represent account holdings.
+- 2026-09-11 as-of result: total 75; T+1 eligible 70; triggered 62; trigger rate 88.571429%;
+  resolved TARGET 4; STOP 39; ambiguous 0; OPEN 19; UNTRIGGERED 8; win rate 9.302326%;
+  average return -0.929683%; median return -2.014011%; payoff 5.992377; Profit Factor
+  0.614603; expectancy -0.929683%; average R -0.276401; average holding 2.790698 sessions;
+  average MFE 4.663325%; average MAE -4.137739%; performance data incomplete 0;
+  prospective observation missing 70.
+- validation: local full suite `486 passed, 10 warnings`; exact-head correctness runs
+  `34706865006` and `34706862978` both `success` for the current head. Dated/latest HTML
+  SHA is `f5b5a2b8c0353a03dc0d892a661dabe06dff67ba95d99e57c3ae131c6a3cd08f` for both.
+  2026-09-11 watchlist SHA is
+  `80e6198e8e8af869d6718f14874be8e6eaa36cf3f63e7af1f381fb83c78db12b`; input package SHA is
+  `d729c3f4c3261f45036cd748cd75db2e191c7af3939c66f8707f802f6ca659cd`; no generation
+  provider call was made, and rule-performance historical cache reads reported provider calls `0`.
+- recovery: at continuation, re-read live `HEAD`, `@{u}`, PR #47 and exact-head CI; preserve
+  the existing dirty `data/perf_tracker.json`, local evidence, untracked operational outputs,
+  and temporary validation directories. Do not run `t_close_runner`, regenerate the watchlist,
+  alter generation inputs, backfill prospective observations, or merge PR #47.
+- terminal marker: `PR47_RULE_PERFORMANCE_AND_VISUAL_REVIEW_READY`.
+
 ## 2026-09-10 — PR #46 squash-merged; C→D migration and retention audit completed
 
 - user-authorized squash merge completed. PR #46 was merged into `master` at merge commit

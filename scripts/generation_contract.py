@@ -27,6 +27,10 @@ CLOSE_GENERATION = "close"
 ASIA_SHANGHAI = "Asia/Shanghai"
 XSHG_CALENDAR = "XSHG"
 LIVE_OBSERVED = "LIVE_OBSERVED"
+# Acquisition timing is separate from temporal semantics.  A weekend
+# backfill remains a live observation of the target session; it only records
+# that the provider was queried on the immediately-following non-trading day.
+AUTHORIZED_WEEKEND_BACKFILL = "AUTHORIZED_WEEKEND_BACKFILL"
 POINT_IN_TIME = "POINT_IN_TIME"
 PROVIDER_QFQ_SNAPSHOT = "PROVIDER_QFQ_SNAPSHOT"
 # HiThink's index endpoint has no adjustment concept.  Keep that provider
@@ -675,14 +679,68 @@ def _validate_index_kline(item: IndexManifest, as_of_date: str) -> None:
     _validate_kline_coverage(item, as_of_date, "index kline")
 
 
-def _validate_live_observation_date(item: Any, as_of_date: str, label: str) -> None:
+def _validate_weekend_backfill_timing(
+    as_of_date: str,
+    calendar: TradingCalendar,
+    live_inputs: Sequence[tuple[str, Any]],
+    *,
+    allow_weekend_backfill: bool,
+) -> bool:
+    """Validate the one explicitly authorized post-session timing extension."""
+
+    observed_dates = {
+        datetime.fromisoformat(item.retrieved_at_bjt).date()
+        for _label, item in live_inputs
+    }
+    target = date.fromisoformat(as_of_date)
+    if observed_dates == {target}:
+        return False
+    if not allow_weekend_backfill:
+        return False
+    if len(observed_dates) != 1:
+        _fail(INPUT_DATE_MISMATCH, "live input retrieved dates are inconsistent")
+
+    observed = next(iter(observed_dates))
+    if observed < target:
+        _fail(INPUT_DATE_MISMATCH, f"live input observation date {observed.isoformat()} precedes {as_of_date}")
+    try:
+        if calendar.is_trading_day(observed):
+            _fail(
+                INPUT_DATE_MISMATCH,
+                f"weekend backfill acquisition date {observed.isoformat()} is an XSHG trading session",
+            )
+        current = target + timedelta(days=1)
+        while current < observed:
+            if calendar.is_trading_day(current):
+                _fail(
+                    INPUT_DATE_MISMATCH,
+                    "weekend backfill crosses an intervening XSHG trading session "
+                    f"{current.isoformat()}",
+                )
+            current += timedelta(days=1)
+    except GenerationContractError:
+        raise
+    except CalendarUnavailable as exc:
+        _fail(CALENDAR_ERROR, str(exc))
+    except Exception as exc:
+        _fail(CALENDAR_ERROR, f"XSHG calendar failed: {type(exc).__name__}")
+    return True
+
+
+def _validate_live_observation_date(
+    item: Any,
+    as_of_date: str,
+    label: str,
+    *,
+    allow_weekend_backfill: bool = False,
+) -> None:
     if item.temporal_semantics != LIVE_OBSERVED:
         _fail(
             UNSUPPORTED_MODE,
             f"{label} must be marked {LIVE_OBSERVED} for live close generation",
         )
     observed_date = datetime.fromisoformat(item.retrieved_at_bjt).date().isoformat()
-    if observed_date != as_of_date:
+    if observed_date != as_of_date and not allow_weekend_backfill:
         _fail(
             INPUT_DATE_MISMATCH,
             f"{label} observation date {observed_date} != as_of_date {as_of_date}",
@@ -723,6 +781,7 @@ def freeze_generation_inputs(
     *,
     calendar: TradingCalendar | None = None,
     provider_version_metadata: Mapping[str, Any] | None = None,
+    allow_weekend_backfill: bool = False,
 ) -> GenerationInputManifest:
     """Validate and freeze a close-generation input set.
 
@@ -733,6 +792,8 @@ def freeze_generation_inputs(
 
     if not isinstance(run_context, RunContext):
         raise TypeError("run_context must be a RunContext")
+    if not isinstance(allow_weekend_backfill, bool):
+        raise ValueError("allow_weekend_backfill must be a boolean")
     if run_context.mode != CLOSE_GENERATION or run_context.timezone != ASIA_SHANGHAI:
         _fail(
             UNSUPPORTED_MODE,
@@ -808,8 +869,19 @@ def freeze_generation_inputs(
         ("index kline", index),
         ("sector", sector),
     ]
+    weekend_backfill = _validate_weekend_backfill_timing(
+        as_of_date,
+        cal,
+        live_inputs,
+        allow_weekend_backfill=allow_weekend_backfill,
+    )
     for label, item in live_inputs:
-        _validate_live_observation_date(item, as_of_date, label)
+        _validate_live_observation_date(
+            item,
+            as_of_date,
+            label,
+            allow_weekend_backfill=weekend_backfill,
+        )
     _validate_session_closed(as_of_date, cal, live_inputs)
 
     metadata = {} if provider_version_metadata is None else provider_version_metadata

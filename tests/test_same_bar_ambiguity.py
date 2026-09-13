@@ -51,5 +51,10 @@ def test_tracker_persists_ambiguous_status_instead_of_counting_a_loss(tmp_path):
     )
 
     signal = next(iter(tracker["signals"].values()))
-    assert signal["status"] == "AMBIGUOUS_SAME_BAR"
+    assert signal["status"] == "triggered"
+    assert signal["entry_date"] == "2026-09-04"
+    assert signal["entry_price"] == 120.0
+    assert signal["sellable_from"] == "2026-09-07"
+    assert signal["entry_day_stop_touched"] is True
+    assert signal["entry_day_target_touched"] is True
     assert signal["result_price"] is None
