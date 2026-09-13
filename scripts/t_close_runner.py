@@ -112,6 +112,42 @@ def _daily_cloud_checkpoint(as_of_date: str, data_root: Path, *, tracker_failure
     return result
 
 
+def _daily_shadow_update(as_of_date: str, data_root: Path) -> dict[str, Any]:
+    """Update observational shadow outcomes without making it a report gate."""
+
+    project_root = Path(__file__).resolve().parents[1]
+    environment = os.environ.copy()
+    environment[DATA_ROOT_ENV] = str(data_root)
+    command = [
+        sys.executable,
+        str(project_root / "scripts" / "b_shadow_monitor.py"),
+        "update",
+        "--date",
+        str(as_of_date),
+        "--data-root",
+        str(data_root),
+    ]
+    try:
+        completed = subprocess.run(
+            command,
+            cwd=project_root,
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        return {"status": "SHADOW_CAPTURE_INCOMPLETE", "detail": f"launch failed: {type(exc).__name__}: {exc}"}
+    detail = _bounded_process_detail(completed)
+    if completed.returncode == 0:
+        try:
+            parsed = json.loads((completed.stdout or "").strip().splitlines()[-1])
+        except (json.JSONDecodeError, IndexError):
+            parsed = {"status": "SHADOW_CAPTURE_INCOMPLETE", "detail": detail}
+        return parsed if isinstance(parsed, dict) else {"status": "SHADOW_CAPTURE_INCOMPLETE", "detail": detail}
+    return {"status": "SHADOW_CAPTURE_INCOMPLETE", "detail": detail, "exit_code": completed.returncode}
+
+
 def _run_daily_close_reporting(as_of_date: str, data_root: Path) -> dict[str, Any]:
     """Run tracker then renderer after a successful canonical watchlist write.
 
@@ -162,6 +198,8 @@ def _run_daily_close_reporting(as_of_date: str, data_root: Path) -> dict[str, An
         except (OSError, UnicodeDecodeError, json.JSONDecodeError):
             coverage = None
 
+    shadow_monitor = _daily_shadow_update(as_of_date, data_root)
+
     renderer_command = [
         python,
         str(project_root / "scripts" / "render_daily_close_html.py"),
@@ -210,6 +248,7 @@ def _run_daily_close_reporting(as_of_date: str, data_root: Path) -> dict[str, An
     )
     return {
         "status": bundle_status,
+        "shadow_monitor": shadow_monitor,
         "track_perf": {
             "status": "FAILED" if tracker_failure else "SUCCESS",
             "detail": tracker_failure or _bounded_process_detail(tracker_run),
@@ -353,6 +392,43 @@ def run(
     )
     if candidate.status not in RUNNABLE_STATUSES:
         raise RuntimeError(f"development candidate generation failed: {candidate.status}")
+    shadow_monitor: dict[str, Any]
+    if candidate.output_path is None:
+        shadow_monitor = {
+            "status": "SHADOW_CAPTURE_INCOMPLETE",
+            "detail": "canonical watchlist output path is unavailable",
+        }
+    else:
+        try:
+            from b_shadow_monitor import capture_t_close_signals
+
+            shadow_monitor = capture_t_close_signals(
+                watchlist_path=candidate.output_path,
+                run_manifest_path=candidate.run_manifest_path,
+                generation_input_manifest=package.generation_input_manifest.to_dict(),
+                market_env=package.market_env,
+                input_package_sha256=persisted.file_sha256,
+                store_root=data_root / "shadow_monitor",
+            )
+        except Exception as exc:
+            # Shadow monitoring is observational and must not make a formal
+            # canonical output unavailable.  Preserve an auditable marker.
+            try:
+                from b_shadow_monitor import record_capture_failure
+
+                expected = int(candidate.candidate_count or 0)
+                record_capture_failure(
+                    data_root / "shadow_monitor",
+                    signal_date=package.generation_input_manifest.signal_date,
+                    expected=expected,
+                    detail=f"{type(exc).__name__}: {exc}",
+                )
+            except Exception:
+                pass
+            shadow_monitor = {
+                "status": "SHADOW_CAPTURE_INCOMPLETE",
+                "detail": f"{type(exc).__name__}: {exc}",
+            }
     return {
         "status": T_CLOSE_SUCCESS_STATUS,
         "as_of_date": package.generation_input_manifest.signal_date,
@@ -370,6 +446,7 @@ def run(
             "candidate_count": candidate.candidate_count,
             "run_manifest_path": str(candidate.run_manifest_path),
         },
+        "shadow_monitor": shadow_monitor,
         "postprocess": "NOT_CONFIGURED_EXTERNAL_UPLOAD",
     }
 

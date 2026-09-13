@@ -4,6 +4,37 @@
 > 本文件不是历史归档；历史 provenance 在 Git 历史中，正式状态与长期决策分别见
 > `docs/CURRENT_STATUS.md` 与 `docs/DECISION_LOG.md`（仅当前任务需要时读取）。
 
+## 2026-09-13 — Prospective B shadow monitor stacked implementation
+
+- governance reconciliation：接手时旧 top entry 将 PR #47 pushed head 记录为
+  `ec578a65363e691bf9350b3d90765936161cd491`，但 live GitHub 状态是 PR #47
+  `OPEN / CLEAN / UNMERGED`，base `master`，head
+  `1cf1ab419ab6e6bc6f6d1cfeadbef94b886d7ecf`，exact-head correctness checks
+  `34707025768` 与 `34707023019` 均 `COMPLETED / SUCCESS`。该差异标记为
+  `PROJECT_GOVERNANCE_STATE_CONFLICT`；旧值保留为历史 provenance，本入口以 live 状态为准。
+- current branch：`codex/prospective-b-shadow-monitor`，从 PR #47 exact head
+  `1cf1ab419ab6e6bc6f6d1cfeadbef94b886d7ecf` 建立；PR #47 仍是 stacked dependency，
+  不自动 merge。
+- implementation：新增 `PROSPECTIVE_B_SHADOW_MONITOR_V1`，只在 canonical B
+  watchlist 产生后旁路捕获 T-close market regime、reactivation volume path 与 structural
+  context；只更新独立的 theoretical rule-price outcomes、`FAST_STOP` 和 +3/+5/+10
+  XSHG-session STOP recovery。pre-outcome immutable，prospective 与 retrospective label
+  分离，shadow failure fail-soft；不进入 qualification、score、ranking、trigger、stop、
+  target、RR、generation、live acquisition qualification 或 canonical identity。
+- prospective epoch：从实际首次 shadow capture 开始，不对部署前 signal 做 prospective
+  backfill。固定 regime definition/version；reactivation 仅 continuous median descriptive
+  aggregation，无 frozen/outcome-derived threshold。历史 stop-timing 只保留
+  `REFERENCE_ONLY` metadata，不驱动策略修改。
+- verified identity：正式 `B_BREAKOUT_RETEST_LEGACY_V1_1` spec SHA
+  `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd` unchanged；2026-09-11
+  watchlist SHA `80e6198e8e8af869d6718f14874be8e6eaa36cf3f63e7af1f381fb83c78db12b` 与 input
+  package SHA `d729c3f4c3261f45036cd748cd75db2e191c7af3939c66f8707f802f6ca659cd` unchanged；
+  no 9/11 acquisition rerun。
+- validation：shadow targeted tests `22 passed`; project `.venv` full suite `508 passed,
+  10 warnings` using a short external Windows basetemp。未读取 Final OOS，未读取或触碰
+  `data/validation/continuous_speed_probe/`，未 stage runtime data/report/watchlist/tracker/evidence。
+- terminal marker：`PROSPECTIVE_B_SHADOW_MONITOR_PR_READY_FOR_USER_DECISION`。
+
 ## 2026-09-13 — PR #47 rule-price strategy performance review ready
 
 - current branch: `codex/weekend-tclose-backfill-20260911`; PR #47 remains `OPEN`, base

@@ -5,6 +5,34 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-13 — Add prospective B shadow monitor without changing frozen B
+
+- decision：在正式 `B_BREAKOUT_RETEST_LEGACY_V1_1` canonical output 之后增加独立的
+  `PROSPECTIVE_B_SHADOW_MONITOR_V1`。它只观察 T-close market regime、既有 volume-path
+  reactivation ratios、structural context，以及按正式规则价语义计算的 outcome、固定
+  `FAST_STOP` 与 STOP recovery；不回答 signal 是否应进入名单。
+- invariants：shadow 字段不得进入 qualification、score、candidate ranking、trigger、stop、
+  target、RR、generation、live acquisition qualification 或 canonical identity。正式 B spec
+  SHA `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd` 保持不变。
+- capture：从首次真实部署后 capture 建立 prospective epoch；T-close snapshot 使用当时已有
+  package/index/stock bars，future bars fail closed；pre-outcome immutable，同值重复 ingest
+  idempotent，冲突返回 `SHADOW_PRE_OUTCOME_IDENTITY_CONFLICT`。部署前数据只能标识为
+  `RETROSPECTIVE_RECONSTRUCTED`，不能伪装成 prospective snapshot。
+- outcome：entry 使用 canonical trigger，entry day 不可卖，卖出遵守 T+1；sellable bar 以
+  canonical stop/target rule price 退出，同 bar 双触达为 `AMBIGUOUS`，无 T+10 forced exit。
+  `FAST_STOP` 永久定义为 first/second sellable XSHG session；STOP 后 +3/+5/+10 XSHG
+  sessions 的 recovery 不改变原 STOP 结果。
+- governance：PR #47 live 仍 `OPEN / CLEAN / UNMERGED`，新实现以 exact PR #47 head 为
+  stacked base；接手时 HANDOFF 的旧 head 因此构成并已纠正
+  `PROJECT_GOVERNANCE_STATE_CONFLICT`。历史 stop-timing 只保存为 `REFERENCE_ONLY`，不作为
+  threshold、candidate selection 或 strategy-change signal。
+- reporting：每日报告新增轻量 shadow section 与当日候选 context；capture 不完整只产生
+  `Shadow monitor data incomplete: X/Y` data-quality signal，不能污染正式 watchlist、runner
+  success、strategy performance 或 review coverage。
+- validation boundary：不读取 Final OOS，不读取或触碰
+  `data/validation/continuous_speed_probe/`，不重跑 2026-09-11 acquisition；runtime shadow
+  data/reports/watchlists/tracker/evidence 不纳入 source commit。
+
 ## 2026-09-10 — Complete bounded C→D migration and retention dry-run
 
 - classification：`product infrastructure + correctness/provenance + recovery`，属于

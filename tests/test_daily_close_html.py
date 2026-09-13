@@ -358,9 +358,11 @@ def test_t_close_reporting_runs_renderer_after_track_failure(monkeypatch, tmp_pa
     result = t_close_runner._run_daily_close_reporting("2026-09-10", tmp_path / "data")
 
     assert result["status"] == "REVIEW_FAILED_REPORT_READY"
-    assert len(calls) == 2
-    assert any("--review-failure" == item for item in calls[1])
-    assert "provider failure" in calls[1][-1]
+    assert len(calls) == 3
+    assert any(str(part).endswith("b_shadow_monitor.py") for part in calls[1])
+    assert "update" in calls[1]
+    assert any("--review-failure" == item for item in calls[2])
+    assert "provider failure" in calls[2][-1]
 
 @pytest.mark.parametrize('status', ['pending', 'triggered', 'win', 'loss', 'AMBIGUOUS_SAME_BAR', 'expired'])
 def test_complete_previous_session_includes_terminal_states(tmp_path, status):
