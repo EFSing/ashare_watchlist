@@ -3,8 +3,12 @@ from __future__ import annotations
 import copy
 from datetime import date
 
+import pytest
+
 from track_perf import (
     CURRENT_PROSPECTIVE_STRATEGY,
+    EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION,
+    EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION_ENV,
     EXIT_REASON_AMBIGUOUS,
     EXIT_REASON_STOP,
     EXIT_REASON_TARGET,
@@ -14,8 +18,10 @@ from track_perf import (
     STRATEGY_RULE_CONFIG_ERROR,
     STRATEGY_RULE_PERFORMANCE_MODEL,
     build_strategy_rule_performance,
+    load_strategy_rule_historical_ohlc,
     stable_signal_id,
 )
+from data_paths import DataPaths
 from trading_calendar import TradingCalendar
 
 
@@ -279,3 +285,72 @@ def test_theoretical_main_metrics_include_only_resolved_target_and_stop():
     assert result["avg_return_pct"] == 2.5
     assert result["avg_r"] == 0.5
     assert result["ambiguous"] == 0
+
+
+def test_cloud_rule_performance_reconstructs_missing_history_in_memory_only(monkeypatch, tmp_path):
+    import live_acquisition as live
+
+    item = signal(signal_date="2026-09-03")
+    before = copy.deepcopy(item)
+    calls: list[str] = []
+
+    class FakeHiThink:
+        def __init__(self, *, capture_store=None):
+            assert capture_store is None
+            self.read_attempts = []
+
+    def fake_resolve(client, code, **kwargs):
+        calls.append(code)
+        assert kwargs["as_of_date"] == "2026-09-07"
+        return [
+            bar("2026-09-04", opening=100, high=101, low=99, close=100),
+            bar("2026-09-07", opening=100, high=111, low=109, close=110),
+        ], {
+            "provider": "HiThink Financial-API",
+            "source": "provider historical endpoint",
+            "adjustment_mode": "PROVIDER_QFQ_SNAPSHOT",
+            "selection": "PRIMARY",
+        }
+
+    monkeypatch.setenv(EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION_ENV, "1")
+    monkeypatch.setattr(live, "HiThinkClient", FakeHiThink)
+    monkeypatch.setattr(live, "_resolve_market_bars", fake_resolve)
+
+    history, provenance = load_strategy_rule_historical_ohlc(
+        [item],
+        "2026-09-07",
+        paths=DataPaths(tmp_path / "data"),
+        calendar=CALENDAR,
+    )
+
+    assert calls == ["600519"]
+    assert history["600519"][1]["close"] == 110
+    assert provenance["by_code"]["600519"]["source"] == EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION
+    assert provenance["by_code"]["600519"]["persisted"] is False
+    assert provenance["by_code"]["600519"]["bars_persisted"] is False
+    assert provenance["__meta__"]["provider_calls"] == 1
+    assert list((tmp_path / "data").rglob("*")) == []
+    assert item == before
+
+
+def test_cloud_rule_performance_provider_failure_is_not_silently_downgraded(monkeypatch, tmp_path):
+    import live_acquisition as live
+
+    class FakeHiThink:
+        def __init__(self, *, capture_store=None):
+            self.read_attempts = []
+
+    def fail_resolve(*_args, **_kwargs):
+        raise RuntimeError("provider unavailable")
+
+    monkeypatch.setenv(EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION_ENV, "1")
+    monkeypatch.setattr(live, "HiThinkClient", FakeHiThink)
+    monkeypatch.setattr(live, "_resolve_market_bars", fail_resolve)
+
+    with pytest.raises(ValueError, match=EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION):
+        load_strategy_rule_historical_ohlc(
+            [signal(signal_date="2026-09-03")],
+            "2026-09-07",
+            paths=DataPaths(tmp_path / "data"),
+            calendar=CALENDAR,
+        )

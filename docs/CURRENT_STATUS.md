@@ -1,5 +1,32 @@
 # CURRENT STATUS
 
+## GITHUB_ACTIONS_DAILY_RUNTIME_V1 — implementation in progress — 2026-09-14
+
+The deployment scope is an unattended GitHub Actions cloud runtime for the existing daily
+T-close chain. Source authority remains `origin/master` (`306db219a8a9afdbb755450a184d43cdd9d95998`);
+the implementation branch is `codex/daily-unattended-github-actions`. The workflow uses two
+XSHG-gated wake-ups at 18:17 and 19:17 BJT, a non-canceling production concurrency group, and a
+temporary `ASHARE_DATA_ROOT` on `ubuntu-latest`. `workflow_dispatch` defaults to `preflight-only`.
+
+The separate remote `runtime-state` branch is the only production-state authority and was
+bootstrapped at `a99cc7900f6b540132f99993e61acdcfbbe47430` from validated local operational state.
+Its allowlist is limited to formal B canonical watchlists, `perf_tracker`, optional shadow store,
+final HTML/markdown reports, and verified daily checkpoint manifests. Raw evidence, provider
+responses, K-lines, quotes, sectors, generation inputs, and prospective inputs remain ephemeral.
+Stale local checkpoint manifests were not copied; the verified 2026-09-11 watchlist SHA remains
+`80e6198e8e8af869d6718f14874be8e6eaa36cf3f63e7af1f381fb83c78db12b`.
+
+Because the formal rule-price report historically reads local K-line evidence, cloud mode adds a
+read-only, in-memory provider reconstruction for the canonical signal codes actually needed by
+the report. It is explicitly marked `EPHEMERAL_PROVIDER_RULE_PERFORMANCE_RECONSTRUCTION`, does
+not mutate tracker observations or persist bars, and preserves existing trigger/stop/target/T+1/
+same-bar semantics. The shadow market-regime input request is corrected from 60 to 61 bars because
+the existing regime definition requires the prior 60 closes plus the current close.
+
+Formal B, spec SHA `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`, Main
+Board-only universe, shadow semantics, Final OOS boundary, and historical artifacts are unchanged.
+Local regression is `542 passed, 2 skipped, 10 warnings`; PR and exact-head CI are pending.
+
 ## USER_UNIVERSE_POLICY_DECISION — PR #49 squash-merged; future production universe is Main Board only — 2026-09-13
 
 User has made the production scope decision: future live signals use the existing eligible

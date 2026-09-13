@@ -4,6 +4,34 @@
 > 本文件不是历史归档；历史 provenance 在 Git 历史中，正式状态与长期决策分别见
 > `docs/CURRENT_STATUS.md` 与 `docs/DECISION_LOG.md`（仅当前任务需要时读取）。
 
+## 2026-09-14 — GitHub Actions unattended cloud runtime implementation in progress
+
+- live source base is `origin/master` at `306db219a8a9afdbb755450a184d43cdd9d95998`;
+  implementation branch is `codex/daily-unattended-github-actions`.
+- scope is deployment infrastructure only: `.github/workflows/daily_t_close.yml`, an explicit
+  runtime-state allowlist/restore helper, a cloud-only ephemeral rule-performance history read,
+  the 61-bar shadow input sufficiency fix, tests, and governance docs. The production chain still
+  enters through `scripts/t_close_runner.py`.
+- cloud compute is an ephemeral GitHub-hosted `ubuntu-latest` runner; `ASHARE_DATA_ROOT` is the
+  runner temporary directory. Only canonical B watchlists, `perf_tracker`, optional shadow store,
+  final reports, and verified daily checkpoint manifests may cross into the remote `runtime-state`
+  branch. Raw evidence, provider responses, K-lines, quotes, sectors, generation inputs, and
+  prospective inputs are not persisted or uploaded.
+- remote `runtime-state` exists and was bootstrapped from the trusted local operational state at
+  `a99cc7900f6b540132f99993e61acdcfbbe47430`; the legacy non-B 2026-08-20 list and stale local
+  checkpoint manifests were omitted. The 2026-09-11 canonical watchlist SHA remains
+  `80e6198e8e8af869d6718f14874be8e6eaa36cf3f63e7af1f381fb83c78db12b`.
+- schedule is XSHG-gated at 18:17 and 19:17 BJT. The cloud workflow explicitly disables the
+  unconfigured Drive connector while retaining the local manifest, and enables only the
+  read-only in-memory historical reconstruction needed to preserve formal rule-price semantics.
+- formal `B_BREAKOUT_RETEST_LEGACY_V1_1`, spec SHA
+  `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`, Main Board-only policy,
+  shadow definitions, Final OOS boundary, and historical artifacts are unchanged. Local full
+  regression is `542 passed, 2 skipped, 10 warnings` with a short Windows basetemp.
+- next action: run clean-room cross-device validation, commit/push source, open the PR, then use
+  exact-head CI. Merge and cloud preflight remain gated by the requested correctness checks and
+  the configured `HITHINK_FINANCE_API_KEY` secret.
+
 ## 2026-09-13 — PR #49 squash-merged; Main Board-only future production universe active
 
 - live base at intake：`origin/master` 为 `88acfaed0372f3bc17bbbe969287b0731548c322`；

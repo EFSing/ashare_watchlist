@@ -161,7 +161,10 @@ def _display_name_policy_metadata() -> dict[str, Any]:
 # deliberately buffered, while GenerationInputManifest accepts any non-empty
 # stock history and B owns the separate 120-bar evaluation minimum.
 DEFAULT_STOCK_BAR_COUNT = 260
-DEFAULT_INDEX_BAR_COUNT = 60
+# The shadow market-regime calculation needs the prior 60 closes plus the
+# current close.  Keep this as an input sufficiency fix only; it does not
+# change the formal B evaluator or the regime definition.
+DEFAULT_INDEX_BAR_COUNT = 61
 MIN_STOCK_BARS_FOR_GENERATION_INPUT = 1
 MIN_INDEX_BARS_FOR_MARKET_ENV = 21
 
