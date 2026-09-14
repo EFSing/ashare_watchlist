@@ -5,8 +5,8 @@
 The unattended cloud runtime is merged in `origin/master` at
 `cf1bbf53e4727bffdc6b1096f3d61b9bc5e03df4` from PR #50 final head
 `468411f661211eb74140d89a7f489587bf8821a8`. Exact post-merge correctness run `34771128198`
-passed. The schedule is active at 18:17 and 19:17 BJT, but all production execution remains
-XSHG-gated and uses a temporary GitHub-hosted runner data root.
+passed. The schedule is active at 17:17 BJT (primary) and 18:17 BJT (bounded retry), but all
+production execution remains XSHG-gated and uses a temporary GitHub-hosted runner data root.
 
 The remote `runtime-state` branch is the cross-device production-state authority at
 `140d8dce20d2aa4a16802787ca9f8342390f48a7`. It contains only the validated formal B watchlists,
