@@ -1,6 +1,6 @@
 # CURRENT STATUS
 
-## DAILY_REPORT_EMAIL_AND_BARK_DELIVERY_V1 — implementation in progress — 2026-09-14
+## DAILY_REPORT_EMAIL_AND_BARK_DELIVERY_V1 — merged; delivery secrets required — 2026-09-14
 
 This bounded product-infrastructure task adds the mobile delivery layer on top of the existing
 unattended daily cloud runtime: provider-neutral SMTP Email with the exact dated responsive HTML
@@ -21,11 +21,13 @@ notifications from `reports/latest.html`; it does not acquire market data, run t
 engine, write runtime-state, or create a formal receipt. Final OOS remains `SEALED / UNREAD` and
 `data/validation/continuous_speed_probe/` remains untouched.
 
-Live base at intake is `origin/master=c1bf5d6d36b1bfd84b62447afeb98e1a42940cdd`; implementation
-branch is `codex/daily-report-email-bark-delivery`. Local validation has delivery tests `23 passed`,
-cloud runtime/runner targeted tests `42 passed`, final full suite `571 passed, 2 skipped, 10 warnings`,
-compileall and diff check passing; remote PR/CI verification remain next. Terminal marker:
-`REPORT_DELIVERY_IMPLEMENTATION_READY_FOR_FINAL_VALIDATION`.
+Live base at intake was `origin/master=c1bf5d6d36b1bfd84b62447afeb98e1a42940cdd`. PR #54 was
+squash-merged with implementation head `e0687b50302b6be6eac15b3ede6c392771f26df4` and merge SHA
+`183656fc7aa44aa3ab3918bff2e2eec5f30904f5`; its exact-head checks and post-merge master correctness
+run `34823821375` passed. Local validation has delivery tests `23 passed`, cloud runtime/runner
+targeted tests `42 passed`, final full suite `571 passed, 2 skipped, 10 warnings`, compileall and
+diff check passing. Live Actions secret metadata has only `HITHINK_FINANCE_API_KEY`; the six delivery
+secrets are missing. Terminal marker: `REPORT_DELIVERY_SECRETS_REQUIRED`.
 
 ## MOBILE_DAILY_CLOSE_REPORT_RESPONSIVE_V1 — merged and active — 2026-09-14
 

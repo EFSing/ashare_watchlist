@@ -4,13 +4,18 @@
 > 本文件不是历史归档；历史 provenance 在 Git 历史中，正式状态与长期决策分别见
 > `docs/CURRENT_STATUS.md` 与 `docs/DECISION_LOG.md`（仅当前任务需要时读取）。
 
-## 2026-09-14 — DAILY_REPORT_EMAIL_AND_BARK_DELIVERY_V1 — implementation in progress
+## 2026-09-14 — DAILY_REPORT_EMAIL_AND_BARK_DELIVERY_V1 — merged; delivery secrets required
 
 - classification: `PRODUCT INFRASTRUCTURE / REPORT DELIVERY / OPERATIONAL NOTIFICATION`；不是
   strategy research。Intake 从实时 `origin/master`
   `c1bf5d6d36b1bfd84b62447afeb98e1a42940cdd` 创建独立 branch
   `codex/daily-report-email-bark-delivery`；本地仅有设备生成的未跟踪
   `ashare_watchlist.egg-info/`，未纳入修改。
+- merge: PR #54 (`feat: add email and Bark daily report delivery`) 已 squash-merged；implementation
+  head `e0687b50302b6be6eac15b3ede6c392771f26df4` 的 exact-head correctness checks
+  `34823612876` / `34823650566` 均为 `success`，merge SHA 为
+  `183656fc7aa44aa3ab3918bff2e2eec5f30904f5`。后续恢复从实时 `origin/master` 开始，feature
+  branch `codex/daily-report-email-bark-delivery` 不再是继续开发基线。
 - scope: 新增 `scripts/daily_report_delivery.py`，复用现有 canonical HTML；workflow 增加
   Email/Bark、BJT 用户可见命名、production failure 无附件、`delivery-test` 与 bounded
   per-channel retry。正式成功投递只在 canonical runtime-state 首次 push 成功后发生。
@@ -21,11 +26,15 @@
   score/ranking/trigger/stop/target/RR/T+1、Main Board policy、shadow、tracker、provider
   acquisition、historical artifacts、existing 17:17/18:17 BJT schedule 与 canonical report
   filenames unchanged。Final OOS remains `SEALED / UNREAD`；forbidden probe directory untouched。
-- validation so far: delivery targeted `23 passed`；cloud runtime/runner targeted `42 passed`；
+- validation: delivery targeted `23 passed`；cloud runtime/runner targeted `42 passed`；
   final full-suite run `571 passed, 2 skipped, 10 warnings`. `compileall` and `git diff --check`
-  passed. Next: commit/push, open PR, and verify exact-head CI. No provider call or delivery-test
-  dispatch has been made.
-- terminal marker for this checkpoint: `REPORT_DELIVERY_IMPLEMENTATION_READY_FOR_FINAL_VALIDATION`。
+- passed. Post-merge master correctness run `34823821375` on merge SHA was `success`. No provider
+  call or delivery-test dispatch has been made.
+- configuration: live Actions secret metadata still reports only `HITHINK_FINANCE_API_KEY`; the six
+  delivery secrets are not configured: `BARK_DEVICE_KEY`, `REPORT_EMAIL_TO`, `SMTP_HOST`,
+  `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`。Optional `SMTP_FROM` and `BARK_SERVER_URL` remain
+  unset/optional. Next action after user configuration is workflow dispatch `mode=delivery-test`。
+- terminal marker for this checkpoint: `REPORT_DELIVERY_SECRETS_REQUIRED`。
 
 ## 2026-09-14 — MOBILE_DAILY_CLOSE_REPORT_6_3_INCH_OPTIMIZATION_V1 — merged
 
