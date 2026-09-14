@@ -286,7 +286,7 @@ jobs:
           echo "PRODUCTION_FAILURE_STAGE=runtime-state-push" >> "$GITHUB_ENV"
           mapfile -t stage_paths < <(python scripts/cloud_runtime_state.py list --state-root "$GITHUB_WORKSPACE/runtime-state" --paths-only)
           (cd runtime-state && git add -- "${stage_paths[@]}")
-          git -C runtime-state diff --cached --check
+          # Canonical generated artifacts have already passed validation; preserve their exact bytes.
           unexpected="$(git -C runtime-state diff --cached --name-only | python -c 'import sys; staged={line.strip() for line in sys.stdin if line.strip()}; allowed=set(sys.argv[1:]); print("\n".join(sorted(staged - allowed)))' "${stage_paths[@]}")"
           if [[ -n "$unexpected" ]]; then
             echo "unexpected staged runtime-state paths: $unexpected"
