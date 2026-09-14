@@ -5,6 +5,32 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-14 — DAILY_REPORT_EMAIL_AND_BARK_DELIVERY_V1 — adopt delivery-only infrastructure
+
+- decision：`ADOPT` a small stdlib-only delivery helper and keep Email/Bark outside the canonical
+  production engine. Email uses generic SMTP (`465` implicit SSL; other configured ports
+  STARTTLS) and attaches the exact dated self-contained HTML; Bark uses the current official JSON
+  `POST /push` contract with the device key in the request body and no critical/time-sensitive
+  level.
+- delivery contract：a formal success notification is sent only after the canonical production
+  outputs and runtime-state commit are authoritative. Production hard failures send an explicit
+  Email/Bark failure notification with the Actions run URL and no HTML attachment. Delivery
+  channel failure never rolls back canonical state; the workflow reports `DELIVERY_SUCCESS`,
+  `DELIVERY_DEGRADED`, or `DELIVERY_FAILED` separately.
+- idempotency：`data/delivery/daily_delivery_YYYYMMDD.json` is operational-only state, not strategy,
+  watchlist, tracker, shadow, performance, checkpoint identity, or research evidence. Its exact
+  dated filename is the only new runtime-state allowlist entry and its `report_sha256` binding
+  fails closed on identity conflict. Same-report dual success is `ALREADY_DELIVERED`; only failed
+  channels receive the bounded retry.
+- manual test boundary：`delivery-test` restores the existing runtime-state and sends explicitly
+  marked test Email/Bark using `latest.html`; it does not call acquisition, generate a watchlist,
+  update tracker/shadow, mutate runtime-state, or create a formal receipt. Missing delivery
+  secrets are reported by name only as `REPORT_DELIVERY_SECRETS_REQUIRED`.
+- invariants：formal B, spec SHA, Main Board-only universe, candidate qualification and ranking,
+  trigger/stop/target/RR/T+1 semantics, shadow/provider semantics, historical artifacts,
+  existing schedule/XSHG gate/`ALREADY_COMPLETED`, canonical report filenames, Final OOS boundary,
+  and forbidden validation directory are unchanged.
+
 ## 2026-09-14 — MOBILE_DAILY_CLOSE_REPORT_RESPONSIVE_V1 — adopt shared responsive presentation
 
 - decision：`ADOPT` one shared daily close HTML with CSS-only responsive behavior for the
