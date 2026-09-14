@@ -5,6 +5,24 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-14 — MOBILE_DAILY_CLOSE_REPORT_RESPONSIVE_V1 — adopt shared responsive presentation
+
+- decision：`ADOPT` one shared daily close HTML with CSS-only responsive behavior for the
+  portrait mobile target `390–430 CSS px`，minimum `360 CSS px`。The mobile layout keeps the
+  actionable watchlist fields visible without page-level horizontal scrolling；only wide
+  trade/audit tables use contained touch horizontal scrolling。
+- rationale：the existing report already has the canonical actionable fields and self-contained
+  renderer；a single responsive presentation improves the mobile usable gate without duplicating
+  report generation logic or creating a second artifact。
+- invariants：header/date/market/strategy status，KPI/metric/funnel values，watchlist identity，
+  score/ranking/trigger/stop/target/RR，review/shadow/audit content and deterministic output are
+  unchanged。No strategy、universe、provider、acquisition、runtime-state、cloud workflow、T+1
+  or historical artifact semantics changed；Final OOS remains unread。
+- delivery：PR #53 implementation head
+  `42de5ccde62fe9ea256398d2dfbc06ef911f5151` was squash-merged as
+  `0c6f7e0fb579a411653eaebd6c385d4c9cb45099` after exact-head correctness success
+  `34815050549`；post-merge master correctness `34815229243` also succeeded。
+
 ## 2026-09-14 — DAILY_UNATTENDED_GITHUB_ACTIONS_CLOUD_RUNTIME_V1 — bounded schedule adjustment
 
 - decision：production wake-ups are adjusted to primary `17:17 BJT` (`17 9 * * 1-5` UTC) and

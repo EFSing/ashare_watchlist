@@ -1,5 +1,24 @@
 # CURRENT STATUS
 
+## MOBILE_DAILY_CLOSE_REPORT_RESPONSIVE_V1 — merged and active — 2026-09-14
+
+The existing `scripts/render_daily_close_html.py` now emits one self-contained HTML report that
+adapts across desktop/tablet and portrait mobile. The mobile target is `390–430 CSS px`, with
+`360 CSS px` as the minimum supported viewport. A single `@media (max-width: 600px)` layer keeps
+the header and sections readable, changes core KPI/metric/funnel/action/research/quality layouts
+to compact grids, and presents the watchlist as a no-horizontal-scroll card layout while retaining
+trigger, stop, target, RR and distance fields. Wide trade/audit tables remain contained touch
+scroll regions.
+
+PR #53 was squash-merged from `codex/mobile-daily-report-63`: implementation head
+`42de5ccde62fe9ea256398d2dfbc06ef911f5151`, merge SHA
+`0c6f7e0fb579a411653eaebd6c385d4c9cb45099`. Exact-head correctness run `34815050549` and
+post-merge master correctness run `34815229243` passed. This is presentation-only: formal B,
+universe, tracker, shadow, runtime-state, cloud workflow, provider acquisition, T+1 semantics,
+historical artifacts and strategy identities are unchanged. Final OOS remains `SEALED / UNREAD`
+and `data/validation/continuous_speed_probe/` remains untouched. Terminal marker:
+`MOBILE_DAILY_CLOSE_REPORT_RESPONSIVE_ACTIVE`.
+
 ## GITHUB_ACTIONS_DAILY_RUNTIME_V1 — merged; waiting for HITHINK secret — 2026-09-14
 
 The unattended cloud runtime is merged in `origin/master` at

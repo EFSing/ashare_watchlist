@@ -4,6 +4,25 @@
 > 本文件不是历史归档；历史 provenance 在 Git 历史中，正式状态与长期决策分别见
 > `docs/CURRENT_STATUS.md` 与 `docs/DECISION_LOG.md`（仅当前任务需要时读取）。
 
+## 2026-09-14 — MOBILE_DAILY_CLOSE_REPORT_6_3_INCH_OPTIMIZATION_V1 — merged
+
+- classification: P3 product usability；presentation-only responsive optimization，服务
+  actionable watchlist usable gate，不是 research、strategy 或 data semantic change。
+- PR #53 (`feat: optimize daily close report for mobile`) from
+  `codex/mobile-daily-report-63` was squash-merged；implementation head
+  `42de5ccde62fe9ea256398d2dfbc06ef911f5151`，merge SHA
+  `0c6f7e0fb579a411653eaebd6c385d4c9cb45099`。
+- same self-contained daily close HTML now targets `390–430 CSS px` portrait，supports
+  `360 CSS px`，uses one-column/2-column mobile grids，watchlist cards retain rank/code/name/
+  score/state plus trigger/stop/target/RR，and wide trade/audit tables retain contained touch
+  horizontal scrolling。Desktop/tablet layout remains on the existing shared renderer path。
+- exact-head PR correctness run `34815050549` and post-merge master correctness run
+  `34815229243` are `success`；Final OOS was not read，historical HTML was not rewritten，and
+  `data/validation/continuous_speed_probe/` was not touched。
+- browser visual smoke was not completed because the available browser security policy blocks
+  local `file://` HTML；no browser dependency was added。
+- terminal marker: `MOBILE_DAILY_CLOSE_REPORT_RESPONSIVE_ACTIVE`。
+
 ## 2026-09-14 — source merged; cloud runtime waiting for the required secret
 
 - PR #50 (`feat: add unattended daily cloud runtime`) was squash-merged into `master`: final
