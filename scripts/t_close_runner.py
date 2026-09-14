@@ -159,6 +159,44 @@ def _daily_shadow_update(as_of_date: str, data_root: Path) -> dict[str, Any]:
     return {"status": "SHADOW_CAPTURE_INCOMPLETE", "detail": detail, "exit_code": completed.returncode}
 
 
+def _register_volume_focus_epoch(as_of_date: str, data_root: Path) -> dict[str, Any]:
+    """Persist the first genuine production date in the existing tracker.
+
+    The focus experiment is downstream and observational.  Its one epoch
+    marker is written only after the canonical tracker command succeeds and
+    only for the workflow's production mode; renderer failures never mutate
+    this metadata.
+    """
+
+    if os.environ.get("RUN_MODE", "").strip().lower() != "production":
+        return {"status": "NOT_ATTEMPTED", "reason": "not a production workflow run"}
+    tracker_path = data_root / "perf_tracker.json"
+    try:
+        from b_volume_confirm_focus import ensure_volume_focus_epoch
+        from track_perf import load_tracker, save_tracker
+
+        tracker = load_tracker(tracker_path)
+        record, changed = ensure_volume_focus_epoch(
+            tracker,
+            as_of_date,
+            source_commit=_git_sha(),
+        )
+        if changed:
+            save_tracker(tracker, tracker_path)
+        return {
+            "status": "STARTED",
+            "epoch_start": record.get("epoch_start"),
+            "persisted": changed,
+        }
+    except (OSError, ValueError, RuntimeError) as exc:
+        # Observational metadata is fail-soft; the canonical report remains
+        # deliverable and will show EVIDENCE_ACCUMULATING until repaired.
+        return {
+            "status": "NOT_PERSISTED",
+            "reason": f"{type(exc).__name__}: {str(exc)[:500]}",
+        }
+
+
 def _run_daily_close_reporting(as_of_date: str, data_root: Path) -> dict[str, Any]:
     """Run tracker then renderer after a successful canonical watchlist write.
 
@@ -195,6 +233,12 @@ def _run_daily_close_reporting(as_of_date: str, data_root: Path) -> dict[str, An
         tracker_failure = None if tracker_run.returncode == 0 else (
             f"track_perf exit {tracker_run.returncode}: {_bounded_process_detail(tracker_run)}"
         )
+
+    volume_focus_epoch = (
+        _register_volume_focus_epoch(as_of_date, data_root)
+        if tracker_failure is None
+        else {"status": "NOT_ATTEMPTED", "reason": "canonical tracker failed"}
+    )
 
     coverage: dict[str, Any] | None = None
     tracker_path = data_root / "perf_tracker.json"
@@ -260,6 +304,7 @@ def _run_daily_close_reporting(as_of_date: str, data_root: Path) -> dict[str, An
     return {
         "status": bundle_status,
         "shadow_monitor": shadow_monitor,
+        "volume_focus_epoch": volume_focus_epoch,
         "track_perf": {
             "status": "FAILED" if tracker_failure else "SUCCESS",
             "detail": tracker_failure or _bounded_process_detail(tracker_run),

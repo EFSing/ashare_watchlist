@@ -5,6 +5,27 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-14 — B_VOLUME_CONFIRM_FOCUS_V1 — observational volume confirmation experiment
+
+- classification：`research question`；decision=`NEEDS_MORE_EVIDENCE`。在正式 B canonical output
+  之后增加一个只读重点观察层，解决人工观察候选过多的问题，但不把 retrospective hypothesis
+  当成正式策略证据。
+- fixed membership：唯一条件是 `candidate.vol_ratio >= 1.20`，阈值在 prospective deployment
+  前冻结。缺失/无效量能不进入 focus；Score、stop_dist、market grade、sector、repeat、turnover、
+  chg、RR、target type 与 T+1 touch 只能 descriptive，不能作为第二个 hard filter。
+- boundary：实验标记为 `PROSPECTIVE / OBSERVATIONAL_ONLY / NOT_FORMAL_B`；prospective epoch
+  从 `FIRST_GENUINE_T_CLOSE_RUN_AFTER_DEPLOYMENT` 开始。部署前的 2026-09-03、09-07、09-08、
+  09-11、09-14 数据均为 `RETROSPECTIVE / REFERENCE_ONLY`，不伪造 prospective capture。
+- review gate：至少 `20` 个 XSHG trading sessions 且 focus cohort 至少 `20` 个 triggered
+  samples；在 gate 前不得因结果修改正式 B。A/B outcome 统计复用现有 formal rule-price
+  trigger/stop/target/T+1/same-bar 语义，不创建第二个 outcome engine 或 tracker。
+- diagnostic boundary：T+1 entry-day target-touch giveback 与 repeat exposure 仅为 retrospective
+  diagnostic；不修改 target、stop、trigger、T+1、formal outcome 或历史 artifact。Final OOS
+  继续 `SEALED / UNREAD`，`data/validation/continuous_speed_probe/` 不得读取或触碰。
+- baseline：2026-09-14 runtime-state canonical list=16，focus=1（`002394 / 联发股份`）；
+  formal retrospective summary、300546 真实 OHLC 结论与 provenance 见
+  `docs/research/B_VOLUME_CONFIRM_FOCUS_V1_BASELINE_20260914.md`。
+
 ## 2026-09-14 — DAILY_REPORT_EMAIL_AND_BARK_DELIVERY_V1 — adopt delivery-only infrastructure
 
 - decision：`ADOPT` a small stdlib-only delivery helper and keep Email/Bark outside the canonical

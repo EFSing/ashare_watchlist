@@ -14,7 +14,7 @@
 不改变任何策略、provider、runtime-state、watchlist、tracker、shadow 或 report 语义。
 
 Live source base at this reconciliation：
-`origin/master=9cb7f9a95987724d222310f10d0761be5fd83528`。
+`origin/master=64bba1df7b0dfd362938399ef5393f0912ce1e5f`。
 恢复时仍必须重新 fetch，以实时 `origin/master` 为准。
 
 ## DAILY_UNATTENDED_GITHUB_ACTIONS_CLOUD_RUNTIME_V1 — active
@@ -34,9 +34,10 @@ GitHub Actions `daily-t-close` 已部署：
 `HITHINK_FINANCE_API_KEY` 已在 Actions runtime 中可见为 configured secret（值不可读取、不可记录）。
 此前“waiting for HITHINK secret”状态已失效。
 
-在本次 reconciliation 前最后一次核对的 `runtime-state` HEAD 为
-`140d8dce20d2aa4a16802787ca9f8342390f48a7`；该值仅是当时快照，首笔真实 production 后必须
-重新读取 live HEAD，不得视为固定 invariant。
+2026-09-14 genuine production 已完成；实时 `runtime-state` HEAD 为
+`1c8b2eca3792aebf327557fe9279b88a177b0545`，包含当天 canonical watchlist、日报、tracker、
+shadow 与 delivery receipt。当天 watchlist candidate count=`16`；Email/Bark delivery 均为
+`SUCCESS`。这些 live SHA 仍只作为本次 reconciliation evidence，后续恢复必须重新读取。
 
 ## DAILY_REPORT_EMAIL_AND_BARK_DELIVERY_V1 — channels verified
 
@@ -82,6 +83,26 @@ Terminal marker：`REPORT_DELIVERY_CHANNELS_VERIFIED`。
 历史 HTML 不因该 feature 被重写；后续正常 report generation 自动使用 responsive renderer。
 
 Terminal marker：`MOBILE_DAILY_CLOSE_REPORT_RESPONSIVE_ACTIVE`。
+
+## B_VOLUME_CONFIRM_FOCUS_V1 — observational experiment in review
+
+当前任务分支已实现一个下游、只读的量能确认重点观察层：
+
+- membership 唯一条件固定为 `candidate.vol_ratio >= 1.20`；不使用 Score、stop_dist、market
+  grade、sector、repeat、turnover、chg、RR、target type 或 T+1 touch 作为 hard filter。
+- 标记为 `PROSPECTIVE / OBSERVATIONAL_ONLY / NOT_FORMAL_B`；canonical B 名单、顺序、Score、
+  trigger、stop、target、RR 与 T+1 语义不变。
+- 2026-09-14 runtime-state canonical list=16，focus=1：`002394 / 联发股份`，
+  `vol_ratio=1.5762907292169963`；该日期是 deployment 前 `REFERENCE_ONLY`，不计入 prospective cohort。
+- prospective epoch 固定为 `FIRST_GENUINE_T_CLOSE_RUN_AFTER_DEPLOYMENT`；首次成功云端 production
+  tracker 步骤只在现有 `perf_tracker.json` 写入一个 epoch metadata 节点，无第二 tracker。
+- review gate 固定为至少 `20` 个 XSHG sessions 且 focus cohort 至少 `20` 个 triggered samples；
+  达 gate 前不得据结果修改正式 B。
+- 当前 evidence status=`EVIDENCE_ACCUMULATING`；没有自动效力结论或正式策略变更。
+
+T+1 giveback / retrospective volume / repeat exposure 结果见
+`docs/research/B_VOLUME_CONFIRM_FOCUS_V1_BASELINE_20260914.md`。该研究是
+`RETROSPECTIVE_DIAGNOSTIC_ONLY`，不改写 formal outcome。
 
 ## Formal strategy / universe / performance — unchanged
 
@@ -137,7 +158,8 @@ evidence、用户目录或其他任务目录。不得把 `D:\Temp` 硬编码进 
 Final OOS：`SEALED / UNREAD`。
 `data/validation/continuous_speed_probe/`：不得读取或触碰。
 
-下一真实节点：首笔 genuine T-close cloud production 完成后，核对实时 source SHA、watchlist SHA/
-count、tracker、shadow、responsive HTML、runtime-state new HEAD、delivery receipt、Email/Bark，
-并确认 raw/provider inputs persisted=`0`。若 18:17 retry 命中同日已完成状态，应保持
-`ALREADY_COMPLETED` / `ALREADY_DELIVERED` 幂等，不重复 acquisition 或重复成功 channel。
+下一真实节点：用户 review 并决定是否 squash merge 当前 PR；merge 前不修改正式 B、不修改 T+1、
+不 dispatch 新 production。merge 后首次 genuine T-close production 将建立 volume-focus epoch，
+并继续核对 source SHA、watchlist SHA/count、tracker、shadow、responsive HTML、runtime-state
+new HEAD、delivery receipt、Email/Bark 与 raw/provider inputs persisted=`0`。若 retry 命中同日已完成
+状态，应保持 `ALREADY_COMPLETED` / `ALREADY_DELIVERED` 幂等，不重复 acquisition 或成功 channel。
