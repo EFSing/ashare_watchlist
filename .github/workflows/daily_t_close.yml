@@ -16,6 +16,7 @@ on:
         options:
           - preflight-only
           - production
+          - delivery-test
 
 permissions:
   contents: write
@@ -34,6 +35,18 @@ jobs:
       ASHARE_DISABLE_DRIVE_CHECKPOINT: "1"
       ASHARE_EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION: "1"
       ASHARE_SKIP_PRODUCTION: "0"
+      BARK_DEVICE_KEY: ${{ secrets.BARK_DEVICE_KEY }}
+      BARK_SERVER_URL: ${{ secrets.BARK_SERVER_URL }}
+      REPORT_EMAIL_TO: ${{ secrets.REPORT_EMAIL_TO }}
+      SMTP_HOST: ${{ secrets.SMTP_HOST }}
+      SMTP_PORT: ${{ secrets.SMTP_PORT }}
+      SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      SMTP_FROM: ${{ secrets.SMTP_FROM }}
+      ACTIONS_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      PRODUCTION_CANONICAL_READY: "0"
+      RUNTIME_STATE_PERSISTED: "NO"
+      PRODUCTION_FAILURE_STAGE: "NOT_STARTED"
       PYTHONUNBUFFERED: "1"
     steps:
       - name: Checkout source master
@@ -101,13 +114,17 @@ jobs:
             echo "ASHARE_SKIP_PRODUCTION=1" >> "$GITHUB_ENV"
             echo "ASHARE_SUMMARY_RESULT=$output" >> "$GITHUB_ENV"
             echo "ASHARE_SUMMARY_STATUS=ALREADY_COMPLETED" >> "$GITHUB_ENV"
+            echo "PRODUCTION_CANONICAL_READY=1" >> "$GITHUB_ENV"
+            echo "RUNTIME_STATE_PERSISTED=YES" >> "$GITHUB_ENV"
+            echo "RUNTIME_STATE_SHA=$(git -C runtime-state rev-parse HEAD)" >> "$GITHUB_ENV"
           fi
 
       - name: Cloud preflight before any provider production call
-        if: env.ASHARE_SKIP_PRODUCTION != '1'
+        if: env.RUN_MODE != 'delivery-test' && env.ASHARE_SKIP_PRODUCTION != '1'
         shell: bash
         run: |
           set -euo pipefail
+          echo "PRODUCTION_FAILURE_STAGE=cloud-preflight" >> "$GITHUB_ENV"
           output="$RUNNER_TEMP/preflight.json"
           set +e
           python scripts/t_close_runner.py --preflight \
@@ -168,7 +185,7 @@ jobs:
           fi
 
       - name: Publish non-production preflight or skip summary
-        if: env.ASHARE_SKIP_PRODUCTION == '1' && env.ASHARE_SUMMARY_STATUS != 'ALREADY_COMPLETED'
+        if: env.RUN_MODE != 'delivery-test' && env.ASHARE_SKIP_PRODUCTION == '1' && env.ASHARE_SUMMARY_STATUS != 'ALREADY_COMPLETED'
         shell: bash
         run: |
           set -euo pipefail
@@ -180,7 +197,7 @@ jobs:
             --result-file "$ASHARE_SUMMARY_RESULT" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publish already-completed summary
-        if: env.ASHARE_SKIP_PRODUCTION == '1' && env.ASHARE_SUMMARY_STATUS == 'ALREADY_COMPLETED'
+        if: env.RUN_MODE != 'delivery-test' && env.ASHARE_SKIP_PRODUCTION == '1' && env.ASHARE_SUMMARY_STATUS == 'ALREADY_COMPLETED'
         shell: bash
         run: |
           set -euo pipefail
@@ -196,6 +213,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          echo "PRODUCTION_FAILURE_STAGE=production" >> "$GITHUB_ENV"
           output="$RUNNER_TEMP/production.json"
           set +e
           python scripts/t_close_runner.py \
@@ -237,6 +255,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          echo "PRODUCTION_FAILURE_STAGE=canonical-output-validation" >> "$GITHUB_ENV"
           python scripts/cloud_runtime_state.py validate --data-root "$ASHARE_DATA_ROOT"
           python scripts/cloud_runtime_state.py check-completed \
             --data-root "$ASHARE_DATA_ROOT" \
@@ -254,6 +273,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          echo "PRODUCTION_FAILURE_STAGE=runtime-state-persist" >> "$GITHUB_ENV"
           python scripts/cloud_runtime_state.py persist \
             --state-root "$GITHUB_WORKSPACE/runtime-state" \
             --data-root "$ASHARE_DATA_ROOT"
@@ -263,6 +283,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          echo "PRODUCTION_FAILURE_STAGE=runtime-state-push" >> "$GITHUB_ENV"
           mapfile -t stage_paths < <(python scripts/cloud_runtime_state.py list --state-root "$GITHUB_WORKSPACE/runtime-state" --paths-only)
           (cd runtime-state && git add -- "${stage_paths[@]}")
           git -C runtime-state diff --cached --check
@@ -281,15 +302,195 @@ jobs:
             state_sha="$(git -C runtime-state rev-parse HEAD)"
           fi
           echo "RUNTIME_STATE_SHA=$state_sha" >> "$GITHUB_ENV"
+          echo "PRODUCTION_CANONICAL_READY=1" >> "$GITHUB_ENV"
+          echo "RUNTIME_STATE_PERSISTED=YES" >> "$GITHUB_ENV"
 
-      - name: Write production Actions summary
-        if: env.RUN_MODE == 'production' && env.ASHARE_SKIP_PRODUCTION != '1'
+      - name: Validate delivery secrets for delivery-test
+        if: env.RUN_MODE == 'delivery-test'
+        shell: bash
+        run: |
+          set +e
+          output="$RUNNER_TEMP/delivery-secrets.json"
+          python scripts/daily_report_delivery.py validate-secrets > "$output"
+          rc=$?
+          set -e
+          echo "DELIVERY_TEST_SECRETS_RESULT=$output" >> "$GITHUB_ENV"
+          cat "$output"
+          if (( rc != 0 )); then
+            exit "$rc"
+          fi
+
+      - name: Send delivery-test Email and Bark
+        if: env.RUN_MODE == 'delivery-test'
+        shell: bash
+        run: |
+          set +e
+          output="$RUNNER_TEMP/delivery-test.json"
+          python scripts/daily_report_delivery.py delivery-test \
+            --date "$AS_OF_DATE" \
+            --data-root "$ASHARE_DATA_ROOT" \
+            --run-url "$ACTIONS_RUN_URL" > "$output"
+          rc=$?
+          set -e
+          echo "DELIVERY_TEST_RESULT=$output" >> "$GITHUB_ENV"
+          cat "$output"
+          if (( rc != 0 )); then
+            exit "$rc"
+          fi
+
+      - name: Publish delivery-test summary
+        if: always() && env.RUN_MODE == 'delivery-test'
         shell: bash
         run: |
           set -euo pipefail
+          echo "## Delivery test" >> "$GITHUB_STEP_SUMMARY"
+          if [[ -n "${DELIVERY_TEST_RESULT:-}" && -f "$DELIVERY_TEST_RESULT" ]]; then
+            cat "$DELIVERY_TEST_RESULT" >> "$GITHUB_STEP_SUMMARY"
+          elif [[ -n "${DELIVERY_TEST_SECRETS_RESULT:-}" && -f "$DELIVERY_TEST_SECRETS_RESULT" ]]; then
+            cat "$DELIVERY_TEST_SECRETS_RESULT" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "market-data provider calls = 0" >> "$GITHUB_STEP_SUMMARY"
+          echo "runtime-state mutation = NO" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Deliver production report by Email and Bark
+        if: always() && env.RUN_MODE == 'production' && env.PRODUCTION_CANONICAL_READY == '1'
+        shell: bash
+        run: |
+          set +e
+          output="$RUNNER_TEMP/delivery.json"
+          result_file="${PRODUCTION_RESULT:-${ASHARE_SUMMARY_RESULT:-}}"
+          result_args=()
+          if [[ -n "$result_file" && -f "$result_file" ]]; then
+            result_args+=(--result-file "$result_file")
+          fi
+          python scripts/daily_report_delivery.py deliver \
+            --mode production \
+            --date "$AS_OF_DATE" \
+            --data-root "$ASHARE_DATA_ROOT" \
+            --runtime-state-persisted "$RUNTIME_STATE_PERSISTED" \
+            --run-url "$ACTIONS_RUN_URL" \
+            "${result_args[@]}" > "$output"
+          rc=$?
+          set -e
+          echo "DELIVERY_RESULT=$output" >> "$GITHUB_ENV"
+          cat "$output"
+          if (( rc != 0 )); then
+            exit "$rc"
+          fi
+
+      - name: Persist delivery receipt to runtime-state
+        if: always() && env.RUN_MODE == 'production' && env.PRODUCTION_CANONICAL_READY == '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "PRODUCTION_FAILURE_STAGE=delivery-receipt-persist" >> "$GITHUB_ENV"
+          python scripts/cloud_runtime_state.py persist \
+            --state-root "$GITHUB_WORKSPACE/runtime-state" \
+            --data-root "$ASHARE_DATA_ROOT"
+          mapfile -t stage_paths < <(python scripts/cloud_runtime_state.py list --state-root "$GITHUB_WORKSPACE/runtime-state" --paths-only)
+          (cd runtime-state && git add -- "${stage_paths[@]}")
+          git -C runtime-state diff --cached --check
+          unexpected="$(git -C runtime-state diff --cached --name-only | python -c 'import sys; staged={line.strip() for line in sys.stdin if line.strip()}; allowed=set(sys.argv[1:]); print("\n".join(sorted(staged - allowed)))' "${stage_paths[@]}")"
+          if [[ -n "$unexpected" ]]; then
+            echo "unexpected staged runtime-state paths: $unexpected"
+            exit 1
+          fi
+          if git -C runtime-state diff --cached --quiet; then
+            state_sha="$(git -C runtime-state rev-parse HEAD)"
+          else
+            git -C runtime-state config user.name "github-actions[bot]"
+            git -C runtime-state config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C runtime-state commit -m "runtime: persist delivery receipt $AS_OF_DATE"
+            git -C runtime-state push origin HEAD:runtime-state
+            state_sha="$(git -C runtime-state rev-parse HEAD)"
+          fi
+          echo "RUNTIME_STATE_SHA=$state_sha" >> "$GITHUB_ENV"
+
+      - name: Write production delivery Actions summary
+        if: always() && env.RUN_MODE == 'production' && env.PRODUCTION_CANONICAL_READY == '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          result_file="${PRODUCTION_RESULT:-${ASHARE_SUMMARY_RESULT:-}}"
+          result_args=()
+          if [[ -n "$result_file" && -f "$result_file" ]]; then
+            result_args+=(--result-file "$result_file")
+          fi
+          state_commit="${RUNTIME_STATE_SHA:-$(git -C runtime-state rev-parse HEAD)}"
           python scripts/cloud_runtime_state.py summary \
             --data-root "$ASHARE_DATA_ROOT" \
             --date "$AS_OF_DATE" \
-            --status "SUCCESS" \
-            --state-commit "$RUNTIME_STATE_SHA" \
-            --result-file "$PRODUCTION_RESULT" >> "$GITHUB_STEP_SUMMARY"
+            --status "${ASHARE_SUMMARY_STATUS:-SUCCESS}" \
+            --state-commit "$state_commit" \
+            "${result_args[@]}" >> "$GITHUB_STEP_SUMMARY"
+          delivery_args=()
+          if [[ -n "${DELIVERY_RESULT:-}" && -f "$DELIVERY_RESULT" ]]; then
+            delivery_args+=(--result-file "$DELIVERY_RESULT")
+          fi
+          python scripts/daily_report_delivery.py summary \
+            --data-root "$ASHARE_DATA_ROOT" \
+            --date "$AS_OF_DATE" \
+            --production-status "${ASHARE_SUMMARY_STATUS:-SUCCESS}" \
+            --runtime-state-persisted "$RUNTIME_STATE_PERSISTED" \
+            "${delivery_args[@]}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Enforce production delivery health
+        if: always() && env.RUN_MODE == 'production' && env.PRODUCTION_CANONICAL_READY == '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${DELIVERY_RESULT:-}" || ! -f "$DELIVERY_RESULT" ]]; then
+            echo "delivery result is missing"
+            exit 1
+          fi
+          status="$(python - "$DELIVERY_RESULT" <<'PY'
+          import json
+          import sys
+          lines = open(sys.argv[1], encoding="utf-8").read().strip().splitlines()
+          print(json.loads(lines[-1]).get("status", "DELIVERY_RESULT_MISSING") if lines else "DELIVERY_RESULT_MISSING")
+          PY
+          )"
+          case "$status" in
+            DELIVERY_SUCCESS|ALREADY_DELIVERED)
+              echo "delivery health: $status"
+              ;;
+            *)
+              echo "delivery health: $status"
+              exit 1
+              ;;
+          esac
+
+      - name: Send production failure notification
+        if: always() && env.RUN_MODE == 'production' && env.ASHARE_SKIP_PRODUCTION != '1' && env.PRODUCTION_CANONICAL_READY != '1'
+        shell: bash
+        run: |
+          set +e
+          output="$RUNNER_TEMP/failure-delivery.json"
+          result_file="${PRODUCTION_RESULT:-${PREFLIGHT_RESULT:-}}"
+          result_args=()
+          if [[ -n "$result_file" && -f "$result_file" ]]; then
+            result_args+=(--result-file "$result_file")
+          fi
+          python scripts/daily_report_delivery.py failure \
+            --date "$AS_OF_DATE" \
+            --failure-stage "${PRODUCTION_FAILURE_STAGE:-production}" \
+            --error-summary "PRODUCTION_RUNTIME_FAILURE" \
+            --run-url "$ACTIONS_RUN_URL" \
+            "${result_args[@]}" > "$output"
+          rc=$?
+          set -e
+          echo "FAILURE_DELIVERY_RESULT=$output" >> "$GITHUB_ENV"
+          cat "$output"
+          if (( rc != 0 )); then
+            echo "failure notification command could not complete: $rc"
+          fi
+
+      - name: Write production failure delivery summary
+        if: always() && env.RUN_MODE == 'production' && env.ASHARE_SKIP_PRODUCTION != '1' && env.PRODUCTION_CANONICAL_READY != '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "## Production failure notification" >> "$GITHUB_STEP_SUMMARY"
+          if [[ -n "${FAILURE_DELIVERY_RESULT:-}" && -f "$FAILURE_DELIVERY_RESULT" ]]; then
+            cat "$FAILURE_DELIVERY_RESULT" >> "$GITHUB_STEP_SUMMARY"
+          fi

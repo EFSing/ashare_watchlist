@@ -23,6 +23,7 @@ from typing import Any, Iterable, Mapping
 from b_breakout_retest_v1_1 import STRATEGY_SPEC_SHA256
 from b_shadow_monitor import ShadowMonitorError, load_store
 from data_paths import DataPaths
+from daily_report_delivery import DeliveryError, load_delivery_receipt
 from track_perf import (
     CURRENT_PROSPECTIVE_STRATEGY,
     TrackerSchemaError,
@@ -47,6 +48,7 @@ _DATE_TOKEN = re.compile(r"^\d{8}$")
 _WATCHLIST_NAME = re.compile(r"^watchlist_\d{8}\.json$")
 _DATED_REPORT_NAME = re.compile(r"^daily_close_\d{8}\.html$")
 _CHECKPOINT_NAME = re.compile(r"^daily_checkpoint_\d{8}\.json$")
+_DELIVERY_RECEIPT_NAME = re.compile(r"^daily_delivery_\d{8}\.json$")
 _ALLOWED_TOP_LEVEL = {RUNTIME_STATE_FILE, ".gitattributes", "data", ".git"}
 
 
@@ -87,6 +89,8 @@ def _is_allowlisted_data_relative(relative: Path) -> bool:
         return True
     if _CHECKPOINT_NAME.fullmatch(Path(token).name) and token.startswith("checkpoints/"):
         return True
+    if re.fullmatch(r"delivery/daily_delivery_\d{8}\.json", token):
+        return True
     return False
 
 
@@ -101,6 +105,7 @@ def _data_candidates(root: Path) -> Iterable[Path]:
         "reports/latest.html",
         "reports/perf_report.md",
         "checkpoints/daily_checkpoint_????????.json",
+        "delivery/daily_delivery_????????.json",
     )
     seen: set[Path] = set()
     for pattern in patterns:
@@ -275,6 +280,15 @@ def _checkpoint_files(data_root: Path) -> list[Path]:
     return sorted(path for path in directory.glob("daily_checkpoint_????????.json") if path.is_file())
 
 
+def _delivery_receipt_files(data_root: Path) -> list[Path]:
+    directory = data_root / "delivery"
+    return sorted(
+        path
+        for path in directory.glob("daily_delivery_????????.json")
+        if path.is_file() and _DELIVERY_RECEIPT_NAME.fullmatch(path.name)
+    )
+
+
 def _is_formal_b_watchlist(path: Path) -> bool:
     try:
         watchlist = load_watchlist(path)
@@ -336,6 +350,18 @@ def validate_runtime_data(
             _validate_checkpoint_manifest(root, manifest_path)
             checkpoint_count += 1
 
+    delivery_receipt_count = 0
+    for receipt_path in _delivery_receipt_files(root):
+        token = receipt_path.stem.removeprefix("daily_delivery_")
+        try:
+            receipt = load_delivery_receipt(root, token)
+            report_path = root / "reports" / f"daily_close_{token}.html"
+            if receipt is None or not report_path.is_file() or file_sha256(report_path) != receipt["report_sha256"]:
+                raise DeliveryError("DELIVERY_RECEIPT_REPORT_IDENTITY_CONFLICT")
+        except (DeliveryError, OSError, ValueError) as exc:
+            raise RuntimeStateError("delivery receipt validation failed") from exc
+        delivery_receipt_count += 1
+
     return {
         "status": RUNTIME_STATE_VALID,
         "data_root": str(root),
@@ -345,6 +371,7 @@ def validate_runtime_data(
         "tracker": _hash_record(tracker_path),
         "shadow_store": _hash_record(shadow_path) if shadow_path.is_file() else None,
         "checkpoint_count": checkpoint_count,
+        "delivery_receipt_count": delivery_receipt_count,
         "provider_calls": 0,
         "raw_persisted": False,
         "prospective_inputs_persisted": False,

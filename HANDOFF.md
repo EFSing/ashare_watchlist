@@ -4,6 +4,29 @@
 > 本文件不是历史归档；历史 provenance 在 Git 历史中，正式状态与长期决策分别见
 > `docs/CURRENT_STATUS.md` 与 `docs/DECISION_LOG.md`（仅当前任务需要时读取）。
 
+## 2026-09-14 — DAILY_REPORT_EMAIL_AND_BARK_DELIVERY_V1 — implementation in progress
+
+- classification: `PRODUCT INFRASTRUCTURE / REPORT DELIVERY / OPERATIONAL NOTIFICATION`；不是
+  strategy research。Intake 从实时 `origin/master`
+  `c1bf5d6d36b1bfd84b62447afeb98e1a42940cdd` 创建独立 branch
+  `codex/daily-report-email-bark-delivery`；本地仅有设备生成的未跟踪
+  `ashare_watchlist.egg-info/`，未纳入修改。
+- scope: 新增 `scripts/daily_report_delivery.py`，复用现有 canonical HTML；workflow 增加
+  Email/Bark、BJT 用户可见命名、production failure 无附件、`delivery-test` 与 bounded
+  per-channel retry。正式成功投递只在 canonical runtime-state 首次 push 成功后发生。
+- receipt: `data/delivery/daily_delivery_YYYYMMDD.json` 是 operational-only durable receipt；
+  runtime-state allowlist 只接受这一种 dated filename，不扩大为通配目录。receipt 绑定当天
+  report SHA；同 SHA 双成功返回 `ALREADY_DELIVERED`，只重试失败 channel，SHA 冲突 fail closed。
+- invariants: `B_BREAKOUT_RETEST_LEGACY_V1_1`、strategy/spec、candidate qualification、
+  score/ranking/trigger/stop/target/RR/T+1、Main Board policy、shadow、tracker、provider
+  acquisition、historical artifacts、existing 17:17/18:17 BJT schedule 与 canonical report
+  filenames unchanged。Final OOS remains `SEALED / UNREAD`；forbidden probe directory untouched。
+- validation so far: delivery targeted `23 passed`；cloud runtime/runner targeted `42 passed`；
+  final full-suite run `571 passed, 2 skipped, 10 warnings`. `compileall` and `git diff --check`
+  passed. Next: commit/push, open PR, and verify exact-head CI. No provider call or delivery-test
+  dispatch has been made.
+- terminal marker for this checkpoint: `REPORT_DELIVERY_IMPLEMENTATION_READY_FOR_FINAL_VALIDATION`。
+
 ## 2026-09-14 — MOBILE_DAILY_CLOSE_REPORT_6_3_INCH_OPTIMIZATION_V1 — merged
 
 - classification: P3 product usability；presentation-only responsive optimization，服务

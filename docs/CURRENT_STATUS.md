@@ -1,5 +1,32 @@
 # CURRENT STATUS
 
+## DAILY_REPORT_EMAIL_AND_BARK_DELIVERY_V1 — implementation in progress — 2026-09-14
+
+This bounded product-infrastructure task adds the mobile delivery layer on top of the existing
+unattended daily cloud runtime: provider-neutral SMTP Email with the exact dated responsive HTML
+attachment, current Bark JSON push API support, BJT user-facing subjects/titles, explicit hard-fail
+notifications without any HTML attachment, and a manual `delivery-test` mode.
+
+The production ordering is fixed: canonical production chain succeeds → canonical runtime-state is
+validated and pushed → Email/Bark are attempted → the operational-only delivery receipt is copied
+and pushed. `data/delivery/daily_delivery_YYYYMMDD.json` is the sole newly allowlisted runtime-state
+pattern; it contains no address or credential and is bound to the dated report SHA. A same-report
+receipt with both channels successful is `ALREADY_DELIVERED`; a later run retries only failed or
+missing channels with a maximum of three attempts.
+
+The workflow's existing 17:17 BJT primary / 18:17 BJT bounded retry cron, XSHG gate,
+`ALREADY_COMPLETED` production skip, temporary cloud data root, separate `runtime-state` checkout,
+and canonical report filenames remain unchanged. `delivery-test` restores state and sends only test
+notifications from `reports/latest.html`; it does not acquire market data, run the production
+engine, write runtime-state, or create a formal receipt. Final OOS remains `SEALED / UNREAD` and
+`data/validation/continuous_speed_probe/` remains untouched.
+
+Live base at intake is `origin/master=c1bf5d6d36b1bfd84b62447afeb98e1a42940cdd`; implementation
+branch is `codex/daily-report-email-bark-delivery`. Local validation has delivery tests `23 passed`,
+cloud runtime/runner targeted tests `42 passed`, final full suite `571 passed, 2 skipped, 10 warnings`,
+compileall and diff check passing; remote PR/CI verification remain next. Terminal marker:
+`REPORT_DELIVERY_IMPLEMENTATION_READY_FOR_FINAL_VALIDATION`.
+
 ## MOBILE_DAILY_CLOSE_REPORT_RESPONSIVE_V1 — merged and active — 2026-09-14
 
 The existing `scripts/render_daily_close_html.py` now emits one self-contained HTML report that
