@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from datetime import date
 from pathlib import Path
 
@@ -33,6 +34,44 @@ from watchlist_schema import validate_watchlist
 
 CALENDAR = TradingCalendar(holidays=set())
 DATE = "2026-09-10"
+
+
+def _workflow_step_body(workflow: str, step_name: str) -> str:
+    marker = f"      - name: {step_name}\n"
+    start = workflow.index(marker)
+    run_marker = "        run: |\n"
+    body_start = workflow.index(run_marker, start) + len(run_marker)
+    body_end = workflow.find("\n      - name:", body_start)
+    assert body_end != -1
+    return "\n".join(line[10:] for line in workflow[body_start:body_end].splitlines())
+
+
+def _git(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", *args],
+        cwd=cwd,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def _init_runtime_git_repo(path: Path) -> None:
+    path.mkdir()
+    _git(path, "init")
+    _git(path, "config", "core.autocrlf", "false")
+    _git(path, "config", "user.name", "runtime-state-test")
+    _git(path, "config", "user.email", "runtime-state-test@example.invalid")
+    (path / "RUNTIME_STATE.md").write_text(
+        "GITHUB_ACTIONS_DAILY_RUNTIME_V1\noperational state only\n",
+        encoding="utf-8",
+    )
+    _git(path, "add", "--", "RUNTIME_STATE.md")
+    _git(path, "commit", "-m", "base runtime state")
+
+
+def _workflow_path() -> Path:
+    return Path(__file__).resolve().parents[1] / ".github" / "workflows" / "daily_t_close.yml"
 
 
 def _marker(state_root: Path) -> None:
@@ -290,3 +329,89 @@ def test_workflow_declares_linux_schedule_token_permissions_and_no_broad_stage()
     assert 'git add .' not in workflow
     assert 'git add -A' not in workflow
     assert 'C:\\Users\\' not in workflow
+
+
+def test_runtime_state_commit_gate_preserves_allowlist_idempotency_and_delivery_order():
+    workflow = _workflow_path().read_text(encoding="utf-8")
+    commit_gate = _workflow_step_body(workflow, "Atomically commit and push runtime-state with GITHUB_TOKEN")
+    receipt_gate = _workflow_step_body(workflow, "Persist delivery receipt to runtime-state")
+
+    assert 'mapfile -t stage_paths < <(python scripts/cloud_runtime_state.py list --state-root "$GITHUB_WORKSPACE/runtime-state" --paths-only)' in commit_gate
+    assert '(cd runtime-state && git add -- "${stage_paths[@]}")' in commit_gate
+    assert 'git -C runtime-state diff --cached --check' not in commit_gate
+    assert 'unexpected="$(git -C runtime-state diff --cached --name-only' in commit_gate
+    assert 'if [[ -n "$unexpected" ]]; then' in commit_gate
+    assert 'echo "unexpected staged runtime-state paths: $unexpected"' in commit_gate
+    assert 'git -C runtime-state diff --cached --quiet' in commit_gate
+    assert 'git -C runtime-state config user.name "github-actions[bot]"' in commit_gate
+    assert 'git -C runtime-state config user.email "41898282+github-actions[bot]@users.noreply.github.com"' in commit_gate
+    assert 'git -C runtime-state push origin HEAD:runtime-state' in commit_gate
+    assert 'echo "RUNTIME_STATE_SHA=$state_sha" >> "$GITHUB_ENV"' in commit_gate
+    assert 'echo "PRODUCTION_CANONICAL_READY=1" >> "$GITHUB_ENV"' in commit_gate
+    assert 'echo "RUNTIME_STATE_PERSISTED=YES" >> "$GITHUB_ENV"' in commit_gate
+
+    assert 'git -C runtime-state diff --cached --check' in receipt_gate
+    assert workflow.index("Validate production outputs before state copy") < workflow.index(
+        "Copy allowlisted durable outputs into runtime-state checkout"
+    ) < workflow.index("Atomically commit and push runtime-state with GITHUB_TOKEN") < workflow.index(
+        "Deliver production report by Email and Bark"
+    )
+
+
+def test_runtime_state_commit_gate_commits_allowlisted_html_without_whitespace_lint(tmp_path):
+    state_root = tmp_path / "runtime-state"
+    _init_runtime_git_repo(state_root)
+    relative = Path("data/reports/daily_close_20260914.html")
+    payload = b"<!doctype html>\n<div>generated output </div> \n"
+    html_path = state_root / relative
+    html_path.parent.mkdir(parents=True)
+    html_path.write_bytes(payload)
+
+    allowlisted = allowlisted_data_files(state_root / "data")
+    assert [path.relative_to(state_root / "data").as_posix() for path, _relative in allowlisted] == [
+        "reports/daily_close_20260914.html"
+    ]
+    stage_paths = ["RUNTIME_STATE.md", relative.as_posix()]
+    _git(state_root, "add", "--", *stage_paths)
+
+    whitespace_check = subprocess.run(
+        ["git", "diff", "--cached", "--check"],
+        cwd=state_root,
+        capture_output=True,
+        text=True,
+    )
+    assert whitespace_check.returncode != 0
+    assert "trailing whitespace" in whitespace_check.stdout + whitespace_check.stderr
+    assert _git(state_root, "diff", "--cached", "--name-only").stdout.splitlines() == [relative.as_posix()]
+
+    _git(state_root, "commit", "-m", "runtime: persist generated report")
+    assert html_path.read_bytes() == payload
+    committed = subprocess.run(
+        ["git", "show", f"HEAD:{relative.as_posix()}"],
+        cwd=state_root,
+        check=True,
+        capture_output=True,
+    )
+    assert committed.stdout == payload
+
+
+def test_runtime_state_commit_gate_remains_fail_closed_for_unexpected_staged_path(tmp_path):
+    workflow = _workflow_path().read_text(encoding="utf-8")
+    commit_gate = _workflow_step_body(workflow, "Atomically commit and push runtime-state with GITHUB_TOKEN")
+    assert 'if [[ -n "$unexpected" ]]; then' in commit_gate
+    assert 'exit 1' in commit_gate[commit_gate.index('if [[ -n "$unexpected" ]]; then') :]
+
+    state_root = tmp_path / "runtime-state"
+    _init_runtime_git_repo(state_root)
+    allowed = Path("data/reports/daily_close_20260914.html")
+    unexpected = Path("data/unexpected.txt")
+    (state_root / allowed).parent.mkdir(parents=True)
+    (state_root / allowed).write_text("generated\n", encoding="utf-8")
+    (state_root / unexpected).write_text("must fail closed\n", encoding="utf-8")
+    stage_paths = ["RUNTIME_STATE.md", allowed.as_posix()]
+
+    _git(state_root, "add", "--", unexpected.as_posix())
+    _git(state_root, "add", "--", *stage_paths)
+    staged = set(_git(state_root, "diff", "--cached", "--name-only").stdout.splitlines())
+
+    assert staged - set(stage_paths) == {unexpected.as_posix()}
