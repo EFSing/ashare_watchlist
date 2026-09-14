@@ -23,6 +23,7 @@ from typing import Any, Iterable, Mapping
 
 from data_paths import DataPaths
 from b_shadow_monitor import ShadowMonitorError, build_report_view, load_store
+from b_volume_confirm_focus import build_volume_focus_report
 from track_perf import (
     REVIEW_HORIZONS,
     REVIEW_POINT_CAPTURED,
@@ -84,6 +85,7 @@ class ReportModel:
     trade_performance: dict[str, Any] | None = None
     execution_audit: dict[str, Any] | None = None
     shadow_monitor: dict[str, Any] | None = None
+    volume_focus: dict[str, Any] | None = None
 
 
 def _normalize_date(value: date | datetime | str) -> str:
@@ -598,6 +600,14 @@ def build_report_model(
         calendar=cal,
         historical_provenance=historical_provenance,
     )
+    volume_focus = build_volume_focus_report(
+        watchlist,
+        canonical_watchlists,
+        trade_performance,
+        tracker,
+        normalized_date,
+        calendar=cal,
+    )
     shadow_monitor = _load_shadow_monitor(resolver, normalized_date, watchlist)
     execution_audit = build_trade_performance_summary(
         performance_tracker,
@@ -885,6 +895,7 @@ def build_report_model(
         trade_performance=trade_performance,
         execution_audit=execution_audit,
         shadow_monitor=shadow_monitor,
+        volume_focus=volume_focus,
     )
 
 
@@ -1595,6 +1606,130 @@ def _shadow_monitor_html(shadow: Mapping[str, Any]) -> str:
     )
 
 
+def _focus_metric_value(
+    value: Any,
+    *,
+    percent: bool = False,
+    integer: bool = False,
+    signed: bool = False,
+) -> str:
+    if value is None:
+        return '—'
+    if integer:
+        return _integer(value, '0')
+    if percent:
+        return _percent(value, signed=signed)
+    return _number(value)
+
+
+def _volume_focus_cohort_html(label: str, cohort: Mapping[str, Any]) -> str:
+    metric_rows = [
+        ('总信号', _focus_metric_value(cohort.get('total_signals'), integer=True)),
+        ('已触发', _focus_metric_value(cohort.get('triggered'), integer=True)),
+        ('已结案', _focus_metric_value(cohort.get('resolved'), integer=True)),
+        ('TARGET', _focus_metric_value(cohort.get('target'), integer=True)),
+        ('STOP', _focus_metric_value(cohort.get('stop'), integer=True)),
+        ('胜率', _focus_metric_value(cohort.get('win_rate'), percent=True)),
+        ('FAST_STOP', f"{_focus_metric_value(cohort.get('fast_stop_count'), integer=True)} / "
+         f"{_focus_metric_value(cohort.get('fast_stop_rate_pct'), percent=True)}"),
+        ('Expectancy', _focus_metric_value(cohort.get('expectancy_pct'), percent=True, signed=True)),
+        ('Profit Factor', _focus_metric_value(cohort.get('profit_factor'))),
+        ('平均 MFE', _focus_metric_value(cohort.get('avg_mfe_pct'), percent=True, signed=True)),
+        ('中位 MFE', _focus_metric_value(cohort.get('median_mfe_pct'), percent=True, signed=True)),
+        ('平均 MAE', _focus_metric_value(cohort.get('avg_mae_pct'), percent=True, signed=True)),
+        ('中位 MAE', _focus_metric_value(cohort.get('median_mae_pct'), percent=True, signed=True)),
+    ]
+    body = ''.join(
+        f'<div><span>{_esc(name)}</span><strong>{_esc(value)}</strong></div>'
+        for name, value in metric_rows
+    )
+    return (
+        f'<article class="focus-cohort"><div class="focus-cohort-head">'
+        f'<div><span class="focus-cohort-label">COHORT { _esc(label) }</span>'
+        f'<h3>{_esc(cohort.get("definition", "—"))}</h3></div>'
+        f'<span class="badge neutral">formal rule-price</span></div>'
+        f'<div class="focus-cohort-metrics">{body}</div></article>'
+    )
+
+
+def _volume_focus_html(volume_focus: Mapping[str, Any]) -> str:
+    focus_candidates = volume_focus.get('focus_candidates')
+    focus_candidates = focus_candidates if isinstance(focus_candidates, list) else []
+    canonical_count = volume_focus.get('canonical_candidate_count', 0)
+    focus_count = volume_focus.get('focus_candidate_count', 0)
+    ratio = _focus_metric_value(volume_focus.get('focus_ratio_pct'), percent=True)
+    evidence_status = volume_focus.get('evidence_status', 'EVIDENCE_ACCUMULATING')
+    epoch_start = volume_focus.get('prospective_epoch_start') or '尚未建立'
+    gate = volume_focus.get('review_gate') if isinstance(volume_focus.get('review_gate'), Mapping) else {}
+    gate_text = (
+        f"{_integer(gate.get('xshg_sessions'), '0')} / {_integer(gate.get('xshg_sessions_required'), '20')} XSHG sessions · "
+        f"focus triggered {_integer(gate.get('focus_triggered'), '0')} / {_integer(gate.get('focus_triggered_required'), '20')}"
+    )
+
+    cards: list[str] = []
+    for candidate in focus_candidates:
+        repeat = (
+            '<span class="badge neutral">RECENT_REPEAT</span>'
+            if candidate.get('recent_repeat') else ''
+        )
+        cards.append(
+            '<article class="focus-card">'
+            '<div class="focus-card-head"><div class="security">'
+            f'<strong>{_esc(candidate.get("code"))}</strong><span>{_esc(candidate.get("name"))}</span>'
+            f'</div><div class="focus-card-badges"><span class="badge positive">FOCUS</span>{repeat}</div></div>'
+            '<div class="focus-card-facts">'
+            f'<span><label>canonical Score</label><strong>{_esc(_integer(candidate.get("score")))}</strong></span>'
+            f'<span><label>vol_ratio</label><strong class="positive">{_esc(_number(candidate.get("vol_ratio"), 4))}</strong></span>'
+            f'<span><label>触发</label><strong>{_esc(_number(candidate.get("trigger")))}</strong></span>'
+            f'<span><label>止损</label><strong class="negative">{_esc(_number(candidate.get("stop")))}</strong></span>'
+            f'<span><label>目标</label><strong class="positive">{_esc(_number(candidate.get("target")))}</strong></span>'
+            f'<span><label>RR</label><strong>{_esc(_number(candidate.get("rr")))}</strong></span>'
+            '</div>'
+            '<div class="focus-card-descriptive"><span>仅描述：stop_dist '
+            f'<strong>{_esc(_percent(candidate.get("stop_dist")))}</strong></span><span>行业 '
+            f'<strong>{_esc(candidate.get("sector"))}</strong></span><span>signal-day chg '
+            f'<strong>{_esc(_percent(candidate.get("chg"), signed=True))}</strong></span><span>target type '
+            f'<strong>{_esc(candidate.get("target_type"))}</strong></span></div>'
+            '</article>'
+        )
+    candidate_html = (
+        ''.join(cards)
+        if cards else
+        '<div class="empty-state"><strong>今日无量能确认候选</strong>'
+        '<p>canonical B 名单仍完整保留；本实验不会为了提供重点候选而降低 1.20 阈值。</p></div>'
+    )
+    cohorts = volume_focus.get('cohorts') if isinstance(volume_focus.get('cohorts'), Mapping) else {}
+    cohort_html = ''.join(
+        _volume_focus_cohort_html(label, cohorts.get(label, {}))
+        for label in ('A', 'B')
+    )
+    pre_epoch = _integer(volume_focus.get('pre_epoch_excluded_signals'), '0')
+    status_note = (
+        'prospective epoch 尚未开始；所有部署前 canonical signals 仅作 reference，不计入 A/B cohort。'
+        if volume_focus.get('prospective_epoch_status') != 'STARTED' else
+        'A/B 只统计 prospective epoch 后的 canonical signals；结果不会自动修改正式 B。'
+    )
+    return (
+        '<div class="focus-banner">'
+        '<div><span class="eyebrow">OBSERVATIONAL EXPERIMENT</span>'
+        '<strong>B_VOLUME_CONFIRM_FOCUS_V1</strong>'
+        '<p>唯一 membership 条件：<code>vol_ratio &gt;= 1.20</code>。正式 B 名单、Score、排序、trigger、stop、target、RR 均不变。</p></div>'
+        '<div class="focus-banner-badges"><span class="badge warning">OBSERVATIONAL_ONLY</span>'
+        '<span class="badge warning">NOT_FORMAL_B</span></div></div>'
+        '<div class="focus-overview">'
+        f'<div><span>canonical B candidates</span><strong>{_esc(_integer(canonical_count, "0"))}</strong></div>'
+        f'<div><span>focus candidates</span><strong>{_esc(_integer(focus_count, "0"))}</strong></div>'
+        f'<div><span>focus ratio</span><strong>{_esc(ratio)}</strong></div>'
+        f'<div><span>evidence status</span><strong>{_esc(evidence_status)}</strong></div>'
+        '</div>'
+        f'<p class="focus-note">{_esc(status_note)} prospective epoch：<code>{_esc(epoch_start)}</code>；已排除部署前 signals：{_esc(pre_epoch)}。</p>'
+        f'<div class="focus-candidates">{candidate_html}</div>'
+        '<div class="subsection-head"><h3>Prospective A/B cohort</h3>'
+        f'<small>review gate：{_esc(gate_text)}；未达 gate 前禁止 formal B change</small></div>'
+        f'<div class="focus-cohorts">{cohort_html}</div>'
+    )
+
+
 def render_html(model: ReportModel) -> str:
     """Render a self-contained UTF-8 HTML document."""
 
@@ -1669,6 +1804,8 @@ def render_html(model: ReportModel) -> str:
     watchlist_count = len(model.watchlist_rows)
     shadow_monitor = model.shadow_monitor or {}
     shadow_html = _shadow_monitor_html(shadow_monitor)
+    volume_focus = model.volume_focus or {}
+    volume_focus_html = _volume_focus_html(volume_focus)
     research_panels = ''.join([
         _research_panel('T+3', '短期观察', model.review_sections['T+3']),
         _research_panel('T+5', '主评价', model.review_sections['T+5']),
@@ -1768,6 +1905,39 @@ input[type=search] {{ width: min(360px, 100%); padding: 8px 10px; border: 1px so
 .empty-state strong {{ display: block; color: var(--text); font-size: 15px; }}
 .empty-state p {{ max-width: 680px; margin: 7px auto 0; font-size: 13px; }}
 .empty-state a {{ display: inline-block; margin-top: 10px; color: var(--accent); font-size: 13px; }}
+.focus-banner {{ display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; min-width: 0; padding: 13px 14px; border: 1px solid #e4c990; border-left: 3px solid var(--warning); background: #fffaf0; }}
+.focus-banner > div:first-child {{ min-width: 0; }}
+.focus-banner > div:first-child > strong {{ display: block; margin-top: 2px; color: var(--text); font-size: 16px; }}
+.focus-banner p {{ margin: 5px 0 0; color: var(--muted); font-size: 13px; }}
+.focus-banner code, .focus-note code {{ overflow-wrap: anywhere; color: var(--text); font-size: 11px; }}
+.focus-banner-badges, .focus-card-badges {{ display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }}
+.focus-overview {{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; margin-top: 10px; border: 1px solid var(--border); background: var(--border); }}
+.focus-overview > div {{ min-width: 0; padding: 10px 11px; background: var(--surface-2); }}
+.focus-overview span {{ display: block; color: var(--muted); font-size: 11px; }}
+.focus-overview strong {{ display: block; margin-top: 3px; overflow-wrap: anywhere; color: var(--text); font-size: 17px; font-variant-numeric: tabular-nums; }}
+.focus-note {{ margin: 9px 0 0; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }}
+.focus-candidates {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 8px; margin-top: 12px; min-width: 0; }}
+.focus-card {{ min-width: 0; padding: 12px; border: 1px solid var(--border); border-left: 3px solid var(--accent); background: var(--surface); }}
+.focus-card-head {{ display: flex; align-items: flex-start; justify-content: space-between; gap: 9px; min-width: 0; }}
+.focus-card-head .security {{ min-width: 0; }}
+.focus-card-badges {{ flex: 0 0 auto; }}
+.focus-card-facts {{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px 12px; margin-top: 12px; min-width: 0; }}
+.focus-card-facts span, .focus-card-descriptive span {{ min-width: 0; }}
+.focus-card-facts label, .focus-card-descriptive {{ color: var(--muted); font-size: 11px; }}
+.focus-card-facts strong {{ display: block; margin-top: 2px; overflow-wrap: anywhere; color: var(--text); font-size: 14px; font-variant-numeric: tabular-nums; }}
+.focus-card-facts strong.positive {{ color: var(--positive); }}
+.focus-card-facts strong.negative {{ color: var(--negative); }}
+.focus-card-descriptive {{ display: flex; flex-wrap: wrap; gap: 5px 14px; margin-top: 11px; padding-top: 9px; border-top: 1px solid var(--border); overflow-wrap: anywhere; }}
+.focus-card-descriptive strong {{ color: var(--muted); font-weight: 500; }}
+.focus-cohorts {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; min-width: 0; }}
+.focus-cohort {{ min-width: 0; padding: 12px; border: 1px solid var(--border); background: var(--surface-2); }}
+.focus-cohort-head {{ display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; min-width: 0; }}
+.focus-cohort-head h3 {{ margin-top: 2px; overflow-wrap: anywhere; }}
+.focus-cohort-label {{ color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: .08em; }}
+.focus-cohort-metrics {{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin-top: 12px; border: 1px solid var(--border); background: var(--border); }}
+.focus-cohort-metrics > div {{ min-width: 0; padding: 8px 9px; background: var(--surface); }}
+.focus-cohort-metrics span {{ display: block; color: var(--muted); font-size: 11px; }}
+.focus-cohort-metrics strong {{ display: block; margin-top: 2px; overflow-wrap: anywhere; color: var(--text); font-size: 13px; font-variant-numeric: tabular-nums; }}
 .watchlist-list {{ display: grid; gap: 7px; }}
 .watch-row {{ min-width: 0; padding: 12px 13px; border: 1px solid var(--border); border-left: 3px solid var(--accent); background: var(--surface); }}
 .watch-row:hover, .action-row:hover {{ background: #fbfcfd; border-color: #bdcbd4; }}
@@ -1864,6 +2034,8 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   .watch-state {{ grid-column: 2 / -1; justify-content: flex-start; }}
   .watch-facts, .watch-meta {{ margin-left: 32px; }}
   .action-facts {{ grid-template-columns: repeat(3, 1fr); }}
+  .focus-overview {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
+  .focus-cohorts {{ grid-template-columns: 1fr; }}
   .research-panels {{ grid-template-columns: 1fr; }}
   .coverage-strip {{ grid-template-columns: repeat(2, 1fr); }}
   .audit-metadata, .audit-technical {{ grid-template-columns: 1fr; }}
@@ -1896,6 +2068,11 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   .watch-facts small {{ font-size: 11px; }}
   .watch-meta {{ margin-left: 34px; gap: 5px 12px; font-size: 12px; overflow-wrap: anywhere; }}
   .watch-meta > span {{ min-width: 0; }}
+  .focus-banner {{ display: block; }}
+  .focus-banner-badges {{ justify-content: flex-start; margin-top: 9px; }}
+  .focus-candidates {{ grid-template-columns: 1fr; }}
+  .focus-card-facts {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
+  .focus-cohort-metrics {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
   .action-top {{ flex-direction: column; align-items: flex-start; gap: 8px; }}
   .action-status {{ justify-content: flex-start; }}
   .action-facts {{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }}
@@ -1924,7 +2101,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
     {_status_pill('云端', '已验证' if cloud_verified else '仅本地', 'positive' if cloud_verified else 'neutral')}
   </div>
   <nav class="section-nav" aria-label="报告章节导航">
-    <a href="#overview">总览</a><a href="#trade-performance">绩效</a><a href="#tomorrow-watchlist">新名单</a><a href="#shadow-monitor">Shadow Monitor</a><a href="#daily-review">复盘</a><a href="#formal-review">节点研究</a><a href="#anomalies">数据质量</a>
+    <a href="#overview">总览</a><a href="#trade-performance">绩效</a><a href="#tomorrow-watchlist">新名单</a><a href="#volume-focus">Volume Focus</a><a href="#shadow-monitor">Shadow Monitor</a><a href="#daily-review">复盘</a><a href="#formal-review">节点研究</a><a href="#anomalies">数据质量</a>
   </nav>
 </header>
 
@@ -1945,13 +2122,18 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   {_watchlist_table(model.watchlist_rows, metadata.get('earliest_execution'))}
 </section>
 
+<section id="volume-focus">
+  <div class="section-head"><div><p class="section-kicker">04 · OBSERVATIONAL EXPERIMENT</p><h2>实验重点观察 · Volume Confirmation Focus</h2><p class="section-subtitle">实验重点观察只帮助人工缩小注意范围；canonical B 名单仍按当日完整候选数量原样展示。</p></div></div>
+  {volume_focus_html}
+</section>
+
 <section id="shadow-monitor">
-  <div class="section-head"><div><p class="section-kicker">04 · PROSPECTIVE SHADOW MONITOR</p><h2>Prospective Shadow Monitor</h2><p class="section-subtitle">仅记录市场环境、再启动量能与后续结果；不参与正式名单、评分、排序或交易参数。</p></div></div>
+  <div class="section-head"><div><p class="section-kicker">05 · PROSPECTIVE SHADOW MONITOR</p><h2>Prospective Shadow Monitor</h2><p class="section-subtitle">仅记录市场环境、再启动量能与后续结果；不参与正式名单、评分、排序或交易参数。</p></div></div>
   {shadow_html}
 </section>
 
 <section id="daily-review">
-  <div class="section-head"><div><p class="section-kicker">05 · REVIEW</p><h2>昨日 / 活跃信号复盘</h2><p class="section-subtitle">优先显示今日新触发、止盈、止损、持仓与等待事项。</p></div></div>
+  <div class="section-head"><div><p class="section-kicker">06 · REVIEW</p><h2>昨日 / 活跃信号复盘</h2><p class="section-subtitle">优先显示今日新触发、止盈、止损、持仓与等待事项。</p></div></div>
   <p class="section-summary">昨日名单今日表现 · {_esc(metadata.get('previous_date'))} · 共 {_esc(_integer(summary.get('previous_total'), '0'))} 个信号</p>
   <h3>昨日名单今日表现 · {_esc(metadata.get('previous_date'))}</h3>
   {_daily_table(model.previous_signals)}
@@ -1961,13 +2143,13 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
 </section>
 
 <section id="formal-review">
-  <div class="section-head"><div><p class="section-kicker">06 · RESEARCH</p><h2>固定节点研究</h2><p class="section-subtitle">T+3 / T+5 / T+10 为研究快照，不等同于真实交易盈亏。</p></div></div>
+  <div class="section-head"><div><p class="section-kicker">07 · RESEARCH</p><h2>固定节点研究</h2><p class="section-subtitle">T+3 / T+5 / T+10 为研究快照，不等同于真实交易盈亏。</p></div></div>
   <div class="research-panels">{research_panels}</div>
   <details class="metric-details"><summary>查看节点覆盖</summary>{_rolling_review_html(rolling_review)}</details>
 </section>
 
 <section id="anomalies">
-  <div class="section-head"><div><p class="section-kicker">07 · DATA QUALITY</p><h2>数据质量</h2><p class="section-subtitle">只显示需要关注的异常；正常采集状态合并为单一提示。</p></div></div>
+  <div class="section-head"><div><p class="section-kicker">08 · DATA QUALITY</p><h2>数据质量</h2><p class="section-subtitle">只显示需要关注的异常；正常采集状态合并为单一提示。</p></div></div>
   {_quality_table(quality_rows, performance=trade_performance, audit_performance=audit_performance, summary=summary, acquisition_status=overview.get('acquisition_status', _UNVERIFIED), review_status=model.review_status, shadow_monitor=shadow_monitor)}
 </section>
 
