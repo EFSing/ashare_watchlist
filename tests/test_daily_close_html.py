@@ -558,6 +558,62 @@ def test_presentation_regression_has_compact_sections_and_collapsed_technical_de
     assert dated.read_bytes() == latest.read_bytes()
 
 
+def test_mobile_responsive_css_preserves_core_fields_and_wide_table_fallback(tmp_path):
+    watchlist = _write_watchlist(tmp_path, '20260910', [_candidate('600018', '手机可读名单', 70)])
+    _write_tracker(tmp_path, watchlist)
+
+    model, dated, latest = renderer.render_daily_close(
+        '20260910',
+        paths=_paths(tmp_path),
+        calendar=CALENDAR,
+        generated_at=datetime(2026, 8, 27, 18, 0, tzinfo=timezone.utc),
+    )
+    text = dated.read_text(encoding='utf-8')
+    css = text.split('<style>', 1)[1].split('</style>', 1)[0]
+    mobile_css = css.split('@media (max-width: 600px)', 1)[1]
+
+    def assert_mobile_rule(selector: str, declaration: str) -> None:
+        assert re.search(rf'{re.escape(selector)}\s*\{{[^}}]*{re.escape(declaration)}', mobile_css)
+
+    assert '<meta name="viewport" content="width=device-width, initial-scale=1">' in text
+    assert 'overflow-x: hidden' in css
+    assert 'env(safe-area-inset-left' in mobile_css
+    assert 'env(safe-area-inset-right' in mobile_css
+    assert 'env(safe-area-inset-bottom' in mobile_css
+    assert_mobile_rule('.overview-grid', 'grid-template-columns: 1fr;')
+    assert_mobile_rule('.overview-facts', 'grid-template-columns: repeat(2, minmax(0, 1fr));')
+    assert_mobile_rule('.primary-kpis', 'grid-template-columns: repeat(2, minmax(0, 1fr));')
+    assert_mobile_rule('.metric-strip', 'grid-template-columns: repeat(2, minmax(0, 1fr));')
+    assert_mobile_rule('.funnel', 'grid-template-columns: repeat(2, minmax(0, 1fr));')
+    assert_mobile_rule('.watch-primary', 'grid-template-columns: 26px minmax(0, 1fr) auto;')
+    assert_mobile_rule('.watch-state', 'grid-column: 2 / -1;')
+    assert_mobile_rule('.watch-facts', 'grid-template-columns: repeat(2, minmax(0, 1fr));')
+    assert_mobile_rule('.action-facts', 'grid-template-columns: repeat(2, minmax(0, 1fr));')
+    assert_mobile_rule('.research-panels', 'grid-template-columns: 1fr;')
+    assert_mobile_rule('.quality-grid', 'grid-template-columns: 1fr;')
+    assert 'min-height: 44px' in mobile_css
+    assert '.table-scroll' in css
+    assert 'overflow-x: auto' in css
+    assert '-webkit-overflow-scrolling: touch' in css
+    assert 'overscroll-behavior-inline: contain' in css
+    assert '.trade-table { min-width: 1260px; }' in css
+    assert '.audit-table { min-width: 1180px; }' in css
+    assert 'overflow-wrap: anywhere' in css
+
+    row = model.watchlist_rows[0]
+    assert [row['code']] == ['600018']
+    for marker in (
+        str(row['code']),
+        str(row['name']),
+        renderer._integer(row['score']),
+        *(renderer._number(row[key]) for key in ('trigger', 'stop', 'target', 'rr')),
+    ):
+        assert marker in text
+    assert all(marker in text for marker in ('触发', '止损', '目标'))
+    assert dated.read_bytes() == latest.read_bytes()
+    assert renderer.render_html(model) == renderer.render_html(model)
+
+
 def test_entered_unverified_paths_are_marked_in_the_compact_funnel():
     performance = {
         'entered': 21,
