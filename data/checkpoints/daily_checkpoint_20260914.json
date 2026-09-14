@@ -1,0 +1,38 @@
+{
+  "cloud_target": "ashare_watchlist/daily_checkpoints/20260914",
+  "code_git_sha": "64bba1df7b0dfd362938399ef5393f0912ce1e5f",
+  "created_at_bjt": "2026-09-14T15:00:00+08:00",
+  "dated_html": {
+    "byte_length": 168906,
+    "filename": "daily_close_20260914.html",
+    "sha256": "6a04005671685e5a4f346ed95bffd02db67399578ccdc30e3d1e0f654000de12"
+  },
+  "earliest_execution": "2026-09-15",
+  "latest_html": {
+    "byte_length": 168906,
+    "filename": "latest.html",
+    "sha256": "6a04005671685e5a4f346ed95bffd02db67399578ccdc30e3d1e0f654000de12"
+  },
+  "list_date": "2026-09-14",
+  "perf_tracker": {
+    "byte_length": 426461,
+    "filename": "perf_tracker.json",
+    "sha256": "fde8764db816cebf3bd5cf620f749593c2fcaf6797210762e7a3bd3732d8b27e"
+  },
+  "schema_version": "DAILY_LIGHTWEIGHT_CLOUD_CHECKPOINT_V1",
+  "strategy_version": "B_BREAKOUT_RETEST_LEGACY_V1_1",
+  "upload_scope": [
+    "watchlist_20260914.json",
+    "perf_tracker.json",
+    "daily_close_20260914.html",
+    "daily_checkpoint_20260914.json",
+    "latest.html",
+    "latest_checkpoint.json"
+  ],
+  "verification_status": "LOCAL_INPUTS_VERIFIED",
+  "watchlist": {
+    "byte_length": 9401,
+    "filename": "watchlist_20260914.json",
+    "sha256": "a5f2f8098d610e9084ac9edf096482c26af65455019cf0df373bffcc2e436c97"
+  }
+}
