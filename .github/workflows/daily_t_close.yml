@@ -2,8 +2,10 @@ name: daily-t-close
 
 on:
   schedule:
+    # Primary: 17:17 BJT (09:17 UTC). The prior primary cron was 17 10 * * 1-5.
+    - cron: "17 9 * * 1-5"
+    # Bounded retry: 18:17 BJT (10:17 UTC). The prior retry cron was 17 11 * * 1-5.
     - cron: "17 10 * * 1-5"
-    - cron: "17 11 * * 1-5"
   workflow_dispatch:
     inputs:
       mode:

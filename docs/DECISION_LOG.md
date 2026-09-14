@@ -5,6 +5,20 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-14 — DAILY_UNATTENDED_GITHUB_ACTIONS_CLOUD_RUNTIME_V1 — bounded schedule adjustment
+
+- decision：production wake-ups are adjusted to primary `17:17 BJT` (`17 9 * * 1-5` UTC) and
+  bounded retry `18:17 BJT` (`17 10 * * 1-5` UTC). The adjustment is limited to when the
+  existing unattended cloud workflow starts.
+- invariants：XSHG trading-day gating, same-day `ALREADY_COMPLETED` idempotency, non-canceling
+  concurrency, `workflow_dispatch`, preflight semantics, provider semantics, runtime-state
+  authority/allowlist, ephemeral raw-data policy, and cloud Drive-disable behavior are unchanged.
+  Formal B `B_BREAKOUT_RETEST_LEGACY_V1_1`, its spec SHA, Main Board-only universe, shadow
+  semantics, historical artifacts, and Final OOS boundary are unchanged.
+- boundary：this is a production scheduling change only; it does not change strategy, data,
+  provider, runtime-state contents, universe, shadow, or research semantics. Final OOS remains
+  `SEALED / UNREAD` and is not read.
+
 ## 2026-09-14 — GITHUB_ACTIONS_DAILY_RUNTIME_V1 — post-merge deployment gate
 
 - outcome：PR #50 final head `468411f661211eb74140d89a7f489587bf8821a8` squash-merged into

@@ -15,8 +15,9 @@
   reports; stale checkpoint manifests and the legacy non-B 2026-08-20 list were omitted. The
   2026-09-11 watchlist SHA remains
   `80e6198e8e8af869d6718f14874be8e6eaa36cf3f63e7af1f381fb83c78db12b`.
-- the master workflow schedule is active at 18:17/19:17 BJT with XSHG gating, isolated temporary
-  data, and no raw/intermediate persistence. No production T-close run, weekend backfill, or
+- the master workflow schedule is active at 17:17 BJT primary / 18:17 BJT bounded retry with
+  XSHG gating, isolated temporary data, and no raw/intermediate persistence. No production
+  T-close run, weekend backfill, or
   manual cloud preflight was dispatched during this deployment session.
 - repository Actions secret metadata currently reports zero configured secrets. The required
   `HITHINK_FINANCE_API_KEY` therefore cannot be verified from Codex; do not dispatch production
