@@ -26,7 +26,8 @@
   score/ranking/trigger/stop/target/RR/T+1、Main Board policy、shadow、tracker、provider
   acquisition、historical artifacts、existing 17:17/18:17 BJT schedule 与 canonical report
   filenames unchanged。Final OOS remains `SEALED / UNREAD`；forbidden probe directory untouched。
-- validation: delivery targeted `23 passed`；cloud runtime/runner targeted `42 passed`；
+- validation: delivery targeted `23 passed`；cloud runtime/runner targeted `19 passed`（combined targeted
+  `42 passed`）；
   final full-suite run `571 passed, 2 skipped, 10 warnings`. `compileall` and `git diff --check`
 - passed. Post-merge master correctness run `34823821375` on merge SHA was `success`. No provider
   call or delivery-test dispatch has been made.
