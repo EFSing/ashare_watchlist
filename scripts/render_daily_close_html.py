@@ -1697,19 +1697,20 @@ def render_html(model: ReportModel) -> str:
   --radius: 7px;
 }}
 * {{ box-sizing: border-box; }}
-html {{ scroll-behavior: smooth; }}
-body {{ margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; line-height: 1.45; }}
-main {{ width: min(1440px, 100%); margin: 0 auto; padding: 18px 24px 34px; }}
+html {{ max-width: 100%; overflow-x: hidden; scroll-behavior: smooth; }}
+body {{ max-width: 100%; margin: 0; overflow-x: hidden; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; line-height: 1.45; }}
+main {{ width: min(1440px, 100%); min-width: 0; margin: 0 auto; padding: 18px 24px 34px; }}
 h1, h2, h3, p {{ margin-top: 0; }}
 h1 {{ margin-bottom: 4px; font-size: clamp(24px, 3vw, 32px); letter-spacing: -.02em; }}
 h2 {{ margin-bottom: 0; font-size: 20px; letter-spacing: -.01em; }}
 h3 {{ margin-bottom: 0; font-size: 15px; }}
 .site-header {{ padding: 2px 0 0; }}
-.header-main {{ display: flex; align-items: flex-start; justify-content: space-between; gap: 28px; padding: 2px 0 14px; }}
+.header-main {{ display: flex; align-items: flex-start; justify-content: space-between; gap: 28px; min-width: 0; padding: 2px 0 14px; }}
+.header-main > div {{ min-width: 0; }}
 .eyebrow, .section-kicker, .research-horizon {{ color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }}
 .eyebrow {{ margin-bottom: 5px; }}
 .header-strategy {{ color: var(--muted); font-size: 13px; }}
-.header-aside {{ display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px 18px; color: var(--muted); font-size: 13px; text-align: right; }}
+.header-aside {{ display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px 18px; min-width: 0; color: var(--muted); font-size: 13px; text-align: right; }}
 .header-aside strong {{ color: var(--text); font-size: 17px; font-variant-numeric: tabular-nums; }}
 .status-pills {{ display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0 12px; }}
 .status-pill {{ display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--border); border-radius: 999px; padding: 3px 9px; background: var(--surface); color: var(--muted); font-size: 12px; white-space: nowrap; }}
@@ -1718,17 +1719,17 @@ h3 {{ margin-bottom: 0; font-size: 15px; }}
 .status-pill.positive strong {{ color: var(--positive); }}
 .status-pill.warning {{ border-color: #e4c990; color: var(--warning); }}
 .status-pill.warning strong {{ color: var(--warning); }}
-.section-nav {{ position: sticky; top: 0; z-index: 10; display: flex; gap: 2px; overflow-x: auto; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--bg) 94%, transparent); backdrop-filter: blur(8px); }}
-.section-nav a {{ flex: 0 0 auto; padding: 9px 12px; color: var(--muted); font-size: 13px; text-decoration: none; white-space: nowrap; }}
+.section-nav {{ position: sticky; top: 0; z-index: 10; display: flex; gap: 2px; min-width: 0; overflow-x: auto; overscroll-behavior-inline: contain; -webkit-overflow-scrolling: touch; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--bg) 94%, transparent); backdrop-filter: blur(8px); }}
+.section-nav a {{ display: inline-flex; flex: 0 0 auto; align-items: center; min-height: 40px; padding: 9px 12px; color: var(--muted); font-size: 13px; text-decoration: none; white-space: nowrap; }}
 .section-nav a:hover, .section-nav a:focus {{ color: var(--accent); background: var(--surface); outline: none; }}
-section {{ margin: 18px 0; padding: 18px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }}
+section {{ min-width: 0; margin: 18px 0; padding: 18px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }}
 .toolbar {{ display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0; }}
 input[type=search] {{ width: min(360px, 100%); padding: 8px 10px; border: 1px solid #b7c3cb; border-radius: 5px; background: var(--surface); color: var(--text); font: inherit; font-size: 13px; }}
-.section-head {{ display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 14px; }}
+.section-head {{ display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; min-width: 0; margin-bottom: 14px; }}
 .section-kicker {{ margin: 0 0 2px; }}
 .section-subtitle, .note {{ margin: 5px 0 0; color: var(--muted); font-size: 13px; }}
-.overview-grid {{ display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(340px, 1fr); gap: 1px; border: 1px solid var(--border); background: var(--border); }}
-.overview-lead, .overview-facts {{ padding: 16px; background: var(--surface-2); }}
+.overview-grid {{ display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(340px, 1fr); gap: 1px; min-width: 0; border: 1px solid var(--border); background: var(--border); }}
+.overview-lead, .overview-facts {{ min-width: 0; padding: 16px; background: var(--surface-2); }}
 .overview-lead strong {{ display: block; margin: 2px 0 4px; font-size: 20px; }}
 .overview-lead p:last-child {{ margin-bottom: 0; color: var(--muted); font-size: 13px; }}
 .overview-facts {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; background: var(--surface); }}
@@ -1768,32 +1769,32 @@ input[type=search] {{ width: min(360px, 100%); padding: 8px 10px; border: 1px so
 .empty-state p {{ max-width: 680px; margin: 7px auto 0; font-size: 13px; }}
 .empty-state a {{ display: inline-block; margin-top: 10px; color: var(--accent); font-size: 13px; }}
 .watchlist-list {{ display: grid; gap: 7px; }}
-.watch-row {{ padding: 12px 13px; border: 1px solid var(--border); border-left: 3px solid var(--accent); background: var(--surface); }}
+.watch-row {{ min-width: 0; padding: 12px 13px; border: 1px solid var(--border); border-left: 3px solid var(--accent); background: var(--surface); }}
 .watch-row:hover, .action-row:hover {{ background: #fbfcfd; border-color: #bdcbd4; }}
-.watch-primary {{ display: grid; grid-template-columns: 28px minmax(170px, 1fr) 90px minmax(150px, auto); align-items: center; gap: 10px; }}
+.watch-primary {{ display: grid; grid-template-columns: 28px minmax(0, 1fr) 90px minmax(150px, auto); align-items: center; gap: 10px; min-width: 0; }}
 .watch-rank {{ color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; text-align: center; }}
 .security {{ display: flex; align-items: baseline; gap: 8px; min-width: 0; }}
 .security strong {{ color: var(--text); font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; }}
 .security span {{ min-width: 0; overflow: hidden; color: var(--muted); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }}
-.watch-score {{ text-align: right; }}
+.watch-score {{ min-width: 0; text-align: right; }}
 .watch-score span {{ color: var(--muted); font-size: 11px; }}
 .watch-score strong {{ display: block; color: var(--accent); font-size: 19px; font-variant-numeric: tabular-nums; }}
 .watch-state {{ display: flex; align-items: center; justify-content: flex-end; gap: 7px; }}
 .watch-state small {{ color: var(--muted); font-size: 11px; }}
-.watch-facts {{ display: flex; flex-wrap: wrap; gap: 5px 24px; margin: 10px 0 0 38px; }}
+.watch-facts {{ display: flex; flex-wrap: wrap; gap: 5px 24px; min-width: 0; margin: 10px 0 0 38px; }}
 .watch-facts span {{ min-width: 54px; }}
 .watch-facts strong {{ display: block; margin-top: 2px; font-size: 14px; font-variant-numeric: tabular-nums; }}
 .watch-facts span:last-child strong {{ color: var(--text); }}
 .watch-facts small {{ display: block; color: var(--muted); font-size: 10px; }}
 .watch-meta {{ display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 7px 0 0 38px; color: var(--muted); font-size: 11px; }}
 .action-list {{ display: grid; gap: 7px; }}
-.action-row {{ padding: 12px 13px; border: 1px solid var(--border); border-left: 3px solid var(--accent); background: var(--surface); }}
+.action-row {{ min-width: 0; padding: 12px 13px; border: 1px solid var(--border); border-left: 3px solid var(--accent); background: var(--surface); }}
 .action-row.positive {{ border-left-color: var(--positive); }}
 .action-row.negative {{ border-left-color: var(--negative); }}
 .action-row.warning {{ border-left-color: var(--warning); }}
 .action-top {{ display: flex; align-items: center; justify-content: space-between; gap: 12px; }}
 .action-status {{ display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }}
-.action-facts {{ display: grid; grid-template-columns: repeat(6, minmax(90px, 1fr)); gap: 10px; margin-top: 10px; }}
+.action-facts {{ display: grid; grid-template-columns: repeat(6, minmax(90px, 1fr)); gap: 10px; min-width: 0; margin-top: 10px; }}
 .action-facts strong {{ display: block; margin-top: 2px; font-size: 13px; font-variant-numeric: tabular-nums; }}
 .action-bottom {{ display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 9px; color: var(--muted); font-size: 12px; }}
 .action-bottom small {{ font-size: 11px; }}
@@ -1801,12 +1802,12 @@ input[type=search] {{ width: min(360px, 100%); padding: 8px 10px; border: 1px so
 .research-panel {{ min-width: 0; padding: 13px; border: 1px solid var(--border); background: var(--surface-2); }}
 .research-panel-head {{ display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }}
 .research-horizon {{ display: block; margin-bottom: 2px; }}
-.research-stats {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin: 14px 0; }}
+.research-stats {{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin: 14px 0; }}
 .research-stats strong {{ display: block; margin-top: 3px; font-size: 15px; font-variant-numeric: tabular-nums; }}
 .research-detail {{ border-top: 1px solid var(--border); }}
 summary {{ cursor: pointer; padding: 9px 0 2px; color: var(--accent); font-size: 12px; }}
 summary:focus {{ outline: 2px solid #9bc0d6; outline-offset: 2px; }}
-.table-scroll {{ width: 100%; overflow-x: auto; }}
+.table-scroll {{ width: 100%; min-width: 0; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-inline: contain; }}
 table {{ width: 100%; min-width: 1020px; border-collapse: collapse; font-size: 12px; }}
 th, td {{ padding: 7px 8px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; white-space: nowrap; }}
 th {{ position: sticky; top: 0; z-index: 1; background: #edf2f5; color: #40515e; font-weight: 650; }}
@@ -1831,7 +1832,7 @@ td:nth-child(n+4) {{ font-variant-numeric: tabular-nums; }}
 .subtle-details > summary {{ color: var(--text); font-weight: 650; }}
 #audit, .audit-details {{ margin: 18px 0 0; border: 1px solid var(--border); background: var(--surface-2); }}
 #audit > summary, .audit-details > summary {{ padding: 12px 14px; color: var(--text); font-weight: 650; }}
-.audit-content {{ padding: 0 14px 14px; }}
+.audit-content {{ min-width: 0; padding: 0 14px 14px; }}
 .audit-metadata {{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin: 0 0 14px; border: 1px solid var(--border); background: var(--border); }}
 .audit-metadata div {{ min-width: 0; padding: 8px 10px; background: var(--surface); }}
 .audit-metadata dt {{ color: var(--muted); font-size: 11px; }}
@@ -1840,7 +1841,7 @@ td:nth-child(n+4) {{ font-variant-numeric: tabular-nums; }}
 .audit-technical div {{ min-width: 0; padding: 8px 10px; border: 1px solid var(--border); background: var(--surface); }}
 .audit-technical span {{ display: block; color: var(--muted); font-size: 11px; }}
 .audit-technical code {{ display: block; margin-top: 3px; overflow-wrap: anywhere; font-size: 11px; }}
-.audit-text {{ max-height: 170px; overflow: auto; padding: 9px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font: 11px/1.45 Consolas, "SFMono-Regular", monospace; white-space: pre-wrap; }}
+.audit-text {{ max-height: 170px; overflow: auto; overflow-wrap: anywhere; word-break: break-word; padding: 9px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font: 11px/1.45 Consolas, "SFMono-Regular", monospace; white-space: pre-wrap; }}
 code {{ overflow-wrap: anywhere; }}
 footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
 .sr-only {{ position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }}
@@ -1867,10 +1868,42 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   .coverage-strip {{ grid-template-columns: repeat(2, 1fr); }}
   .audit-metadata, .audit-technical {{ grid-template-columns: 1fr; }}
 }}
-@media (max-width: 460px) {{
-  .overview-facts {{ grid-template-columns: 1fr; gap: 8px; }}
-  .metric-strip, .action-facts {{ grid-template-columns: repeat(2, 1fr); }}
-  .watch-facts {{ gap: 5px 15px; }}
+@media (max-width: 600px) {{
+  body {{ font-size: 14px; }}
+  main {{ padding-top: 12px; padding-right: max(10px, env(safe-area-inset-right, 0px)); padding-bottom: max(24px, env(safe-area-inset-bottom, 0px)); padding-left: max(10px, env(safe-area-inset-left, 0px)); }}
+  h1 {{ font-size: clamp(23px, 7vw, 28px); overflow-wrap: anywhere; }}
+  .header-main {{ display: block; gap: 12px; }}
+  .header-aside {{ justify-content: flex-start; gap: 8px 14px; margin-top: 12px; font-size: 13px; text-align: left; }}
+  .section-nav {{ overscroll-behavior-inline: contain; }}
+  .section-nav a {{ min-height: 44px; padding: 11px 13px; }}
+  section {{ margin: 13px 0; padding: 11px; }}
+  .overview-grid {{ grid-template-columns: 1fr; }}
+  .overview-facts {{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }}
+  .primary-kpis {{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }}
+  .kpi-card {{ padding: 11px 10px; }}
+  .kpi-value {{ font-size: 23px; }}
+  .metric-strip {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
+  .funnel {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
+  .watch-row {{ padding: 11px 10px; }}
+  .watch-primary {{ grid-template-columns: 26px minmax(0, 1fr) auto; align-items: start; gap: 8px; }}
+  .watch-state {{ grid-column: 2 / -1; justify-content: flex-start; flex-wrap: wrap; gap: 5px 7px; }}
+  .security {{ display: block; }}
+  .security strong {{ display: block; font-size: 15px; }}
+  .security span {{ display: block; overflow: visible; overflow-wrap: anywhere; text-overflow: clip; white-space: normal; font-size: 14px; }}
+  .watch-facts {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; margin: 12px 0 0 34px; }}
+  .watch-facts span {{ min-width: 0; }}
+  .watch-facts strong {{ overflow-wrap: anywhere; }}
+  .watch-facts small {{ font-size: 11px; }}
+  .watch-meta {{ margin-left: 34px; gap: 5px 12px; font-size: 12px; overflow-wrap: anywhere; }}
+  .watch-meta > span {{ min-width: 0; }}
+  .action-top {{ flex-direction: column; align-items: flex-start; gap: 8px; }}
+  .action-status {{ justify-content: flex-start; }}
+  .action-facts {{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }}
+  .action-facts strong {{ font-size: 14px; }}
+  .action-bottom {{ overflow-wrap: anywhere; }}
+  .research-panels {{ grid-template-columns: 1fr; }}
+  .research-stats {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
+  .quality-grid {{ grid-template-columns: 1fr; }}
 }}
 </style>
 </head>
