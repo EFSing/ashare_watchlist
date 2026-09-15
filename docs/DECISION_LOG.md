@@ -31,6 +31,9 @@
 - invariants：`B_BREAKOUT_RETEST_LEGACY_V1_1`, frozen spec SHA, Main Board-only universe, provider
   semantics, shadow semantics, historical artifacts, runtime-state canonical files, Final OOS
   `SEALED / UNREAD`, and `data/validation/continuous_speed_probe/` boundary remain unchanged.
+- delivery：独立 PR #61 已创建，implementation head=`17e68b7139ed24441400b3a09c321466805d4032`；
+  push correctness=`34922511075 success`，pull-request correctness=`34922534106 success`，不自动
+  merge，Cloudflare 不在 PR 合并前启用。
 
 ## 2026-09-14 — DAILY_REPORT_EMAIL_AND_BARK_DELIVERY_V1 — adopt delivery-only infrastructure
 

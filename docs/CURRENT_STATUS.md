@@ -52,6 +52,10 @@ PR #60 仍是 `OPEN`、base=`master`、head=`0a829193af5a761d3190d02543e9edd5b93
 
 本次 `CLOUD_SCHEDULE_RESILIENCE_V1` repo-side implementation 会保持独立 PR；在 merge 前
 不把 schedule stale policy 或 Cloudflare dispatcher 写成 master 已 active。
+当前 implementation commit=`17e68b7139ed24441400b3a09c321466805d4032` 已进入 PR #61；该 head
+的 pull-request correctness run=`34922534106` 与 push correctness run=`34922511075` 均为
+`success`，PR 当前为 `OPEN / CLEAN`。后续 governance-only commit 若使 PR head 变化，必须重新
+核对 exact-head CI。
 
 ## DAILY_REPORT_EMAIL_AND_BARK_DELIVERY_V1 — channels verified
 

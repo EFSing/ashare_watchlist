@@ -40,12 +40,14 @@
 - Final OOS：`SEALED / UNREAD`；不得读取或触碰 `data/validation/continuous_speed_probe/`。
 - historical artifacts：不得为普通恢复、报告或测试任务重跑历史 acquisition、重写历史
   watchlist/tracker/report/evidence。
-- current task：在独立 `codex/cloud-schedule-resilience-v1` worktree 中完成 production scheduling
-  reliability PR；日期 resolver、独立 Cloudflare dispatcher、failure-notice 去重与隔离持久化
-  仍属于 repo-side prepared state，未在 master active。
-- next action：完成 targeted/full tests、commit/push、创建独立 PR，核对 exact-head CI 后停止等待
-  用户 merge；Cloudflare remains `PREPARED / NOT_ACTIVE` until user supplies the minimum external
-  PAT/secret/account authorization. 不 dispatch genuine production，不修改 PR #60。
+- current task：独立 branch/worktree `codex/cloud-schedule-resilience-v1` 已完成 repo-side
+  implementation，implementation commit=`17e68b7139ed24441400b3a09c321466805d4032`；PR #61
+  已创建，base=`master`，implementation head exact-head correctness run=`34922534106`
+  success，push correctness run=`34922511075` success，PR=`OPEN / CLEAN`。治理 follow-up commit
+  可能使 live PR head 前进，恢复时必须重新读取 live branch/PR/CI，不把本条 SHA 当永久真相。
+- next action：等待用户决定是否 merge PR #61；Cloudflare remains `PREPARED / NOT_ACTIVE` until
+  user supplies the minimum external PAT/secret/account authorization. 不 dispatch genuine
+  production，不修改 PR #60。
 
 ## Local Windows test workspace convention
 
