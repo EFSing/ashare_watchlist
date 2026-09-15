@@ -5,6 +5,33 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-15 — CLOUD_SCHEDULE_RESILIENCE_V1 — adopt bounded date binding and operational failure dedupe
+
+- classification：`product infrastructure + correctness`；不是策略研究、参数选择、promotion 或
+  Final OOS 工作。
+- decision：`ADOPT` a small run-context resolver. GitHub `schedule` runs use the supported cron's
+  UTC calendar date as the immutable target and return `SKIPPED_STALE_SCHEDULE` after BJT midnight or
+  before the valid post-close wake-up. `workflow_dispatch` accepts optional `as_of_date` and
+  `trigger_source`; external production dispatch must provide a strict ISO `YYYY-MM-DD` date.
+- decision：`ADOPT` a separate, dependency-free Cloudflare Worker Cron dispatcher at `25 9 * * 1-5`
+  UTC. It only calls GitHub `workflow_dispatch` with `ref=master`, `mode=production`, explicit
+  `as_of_date`, and `trigger_source=cloudflare-cron`. Repository state is `PREPARED / NOT_ACTIVE`
+  until the user creates the fine-grained PAT, stores the secret in Cloudflare, and deploys it.
+- decision：`ADOPT` operational failure notification receipt
+  `data/delivery/daily_failure_notice_YYYYMMDD.json` with schema `DAILY_FAILURE_NOTICE_V1`. It is
+  allowlisted only for that exact dated filename pattern, dedupes Email/Bark by target date, retries
+  only failed channels, and is persisted from a clean runtime-state checkout so failed canonical
+  staging cannot be bundled with it. It never participates in formal completion, B/tracker/shadow,
+  or successful report-delivery receipt semantics.
+- live evidence used for intake：`origin/master=64bba1df7b0dfd362938399ef5393f0912ce1e5f`,
+  `runtime-state=1c8b2eca3792aebf327557fe9279b88a177b0545`; genuine production
+  `34850228463=success`, late schedule `34865169737=success`, cross-day schedule
+  `34868158949=failure`. PR #60 remains open and its `B_VOLUME_CONFIRM_FOCUS_V1` content is not
+  included in this change.
+- invariants：`B_BREAKOUT_RETEST_LEGACY_V1_1`, frozen spec SHA, Main Board-only universe, provider
+  semantics, shadow semantics, historical artifacts, runtime-state canonical files, Final OOS
+  `SEALED / UNREAD`, and `data/validation/continuous_speed_probe/` boundary remain unchanged.
+
 ## 2026-09-14 — DAILY_REPORT_EMAIL_AND_BARK_DELIVERY_V1 — adopt delivery-only infrastructure
 
 - decision：`ADOPT` a small stdlib-only delivery helper and keep Email/Bark outside the canonical
