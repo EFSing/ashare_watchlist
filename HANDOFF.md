@@ -10,7 +10,7 @@
 
 - source authority：`origin/master`。恢复时必须先 `git fetch origin` 并实时读取
   `origin/master`；本次 reconciliation 的 live base 为
-  `64bba1df7b0dfd362938399ef5393f0912ce1e5f`，但该 SHA 不是永久真相。
+  `16f8e8a17a662d5288ff0c36bcebbedad342a320`，但该 SHA 不是永久真相。
 - production-state authority：remote `runtime-state` branch；本地 `data/` 仅为
   cache / reproduction，不得覆盖远端生产状态。恢复时同时核对 live `runtime-state` HEAD。
 - live `runtime-state` intake HEAD：`1c8b2eca3792aebf327557fe9279b88a177b0545`；恢复时继续
@@ -40,14 +40,13 @@
 - Final OOS：`SEALED / UNREAD`；不得读取或触碰 `data/validation/continuous_speed_probe/`。
 - historical artifacts：不得为普通恢复、报告或测试任务重跑历史 acquisition、重写历史
   watchlist/tracker/report/evidence。
-- current task：独立 branch/worktree `codex/cloud-schedule-resilience-v1` 已完成 repo-side
-  implementation，implementation commit=`17e68b7139ed24441400b3a09c321466805d4032`；PR #61
-  已创建，base=`master`，implementation head exact-head correctness run=`34922534106`
-  success，push correctness run=`34922511075` success，PR=`OPEN / CLEAN`。治理 follow-up commit
-  可能使 live PR head 前进，恢复时必须重新读取 live branch/PR/CI，不把本条 SHA 当永久真相。
-- next action：等待用户决定是否 merge PR #61；Cloudflare remains `PREPARED / NOT_ACTIVE` until
-  user supplies the minimum external PAT/secret/account authorization. 不 dispatch genuine
-  production，不修改 PR #60。
+- current task：独立 branch/worktree `codex/cloud-schedule-resilience-v1` 的 repo-side
+  implementation 已通过 PR #61 squash-merged；merge commit=`16f8e8a17a662d5288ff0c36bcebbedad342a320`。
+  最终 PR exact-head correctness run=`34922737694`、push correctness run=`34922734570` 均为
+  `success`，合并后的 master push correctness run=`34926519440` 也为 `success`。schedule
+  resilience 已进入 `master`；Cloudflare 仍为 `PREPARED / NOT_ACTIVE`。
+- next action：等待用户提供 Cloudflare 所需的最小 external PAT/secret/account authorization
+  后再部署或启用 secondary dispatcher；本次不 dispatch genuine production，不修改 PR #60。
 
 ## Local Windows test workspace convention
 
