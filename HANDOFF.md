@@ -6,6 +6,31 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-15 — RUNTIME_STATE_HISTORICAL_CHECKPOINT_MUTABLE_TRACKER_VALIDATION_FIX_V1
+
+- live reconciliation：此前本文件仍以 `origin/master=16f8e8a`、
+  `runtime-state=1c8b2ec` 和 PR #61 未合并为当前入口；实时 fetch 已确认这是
+  `PROJECT_GOVERNANCE_STATE_CONFLICT`。当前 live source 是
+  `origin/master=040e077bbf208921798d2d5b1fa0bd2d51ba9a20`，master exact-head correctness
+  run=`34938666579` 为 `success`；live `origin/runtime-state` 是
+  `520d6fab222bf553caa3eeb29cc83176318626d0`。PR #61/#62 已合并，PR #60 仍为
+  `OPEN / CONFLICTING`，本任务不触碰 PR #60。
+- failure evidence：run `34969498897` (`workflow_dispatch`, `2026-09-15`, `manual`) 的
+  canonical chain 输出 success，但在 `canonical-output-validation` 因
+  `checkpoint SHA/length mismatch: perf_tracker` 失败；Email/Bark 均 success。该 run 未
+  canonical-persist，runtime-state 只新增 operational failure notice，未新增
+  20260915 success receipt/checkpoint。
+- current task：从 live `origin/master` 创建独立 branch/worktree
+  `codex/runtime-state-checkpoint-validation-fix-20260915`，只修复历史 checkpoint 对
+  mutable latest-state 的错误绑定并增加跨日回归测试；当前尚未 dispatch production、调用
+  provider 或修改 remote `runtime-state`。
+- semantics：历史 manifest 继续严格检查 JSON/schema、date/filename、record structure、
+  文件存在性和 dated immutable `watchlist`/`dated_html` identity；历史
+  `perf_tracker`/`latest_html` 允许合法跨日演进。`completed_run_status(target_date)` 对目标日
+  全部四类 payload 仍 strict，failure notice 继续 operational-only，不阻止未来 success。
+- boundaries：Formal B、universe、provider/shadow、scheduler、PR #60、Final OOS
+  (`SEALED / UNREAD`) 及 `data/validation/continuous_speed_probe/` 均保持不变。
+
 ## 2026-09-15 — CURRENT RECOVERY CHECKPOINT
 
 - source authority：`origin/master`。恢复时必须先 `git fetch origin` 并实时读取

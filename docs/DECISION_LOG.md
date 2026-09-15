@@ -5,6 +5,27 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-15 — RUNTIME_STATE_HISTORICAL_CHECKPOINT_MUTABLE_TRACKER_VALIDATION_FIX_V1
+
+- classification：`product infrastructure + correctness`；不是策略、研究、provider、scheduler
+  或 Final OOS 工作。
+- decision：将 checkpoint payload 明确分为 dated immutable (`watchlist`, `dated_html`) 与
+  mutable latest-state (`perf_tracker`, `latest_html`)。general runtime-state validation 和
+  bootstrap 继续 fail-closed 检查 manifest JSON/schema、list-date/filename、record structure、
+  payload existence 及 dated immutable identity，但不把历史 mutable bytes 与今日最新状态强行
+  绑定；`completed_run_status(target_date)` 对目标日仍执行四类 payload 的严格 identity 检查。
+- rationale：`perf_tracker` 和 `latest.html` 是合法跨日演进的 durable state；历史 checkpoint
+  的旧快照不能永久阻断后续日期，但当前日 completion gate 仍必须证明该日 checkpoint 与当前
+  watchlist/report/tracker 的 exact success identity 一致。
+- governance reconciliation：旧 schedule-resilience snapshot 与实时状态冲突，明确记录
+  `PROJECT_GOVERNANCE_STATE_CONFLICT`；live `origin/master=040e077bbf208921798d2d5b1fa0bd2d51ba9a20`、
+  `origin/runtime-state=520d6fab222bf553caa3eeb29cc83176318626d0`，PR #61/#62 merged，PR #60
+  `OPEN / CONFLICTING` 且 untouched。run `34969498897` 的 canonical persistence gate 失败于
+  `checkpoint SHA/length mismatch: perf_tracker`；failure notice 保留为 operational-only。
+- invariants：不修改正式 B、Main Board-only universe、provider/shadow semantics、scheduler、
+  historical artifacts、Cloudflare、PR #60、Final OOS (`SEALED / UNREAD`) 或
+  `data/validation/continuous_speed_probe/`。
+
 ## 2026-09-15 — CLOUD_SCHEDULE_RESILIENCE_V1 — adopt bounded date binding and operational failure dedupe
 
 - classification：`product infrastructure + correctness`；不是策略研究、参数选择、promotion 或
