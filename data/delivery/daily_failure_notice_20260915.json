@@ -1,0 +1,14 @@
+{
+  "bark_sent_at_bjt": "2026-09-15T21:58:14+08:00",
+  "bark_status": "SUCCESS",
+  "email_sent_at_bjt": "2026-09-15T21:58:14+08:00",
+  "email_status": "SUCCESS",
+  "error_summary": "canonical-output-validation/PRODUCTION_RUNTIME_FAILURE",
+  "first_attempt_at_bjt": "2026-09-15T21:58:14+08:00",
+  "first_failure_stage": "canonical-output-validation",
+  "last_attempt_at_bjt": "2026-09-15T21:58:14+08:00",
+  "report_date": "2026-09-15",
+  "run_url": "https://github.com/EFSing/ashare_watchlist/actions/runs/34969498897",
+  "schema_version": "DAILY_FAILURE_NOTICE_V1",
+  "target_date": "2026-09-15"
+}
