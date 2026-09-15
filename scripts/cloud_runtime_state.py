@@ -16,14 +16,19 @@ import json
 import os
 import re
 import tempfile
-from datetime import date, datetime
+from datetime import date, datetime, time as datetime_time, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from b_breakout_retest_v1_1 import STRATEGY_SPEC_SHA256
 from b_shadow_monitor import ShadowMonitorError, load_store
 from data_paths import DataPaths
-from daily_report_delivery import DeliveryError, load_delivery_receipt
+from daily_report_delivery import (
+    DeliveryError,
+    failure_notice_path,
+    load_delivery_receipt,
+    load_failure_notice,
+)
 from track_perf import (
     CURRENT_PROSPECTIVE_STRATEGY,
     TrackerSchemaError,
@@ -43,12 +48,22 @@ ALREADY_COMPLETED = "ALREADY_COMPLETED"
 INCOMPLETE_SAME_DAY_STATE = "INCOMPLETE_SAME_DAY_STATE"
 RUNTIME_STATE_VALID = "RUNTIME_STATE_VALID"
 RUNTIME_STATE_ERROR = "RUNTIME_STATE_ERROR"
+RUN_CONTEXT_READY = "RUN_CONTEXT_READY"
+SKIPPED_STALE_SCHEDULE = "SKIPPED_STALE_SCHEDULE"
+
+_BJT = timezone(timedelta(hours=8))
+_SCHEDULE_LOCAL_START = {
+    "17 9 * * 1-5": datetime_time(17, 17),
+    "17 10 * * 1-5": datetime_time(18, 17),
+}
+_VALID_TRIGGER_SOURCES = {"manual", "cloudflare-cron", "external-scheduler"}
 
 _DATE_TOKEN = re.compile(r"^\d{8}$")
 _WATCHLIST_NAME = re.compile(r"^watchlist_\d{8}\.json$")
 _DATED_REPORT_NAME = re.compile(r"^daily_close_\d{8}\.html$")
 _CHECKPOINT_NAME = re.compile(r"^daily_checkpoint_\d{8}\.json$")
 _DELIVERY_RECEIPT_NAME = re.compile(r"^daily_delivery_\d{8}\.json$")
+_FAILURE_NOTICE_NAME = re.compile(r"^daily_failure_notice_\d{8}\.json$")
 _ALLOWED_TOP_LEVEL = {RUNTIME_STATE_FILE, ".gitattributes", "data", ".git"}
 
 
@@ -77,6 +92,142 @@ def _date_parts(value: str | date | datetime) -> tuple[str, str]:
     return parsed.isoformat(), parsed.strftime("%Y%m%d")
 
 
+def _strict_iso_date(value: str | date | datetime, *, error_code: str = "INVALID_AS_OF_DATE") -> str:
+    """Validate an externally supplied date without accepting legacy aliases."""
+
+    if isinstance(value, datetime):
+        text = value.date().isoformat()
+    elif isinstance(value, date):
+        text = value.isoformat()
+    else:
+        text = str(value).strip()
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", text):
+        raise RuntimeStateError(error_code)
+    try:
+        parsed = date.fromisoformat(text)
+    except ValueError as exc:
+        raise RuntimeStateError(error_code) from exc
+    if parsed.isoformat() != text:
+        raise RuntimeStateError(error_code)
+    return text
+
+
+def _utc_now(value: datetime | str | None) -> datetime:
+    if value is None:
+        return datetime.now(timezone.utc)
+    if isinstance(value, str):
+        text = value.strip()
+        if text.endswith("Z"):
+            text = text[:-1] + "+00:00"
+        try:
+            value = datetime.fromisoformat(text)
+        except ValueError as exc:
+            raise RuntimeStateError("INVALID_NOW_UTC") from exc
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise RuntimeStateError("INVALID_NOW_UTC")
+    return value.astimezone(timezone.utc)
+
+
+def resolve_run_context(
+    *,
+    event_name: str,
+    schedule: str | None = None,
+    trigger_source: str | None = None,
+    as_of_date: str | date | datetime | None = None,
+    mode: str = "production",
+    now_utc: datetime | str | None = None,
+) -> dict[str, Any]:
+    """Resolve one immutable cloud run target before any provider call.
+
+    GitHub does not include a scheduled occurrence timestamp in the schedule
+    event.  The two supported UTC cron expressions therefore bind their target
+    to the UTC calendar date observed at runner start.  A BJT date mismatch is
+    explicitly stale, which prevents a delayed wake-up after midnight from
+    becoming the next trading day's production.
+    """
+
+    event = str(event_name or "").strip()
+    if event not in {"schedule", "workflow_dispatch"}:
+        raise RuntimeStateError("UNSUPPORTED_EVENT_NAME")
+    run_mode = str(mode or "production").strip()
+    if run_mode not in {"production", "preflight-only", "delivery-test"}:
+        raise RuntimeStateError("INVALID_RUN_MODE")
+    now = _utc_now(now_utc)
+    now_bjt = now.astimezone(_BJT)
+    supplied_date = None
+    if as_of_date is not None and str(as_of_date).strip():
+        supplied_date = _strict_iso_date(as_of_date)
+
+    if event == "schedule":
+        cron = str(schedule or "").strip()
+        scheduled_start = _SCHEDULE_LOCAL_START.get(cron)
+        if scheduled_start is None:
+            raise RuntimeStateError("UNSUPPORTED_SCHEDULE")
+        target_date = now.date().isoformat()
+        if supplied_date is not None and supplied_date != target_date:
+            raise RuntimeStateError("SCHEDULE_DATE_INPUT_CONFLICT")
+        stale_reason = None
+        if now_bjt.date().isoformat() != target_date:
+            stale_reason = "SCHEDULE_CROSSED_BJT_MIDNIGHT"
+        elif now_bjt.time() < scheduled_start:
+            stale_reason = "SCHEDULE_STARTED_BEFORE_CRON_WINDOW"
+        if stale_reason is not None:
+            return {
+                "status": SKIPPED_STALE_SCHEDULE,
+                "event_name": event,
+                "schedule": cron,
+                "trigger_source": "github-schedule",
+                "target_date": target_date,
+                "target_date_source": "utc_cron_calendar_date",
+                "scheduled_start_bjt": scheduled_start.isoformat(timespec="minutes"),
+                "now_utc": now.isoformat(timespec="seconds"),
+                "now_bjt": now_bjt.isoformat(timespec="seconds"),
+                "reason": stale_reason,
+                "production_allowed": False,
+                "provider_calls": 0,
+                "failure_notification": 0,
+            }
+        return {
+            "status": RUN_CONTEXT_READY,
+            "event_name": event,
+            "schedule": cron,
+            "trigger_source": "github-schedule",
+            "target_date": target_date,
+            "target_date_source": "utc_cron_calendar_date",
+            "scheduled_start_bjt": scheduled_start.isoformat(timespec="minutes"),
+            "now_utc": now.isoformat(timespec="seconds"),
+            "now_bjt": now_bjt.isoformat(timespec="seconds"),
+            "production_allowed": True,
+            "provider_calls": "not_started",
+            "failure_notification": "not_started",
+        }
+
+    source = str(trigger_source or "manual").strip() or "manual"
+    if source not in _VALID_TRIGGER_SOURCES:
+        raise RuntimeStateError("INVALID_TRIGGER_SOURCE")
+    if source != "manual" and run_mode == "production" and supplied_date is None:
+        raise RuntimeStateError("EXTERNAL_PRODUCTION_AS_OF_DATE_REQUIRED")
+    if supplied_date is None:
+        target_date = now_bjt.date().isoformat()
+        target_source = "current_bjt_date"
+    else:
+        target_date = supplied_date
+        target_source = "explicit_dispatch_input"
+    return {
+        "status": RUN_CONTEXT_READY,
+        "event_name": event,
+        "schedule": None,
+        "trigger_source": source,
+        "target_date": target_date,
+        "target_date_source": target_source,
+        "now_utc": now.isoformat(timespec="seconds"),
+        "now_bjt": now_bjt.isoformat(timespec="seconds"),
+        "production_allowed": run_mode == "production",
+        "provider_calls": "not_started",
+        "failure_notification": "not_started",
+    }
+
+
 def _is_allowlisted_data_relative(relative: Path) -> bool:
     token = relative.as_posix()
     if _WATCHLIST_NAME.fullmatch(token) or token == "perf_tracker.json":
@@ -90,6 +241,8 @@ def _is_allowlisted_data_relative(relative: Path) -> bool:
     if _CHECKPOINT_NAME.fullmatch(Path(token).name) and token.startswith("checkpoints/"):
         return True
     if re.fullmatch(r"delivery/daily_delivery_\d{8}\.json", token):
+        return True
+    if _FAILURE_NOTICE_NAME.fullmatch(Path(token).name) and token.startswith("delivery/"):
         return True
     return False
 
@@ -106,6 +259,7 @@ def _data_candidates(root: Path) -> Iterable[Path]:
         "reports/perf_report.md",
         "checkpoints/daily_checkpoint_????????.json",
         "delivery/daily_delivery_????????.json",
+        "delivery/daily_failure_notice_????????.json",
     )
     seen: set[Path] = set()
     for pattern in patterns:
@@ -195,6 +349,15 @@ def validate_state_tree(state_root: str | Path) -> dict[str, Any]:
         raise RuntimeStateError(
             "runtime-state contains non-allowlisted files: " + ",".join(unexpected)
         )
+    for notice_path in _failure_notice_files(data):
+        token = notice_path.stem.removeprefix("daily_failure_notice_")
+        expected_date = f"{token[:4]}-{token[4:6]}-{token[6:]}"
+        try:
+            notice = load_failure_notice(data, expected_date)
+            if notice is None:
+                raise DeliveryError("FAILURE_NOTICE_INVALID")
+        except (DeliveryError, OSError, ValueError) as exc:
+            raise RuntimeStateError("failure notice validation failed") from exc
     files = [f"data/{relative.as_posix()}" for _path, relative in allowlisted_data_files(data)]
     return {
         "schema_version": RUNTIME_STATE_SCHEMA,
@@ -289,6 +452,15 @@ def _delivery_receipt_files(data_root: Path) -> list[Path]:
     )
 
 
+def _failure_notice_files(data_root: Path) -> list[Path]:
+    directory = data_root / "delivery"
+    return sorted(
+        path
+        for path in directory.glob("daily_failure_notice_????????.json")
+        if path.is_file() and _FAILURE_NOTICE_NAME.fullmatch(path.name)
+    )
+
+
 def _is_formal_b_watchlist(path: Path) -> bool:
     try:
         watchlist = load_watchlist(path)
@@ -362,6 +534,18 @@ def validate_runtime_data(
             raise RuntimeStateError("delivery receipt validation failed") from exc
         delivery_receipt_count += 1
 
+    failure_notice_count = 0
+    for notice_path in _failure_notice_files(root):
+        token = notice_path.stem.removeprefix("daily_failure_notice_")
+        expected_date = f"{token[:4]}-{token[4:6]}-{token[6:]}"
+        try:
+            notice = load_failure_notice(root, expected_date)
+            if notice is None:
+                raise DeliveryError("FAILURE_NOTICE_INVALID")
+        except (DeliveryError, OSError, ValueError) as exc:
+            raise RuntimeStateError("failure notice validation failed") from exc
+        failure_notice_count += 1
+
     return {
         "status": RUNTIME_STATE_VALID,
         "data_root": str(root),
@@ -372,6 +556,7 @@ def validate_runtime_data(
         "shadow_store": _hash_record(shadow_path) if shadow_path.is_file() else None,
         "checkpoint_count": checkpoint_count,
         "delivery_receipt_count": delivery_receipt_count,
+        "failure_notice_count": failure_notice_count,
         "provider_calls": 0,
         "raw_persisted": False,
         "prospective_inputs_persisted": False,
@@ -432,6 +617,51 @@ def persist_allowlist(state_root: str | Path, data_root: str | Path) -> dict[str
         "source_validation": source_validation,
         "state_validation": state_validation,
         "restored_validation": restored_validation,
+        "raw_persisted": False,
+        "prospective_inputs_persisted": False,
+    }
+
+
+def persist_failure_notice(
+    state_root: str | Path,
+    data_root: str | Path,
+    date_value: str | date | datetime,
+) -> dict[str, Any]:
+    """Persist only one operational failure notice from an isolated data root.
+
+    This intentionally does not validate or copy canonical production files.
+    The workflow uses a clean runtime-state checkout for this path so a failed
+    canonical push cannot be accidentally staged with the operational notice.
+    """
+
+    state = _resolved(state_root)
+    data = _resolved(data_root)
+    _assert_separate_trees(state, data)
+    _read_marker(state)
+    list_date, _token = _date_parts(date_value)
+    source = failure_notice_path(data, list_date)
+    if not source.is_file():
+        raise RuntimeStateError("failure notice is missing")
+    try:
+        notice = load_failure_notice(data, list_date)
+    except (DeliveryError, OSError, ValueError) as exc:
+        raise RuntimeStateError("failure notice validation failed") from exc
+    if notice is None:
+        raise RuntimeStateError("failure notice is missing")
+    relative = Path("delivery") / source.name
+    if not _is_allowlisted_data_relative(relative):
+        raise RuntimeStateError("failure notice is not allowlisted")
+    destination = state / "data" / relative
+    changed = _write_bytes(destination, source.read_bytes(), overwrite=True)
+    state_validation = validate_state_tree(state)
+    return {
+        "status": "FAILURE_NOTICE_READY_TO_COMMIT",
+        "state_root": str(state),
+        "data_root": str(data),
+        "target_date": list_date,
+        "path": f"data/{relative.as_posix()}",
+        "changed": changed,
+        "state_validation": state_validation,
         "raw_persisted": False,
         "prospective_inputs_persisted": False,
     }
@@ -656,9 +886,22 @@ def _parser() -> argparse.ArgumentParser:
     completed.add_argument("--data-root", type=Path, required=True)
     completed.add_argument("--date", required=True)
 
+    context = sub.add_parser("resolve-context")
+    context.add_argument("--event-name", required=True)
+    context.add_argument("--schedule", default="")
+    context.add_argument("--trigger-source", default="")
+    context.add_argument("--as-of-date", default="")
+    context.add_argument("--mode", default="production")
+    context.add_argument("--now-utc", default=None)
+
     paths = sub.add_parser("list")
     paths.add_argument("--state-root", type=Path, required=True)
     paths.add_argument("--paths-only", action="store_true")
+
+    failure_notice = sub.add_parser("persist-failure-notice")
+    failure_notice.add_argument("--state-root", type=Path, required=True)
+    failure_notice.add_argument("--data-root", type=Path, required=True)
+    failure_notice.add_argument("--date", required=True)
 
     summary = sub.add_parser("summary")
     summary.add_argument("--data-root", type=Path, required=True)
@@ -692,12 +935,27 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "check-completed":
             print(json.dumps(completed_run_status(args.data_root, args.date), ensure_ascii=False, sort_keys=True))
             return 0
+        if args.command == "resolve-context":
+            result = resolve_run_context(
+                event_name=args.event_name,
+                schedule=args.schedule,
+                trigger_source=args.trigger_source,
+                as_of_date=args.as_of_date,
+                mode=args.mode,
+                now_utc=args.now_utc,
+            )
+            print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+            return 0
         if args.command == "list":
             report = validate_state_tree(args.state_root)
             if args.paths_only:
                 print("\n".join([RUNTIME_STATE_FILE, *report["files"]]))
             else:
                 print(json.dumps(report, ensure_ascii=False, sort_keys=True))
+            return 0
+        if args.command == "persist-failure-notice":
+            result = persist_failure_notice(args.state_root, args.data_root, args.date)
+            print(json.dumps(result, ensure_ascii=False, sort_keys=True))
             return 0
         if args.command == "summary":
             result = _read_result(args.result_file)

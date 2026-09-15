@@ -1,20 +1,27 @@
 # CURRENT STATUS
 
-更新时间：2026-09-14（Asia/Shanghai）
+更新时间：2026-09-15（Asia/Shanghai）
 
 本文件只记录当前有效状态；历史实现过程与旧 checkpoint 以 Git history / PR / CI 为 provenance，
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
-## Governance reconciliation — 2026-09-14
+## Governance reconciliation — 2026-09-15
 
 此前治理文字仍记录 `REPORT_DELIVERY_SECRETS_REQUIRED`、delivery-test 未执行，以及
 `HITHINK_FINANCE_API_KEY` 未配置；这些状态已被实时 GitHub evidence supersede，构成过
 `PROJECT_GOVERNANCE_STATE_CONFLICT`。本次 docs-only reconciliation 以实时证据修正，
 不改变任何策略、provider、runtime-state、watchlist、tracker、shadow 或 report 语义。
 
+本次恢复又发现旧的 “首笔 genuine production 仍在未来” next-action 文字，且
+`CURRENT_STATUS` 的 persisted live snapshot 早于当前远端；按契约标记并完成
+`PROJECT_GOVERNANCE_STATE_CONFLICT` reconciliation。实时 Git/GitHub 状态优先，旧 SHA 仅保留
+为历史 provenance，不构成当前 invariant。
+
 Live source base at this reconciliation：
-`origin/master=9cb7f9a95987724d222310f10d0761be5fd83528`。
+`origin/master=64bba1df7b0dfd362938399ef5393f0912ce1e5f`。
+Live `runtime-state` HEAD：
+`1c8b2eca3792aebf327557fe9279b88a177b0545`。
 恢复时仍必须重新 fetch，以实时 `origin/master` 为准。
 
 ## DAILY_UNATTENDED_GITHUB_ACTIONS_CLOUD_RUNTIME_V1 — active
@@ -34,9 +41,21 @@ GitHub Actions `daily-t-close` 已部署：
 `HITHINK_FINANCE_API_KEY` 已在 Actions runtime 中可见为 configured secret（值不可读取、不可记录）。
 此前“waiting for HITHINK secret”状态已失效。
 
-在本次 reconciliation 前最后一次核对的 `runtime-state` HEAD 为
-`140d8dce20d2aa4a16802787ca9f8342390f48a7`；该值仅是当时快照，首笔真实 production 后必须
-重新读取 live HEAD，不得视为固定 invariant。
+实时 production evidence：run `34850228463`（`workflow_dispatch`，`success`，
+`master@64bba1d`）为 genuine production；run `34865169737`（`schedule`，`success`）为
+late schedule success；run `34868158949`（`schedule`，`failure`）暴露了旧 schedule
+跨 BJT 午夜后把 runner 日期当成新 production target 的 bug。后续验证应针对本次修复后的
+首次 production，而不是把 genuine production 当成尚未发生的节点。
+
+PR #60 仍是 `OPEN`、base=`master`、head=`0a829193af5a761d3190d02543e9edd5b9312550`，
+研究内容未进入 master，也不属于本次生产调度修复。
+
+本次 `CLOUD_SCHEDULE_RESILIENCE_V1` repo-side implementation 会保持独立 PR；在 merge 前
+不把 schedule stale policy 或 Cloudflare dispatcher 写成 master 已 active。
+当前 implementation commit=`17e68b7139ed24441400b3a09c321466805d4032` 已进入 PR #61；该 head
+的 pull-request correctness run=`34922534106` 与 push correctness run=`34922511075` 均为
+`success`，PR 当前为 `OPEN / CLEAN`。后续 governance-only commit 若使 PR head 变化，必须重新
+核对 exact-head CI。
 
 ## DAILY_REPORT_EMAIL_AND_BARK_DELIVERY_V1 — channels verified
 
@@ -120,6 +139,15 @@ Prospective 与 retrospective labels 保持分离；不对部署前数据伪造 
 
 历史 watchlists / tracker / reports / evidence 不因后续 cloud、mobile 或 delivery feature 改写。
 
+## Cloud schedule resilience — prepared, not active
+
+- schedule date binding：由 UTC cron calendar date 解析 target；跨 BJT 午夜或 cron 之前启动返回
+  `SKIPPED_STALE_SCHEDULE`，provider calls、正式 production、failure notification 均为 0。
+- secondary dispatcher：Cloudflare Worker 仅 dispatch GitHub `workflow_dispatch`，状态为
+  `PREPARED / NOT_ACTIVE`；不会调用 provider 或写 `runtime-state`。
+- failure notification：`DAILY_FAILURE_NOTICE_V1` 是 operational-only、按 target date 去重的
+  精确 allowlist 文件；canonical B/tracker/shadow/completion 不消费它。
+
 ## Local test workspace convention
 
 当前 Windows 工作站本地测试临时根统一使用：
@@ -137,7 +165,8 @@ evidence、用户目录或其他任务目录。不得把 `D:\Temp` 硬编码进 
 Final OOS：`SEALED / UNREAD`。
 `data/validation/continuous_speed_probe/`：不得读取或触碰。
 
-下一真实节点：首笔 genuine T-close cloud production 完成后，核对实时 source SHA、watchlist SHA/
-count、tracker、shadow、responsive HTML、runtime-state new HEAD、delivery receipt、Email/Bark，
-并确认 raw/provider inputs persisted=`0`。若 18:17 retry 命中同日已完成状态，应保持
-`ALREADY_COMPLETED` / `ALREADY_DELIVERED` 幂等，不重复 acquisition 或重复成功 channel。
+下一真实节点：本次 PR 合并后，核对新 workflow 的首个 production target、watchlist SHA/count、
+tracker、shadow、responsive HTML、runtime-state new HEAD、delivery receipt、Email/Bark，并确认
+raw/provider inputs persisted=`0`。若 18:17 retry、Cloudflare dispatch 或手工 production 命中同日
+已完成状态，应保持 `ALREADY_COMPLETED` / `ALREADY_DELIVERED` 幂等，不重复 acquisition 或重复
+成功 channel。Cloudflare 实际 activation 仍需用户完成 PAT/secret/account authorization。

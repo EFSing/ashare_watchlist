@@ -18,3 +18,5 @@ jobs:
         run: python -m pytest -q
       - name: Compile/check
         run: python -m compileall -q scripts tests
+      - name: Test Cloudflare dispatcher
+        run: node --test infra/cloudflare-tclose-dispatcher/test/dispatcher.test.js

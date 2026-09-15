@@ -206,6 +206,119 @@ def test_failure_message_redacts_secret_if_transport_input_contains_one(monkeypa
     assert secret not in bark[0][1]
 
 
+def test_failure_notification_dedupes_both_channels_by_target_date(tmp_path, monkeypatch):
+    root = _data_root(tmp_path)
+    counts, _messages, _bark = _capture_transports(monkeypatch)
+
+    first = delivery.send_failure_notification(
+        DATE,
+        failure_stage="production",
+        error_summary="PRODUCTION_RUNTIME_FAILURE",
+        run_url="https://github.com/EFSing/ashare_watchlist/actions/runs/1",
+        data_root=root,
+        env=_env(),
+        now_bjt=NOW,
+        sleep_fn=lambda _seconds: None,
+    )
+    assert first["status"] == "FAILURE_NOTIFICATION_SENT"
+    assert first["receipt_status"] == "PERSISTED"
+    assert counts == {"email": 1, "bark": 1}
+
+    counts["email"] = 0
+    counts["bark"] = 0
+    second = delivery.send_failure_notification(
+        DATE,
+        failure_stage="runtime-state-push",
+        error_summary="another failure",
+        data_root=root,
+        env=_env(),
+        now_bjt=NOW,
+        sleep_fn=lambda _seconds: None,
+    )
+    assert second["status"] == delivery.ALREADY_FAILURE_NOTIFIED
+    assert second["attempted_channels"] == []
+    assert counts == {"email": 0, "bark": 0}
+    notice = delivery.load_failure_notice(root, DATE)
+    assert notice is not None
+    assert notice["first_failure_stage"] == "production"
+
+
+def test_failure_notification_partial_channel_failure_only_retries_failed_channel(tmp_path, monkeypatch):
+    root = _data_root(tmp_path)
+    first_counts, _messages, _bark = _capture_transports(monkeypatch, bark_failures=3)
+
+    first = delivery.send_failure_notification(
+        DATE,
+        failure_stage="production",
+        error_summary="PRODUCTION_RUNTIME_FAILURE",
+        data_root=root,
+        env=_env(),
+        now_bjt=NOW,
+        sleep_fn=lambda _seconds: None,
+    )
+    assert first["status"] == "FAILURE_NOTIFICATION_DEGRADED"
+    assert first_counts == {"email": 1, "bark": 3}
+
+    second_counts, _messages, _bark = _capture_transports(monkeypatch)
+    second = delivery.send_failure_notification(
+        DATE,
+        failure_stage="production",
+        error_summary="PRODUCTION_RUNTIME_FAILURE",
+        data_root=root,
+        env=_env(),
+        now_bjt=NOW,
+        sleep_fn=lambda _seconds: None,
+    )
+    assert second["status"] == "FAILURE_NOTIFICATION_SENT"
+    assert second["attempted_channels"] == ["bark"]
+    assert second_counts == {"email": 0, "bark": 1}
+
+
+@pytest.mark.parametrize(
+    "silent_status",
+    ["SKIPPED_STALE_SCHEDULE", "ALREADY_COMPLETED", "ALREADY_DELIVERED", "SKIPPED_NON_TRADING_DAY"],
+)
+def test_silent_production_status_does_not_send_or_create_failure_notice(tmp_path, monkeypatch, silent_status):
+    root = _data_root(tmp_path)
+    counts, _messages, _bark = _capture_transports(monkeypatch)
+
+    result = delivery.send_failure_notification(
+        DATE,
+        failure_stage="cloud-preflight",
+        error_summary=silent_status,
+        data_root=root,
+        production_status=silent_status,
+        env=_env(),
+        now_bjt=NOW,
+        sleep_fn=lambda _seconds: None,
+    )
+
+    assert result["status"] == "FAILURE_NOTIFICATION_SUPPRESSED"
+    assert result["failure_notification"] == 0
+    assert counts == {"email": 0, "bark": 0}
+    assert delivery.load_failure_notice(root, DATE) is None
+
+
+def test_failure_notice_write_failure_does_not_claim_dedupe(tmp_path, monkeypatch):
+    root = _data_root(tmp_path)
+    _capture_transports(monkeypatch)
+    monkeypatch.setattr(delivery, "write_failure_notice", lambda *_args, **_kwargs: (_ for _ in ()).throw(delivery.DeliveryError("FAILURE_NOTICE_WRITE_FAILED")))
+
+    result = delivery.send_failure_notification(
+        DATE,
+        failure_stage="production",
+        error_summary="PRODUCTION_RUNTIME_FAILURE",
+        data_root=root,
+        env=_env(),
+        now_bjt=NOW,
+        sleep_fn=lambda _seconds: None,
+    )
+
+    assert result["status"] == "FAILURE_NOTIFICATION_SENT"
+    assert result["receipt_status"] == "NOT_PERSISTED"
+    assert result["failure_notice_status"] == "NOT_PERSISTED"
+
+
 def test_chinese_mime_subject_and_attachment_filename_are_rfc_encoded(tmp_path):
     root = _data_root(tmp_path)
     message = delivery.build_email_message(

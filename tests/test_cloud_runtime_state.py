@@ -12,11 +12,13 @@ from cloud_runtime_state import (
     ALREADY_COMPLETED,
     INCOMPLETE_SAME_DAY_STATE,
     RuntimeStateError,
+    _is_allowlisted_data_relative,
     allowlisted_data_files,
     bootstrap_allowlist,
     build_summary,
     completed_run_status,
     persist_allowlist,
+    persist_failure_notice,
     restore_allowlist,
     validate_runtime_data,
     validate_state_tree,
@@ -30,6 +32,7 @@ from upload_daily_checkpoint import (
     persist_checkpoint_manifest,
 )
 from watchlist_schema import validate_watchlist
+from daily_report_delivery import write_failure_notice
 
 
 CALENDAR = TradingCalendar(holidays=set())
@@ -182,6 +185,41 @@ def test_persist_and_restore_preserve_watchlist_tracker_shadow_and_reports(tmp_p
     for source, relative in allowlisted_data_files(data_root):
         assert (restored / relative).read_bytes() == source.read_bytes()
     assert validate_runtime_data(restored)["provider_calls"] == 0
+
+
+def test_failure_notice_is_dated_allowlisted_operational_state_and_does_not_complete_a_run(tmp_path):
+    data_root, _payload, _tracker = _fixture(tmp_path)
+    write_failure_notice(
+        data_root,
+        {
+            "schema_version": "DAILY_FAILURE_NOTICE_V1",
+            "report_date": DATE,
+            "target_date": DATE,
+            "first_failure_stage": "production",
+            "error_summary": "PRODUCTION_RUNTIME_FAILURE",
+            "email_status": "SUCCESS",
+            "bark_status": "FAILED",
+            "first_attempt_at_bjt": "2026-09-10T17:31:42+08:00",
+            "last_attempt_at_bjt": "2026-09-10T17:31:42+08:00",
+            "email_sent_at_bjt": "2026-09-10T17:31:42+08:00",
+            "bark_sent_at_bjt": None,
+            "run_url": "https://github.com/EFSing/ashare_watchlist/actions/runs/1",
+        },
+    )
+    assert _is_allowlisted_data_relative(Path("delivery/daily_failure_notice_20260910.json"))
+    assert not _is_allowlisted_data_relative(Path("delivery/daily_failure_notice_latest.json"))
+
+    state_root = tmp_path / "runtime-state"
+    _marker(state_root)
+    result = persist_failure_notice(state_root, data_root, DATE)
+
+    assert result["status"] == "FAILURE_NOTICE_READY_TO_COMMIT"
+    assert (state_root / "data" / "delivery" / "daily_failure_notice_20260910.json").is_file()
+    assert completed_run_status(data_root, DATE)["status"] == ALREADY_COMPLETED
+
+    (state_root / "data" / "delivery" / "daily_failure_notice_latest.json").write_text("{}", encoding="utf-8")
+    with pytest.raises(RuntimeStateError, match="non-allowlisted"):
+        validate_state_tree(state_root)
 
 
 def test_state_tree_rejects_non_allowlisted_files(tmp_path):

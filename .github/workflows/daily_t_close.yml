@@ -17,6 +17,20 @@ on:
           - preflight-only
           - production
           - delivery-test
+      as_of_date:
+        description: "Explicit target date (required for external production dispatch)"
+        required: false
+        default: ""
+        type: string
+      trigger_source:
+        description: "Dispatch source"
+        required: false
+        default: manual
+        type: choice
+        options:
+          - manual
+          - cloudflare-cron
+          - external-scheduler
 
 permissions:
   contents: write
@@ -44,9 +58,15 @@ jobs:
       SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
       SMTP_FROM: ${{ secrets.SMTP_FROM }}
       ACTIONS_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      EVENT_NAME: ${{ github.event_name }}
+      SCHEDULE_CRON: ${{ github.event.schedule || '' }}
+      DISPATCH_AS_OF_DATE: ${{ github.event_name == 'workflow_dispatch' && inputs.as_of_date || '' }}
+      DISPATCH_TRIGGER_SOURCE: ${{ github.event_name == 'workflow_dispatch' && inputs.trigger_source || 'manual' }}
       PRODUCTION_CANONICAL_READY: "0"
       RUNTIME_STATE_PERSISTED: "NO"
       PRODUCTION_FAILURE_STAGE: "NOT_STARTED"
+      AS_OF_DATE: ""
+      STALE_SCHEDULE: "0"
       PYTHONUNBUFFERED: "1"
     steps:
       - name: Checkout source master
@@ -64,16 +84,55 @@ jobs:
       - name: Install pinned runtime and test dependencies
         run: python -m pip install --upgrade pip && python -m pip install -e ".[test]"
 
-      - name: Configure ephemeral cloud data root and BJT date
+      - name: Configure ephemeral cloud data root
         shell: bash
         run: |
           set -euo pipefail
           data_root="$RUNNER_TEMP/ashare_data"
           echo "ASHARE_DATA_ROOT=$data_root" >> "$GITHUB_ENV"
           echo "ASHARE_EVIDENCE_ROOT=$data_root/t_close_evidence" >> "$GITHUB_ENV"
-          as_of_date="$(python -c 'from datetime import datetime, timedelta, timezone; print(datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=8))).date().isoformat())')"
-          echo "AS_OF_DATE=$as_of_date" >> "$GITHUB_ENV"
           echo "SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Resolve immutable cloud run context
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$RUNNER_TEMP/run-context.json"
+          set +e
+          python scripts/cloud_runtime_state.py resolve-context \
+            --event-name "$EVENT_NAME" \
+            --schedule "$SCHEDULE_CRON" \
+            --trigger-source "$DISPATCH_TRIGGER_SOURCE" \
+            --as-of-date "$DISPATCH_AS_OF_DATE" \
+            --mode "$RUN_MODE" \
+            --now-utc "$(date -u --iso-8601=seconds)" > "$output"
+          rc=$?
+          set -e
+          cat "$output"
+          if (( rc != 0 )); then
+            exit "$rc"
+          fi
+          status="$(python - "$output" <<'PY'
+          import json
+          import sys
+          print(json.loads(open(sys.argv[1], encoding="utf-8").read())["status"])
+          PY
+          )"
+          target_date="$(python - "$output" <<'PY'
+          import json
+          import sys
+          print(json.loads(open(sys.argv[1], encoding="utf-8").read())["target_date"])
+          PY
+          )"
+          echo "RUN_CONTEXT_RESULT=$output" >> "$GITHUB_ENV"
+          echo "RUN_CONTEXT_STATUS=$status" >> "$GITHUB_ENV"
+          echo "AS_OF_DATE=$target_date" >> "$GITHUB_ENV"
+          if [[ "$status" == "SKIPPED_STALE_SCHEDULE" ]]; then
+            echo "STALE_SCHEDULE=1" >> "$GITHUB_ENV"
+            echo "ASHARE_SKIP_PRODUCTION=1" >> "$GITHUB_ENV"
+            echo "ASHARE_SUMMARY_RESULT=$output" >> "$GITHUB_ENV"
+            echo "ASHARE_SUMMARY_STATUS=SKIPPED_STALE_SCHEDULE" >> "$GITHUB_ENV"
+          fi
 
       - name: Checkout runtime-state separately
         uses: actions/checkout@v4
@@ -84,6 +143,7 @@ jobs:
           persist-credentials: true
 
       - name: Restore and validate durable runtime state
+        if: env.STALE_SCHEDULE != '1'
         shell: bash
         run: |
           set -euo pipefail
@@ -460,8 +520,17 @@ jobs:
               ;;
           esac
 
+      - name: Checkout clean runtime-state for failure notice
+        if: always() && env.RUN_MODE == 'production' && env.AS_OF_DATE != '' && env.ASHARE_SKIP_PRODUCTION != '1' && env.PRODUCTION_CANONICAL_READY != '1'
+        uses: actions/checkout@v4
+        with:
+          ref: runtime-state
+          path: failure-runtime-state
+          fetch-depth: 1
+          persist-credentials: true
+
       - name: Send production failure notification
-        if: always() && env.RUN_MODE == 'production' && env.ASHARE_SKIP_PRODUCTION != '1' && env.PRODUCTION_CANONICAL_READY != '1'
+        if: always() && env.RUN_MODE == 'production' && env.AS_OF_DATE != '' && env.ASHARE_SKIP_PRODUCTION != '1' && env.PRODUCTION_CANONICAL_READY != '1'
         shell: bash
         run: |
           set +e
@@ -473,9 +542,11 @@ jobs:
           fi
           python scripts/daily_report_delivery.py failure \
             --date "$AS_OF_DATE" \
+            --data-root "$ASHARE_DATA_ROOT" \
             --failure-stage "${PRODUCTION_FAILURE_STAGE:-production}" \
             --error-summary "PRODUCTION_RUNTIME_FAILURE" \
             --run-url "$ACTIONS_RUN_URL" \
+            --production-status "${ASHARE_SUMMARY_STATUS:-}" \
             "${result_args[@]}" > "$output"
           rc=$?
           set -e
@@ -485,8 +556,58 @@ jobs:
             echo "failure notification command could not complete: $rc"
           fi
 
+      - name: Persist operational failure notice in clean runtime-state checkout
+        if: always() && env.RUN_MODE == 'production' && env.AS_OF_DATE != '' && env.ASHARE_SKIP_PRODUCTION != '1' && env.PRODUCTION_CANONICAL_READY != '1'
+        shell: bash
+        run: |
+          set +e
+          output="$RUNNER_TEMP/failure-notice-state.json"
+          python scripts/cloud_runtime_state.py persist-failure-notice \
+            --state-root "$GITHUB_WORKSPACE/failure-runtime-state" \
+            --data-root "$ASHARE_DATA_ROOT" \
+            --date "$AS_OF_DATE" > "$output"
+          rc=$?
+          cat "$output"
+          if (( rc != 0 )); then
+            echo "FAILURE_NOTICE_STATE_PERSISTED=NO" >> "$GITHUB_ENV"
+            echo "failure notice was not safely persisted"
+            exit 0
+          fi
+          notice_path="data/delivery/daily_failure_notice_${AS_OF_DATE//-/}.json"
+          git -C failure-runtime-state add -- "$notice_path"
+          staged="$(git -C failure-runtime-state diff --cached --name-only)"
+          if [[ "$staged" != "$notice_path" ]]; then
+            echo "unexpected staged failure-notice paths: $staged"
+            echo "FAILURE_NOTICE_STATE_PERSISTED=NO" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          if ! git -C failure-runtime-state diff --cached --check; then
+            echo "failure notice has staged whitespace errors"
+            echo "FAILURE_NOTICE_STATE_PERSISTED=NO" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          if git -C failure-runtime-state diff --cached --quiet; then
+            state_sha="$(git -C failure-runtime-state rev-parse HEAD)"
+          else
+            git -C failure-runtime-state config user.name "github-actions[bot]"
+            git -C failure-runtime-state config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            if ! git -C failure-runtime-state commit -m "runtime: persist daily failure notice $AS_OF_DATE"; then
+              echo "FAILURE_NOTICE_STATE_PERSISTED=NO" >> "$GITHUB_ENV"
+              echo "failure notice commit failed; dedupe is not claimed"
+              exit 0
+            fi
+            if ! git -C failure-runtime-state push origin HEAD:runtime-state; then
+              echo "FAILURE_NOTICE_STATE_PERSISTED=NO" >> "$GITHUB_ENV"
+              echo "failure notice push failed; dedupe is not claimed"
+              exit 0
+            fi
+            state_sha="$(git -C failure-runtime-state rev-parse HEAD)"
+          fi
+          echo "FAILURE_NOTICE_STATE_PERSISTED=YES" >> "$GITHUB_ENV"
+          echo "FAILURE_NOTICE_RUNTIME_STATE_SHA=$state_sha" >> "$GITHUB_ENV"
+
       - name: Write production failure delivery summary
-        if: always() && env.RUN_MODE == 'production' && env.ASHARE_SKIP_PRODUCTION != '1' && env.PRODUCTION_CANONICAL_READY != '1'
+        if: always() && env.RUN_MODE == 'production' && env.AS_OF_DATE != '' && env.ASHARE_SKIP_PRODUCTION != '1' && env.PRODUCTION_CANONICAL_READY != '1'
         shell: bash
         run: |
           set -euo pipefail
@@ -494,3 +615,4 @@ jobs:
           if [[ -n "${FAILURE_DELIVERY_RESULT:-}" && -f "$FAILURE_DELIVERY_RESULT" ]]; then
             cat "$FAILURE_DELIVERY_RESULT" >> "$GITHUB_STEP_SUMMARY"
           fi
+          echo "failure notice runtime-state persisted = ${FAILURE_NOTICE_STATE_PERSISTED:-NO}" >> "$GITHUB_STEP_SUMMARY"
