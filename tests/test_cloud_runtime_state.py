@@ -24,11 +24,12 @@ from cloud_runtime_state import (
     validate_state_tree,
 )
 from data_paths import DataPaths
-from track_perf import _signal_from_candidate, new_tracker, save_tracker
+from track_perf import _signal_from_candidate, load_tracker, new_tracker, save_tracker
 from trading_calendar import TradingCalendar
 from upload_daily_checkpoint import (
     build_daily_checkpoint_manifest,
     checkpoint_manifest_path,
+    file_sha256,
     persist_checkpoint_manifest,
 )
 from watchlist_schema import validate_watchlist
@@ -148,6 +149,84 @@ def _fixture(tmp_path: Path) -> tuple[Path, dict, dict]:
     return data_root, payload, tracker
 
 
+def _write_daily_watchlist_and_report(data_root: Path, list_date: str, code: str) -> dict:
+    paths = DataPaths(data_root)
+    payload = validate_watchlist(
+        {
+            "date": list_date,
+            "mode": "close",
+            "market_env": {},
+            "sectors": [],
+            "strategy_version": "B_BREAKOUT_RETEST_LEGACY_V1_1",
+            "universe_policy": "ASHARE_MAIN_BOARD_ONLY_V1",
+            "candidates": [
+                {
+                    "code": code,
+                    "name": f"测试股份{code[-2:]}",
+                    "buy_type": "B 突破回踩",
+                    "setup": "B_BREAKOUT_RETEST",
+                    "score": 80.0,
+                    "price": 100.0,
+                    "trigger": 100.0,
+                    "stop": 95.0,
+                    "target": 110.0,
+                    "rr": 2.0,
+                }
+            ],
+        }
+    )
+    paths.watchlist_file(list_date).write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    paths.reports_dir().mkdir(parents=True, exist_ok=True)
+    token = list_date.replace("-", "")
+    (paths.reports_dir() / f"daily_close_{token}.html").write_text(
+        f"<html>dated {list_date}</html>\n",
+        encoding="utf-8",
+    )
+    return payload
+
+
+def _two_day_fixture(tmp_path: Path) -> tuple[Path, str, str, dict, dict]:
+    data_root = tmp_path / "two-day-data"
+    data_root.mkdir()
+    d1 = "2026-09-09"
+    d2 = "2026-09-10"
+    d1_payload = _write_daily_watchlist_and_report(data_root, d1, "600519")
+    paths = DataPaths(data_root)
+    tracker = new_tracker()
+    d1_candidate = d1_payload["candidates"][0]
+    tracker["signals"][d1_candidate["signal_id"]] = _signal_from_candidate(
+        d1_payload, d1_candidate, CALENDAR
+    )
+    save_tracker(tracker, paths.perf_tracker_file())
+    (paths.reports_dir() / "latest.html").write_text(
+        f"<html>latest {d1}</html>\n", encoding="utf-8"
+    )
+    save_store(new_store(), paths.root / "shadow_monitor")
+
+    d1_manifest = build_daily_checkpoint_manifest(
+        d1,
+        data_root=data_root,
+        calendar=CALENDAR,
+        code_git_sha="a" * 40,
+    )
+    persist_checkpoint_manifest(d1_manifest, checkpoint_manifest_path(data_root, d1))
+
+    d2_payload = _write_daily_watchlist_and_report(data_root, d2, "600520")
+    d2_candidate = d2_payload["candidates"][0]
+    tracker["signals"][d2_candidate["signal_id"]] = _signal_from_candidate(
+        d2_payload, d2_candidate, CALENDAR
+    )
+    tracker["updated"] = f"{d2}T15:00:00+08:00"
+    save_tracker(tracker, paths.perf_tracker_file())
+    (paths.reports_dir() / "latest.html").write_text(
+        f"<html>latest {d2}</html>\n", encoding="utf-8"
+    )
+    return data_root, d1, d2, d1_payload, d2_payload
+
+
 def test_allowlist_contains_only_durable_files_and_excludes_raw_inputs(tmp_path):
     data_root, _payload, _tracker = _fixture(tmp_path)
     (data_root / "t_close_evidence").mkdir()
@@ -167,6 +246,106 @@ def test_allowlist_contains_only_durable_files_and_excludes_raw_inputs(tmp_path)
     assert all("t_close_evidence" not in item for item in relative)
     assert all("prospective_inputs" not in item for item in relative)
     assert all("development_candidate" not in item for item in relative)
+
+
+def test_historical_checkpoint_survives_legal_tracker_and_latest_report_advance(tmp_path):
+    data_root, d1, _d2, _d1_payload, _d2_payload = _two_day_fixture(tmp_path)
+    paths = DataPaths(data_root)
+    manifest = json.loads(
+        (paths.root / "checkpoints" / f"daily_checkpoint_{d1.replace('-', '')}.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    assert manifest["perf_tracker"]["sha256"] != file_sha256(paths.perf_tracker_file())
+    assert manifest["latest_html"]["sha256"] != file_sha256(paths.reports_dir() / "latest.html")
+
+    result = validate_runtime_data(data_root)
+
+    assert result["status"] == "RUNTIME_STATE_VALID"
+    assert result["checkpoint_count"] == 1
+    assert result["current_watchlist_count"] == 2
+    assert result["current_tracker_signal_count"] == 2
+
+
+@pytest.mark.parametrize("mutated_payload", ["perf_tracker", "latest_html"])
+def test_current_day_checkpoint_remains_strict_for_mutable_payloads(tmp_path, mutated_payload):
+    data_root, _d1, d2, _d1_payload, _d2_payload = _two_day_fixture(tmp_path)
+    paths = DataPaths(data_root)
+    manifest = build_daily_checkpoint_manifest(
+        d2,
+        data_root=data_root,
+        calendar=CALENDAR,
+        code_git_sha="b" * 40,
+    )
+    persist_checkpoint_manifest(manifest, checkpoint_manifest_path(data_root, d2))
+    assert completed_run_status(data_root, d2)["status"] == ALREADY_COMPLETED
+
+    if mutated_payload == "perf_tracker":
+        tracker = load_tracker(paths.perf_tracker_file())
+        tracker["updated"] = f"{d2}T15:01:00+08:00"
+        save_tracker(tracker, paths.perf_tracker_file())
+    else:
+        (paths.reports_dir() / "latest.html").write_text(
+            "<html>latest mutated after checkpoint</html>\n", encoding="utf-8"
+        )
+
+    result = completed_run_status(data_root, d2)
+
+    assert result["status"] == INCOMPLETE_SAME_DAY_STATE
+    assert mutated_payload in result["reason"]
+
+
+@pytest.mark.parametrize("corruption", ["schema", "list_date", "filename", "dated_watchlist"])
+def test_historical_checkpoint_corruption_still_fails_closed(tmp_path, corruption):
+    data_root, d1, _d2, _d1_payload, _d2_payload = _two_day_fixture(tmp_path)
+    paths = DataPaths(data_root)
+    manifest_path = paths.root / "checkpoints" / f"daily_checkpoint_{d1.replace('-', '')}.json"
+
+    if corruption == "filename":
+        manifest_path.rename(paths.root / "checkpoints" / "daily_checkpoint_20260911.json")
+    elif corruption == "dated_watchlist":
+        watchlist_path = paths.watchlist_file(d1)
+        watchlist_path.write_bytes(watchlist_path.read_bytes() + b"\n")
+    else:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if corruption == "schema":
+            manifest["schema_version"] = "BROKEN_CHECKPOINT_SCHEMA"
+        else:
+            manifest["list_date"] = "2026-09-08"
+        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+
+    with pytest.raises(RuntimeStateError):
+        validate_runtime_data(data_root)
+
+
+def test_two_consecutive_production_day_lifecycle_validates_and_completes(tmp_path):
+    data_root, _d1, d2, _d1_payload, _d2_payload = _two_day_fixture(tmp_path)
+    manifest = build_daily_checkpoint_manifest(
+        d2,
+        data_root=data_root,
+        calendar=CALENDAR,
+        code_git_sha="c" * 40,
+    )
+    persist_checkpoint_manifest(manifest, checkpoint_manifest_path(data_root, d2))
+
+    validation = validate_runtime_data(data_root)
+    completion = completed_run_status(data_root, d2)
+
+    assert validation["status"] == "RUNTIME_STATE_VALID"
+    assert validation["checkpoint_count"] == 2
+    assert completion["status"] == ALREADY_COMPLETED
+
+
+def test_bootstrap_reuses_historical_checkpoint_after_mutable_state_advances(tmp_path):
+    data_root, d1, _d2, _d1_payload, _d2_payload = _two_day_fixture(tmp_path)
+    state_root = tmp_path / "runtime-state"
+    _marker(state_root)
+
+    result = bootstrap_allowlist(state_root, data_root)
+
+    assert result["skipped_checkpoints"] == {}
+    assert f"data/checkpoints/daily_checkpoint_{d1.replace('-', '')}.json" in result["copied"]
 
 
 def test_persist_and_restore_preserve_watchlist_tracker_shadow_and_reports(tmp_path):
@@ -211,11 +390,17 @@ def test_failure_notice_is_dated_allowlisted_operational_state_and_does_not_comp
 
     state_root = tmp_path / "runtime-state"
     _marker(state_root)
+    persist_allowlist(state_root, data_root)
     result = persist_failure_notice(state_root, data_root, DATE)
 
     assert result["status"] == "FAILURE_NOTICE_READY_TO_COMMIT"
     assert (state_root / "data" / "delivery" / "daily_failure_notice_20260910.json").is_file()
     assert completed_run_status(data_root, DATE)["status"] == ALREADY_COMPLETED
+
+    restored = tmp_path / "restored-data"
+    restore_allowlist(state_root, restored)
+    assert validate_runtime_data(restored)["failure_notice_count"] == 1
+    assert completed_run_status(restored, DATE)["status"] == ALREADY_COMPLETED
 
     (state_root / "data" / "delivery" / "daily_failure_notice_latest.json").write_text("{}", encoding="utf-8")
     with pytest.raises(RuntimeStateError, match="non-allowlisted"):

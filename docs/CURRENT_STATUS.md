@@ -6,6 +6,30 @@
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
+## Current task — history-aware runtime-state checkpoint validation — 2026-09-15
+
+本轮已完成 live reconciliation：旧的 schedule-resilience current snapshot 仍写
+`origin/master=16f8e8a17a662d5288ff0c36bcebbedad342a320`、`runtime-state=1c8b2ec`、PR #61
+未合并，和实时状态冲突，明确标记为 `PROJECT_GOVERNANCE_STATE_CONFLICT`。fetch 后的 live
+事实是：`origin/master=040e077bbf208921798d2d5b1fa0bd2d51ba9a20`，current master
+correctness run=`34938666579` 为 `success`；`origin/runtime-state=520d6fab222bf553caa3eeb29cc83176318626d0`；
+PR #61/#62 已合并，PR #60 仍 `OPEN / CONFLICTING` 且不在本任务范围内。
+
+run `34969498897` 已由 Actions log 重新核实为 `workflow_dispatch`、target date
+`2026-09-15`、trigger source `manual`；canonical chain 先输出 success，随后在
+`canonical-output-validation` 失败，精确错误是 `RUNTIME_STATE_ERROR` /
+`checkpoint SHA/length mismatch: perf_tracker`。copy/commit gate 被跳过；失败通知 Email/Bark
+均 success，`daily_failure_notice_20260915.json` 已在 remote runtime-state 持久化。该通知是
+operational-only，不代表 canonical completion，也不阻止未来成功 receipt。
+
+修复 branch/worktree 为 `codex/runtime-state-checkpoint-validation-fix-20260915`，基于 live
+`origin/master`。manifest payload 分类固定为：dated immutable=`watchlist`,`dated_html`；
+mutable latest-state=`perf_tracker`,`latest_html`。`validate_runtime_data()` 与 bootstrap 对
+历史 checkpoint 保留 schema/date/filename/record/path/immutable identity 验证，只跳过 mutable
+历史 SHA/长度等同性；`completed_run_status(target_date)` 仍对目标日全部 payload 严格 fail-closed，
+并继续验证 current tracker/prospective identity。未修改 B、策略/Universe/provider/shadow、
+scheduler、Cloudflare、PR #60、历史 artifact、Final OOS 或受禁目录。
+
 ## Governance reconciliation — 2026-09-15
 
 此前治理文字仍记录 `REPORT_DELIVERY_SECRETS_REQUIRED`、delivery-test 未执行，以及

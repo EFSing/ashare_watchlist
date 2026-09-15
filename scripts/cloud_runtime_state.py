@@ -66,6 +66,13 @@ _DELIVERY_RECEIPT_NAME = re.compile(r"^daily_delivery_\d{8}\.json$")
 _FAILURE_NOTICE_NAME = re.compile(r"^daily_failure_notice_\d{8}\.json$")
 _ALLOWED_TOP_LEVEL = {RUNTIME_STATE_FILE, ".gitattributes", "data", ".git"}
 
+# A daily checkpoint records both dated immutable artifacts and the latest
+# operational state available at checkpoint creation time.  The latter is
+# expected to advance on later trading days, so its historical byte identity
+# cannot be used as a durable-state validity condition.
+_CHECKPOINT_IMMUTABLE_DATED_PAYLOADS = frozenset({"watchlist", "dated_html"})
+_CHECKPOINT_MUTABLE_LATEST_STATE_PAYLOADS = frozenset({"perf_tracker", "latest_html"})
+
 
 class RuntimeStateError(ValueError):
     """The durable state boundary or its integrity contract is invalid."""
@@ -411,7 +418,35 @@ def _manifest_paths(data_root: Path, manifest: Mapping[str, Any]) -> dict[str, P
     }
 
 
-def _validate_checkpoint_manifest(data_root: Path, manifest_path: Path) -> dict[str, Any]:
+def _checkpoint_payload_identity_required(
+    key: str,
+    *,
+    validate_mutable_payloads: bool,
+) -> bool:
+    """Return whether a checkpoint payload must match its recorded bytes."""
+
+    if key in _CHECKPOINT_IMMUTABLE_DATED_PAYLOADS:
+        return True
+    if key in _CHECKPOINT_MUTABLE_LATEST_STATE_PAYLOADS:
+        return validate_mutable_payloads
+    raise RuntimeStateError(f"checkpoint payload classification missing: {key}")
+
+
+def _validate_checkpoint_manifest(
+    data_root: Path,
+    manifest_path: Path,
+    *,
+    validate_mutable_payloads: bool = True,
+) -> dict[str, Any]:
+    """Validate one checkpoint's structure and payload identities.
+
+    Historical runtime-state validation must retain the checkpoint's schema,
+    filename/date binding, and dated payload integrity while allowing the
+    latest tracker/report pointer to evolve.  The target-date completion gate
+    calls this with the default strict setting so a newly generated checkpoint
+    remains fail-closed.
+    """
+
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
@@ -433,6 +468,11 @@ def _validate_checkpoint_manifest(data_root: Path, manifest_path: Path) -> dict[
             raise RuntimeStateError(f"checkpoint record is missing: {key}")
         if not path.is_file():
             raise RuntimeStateError(f"checkpoint payload is missing: {path}")
+        if not _checkpoint_payload_identity_required(
+            key,
+            validate_mutable_payloads=validate_mutable_payloads,
+        ):
+            continue
         if path.stat().st_size != record.get("byte_length") or file_sha256(path) != record.get("sha256"):
             raise RuntimeStateError(f"checkpoint SHA/length mismatch: {key}")
     return dict(manifest)
@@ -519,7 +559,11 @@ def validate_runtime_data(
     checkpoint_count = 0
     if validate_checkpoints:
         for manifest_path in _checkpoint_files(root):
-            _validate_checkpoint_manifest(root, manifest_path)
+            _validate_checkpoint_manifest(
+                root,
+                manifest_path,
+                validate_mutable_payloads=False,
+            )
             checkpoint_count += 1
 
     delivery_receipt_count = 0
@@ -668,12 +712,13 @@ def persist_failure_notice(
 
 
 def bootstrap_allowlist(state_root: str | Path, data_root: str | Path) -> dict[str, Any]:
-    """Bootstrap trusted core state and reuse only valid existing checkpoints.
+    """Bootstrap trusted core state and reuse structurally valid checkpoints.
 
-    A local checkpoint can legitimately be stale when a trusted local tracker
-    was advanced after the checkpoint was produced.  Such a checkpoint is
-    omitted from the first runtime-state commit instead of being copied as if
-    it were a verified success manifest.
+    A historical checkpoint can legitimately contain an older tracker or
+    latest-report identity after trusted durable state advances.  It remains
+    reusable when its schema, date binding, and immutable dated payloads are
+    valid; the target-date completion gate remains responsible for strict
+    current-day success verification.
     """
 
     state = _resolved(state_root)
@@ -685,7 +730,11 @@ def bootstrap_allowlist(state_root: str | Path, data_root: str | Path) -> dict[s
     skipped_checkpoints: dict[str, str] = {}
     for manifest_path in _checkpoint_files(data):
         try:
-            _validate_checkpoint_manifest(data, manifest_path)
+            _validate_checkpoint_manifest(
+                data,
+                manifest_path,
+                validate_mutable_payloads=False,
+            )
         except RuntimeStateError as exc:
             skipped_checkpoints[manifest_path.name] = str(exc)[:500]
         else:
@@ -744,7 +793,11 @@ def completed_run_status(data_root: str | Path, date_value: str | date | datetim
         watchlist = load_watchlist(watchlist_path)
         if watchlist.get("date") != list_date:
             raise RuntimeStateError("canonical watchlist date mismatch")
-        manifest = _validate_checkpoint_manifest(root, manifest_path)
+        manifest = _validate_checkpoint_manifest(
+            root,
+            manifest_path,
+            validate_mutable_payloads=True,
+        )
         tracker = load_tracker(paths.perf_tracker_file())
         current_prospective_tracker(tracker, paths)
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError, RuntimeStateError) as exc:
