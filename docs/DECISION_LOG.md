@@ -1,5 +1,22 @@
 # DECISION LOG
 
+## 2026-09-15 — B_VOLUME_TURNOVER_DIAGNOSTIC_V1 — blocked by missing point-in-time evidence
+
+- classification：independent `research question`；materiality 仅是判断换手是否能在
+  `vol_ratio >= 1.20` 内提供增量 observational information，不改变正式 B、生产、PR #60
+  或历史 artifact。
+- evidence：现有候选列表虽有 75/75 个数值 `turnover` 与 `vol_ratio` T 日字段，但已归档的
+  turnover history 只覆盖 `2023-06-30` 至 `2026-08-28`，不覆盖本次 43-resolved-sample
+  的 `2026-09-03/07/08/11` signal dates；PR #60 只有 43 条结果的 aggregate baseline，
+  没有可按 `signal_id` 绑定的 row-level outcome artifact。
+- decision：`NEEDS_MORE_EVIDENCE`，terminal marker 为
+  `B_VOLUME_TURNOVER_DIAGNOSTIC_BLOCKED_BY_TURNOVER_DATA_GAP`。不使用当前流通股本、成交量
+  伪装换手、不调用 provider、不计算部分 outcome-conditioned 统计，也不把既有第三方
+  gateway 的 `NO_VINTAGE_PROOF` 数据升级为本次 sample 的 point-in-time evidence。
+- next gate：只有取得明确授权的 research-only point-in-time turnover / free-float history、
+  raw-before-complete provenance，以及 43 条 exact `signal_id`-bound formal outcome rows
+  后才能继续；缺失期间正式 B 与 PR #60 保持 unchanged，Final OOS 仍 `SEALED / UNREAD`。
+
 职责：只记录具有长期约束力、未来需要解释“为什么这样设计”的决定（含进入、退出或拒绝
 某项研究/产品决策的理由，以及冻结的契约）；不记录普通 bugfix、测试补充和局部实现细节。
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见

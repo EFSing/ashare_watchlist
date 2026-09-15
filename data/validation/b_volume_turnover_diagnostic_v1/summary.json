@@ -1,0 +1,87 @@
+{
+  "schema_version": "B_VOLUME_TURNOVER_DIAGNOSTIC_V1",
+  "status": "BLOCKED",
+  "terminal_marker": "B_VOLUME_TURNOVER_DIAGNOSTIC_BLOCKED_BY_TURNOVER_DATA_GAP",
+  "research_decision": "NEEDS_MORE_EVIDENCE",
+  "result_class": "UNRESOLVED",
+  "classification": "research question",
+  "research_question": "Within the existing formal-B resolved sample, does turnover add information beyond vol_ratio >= 1.20, especially inside the volume-confirmed cohort?",
+  "materiality": "Could inform a future observational layer; must not change formal B, production, PR #60, or historical artifacts.",
+  "live_state": {
+    "research_branch": "codex/b-volume-turnover-diagnostic-v1",
+    "origin_master": "040e077bbf208921798d2d5b1fa0bd2d51ba9a20",
+    "runtime_state": "1c8b2eca3792aebf327557fe9279b88a177b0545",
+    "pr_60": {
+      "state": "OPEN",
+      "head": "0a829193af5a761d3190d02543e9edd5b9312550",
+      "exact_head_checks": "success",
+      "touched": false
+    },
+    "pr_61": {
+      "state": "MERGED",
+      "head": "699b84a2367c3fabfc6df4c7639a0527c2bb6c3c"
+    },
+    "pr_62": {
+      "state": "MERGED",
+      "head": "1ec066408d07843cbeebd295005b8c484d6acb1e"
+    }
+  },
+  "existing_formal_b_reference": {
+    "resolved_total": 43,
+    "target": 4,
+    "stop": 39,
+    "fast_stop": 31,
+    "source": "PR #60 committed B_VOLUME_CONFIRM_FOCUS_V1 baseline",
+    "row_level_outcome_binding": "MISSING"
+  },
+  "candidate_feature_audit": {
+    "signal_dates": [
+      "2026-09-03",
+      "2026-09-07",
+      "2026-09-08",
+      "2026-09-11"
+    ],
+    "candidate_total": 75,
+    "turnover_numeric": 75,
+    "vol_ratio_numeric": 75,
+    "turnover_field_semantics": "Tencent quote p[38] snapshot field; no bound 60-session history"
+  },
+  "turnover_history_audit": {
+    "artifact": "data/validation/b_turnover_x_relative_volume_incremental_v1/tushare_gateway/",
+    "source_classification": "THIRD_PARTY_TUSHARE_COMPATIBLE_GATEWAY",
+    "fields": [
+      "ts_code",
+      "trade_date",
+      "turnover_rate",
+      "float_share"
+    ],
+    "unit": "turnover percent; float_share in 万股",
+    "sessions": 769,
+    "min_date": "2023-06-30",
+    "max_date": "2026-08-28",
+    "vintage": "NO_VINTAGE_PROOF",
+    "target_signal_dates_covered": false,
+    "missing_signal_dates": [
+      "2026-09-03",
+      "2026-09-07",
+      "2026-09-08",
+      "2026-09-11"
+    ]
+  },
+  "leakage_controls": {
+    "market_provider_calls": 0,
+    "final_oos": "SEALED / UNREAD",
+    "forbidden_directory_read": false,
+    "runtime_state_written": false,
+    "pr_60_touched": false,
+    "formal_b_modified": false,
+    "production_modified": false,
+    "historical_artifacts_rewritten": false
+  },
+  "missing_evidence": [
+    "Point-in-time daily turnover or validated volume/free-float history for every resolved signal and up to 60 prior XSHG sessions.",
+    "Machine-readable signal_id-bound rows for the 43 resolved outcomes, including TARGET/STOP, FAST_STOP, Score, vol_ratio, and provenance.",
+    "Raw-before-complete source persistence, coverage, units, version, and hashes for any future research acquisition."
+  ],
+  "recommendation": "Do not infer turnover value, do not modify PR #60, and wait for an explicit decision on a reliable research-only acquisition and restoration of the row-level outcome artifact."
+}

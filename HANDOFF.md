@@ -6,6 +6,24 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-15 — B_VOLUME_TURNOVER_DIAGNOSTIC_V1 CHECKPOINT
+
+- source authority：live `origin/master=040e077bbf208921798d2d5b1fa0bd2d51ba9a20`；本次独立
+  research branch/worktree 为 `codex/b-volume-turnover-diagnostic-v1`。
+- current task：审计换手是否能在现有 formal-B resolved sample 的
+  `vol_ratio >= 1.20` cohort 内提供增量区分能力。
+- completed：已复核 PR #60/#61/#62、`runtime-state=1c8b2eca3792aebf327557fe9279b88a177b0545`、
+  PR #60 baseline aggregate、candidate T-day fields 与既有 turnover history manifest；
+  没有调用 market provider。
+- terminal：`B_VOLUME_TURNOVER_DIAGNOSTIC_BLOCKED_BY_TURNOVER_DATA_GAP`；decision=
+  `NEEDS_MORE_EVIDENCE`。报告与 machine-readable summary 已写入本 branch。
+- blocker：既有 turnover history 只到 `2026-08-28`，不覆盖目标 signal dates；且缺失 exact
+  `signal_id`-bound 43-row outcome artifact，不能合法计算 percentile 或 outcome-conditioned
+  diagnostics。
+- next action：等待用户决定是否授权 research-only point-in-time turnover/free-float
+  acquisition，并恢复 43 条 exact outcome rows；在此之前不修改 PR #60、正式 B、production、
+  `runtime-state` 或 Final OOS。
+
 ## 2026-09-15 — CURRENT RECOVERY CHECKPOINT
 
 - source authority：`origin/master`。恢复时必须先 `git fetch origin` 并实时读取
