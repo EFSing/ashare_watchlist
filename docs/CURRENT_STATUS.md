@@ -19,7 +19,7 @@
 为历史 provenance，不构成当前 invariant。
 
 Live source base at this reconciliation：
-`origin/master=64bba1df7b0dfd362938399ef5393f0912ce1e5f`。
+`origin/master=16f8e8a17a662d5288ff0c36bcebbedad342a320`。
 Live `runtime-state` HEAD：
 `1c8b2eca3792aebf327557fe9279b88a177b0545`。
 恢复时仍必须重新 fetch，以实时 `origin/master` 为准。
@@ -50,12 +50,11 @@ late schedule success；run `34868158949`（`schedule`，`failure`）暴露了�
 PR #60 仍是 `OPEN`、base=`master`、head=`0a829193af5a761d3190d02543e9edd5b9312550`，
 研究内容未进入 master，也不属于本次生产调度修复。
 
-本次 `CLOUD_SCHEDULE_RESILIENCE_V1` repo-side implementation 会保持独立 PR；在 merge 前
-不把 schedule stale policy 或 Cloudflare dispatcher 写成 master 已 active。
-当前 implementation commit=`17e68b7139ed24441400b3a09c321466805d4032` 已进入 PR #61；该 head
-的 pull-request correctness run=`34922534106` 与 push correctness run=`34922511075` 均为
-`success`，PR 当前为 `OPEN / CLEAN`。后续 governance-only commit 若使 PR head 变化，必须重新
-核对 exact-head CI。
+本次 `CLOUD_SCHEDULE_RESILIENCE_V1` repo-side implementation 已通过 PR #61 squash-merged
+进入 `master`，merge commit=`16f8e8a17a662d5288ff0c36bcebbedad342a320`。最终 PR
+exact-head correctness run=`34922737694` 与 push correctness run=`34922734570` 均为
+`success`；合并后的 master push correctness run=`34926519440` 也为 `success`。本次任务未
+dispatch genuine production；Cloudflare dispatcher 仍需外部授权后才可部署或启用。
 
 ## DAILY_REPORT_EMAIL_AND_BARK_DELIVERY_V1 — channels verified
 
@@ -139,10 +138,11 @@ Prospective 与 retrospective labels 保持分离；不对部署前数据伪造 
 
 历史 watchlists / tracker / reports / evidence 不因后续 cloud、mobile 或 delivery feature 改写。
 
-## Cloud schedule resilience — prepared, not active
+## Cloud schedule resilience — merged, dispatcher not active
 
-- schedule date binding：由 UTC cron calendar date 解析 target；跨 BJT 午夜或 cron 之前启动返回
-  `SKIPPED_STALE_SCHEDULE`，provider calls、正式 production、failure notification 均为 0。
+- schedule date binding：已进入 `master`，由 UTC cron calendar date 解析 target；跨 BJT 午夜或
+  cron 之前启动返回 `SKIPPED_STALE_SCHEDULE`，provider calls、正式 production、failure
+  notification 均为 0。
 - secondary dispatcher：Cloudflare Worker 仅 dispatch GitHub `workflow_dispatch`，状态为
   `PREPARED / NOT_ACTIVE`；不会调用 provider 或写 `runtime-state`。
 - failure notification：`DAILY_FAILURE_NOTICE_V1` 是 operational-only、按 target date 去重的
