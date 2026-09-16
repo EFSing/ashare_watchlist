@@ -36,6 +36,10 @@
   `520d6fab222bf553caa3eeb29cc83176318626d0`. PR #63 is merged; PR #60 remains `OPEN / DIRTY` and
   untouched. Final OOS remains `SEALED / UNREAD`, and `data/validation/continuous_speed_probe/` remains
   unread and untouched.
+- delivery verification：PR #64 head=`b9fffa22ab11df4e68e078b522780703253842d9`，push correctness
+  `35108470922` 与 pull-request correctness `35108504369` 均 success 且 exact-head；full pytest
+  `606 passed, 2 skipped, 11 warnings`，compileall、diff check 与 Node dispatcher `3 passed`。不自动
+  merge，终点为 `PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1_PR_READY_FOR_USER_MERGE_DECISION`。
 
 ## 2026-09-15 — RUNTIME_STATE_HISTORICAL_CHECKPOINT_MUTABLE_TRACKER_VALIDATION_FIX_V1
 

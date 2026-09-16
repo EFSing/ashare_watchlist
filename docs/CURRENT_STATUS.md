@@ -26,10 +26,14 @@ environment/provider-auth/broad-outage/unknown/strategy/runtime-state 错误仍 
 runtime-state validation；日报显式显示 `INPUT COVERAGE = COMPLETE/DEGRADED`，degraded 文案为
 “本次候选名单未包含该数据异常股票。” Formal B 语义与 spec SHA 保持不变。
 
-当前独立 branch/worktree：`codex/per-symbol-provider-failure-isolation-v1`。605366 fixture、single/
-second-stale、no-trade、future/fatal、report/checkpoint mismatch、degraded delivery idempotency 均已
-覆盖；provider calls=`0`，production dispatch=`0`，runtime-state mutation=`NO`；Final OOS=`SEALED / UNREAD`，
-受禁目录未读取或触碰。终点是独立 PR exact-head push/PR CI success 后的用户 merge decision。
+当前独立 branch/worktree：`codex/per-symbol-provider-failure-isolation-v1`，PR #64 已创建，head 为
+`b9fffa22ab11df4e68e078b522780703253842d9`，base `master` 为
+`5a024185206ca868ddf10c2e871a4a34edb1b878`。push correctness=`35108470922 success`、
+pull-request correctness=`35108504369 success`，两者 head 均 exact；project full pytest=`606 passed,
+2 skipped, 11 warnings`，compileall、git diff --check、Node dispatcher=`3 passed`。provider calls=`0`，
+production dispatch=`0`，runtime-state mutation=`NO`；Final OOS=`SEALED / UNREAD`，受禁目录未读取或触碰。
+当前终点为 `PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1_PR_READY_FOR_USER_MERGE_DECISION`，等待用户
+merge decision；PR #60 untouched。
 
 ## Current task — history-aware runtime-state checkpoint validation — 2026-09-15
 

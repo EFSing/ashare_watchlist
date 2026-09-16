@@ -30,9 +30,15 @@
 - boundaries：provider live calls=`0`，production dispatch=`0`，runtime-state remote mutation=`NO`；
   Final OOS=`SEALED / UNREAD`，`data/validation/continuous_speed_probe/` 未读取或触碰，PR #60
   未触碰。
-- next action：完成最终 full pytest/compileall/diff review后 commit/push，创建独立 PR，等待 exact-head
-  push CI 与 PR CI success；不自动 merge，终点为
-  `PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1_PR_READY_FOR_USER_MERGE_DECISION`。
+- delivery：commit `b9fffa22ab11df4e68e078b522780703253842d9` 已 push，独立 PR #64 已创建，base
+  `master`=`5a024185206ca868ddf10c2e871a4a34edb1b878`。push correctness run=`35108470922` 与
+  pull-request correctness run=`35108504369` 均 `success`，且 workflow head exact 匹配该 commit；
+  PR 状态保持 `OPEN`，不自动 merge。
+- verification：project full pytest=`606 passed, 2 skipped, 11 warnings`（2 个 skip 是原有未提交
+  的大型 exact-date fixture 缺失），compileall、git diff --check、Node dispatcher=`3 passed`。
+  provider live calls=`0`，production dispatch=`0`，runtime-state remote mutation=`NO`。
+- terminal：`PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1_PR_READY_FOR_USER_MERGE_DECISION`，等待用户
+  对 PR #64 作 merge decision；PR #60 untouched，Final OOS=`SEALED / UNREAD`，受禁目录未读取或触碰。
 
 ## 2026-09-15 — RUNTIME_STATE_HISTORICAL_CHECKPOINT_MUTABLE_TRACKER_VALIDATION_FIX_V1
 
