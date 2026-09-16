@@ -37,6 +37,14 @@
           "high": 5.1,
           "low": 4.96,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 5.0,
+          "price": 5.5,
+          "high": 5.5,
+          "low": 4.99,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -69,7 +77,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:000753:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -77,7 +85,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -147,6 +155,14 @@
           "high": 10.35,
           "low": 10.18,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 10.02,
+          "price": 10.11,
+          "high": 10.17,
+          "low": 9.9,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -179,7 +195,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:001217:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -187,7 +203,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -257,6 +273,14 @@
           "high": 7.91,
           "low": 7.73,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 7.63,
+          "price": 7.86,
+          "high": 7.92,
+          "low": 7.6,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -289,7 +313,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:001236:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -297,7 +321,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -367,6 +391,14 @@
           "high": 6.4,
           "low": 6.19,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 6.12,
+          "price": 6.1,
+          "high": 6.17,
+          "low": 6.06,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -399,7 +431,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:001322:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -407,7 +439,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -477,6 +509,14 @@
           "high": 5.75,
           "low": 5.3,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 5.35,
+          "price": 5.33,
+          "high": 5.38,
+          "low": 5.24,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -509,7 +549,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:002099:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -517,7 +557,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -587,6 +627,14 @@
           "high": 2.35,
           "low": 2.28,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 2.22,
+          "price": 2.23,
+          "high": 2.25,
+          "low": 2.19,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -619,7 +667,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:002124:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -627,7 +675,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -697,6 +745,14 @@
           "high": 8.3,
           "low": 7.93,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 7.81,
+          "price": 7.87,
+          "high": 8.0,
+          "low": 7.75,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -729,7 +785,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:002278:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -737,7 +793,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -807,6 +863,14 @@
           "high": 6.06,
           "low": 5.91,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 5.72,
+          "price": 5.78,
+          "high": 5.84,
+          "low": 5.67,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -839,7 +903,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:002537:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -847,7 +911,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -917,6 +981,14 @@
           "high": 7.87,
           "low": 7.7,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 7.26,
+          "price": 7.11,
+          "high": 7.3,
+          "low": 6.93,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -949,7 +1021,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:002543:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -957,7 +1029,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -1027,6 +1099,14 @@
           "high": 15.7,
           "low": 15.41,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 15.4,
+          "price": 15.5,
+          "high": 15.53,
+          "low": 15.27,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -1059,7 +1139,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:002690:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -1067,7 +1147,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -1137,6 +1217,14 @@
           "high": 7.35,
           "low": 7.22,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 7.12,
+          "price": 7.16,
+          "high": 7.16,
+          "low": 7.0,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -1169,7 +1257,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:002761:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -1177,7 +1265,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -1247,6 +1335,14 @@
           "high": 8.51,
           "low": 8.26,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 8.07,
+          "price": 8.17,
+          "high": 8.23,
+          "low": 7.95,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -1279,7 +1375,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:002809:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -1287,7 +1383,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -1357,6 +1453,14 @@
           "high": 7.31,
           "low": 7.16,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 6.94,
+          "price": 7.05,
+          "high": 7.1,
+          "low": 6.89,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -1389,7 +1493,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:300133:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -1397,7 +1501,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -1467,6 +1571,14 @@
           "high": 2.75,
           "low": 2.69,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 2.64,
+          "price": 2.68,
+          "high": 2.69,
+          "low": 2.62,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -1499,7 +1611,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:300256:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -1507,7 +1619,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -1577,6 +1689,14 @@
           "high": 12.5,
           "low": 12.02,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 11.47,
+          "price": 11.56,
+          "high": 11.67,
+          "low": 11.4,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -1609,7 +1729,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:300268:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -1617,7 +1737,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -1687,6 +1807,14 @@
           "high": 4.98,
           "low": 4.84,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 4.83,
+          "price": 4.8,
+          "high": 4.83,
+          "low": 4.71,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -1719,7 +1847,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:300318:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -1727,7 +1855,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -1797,6 +1925,14 @@
           "high": 14.43,
           "low": 13.89,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 13.54,
+          "price": 14.17,
+          "high": 14.32,
+          "low": 13.23,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -1829,7 +1965,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:300673:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -1837,7 +1973,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -1907,6 +2043,14 @@
           "high": 43.65,
           "low": 42.01,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 43.58,
+          "price": 43.16,
+          "high": 44.5,
+          "low": 42.83,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -1939,7 +2083,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:300765:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -1947,7 +2091,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -2017,6 +2161,14 @@
           "high": 12.15,
           "low": 11.86,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 11.45,
+          "price": 11.91,
+          "high": 11.98,
+          "low": 11.41,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -2049,7 +2201,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:300945:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -2057,7 +2209,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -2127,6 +2279,14 @@
           "high": 13.05,
           "low": 12.71,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 12.51,
+          "price": 12.63,
+          "high": 12.73,
+          "low": 12.41,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -2159,7 +2319,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:300962:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -2167,7 +2327,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -2237,6 +2397,14 @@
           "high": 18.15,
           "low": 17.45,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 18.02,
+          "price": 18.13,
+          "high": 18.22,
+          "low": 17.62,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -2269,7 +2437,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:301207:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -2277,7 +2445,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -2347,6 +2515,14 @@
           "high": 5.54,
           "low": 5.44,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 5.46,
+          "price": 5.46,
+          "high": 5.49,
+          "low": 5.41,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -2379,7 +2555,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:600018:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -2387,7 +2563,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -2457,6 +2633,14 @@
           "high": 6.57,
           "low": 6.47,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 6.25,
+          "price": 6.35,
+          "high": 6.36,
+          "low": 6.23,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -2489,7 +2673,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:600278:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -2497,7 +2681,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -2567,6 +2751,14 @@
           "high": 7.78,
           "low": 7.64,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 7.5,
+          "price": 7.62,
+          "high": 7.62,
+          "low": 7.38,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -2599,7 +2791,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:600916:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -2607,7 +2799,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -2677,6 +2869,14 @@
           "high": 4.61,
           "low": 4.55,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 4.49,
+          "price": 4.46,
+          "high": 4.51,
+          "low": 4.43,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -2709,7 +2909,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:603323:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -2717,7 +2917,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -2787,6 +2987,14 @@
           "high": 31.88,
           "low": 29.97,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 30.93,
+          "price": 30.01,
+          "high": 30.93,
+          "low": 29.74,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -2819,7 +3027,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:603406:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -2827,7 +3035,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -2897,6 +3105,14 @@
           "high": 8.94,
           "low": 8.73,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 8.69,
+          "price": 8.71,
+          "high": 8.74,
+          "low": 8.61,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -2929,7 +3145,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:603676:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -2937,7 +3153,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -3007,6 +3223,14 @@
           "high": 6.03,
           "low": 5.88,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 5.58,
+          "price": 5.69,
+          "high": 5.73,
+          "low": 5.52,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -3039,7 +3263,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:605001:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -3047,7 +3271,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -3117,6 +3341,14 @@
           "high": 37.35,
           "low": 35.09,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 35.5,
+          "price": 35.0,
+          "high": 35.5,
+          "low": 34.03,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -3149,7 +3381,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:688060:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -3157,7 +3389,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -3227,6 +3459,14 @@
           "high": 76.8,
           "low": 62.51,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 77.9,
+          "price": 84.0,
+          "high": 89.25,
+          "low": 73.11,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -3259,7 +3499,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:688137:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -3267,7 +3507,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -3337,6 +3577,14 @@
           "high": 120.56,
           "low": 104.6,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 117.16,
+          "price": 117.78,
+          "high": 119.29,
+          "low": 115.06,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -3369,7 +3617,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:688333:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -3377,7 +3625,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -3447,6 +3695,14 @@
           "high": 46.86,
           "low": 43.5,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 42.52,
+          "price": 42.84,
+          "high": 43.34,
+          "low": 42.35,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -3479,7 +3735,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:688543:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -3487,7 +3743,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -3557,6 +3813,14 @@
           "high": 9.64,
           "low": 9.45,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 9.36,
+          "price": 9.45,
+          "high": 9.48,
+          "low": 9.22,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -3589,7 +3853,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:688575:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -3597,7 +3861,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -3667,6 +3931,14 @@
           "high": 15.94,
           "low": 14.84,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 15.2,
+          "price": 15.33,
+          "high": 15.5,
+          "low": 15.05,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -3699,7 +3971,7 @@
           "scheduled_date": "2026-09-15",
           "review_trading_date": "2026-09-15",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-08:688613:B_BREAKOUT_RETEST|T+5|2026-09-15",
-          "status": "PENDING",
+          "status": "NOT_CAPTURED",
           "quote_date": null,
           "price": null,
           "high": null,
@@ -3707,7 +3979,7 @@
           "return_pct": null,
           "path_status": null,
           "signal_status": null,
-          "reason": null,
+          "reason": "scheduled XSHG session was missed; historical backfill is forbidden",
           "open": null,
           "source_mode": null,
           "provenance": null
@@ -3776,6 +4048,14 @@
           "price": 7.84,
           "high": 7.87,
           "low": 7.7,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 7.26,
+          "price": 7.11,
+          "high": 7.3,
+          "low": 6.93,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
@@ -3899,6 +4179,14 @@
           "high": 16.84,
           "low": 16.5,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 17.21,
+          "price": 16.64,
+          "high": 17.3,
+          "low": 16.36,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -4020,6 +4308,14 @@
           "price": 17.84,
           "high": 17.92,
           "low": 17.47,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 17.21,
+          "price": 17.41,
+          "high": 17.47,
+          "low": 17.01,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
@@ -4143,6 +4439,14 @@
           "high": 4.6,
           "low": 4.26,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 3.92,
+          "price": 3.96,
+          "high": 4.01,
+          "low": 3.85,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -4264,6 +4568,14 @@
           "price": 10.38,
           "high": 10.44,
           "low": 10.32,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 10.28,
+          "price": 10.31,
+          "high": 10.36,
+          "low": 10.15,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
@@ -4387,6 +4699,14 @@
           "high": 8.67,
           "low": 8.22,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 8.19,
+          "price": 8.18,
+          "high": 8.25,
+          "low": 8.06,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -4508,6 +4828,14 @@
           "price": 4.6,
           "high": 4.61,
           "low": 4.55,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 4.49,
+          "price": 4.46,
+          "high": 4.51,
+          "low": 4.43,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
@@ -4631,6 +4959,14 @@
           "high": 31.88,
           "low": 29.97,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 30.93,
+          "price": 30.01,
+          "high": 30.93,
+          "low": 29.74,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -4752,6 +5088,14 @@
           "price": 24.67,
           "high": 24.87,
           "low": 23.48,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 24.8,
+          "price": 25.12,
+          "high": 25.38,
+          "low": 24.44,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
@@ -4875,6 +5219,14 @@
           "high": 180.2,
           "low": 172.55,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 178.99,
+          "price": 186.09,
+          "high": 187.0,
+          "low": 178.7,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -4996,6 +5348,14 @@
           "price": 70.62,
           "high": 71.38,
           "low": 68.65,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 72.64,
+          "price": 73.69,
+          "high": 74.14,
+          "low": 72.0,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
@@ -5140,6 +5500,14 @@
           "high": 5.59,
           "low": 5.29,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 4.98,
+          "price": 5.01,
+          "high": 5.07,
+          "low": 4.93,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -5216,10 +5584,10 @@
       "entry_day_stop_touched": false,
       "entry_day_target_touched": false,
       "mfe_mae_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
-      "latest_observation_date": "2026-09-14",
-      "latest_mark_price": 5.29,
-      "unrealized_return_pct": -0.750469,
-      "unrealized_r": -0.137931,
+      "latest_observation_date": "2026-09-16",
+      "latest_mark_price": 5.01,
+      "unrealized_return_pct": -6.003752,
+      "unrealized_r": -1.103448,
       "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE"
     },
     "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:001217:B_BREAKOUT_RETEST": {
@@ -5278,6 +5646,14 @@
           "price": 10.23,
           "high": 10.35,
           "low": 10.18,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 10.02,
+          "price": 10.11,
+          "high": 10.17,
+          "low": 9.9,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
@@ -5355,10 +5731,10 @@
       "entry_day_stop_touched": false,
       "entry_day_target_touched": false,
       "mfe_mae_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
-      "latest_observation_date": "2026-09-14",
-      "latest_mark_price": 10.23,
-      "unrealized_return_pct": -2.571429,
-      "unrealized_r": -0.75,
+      "latest_observation_date": "2026-09-16",
+      "latest_mark_price": 10.11,
+      "unrealized_return_pct": -3.714286,
+      "unrealized_r": -1.083333,
       "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE"
     },
     "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002073:B_BREAKOUT_RETEST": {
@@ -5417,6 +5793,14 @@
           "price": 5.72,
           "high": 5.74,
           "low": 5.66,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 5.62,
+          "price": 5.64,
+          "high": 5.66,
+          "low": 5.56,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
@@ -5549,6 +5933,14 @@
           "high": 5.75,
           "low": 5.3,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 5.35,
+          "price": 5.33,
+          "high": 5.38,
+          "low": 5.24,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -5680,6 +6072,14 @@
           "high": 5.58,
           "low": 5.48,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 5.3,
+          "price": 5.44,
+          "high": 5.47,
+          "low": 5.25,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -5756,10 +6156,10 @@
       "entry_day_stop_touched": false,
       "entry_day_target_touched": false,
       "mfe_mae_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
-      "latest_observation_date": "2026-09-14",
-      "latest_mark_price": 5.51,
-      "unrealized_return_pct": -6.610169,
-      "unrealized_r": -1.772727,
+      "latest_observation_date": "2026-09-16",
+      "latest_mark_price": 5.44,
+      "unrealized_return_pct": -7.79661,
+      "unrealized_r": -2.090909,
       "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE"
     },
     "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002385:B_BREAKOUT_RETEST": {
@@ -5818,6 +6218,14 @@
           "price": 3.24,
           "high": 3.35,
           "low": 3.2,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 3.17,
+          "price": 3.17,
+          "high": 3.22,
+          "low": 3.14,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
@@ -5895,10 +6303,10 @@
       "entry_day_stop_touched": false,
       "entry_day_target_touched": false,
       "mfe_mae_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
-      "latest_observation_date": "2026-09-14",
-      "latest_mark_price": 3.24,
-      "unrealized_return_pct": -7.163324,
-      "unrealized_r": -1.5625,
+      "latest_observation_date": "2026-09-16",
+      "latest_mark_price": 3.17,
+      "unrealized_return_pct": -9.169054,
+      "unrealized_r": -2.0,
       "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE"
     },
     "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002391:B_BREAKOUT_RETEST": {
@@ -5957,6 +6365,14 @@
           "price": 5.28,
           "high": 5.35,
           "low": 5.21,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 5.17,
+          "price": 5.21,
+          "high": 5.22,
+          "low": 5.12,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
@@ -6034,10 +6450,10 @@
       "entry_day_stop_touched": false,
       "entry_day_target_touched": false,
       "mfe_mae_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
-      "latest_observation_date": "2026-09-14",
-      "latest_mark_price": 5.28,
-      "unrealized_return_pct": -2.402957,
-      "unrealized_r": -0.866667,
+      "latest_observation_date": "2026-09-16",
+      "latest_mark_price": 5.21,
+      "unrealized_return_pct": -3.696858,
+      "unrealized_r": -1.333333,
       "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE"
     },
     "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002394:B_BREAKOUT_RETEST": {
@@ -6096,6 +6512,14 @@
           "price": 10.51,
           "high": 10.69,
           "low": 10.27,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 10.34,
+          "price": 10.41,
+          "high": 10.56,
+          "low": 10.19,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
@@ -6173,10 +6597,10 @@
       "entry_day_stop_touched": false,
       "entry_day_target_touched": false,
       "mfe_mae_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
-      "latest_observation_date": "2026-09-14",
-      "latest_mark_price": 10.51,
-      "unrealized_return_pct": -3.222836,
-      "unrealized_r": -0.614035,
+      "latest_observation_date": "2026-09-16",
+      "latest_mark_price": 10.41,
+      "unrealized_return_pct": -4.143646,
+      "unrealized_r": -0.789474,
       "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE"
     },
     "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002556:B_BREAKOUT_RETEST": {
@@ -6235,6 +6659,14 @@
           "price": 5.26,
           "high": 5.44,
           "low": 5.24,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 5.1,
+          "price": 5.16,
+          "high": 5.19,
+          "low": 5.06,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
@@ -6312,10 +6744,10 @@
       "entry_day_stop_touched": false,
       "entry_day_target_touched": false,
       "mfe_mae_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
-      "latest_observation_date": "2026-09-14",
-      "latest_mark_price": 5.26,
-      "unrealized_return_pct": -2.95203,
-      "unrealized_r": -0.695652,
+      "latest_observation_date": "2026-09-16",
+      "latest_mark_price": 5.16,
+      "unrealized_return_pct": -4.797048,
+      "unrealized_r": -1.130435,
       "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE"
     },
     "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002825:B_BREAKOUT_RETEST": {
@@ -6374,6 +6806,14 @@
           "price": 9.9,
           "high": 10.06,
           "low": 9.74,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 9.68,
+          "price": 9.58,
+          "high": 9.79,
+          "low": 9.37,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
@@ -6451,10 +6891,10 @@
       "entry_day_stop_touched": false,
       "entry_day_target_touched": false,
       "mfe_mae_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
-      "latest_observation_date": "2026-09-14",
-      "latest_mark_price": 9.9,
-      "unrealized_return_pct": -1.0,
-      "unrealized_r": -0.227273,
+      "latest_observation_date": "2026-09-16",
+      "latest_mark_price": 9.58,
+      "unrealized_return_pct": -4.2,
+      "unrealized_r": -0.954545,
       "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE"
     },
     "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300016:B_BREAKOUT_RETEST": {
@@ -6513,6 +6953,14 @@
           "price": 8.07,
           "high": 8.14,
           "low": 7.9,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 7.85,
+          "price": 7.93,
+          "high": 7.97,
+          "low": 7.82,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
@@ -6645,6 +7093,14 @@
           "high": 7.31,
           "low": 7.16,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 6.94,
+          "price": 7.05,
+          "high": 7.1,
+          "low": 6.89,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -6721,10 +7177,10 @@
       "entry_day_stop_touched": false,
       "entry_day_target_touched": false,
       "mfe_mae_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
-      "latest_observation_date": "2026-09-14",
-      "latest_mark_price": 7.23,
-      "unrealized_return_pct": -6.103896,
-      "unrealized_r": -2.611111,
+      "latest_observation_date": "2026-09-16",
+      "latest_mark_price": 7.05,
+      "unrealized_return_pct": -8.441558,
+      "unrealized_r": -3.611111,
       "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE"
     },
     "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300148:B_BREAKOUT_RETEST": {
@@ -6783,6 +7239,14 @@
           "price": 3.54,
           "high": 3.58,
           "low": 3.5,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 3.44,
+          "price": 3.48,
+          "high": 3.49,
+          "low": 3.38,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
@@ -6860,10 +7324,10 @@
       "entry_day_stop_touched": false,
       "entry_day_target_touched": false,
       "mfe_mae_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
-      "latest_observation_date": "2026-09-14",
-      "latest_mark_price": 3.54,
-      "unrealized_return_pct": -3.542234,
-      "unrealized_r": -0.866667,
+      "latest_observation_date": "2026-09-16",
+      "latest_mark_price": 3.48,
+      "unrealized_return_pct": -5.177112,
+      "unrealized_r": -1.266667,
       "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE"
     },
     "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300268:B_BREAKOUT_RETEST": {
@@ -6922,6 +7386,14 @@
           "price": 12.12,
           "high": 12.5,
           "low": 12.02,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 11.47,
+          "price": 11.56,
+          "high": 11.67,
+          "low": 11.4,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
@@ -6999,10 +7471,10 @@
       "entry_day_stop_touched": false,
       "entry_day_target_touched": false,
       "mfe_mae_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
-      "latest_observation_date": "2026-09-14",
-      "latest_mark_price": 12.12,
-      "unrealized_return_pct": -7.19755,
-      "unrealized_r": -3.241379,
+      "latest_observation_date": "2026-09-16",
+      "latest_mark_price": 11.56,
+      "unrealized_return_pct": -11.485452,
+      "unrealized_r": -5.172414,
       "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE"
     },
     "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300318:B_BREAKOUT_RETEST": {
@@ -7061,6 +7533,14 @@
           "price": 4.94,
           "high": 4.98,
           "low": 4.84,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 4.83,
+          "price": 4.8,
+          "high": 4.83,
+          "low": 4.71,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
@@ -7138,10 +7618,10 @@
       "entry_day_stop_touched": false,
       "entry_day_target_touched": false,
       "mfe_mae_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
-      "latest_observation_date": "2026-09-14",
-      "latest_mark_price": 4.94,
-      "unrealized_return_pct": -4.263566,
-      "unrealized_r": -0.488889,
+      "latest_observation_date": "2026-09-16",
+      "latest_mark_price": 4.8,
+      "unrealized_return_pct": -6.976744,
+      "unrealized_r": -0.8,
       "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE"
     },
     "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300765:B_BREAKOUT_RETEST": {
@@ -7200,6 +7680,14 @@
           "price": 43.52,
           "high": 43.65,
           "low": 42.01,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 43.58,
+          "price": 43.16,
+          "high": 44.5,
+          "low": 42.83,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
@@ -7277,10 +7765,10 @@
       "entry_day_stop_touched": false,
       "entry_day_target_touched": false,
       "mfe_mae_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
-      "latest_observation_date": "2026-09-14",
-      "latest_mark_price": 43.52,
-      "unrealized_return_pct": -3.245887,
-      "unrealized_r": -1.247863,
+      "latest_observation_date": "2026-09-16",
+      "latest_mark_price": 43.16,
+      "unrealized_return_pct": -4.046243,
+      "unrealized_r": -1.555556,
       "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE"
     },
     "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:600278:B_BREAKOUT_RETEST": {
@@ -7339,6 +7827,14 @@
           "price": 6.52,
           "high": 6.57,
           "low": 6.47,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 6.25,
+          "price": 6.35,
+          "high": 6.36,
+          "low": 6.23,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
@@ -7416,10 +7912,10 @@
       "entry_day_stop_touched": false,
       "entry_day_target_touched": false,
       "mfe_mae_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
-      "latest_observation_date": "2026-09-14",
-      "latest_mark_price": 6.52,
-      "unrealized_return_pct": -1.212121,
-      "unrealized_r": -0.5,
+      "latest_observation_date": "2026-09-16",
+      "latest_mark_price": 6.35,
+      "unrealized_return_pct": -3.787879,
+      "unrealized_r": -1.5625,
       "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE"
     },
     "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:601512:B_BREAKOUT_RETEST": {
@@ -7478,6 +7974,14 @@
           "price": 8.3,
           "high": 8.67,
           "low": 8.22,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 8.19,
+          "price": 8.18,
+          "high": 8.25,
+          "low": 8.06,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
@@ -7555,10 +8059,10 @@
       "entry_day_stop_touched": false,
       "entry_day_target_touched": false,
       "mfe_mae_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
-      "latest_observation_date": "2026-09-14",
-      "latest_mark_price": 8.3,
-      "unrealized_return_pct": -3.037383,
-      "unrealized_r": -0.684211,
+      "latest_observation_date": "2026-09-16",
+      "latest_mark_price": 8.18,
+      "unrealized_return_pct": -4.439252,
+      "unrealized_r": -1.0,
       "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE"
     },
     "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603205:B_BREAKOUT_RETEST": {
@@ -7617,6 +8121,14 @@
           "price": 22.75,
           "high": 22.75,
           "low": 22.16,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 22.79,
+          "price": 22.95,
+          "high": 23.05,
+          "low": 22.01,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
@@ -7749,6 +8261,14 @@
           "high": 31.88,
           "low": 29.97,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 30.93,
+          "price": 30.01,
+          "high": 30.93,
+          "low": 29.74,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -7825,10 +8345,10 @@
       "entry_day_stop_touched": false,
       "entry_day_target_touched": false,
       "mfe_mae_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
-      "latest_observation_date": "2026-09-14",
-      "latest_mark_price": 31.29,
-      "unrealized_return_pct": 2.691172,
-      "unrealized_r": 0.645669,
+      "latest_observation_date": "2026-09-16",
+      "latest_mark_price": 30.01,
+      "unrealized_return_pct": -1.509682,
+      "unrealized_r": -0.362205,
       "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE"
     },
     "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603444:B_BREAKOUT_RETEST": {
@@ -7887,6 +8407,14 @@
           "price": 370.0,
           "high": 376.19,
           "low": 368.28,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 370.8,
+          "price": 373.49,
+          "high": 373.5,
+          "low": 366.5,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
@@ -7964,10 +8492,10 @@
       "entry_day_stop_touched": false,
       "entry_day_target_touched": false,
       "mfe_mae_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
-      "latest_observation_date": "2026-09-14",
-      "latest_mark_price": 370.0,
-      "unrealized_return_pct": -8.675799,
-      "unrealized_r": -1.926027,
+      "latest_observation_date": "2026-09-16",
+      "latest_mark_price": 373.49,
+      "unrealized_return_pct": -7.81439,
+      "unrealized_r": -1.734795,
       "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE"
     },
     "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603585:B_BREAKOUT_RETEST": {
@@ -8026,6 +8554,14 @@
           "price": 10.65,
           "high": 10.73,
           "low": 10.5,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 10.32,
+          "price": 10.4,
+          "high": 10.5,
+          "low": 10.3,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
@@ -8103,10 +8639,10 @@
       "entry_day_stop_touched": false,
       "entry_day_target_touched": false,
       "mfe_mae_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
-      "latest_observation_date": "2026-09-14",
-      "latest_mark_price": 10.65,
-      "unrealized_return_pct": -2.113971,
-      "unrealized_r": -0.560976,
+      "latest_observation_date": "2026-09-16",
+      "latest_mark_price": 10.4,
+      "unrealized_return_pct": -4.411765,
+      "unrealized_r": -1.170732,
       "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE"
     },
     "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603970:B_BREAKOUT_RETEST": {
@@ -8165,6 +8701,14 @@
           "price": 10.83,
           "high": 11.05,
           "low": 10.72,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 10.62,
+          "price": 11.03,
+          "high": 11.11,
+          "low": 10.58,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
@@ -8242,10 +8786,10 @@
       "entry_day_stop_touched": false,
       "entry_day_target_touched": false,
       "mfe_mae_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
-      "latest_observation_date": "2026-09-14",
-      "latest_mark_price": 10.83,
-      "unrealized_return_pct": -6.798623,
-      "unrealized_r": -1.837209,
+      "latest_observation_date": "2026-09-16",
+      "latest_mark_price": 11.03,
+      "unrealized_return_pct": -5.077453,
+      "unrealized_r": -1.372093,
       "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE"
     },
     "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:605567:B_BREAKOUT_RETEST": {
@@ -8304,6 +8848,14 @@
           "price": 9.21,
           "high": 9.31,
           "low": 9.05,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 8.83,
+          "price": 8.96,
+          "high": 9.03,
+          "low": 8.75,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
@@ -8381,10 +8933,10 @@
       "entry_day_stop_touched": false,
       "entry_day_target_touched": false,
       "mfe_mae_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
-      "latest_observation_date": "2026-09-14",
-      "latest_mark_price": 9.21,
-      "unrealized_return_pct": -5.246914,
-      "unrealized_r": -1.342105,
+      "latest_observation_date": "2026-09-16",
+      "latest_mark_price": 8.96,
+      "unrealized_return_pct": -7.81893,
+      "unrealized_r": -2.0,
       "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE"
     },
     "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:688002:B_BREAKOUT_RETEST": {
@@ -8443,6 +8995,14 @@
           "price": 177.89,
           "high": 180.2,
           "low": 172.55,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 178.99,
+          "price": 186.09,
+          "high": 187.0,
+          "low": 178.7,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
@@ -8520,10 +9080,10 @@
       "entry_day_stop_touched": false,
       "entry_day_target_touched": false,
       "mfe_mae_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
-      "latest_observation_date": "2026-09-14",
-      "latest_mark_price": 177.89,
-      "unrealized_return_pct": -1.718232,
-      "unrealized_r": -0.321946,
+      "latest_observation_date": "2026-09-16",
+      "latest_mark_price": 186.09,
+      "unrealized_return_pct": 2.812155,
+      "unrealized_r": 0.526915,
       "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE"
     },
     "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:002394:B_BREAKOUT_RETEST": {
@@ -8554,6 +9114,14 @@
           "high": 10.69,
           "low": 10.27,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 10.34,
+          "price": 10.41,
+          "high": 10.56,
+          "low": 10.19,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -8565,17 +9133,17 @@
           "scheduled_date": "2026-09-16",
           "review_trading_date": "2026-09-16",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:002394:B_BREAKOUT_RETEST|T+3|2026-09-16",
-          "status": "PENDING",
-          "quote_date": null,
-          "open": null,
-          "price": null,
-          "high": null,
-          "low": null,
-          "return_pct": null,
-          "path_status": null,
-          "signal_status": null,
+          "status": "CAPTURED",
+          "quote_date": "2026-09-16",
+          "open": 10.34,
+          "price": 10.41,
+          "high": 10.56,
+          "low": 10.19,
+          "return_pct": -2.069614,
+          "path_status": "triggered",
+          "signal_status": "triggered",
           "reason": null,
-          "source_mode": null,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE",
           "provenance": null
         },
         "T+5": {
@@ -8622,21 +9190,21 @@
         }
       },
       "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
-      "execution_verification_status": "VERIFIED",
-      "execution_verification_reason": null,
+      "execution_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
+      "execution_verification_reason": "missing required XSHG execution observation: 2026-09-15",
       "entry_day_stop_touched": false,
       "entry_day_target_touched": false,
       "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE",
       "entry_date": "2026-09-14",
       "sellable_from": "2026-09-15",
       "holding_sessions": 1,
-      "mfe_pct": 0.56444,
-      "mae_pct": -3.386642,
-      "mfe_mae_verification_status": "VERIFIED",
-      "latest_observation_date": "2026-09-14",
-      "latest_mark_price": 10.51,
-      "unrealized_return_pct": -1.128881,
-      "unrealized_r": -0.235294
+      "mfe_pct": null,
+      "mae_pct": null,
+      "mfe_mae_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
+      "latest_observation_date": "2026-09-16",
+      "latest_mark_price": 10.41,
+      "unrealized_return_pct": -2.069614,
+      "unrealized_r": -0.431373
     },
     "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:002478:B_BREAKOUT_RETEST": {
       "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:002478:B_BREAKOUT_RETEST",
@@ -8666,6 +9234,14 @@
           "high": 6.95,
           "low": 6.65,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 6.46,
+          "price": 6.49,
+          "high": 6.55,
+          "low": 6.36,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -8677,17 +9253,17 @@
           "scheduled_date": "2026-09-16",
           "review_trading_date": "2026-09-16",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:002478:B_BREAKOUT_RETEST|T+3|2026-09-16",
-          "status": "PENDING",
-          "quote_date": null,
-          "open": null,
-          "price": null,
-          "high": null,
-          "low": null,
-          "return_pct": null,
-          "path_status": null,
-          "signal_status": null,
+          "status": "CAPTURED",
+          "quote_date": "2026-09-16",
+          "open": 6.46,
+          "price": 6.49,
+          "high": 6.55,
+          "low": 6.36,
+          "return_pct": -6.213873,
+          "path_status": "triggered",
+          "signal_status": "triggered",
           "reason": null,
-          "source_mode": null,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE",
           "provenance": null
         },
         "T+5": {
@@ -8734,21 +9310,21 @@
         }
       },
       "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
-      "execution_verification_status": "VERIFIED",
-      "execution_verification_reason": null,
+      "execution_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
+      "execution_verification_reason": "missing required XSHG execution observation: 2026-09-15",
       "entry_day_stop_touched": true,
       "entry_day_target_touched": false,
       "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE",
       "entry_date": "2026-09-14",
       "sellable_from": "2026-09-15",
       "holding_sessions": 1,
-      "mfe_pct": 0.433526,
-      "mae_pct": -3.901734,
-      "mfe_mae_verification_status": "VERIFIED",
-      "latest_observation_date": "2026-09-14",
-      "latest_mark_price": 6.77,
-      "unrealized_return_pct": -2.16763,
-      "unrealized_r": -0.555556
+      "mfe_pct": null,
+      "mae_pct": null,
+      "mfe_mae_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
+      "latest_observation_date": "2026-09-16",
+      "latest_mark_price": 6.49,
+      "unrealized_return_pct": -6.213873,
+      "unrealized_r": -1.592593
     },
     "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:002913:B_BREAKOUT_RETEST": {
       "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:002913:B_BREAKOUT_RETEST",
@@ -8778,6 +9354,14 @@
           "high": 77.07,
           "low": 70.49,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 77.15,
+          "price": 83.11,
+          "high": 83.11,
+          "low": 76.2,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -8789,17 +9373,17 @@
           "scheduled_date": "2026-09-16",
           "review_trading_date": "2026-09-16",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:002913:B_BREAKOUT_RETEST|T+3|2026-09-16",
-          "status": "PENDING",
-          "quote_date": null,
-          "open": null,
-          "price": null,
-          "high": null,
-          "low": null,
-          "return_pct": null,
-          "path_status": null,
-          "signal_status": null,
+          "status": "CAPTURED",
+          "quote_date": "2026-09-16",
+          "open": 77.15,
+          "price": 83.11,
+          "high": 83.11,
+          "low": 76.2,
+          "return_pct": 15.800474,
+          "path_status": "triggered",
+          "signal_status": "triggered",
           "reason": null,
-          "source_mode": null,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE",
           "provenance": null
         },
         "T+5": {
@@ -8846,21 +9430,21 @@
         }
       },
       "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
-      "execution_verification_status": "VERIFIED",
-      "execution_verification_reason": null,
+      "execution_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
+      "execution_verification_reason": "missing required XSHG execution observation: 2026-09-15",
       "entry_day_stop_touched": false,
       "entry_day_target_touched": false,
       "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE",
       "entry_date": "2026-09-14",
       "sellable_from": "2026-09-15",
       "holding_sessions": 1,
-      "mfe_pct": 7.384701,
-      "mae_pct": -1.783475,
-      "mfe_mae_verification_status": "VERIFIED",
-      "latest_observation_date": "2026-09-14",
-      "latest_mark_price": 76.54,
-      "unrealized_return_pct": 6.646231,
-      "unrealized_r": 1.519108
+      "mfe_pct": null,
+      "mae_pct": null,
+      "mfe_mae_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
+      "latest_observation_date": "2026-09-16",
+      "latest_mark_price": 83.11,
+      "unrealized_return_pct": 15.800474,
+      "unrealized_r": 3.611465
     },
     "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:600018:B_BREAKOUT_RETEST": {
       "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:600018:B_BREAKOUT_RETEST",
@@ -8890,6 +9474,14 @@
           "high": 5.54,
           "low": 5.44,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 5.46,
+          "price": 5.46,
+          "high": 5.49,
+          "low": 5.41,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -8901,17 +9493,17 @@
           "scheduled_date": "2026-09-16",
           "review_trading_date": "2026-09-16",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:600018:B_BREAKOUT_RETEST|T+3|2026-09-16",
-          "status": "PENDING",
-          "quote_date": null,
-          "open": null,
-          "price": null,
-          "high": null,
-          "low": null,
-          "return_pct": null,
-          "path_status": null,
-          "signal_status": null,
+          "status": "CAPTURED",
+          "quote_date": "2026-09-16",
+          "open": 5.46,
+          "price": 5.46,
+          "high": 5.49,
+          "low": 5.41,
+          "return_pct": -0.182815,
+          "path_status": "triggered",
+          "signal_status": "triggered",
           "reason": null,
-          "source_mode": null,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE",
           "provenance": null
         },
         "T+5": {
@@ -8958,21 +9550,21 @@
         }
       },
       "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
-      "execution_verification_status": "VERIFIED",
-      "execution_verification_reason": null,
+      "execution_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
+      "execution_verification_reason": "missing required XSHG execution observation: 2026-09-15",
       "entry_day_stop_touched": false,
       "entry_day_target_touched": false,
       "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE",
       "entry_date": "2026-09-14",
       "sellable_from": "2026-09-15",
       "holding_sessions": 1,
-      "mfe_pct": 1.279707,
-      "mae_pct": -0.548446,
-      "mfe_mae_verification_status": "VERIFIED",
-      "latest_observation_date": "2026-09-14",
-      "latest_mark_price": 5.47,
-      "unrealized_return_pct": 0.0,
-      "unrealized_r": 0.0
+      "mfe_pct": null,
+      "mae_pct": null,
+      "mfe_mae_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
+      "latest_observation_date": "2026-09-16",
+      "latest_mark_price": 5.46,
+      "unrealized_return_pct": -0.182815,
+      "unrealized_r": -0.04
     },
     "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:603406:B_BREAKOUT_RETEST": {
       "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:603406:B_BREAKOUT_RETEST",
@@ -9002,6 +9594,14 @@
           "high": 31.88,
           "low": 29.97,
           "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        },
+        {
+          "date": "2026-09-16",
+          "open": 30.93,
+          "price": 30.01,
+          "high": 30.93,
+          "low": 29.74,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
         }
       ],
       "review_points": {
@@ -9013,17 +9613,17 @@
           "scheduled_date": "2026-09-16",
           "review_trading_date": "2026-09-16",
           "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:603406:B_BREAKOUT_RETEST|T+3|2026-09-16",
-          "status": "PENDING",
-          "quote_date": null,
-          "open": null,
-          "price": null,
-          "high": null,
-          "low": null,
-          "return_pct": null,
-          "path_status": null,
-          "signal_status": null,
+          "status": "CAPTURED",
+          "quote_date": "2026-09-16",
+          "open": 30.93,
+          "price": 30.01,
+          "high": 30.93,
+          "low": 29.74,
+          "return_pct": -1.509682,
+          "path_status": "triggered",
+          "signal_status": "triggered",
           "reason": null,
-          "source_mode": null,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE",
           "provenance": null
         },
         "T+5": {
@@ -9070,21 +9670,21 @@
         }
       },
       "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
-      "execution_verification_status": "VERIFIED",
-      "execution_verification_reason": null,
+      "execution_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
+      "execution_verification_reason": "missing required XSHG execution observation: 2026-09-15",
       "entry_day_stop_touched": false,
       "entry_day_target_touched": false,
       "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE",
       "entry_date": "2026-09-14",
       "sellable_from": "2026-09-15",
       "holding_sessions": 1,
-      "mfe_pct": 4.627502,
-      "mae_pct": -1.640958,
-      "mfe_mae_verification_status": "VERIFIED",
-      "latest_observation_date": "2026-09-14",
-      "latest_mark_price": 31.29,
-      "unrealized_return_pct": 2.691172,
-      "unrealized_r": 0.645669
+      "mfe_pct": null,
+      "mae_pct": null,
+      "mfe_mae_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
+      "latest_observation_date": "2026-09-16",
+      "latest_mark_price": 30.01,
+      "unrealized_return_pct": -1.509682,
+      "unrealized_r": -0.362205
     },
     "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:000058:B_BREAKOUT_RETEST": {
       "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:000058:B_BREAKOUT_RETEST",
@@ -9101,8 +9701,8 @@
       "rr": 2.333333333333325,
       "status": "pending",
       "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
-      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
-      "execution_verification_reason": null,
+      "execution_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
+      "execution_verification_reason": "missing required XSHG execution observation: 2026-09-15",
       "entry_date": null,
       "entry_price": null,
       "sellable_from": null,
@@ -9127,7 +9727,16 @@
       "first_trigger_date": null,
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-16",
+          "open": 6.9,
+          "price": 6.92,
+          "high": 6.96,
+          "low": 6.82,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:000058:B_BREAKOUT_RETEST",
@@ -9209,8 +9818,8 @@
       "rr": 2.333333333333331,
       "status": "pending",
       "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
-      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
-      "execution_verification_reason": null,
+      "execution_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
+      "execution_verification_reason": "missing required XSHG execution observation: 2026-09-15",
       "entry_date": null,
       "entry_price": null,
       "sellable_from": null,
@@ -9235,7 +9844,16 @@
       "first_trigger_date": null,
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-16",
+          "open": 3.97,
+          "price": 4.04,
+          "high": 4.07,
+          "low": 3.93,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:000850:B_BREAKOUT_RETEST",
@@ -9317,8 +9935,8 @@
       "rr": 4.577500000000024,
       "status": "pending",
       "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
-      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
-      "execution_verification_reason": null,
+      "execution_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
+      "execution_verification_reason": "missing required XSHG execution observation: 2026-09-15",
       "entry_date": null,
       "entry_price": null,
       "sellable_from": null,
@@ -9343,7 +9961,16 @@
       "first_trigger_date": null,
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-16",
+          "open": 3.69,
+          "price": 3.77,
+          "high": 3.78,
+          "low": 3.69,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:002224:B_BREAKOUT_RETEST",
@@ -9425,8 +10052,8 @@
       "rr": 2.8181818181818143,
       "status": "pending",
       "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
-      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
-      "execution_verification_reason": null,
+      "execution_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
+      "execution_verification_reason": "missing required XSHG execution observation: 2026-09-15",
       "entry_date": null,
       "entry_price": null,
       "sellable_from": null,
@@ -9451,7 +10078,16 @@
       "first_trigger_date": null,
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-16",
+          "open": 10.34,
+          "price": 10.41,
+          "high": 10.56,
+          "low": 10.19,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:002394:B_BREAKOUT_RETEST",
@@ -9533,8 +10169,8 @@
       "rr": 2.090909090909093,
       "status": "pending",
       "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
-      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
-      "execution_verification_reason": null,
+      "execution_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
+      "execution_verification_reason": "missing required XSHG execution observation: 2026-09-15",
       "entry_date": null,
       "entry_price": null,
       "sellable_from": null,
@@ -9559,7 +10195,16 @@
       "first_trigger_date": null,
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-16",
+          "open": 3.36,
+          "price": 3.39,
+          "high": 3.42,
+          "low": 3.3,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:002596:B_BREAKOUT_RETEST",
@@ -9641,8 +10286,8 @@
       "rr": 2.415384615384618,
       "status": "pending",
       "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
-      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
-      "execution_verification_reason": null,
+      "execution_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
+      "execution_verification_reason": "missing required XSHG execution observation: 2026-09-15",
       "entry_date": null,
       "entry_price": null,
       "sellable_from": null,
@@ -9667,7 +10312,16 @@
       "first_trigger_date": null,
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-16",
+          "open": 5.46,
+          "price": 5.47,
+          "high": 5.54,
+          "low": 5.41,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:002614:B_BREAKOUT_RETEST",
@@ -9749,8 +10403,8 @@
       "rr": 3.8260869565217503,
       "status": "pending",
       "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
-      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
-      "execution_verification_reason": null,
+      "execution_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
+      "execution_verification_reason": "missing required XSHG execution observation: 2026-09-15",
       "entry_date": null,
       "entry_price": null,
       "sellable_from": null,
@@ -9775,7 +10429,16 @@
       "first_trigger_date": null,
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-16",
+          "open": 15.24,
+          "price": 15.48,
+          "high": 15.67,
+          "low": 15.24,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:600148:B_BREAKOUT_RETEST",
@@ -9857,8 +10520,8 @@
       "rr": 2.260714285714288,
       "status": "pending",
       "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
-      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
-      "execution_verification_reason": null,
+      "execution_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
+      "execution_verification_reason": "missing required XSHG execution observation: 2026-09-15",
       "entry_date": null,
       "entry_price": null,
       "sellable_from": null,
@@ -9883,7 +10546,16 @@
       "first_trigger_date": null,
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-16",
+          "open": 5.9,
+          "price": 5.97,
+          "high": 6.01,
+          "low": 5.85,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:600155:B_BREAKOUT_RETEST",
@@ -9965,8 +10637,8 @@
       "rr": 2.200000000000002,
       "status": "pending",
       "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
-      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
-      "execution_verification_reason": null,
+      "execution_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
+      "execution_verification_reason": "missing required XSHG execution observation: 2026-09-15",
       "entry_date": null,
       "entry_price": null,
       "sellable_from": null,
@@ -9991,7 +10663,16 @@
       "first_trigger_date": null,
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-16",
+          "open": 3.25,
+          "price": 3.32,
+          "high": 3.36,
+          "low": 3.19,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:600165:B_BREAKOUT_RETEST",
@@ -10073,8 +10754,8 @@
       "rr": 3.3999999999999804,
       "status": "pending",
       "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
-      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
-      "execution_verification_reason": null,
+      "execution_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
+      "execution_verification_reason": "missing required XSHG execution observation: 2026-09-15",
       "entry_date": null,
       "entry_price": null,
       "sellable_from": null,
@@ -10099,7 +10780,16 @@
       "first_trigger_date": null,
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-16",
+          "open": 2.12,
+          "price": 2.17,
+          "high": 2.19,
+          "low": 2.1,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:600533:B_BREAKOUT_RETEST",
@@ -10181,8 +10871,8 @@
       "rr": 2.75384615384616,
       "status": "pending",
       "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
-      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
-      "execution_verification_reason": null,
+      "execution_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
+      "execution_verification_reason": "missing required XSHG execution observation: 2026-09-15",
       "entry_date": null,
       "entry_price": null,
       "sellable_from": null,
@@ -10207,7 +10897,16 @@
       "first_trigger_date": null,
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-16",
+          "open": 4.4,
+          "price": 4.88,
+          "high": 4.88,
+          "low": 4.35,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:600616:B_BREAKOUT_RETEST",
@@ -10289,8 +10988,8 @@
       "rr": 2.727272727272733,
       "status": "pending",
       "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
-      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
-      "execution_verification_reason": null,
+      "execution_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
+      "execution_verification_reason": "missing required XSHG execution observation: 2026-09-15",
       "entry_date": null,
       "entry_price": null,
       "sellable_from": null,
@@ -10315,7 +11014,16 @@
       "first_trigger_date": null,
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-16",
+          "open": 7.27,
+          "price": 7.42,
+          "high": 7.47,
+          "low": 7.21,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:600774:B_BREAKOUT_RETEST",
@@ -10397,8 +11105,8 @@
       "rr": 3.599999999999975,
       "status": "pending",
       "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
-      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
-      "execution_verification_reason": null,
+      "execution_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
+      "execution_verification_reason": "missing required XSHG execution observation: 2026-09-15",
       "entry_date": null,
       "entry_price": null,
       "sellable_from": null,
@@ -10423,7 +11131,16 @@
       "first_trigger_date": null,
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-16",
+          "open": 2.26,
+          "price": 2.27,
+          "high": 2.29,
+          "low": 2.25,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:600935:B_BREAKOUT_RETEST",
@@ -10505,8 +11222,8 @@
       "rr": 3.005965463108319,
       "status": "pending",
       "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
-      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
-      "execution_verification_reason": null,
+      "execution_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
+      "execution_verification_reason": "missing required XSHG execution observation: 2026-09-15",
       "entry_date": null,
       "entry_price": null,
       "sellable_from": null,
@@ -10531,7 +11248,16 @@
       "first_trigger_date": null,
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-16",
+          "open": 23.84,
+          "price": 25.65,
+          "high": 26.22,
+          "low": 23.34,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:603269:B_BREAKOUT_RETEST",
@@ -10613,8 +11339,8 @@
       "rr": 2.5,
       "status": "pending",
       "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
-      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
-      "execution_verification_reason": null,
+      "execution_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
+      "execution_verification_reason": "missing required XSHG execution observation: 2026-09-15",
       "entry_date": null,
       "entry_price": null,
       "sellable_from": null,
@@ -10639,7 +11365,16 @@
       "first_trigger_date": null,
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-16",
+          "open": 4.49,
+          "price": 4.46,
+          "high": 4.51,
+          "low": 4.43,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:603323:B_BREAKOUT_RETEST",
@@ -10721,8 +11456,8 @@
       "rr": 2.3157894736842186,
       "status": "pending",
       "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
-      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
-      "execution_verification_reason": null,
+      "execution_verification_status": "UNVERIFIED_MISSING_EXECUTION_OBSERVATION",
+      "execution_verification_reason": "missing required XSHG execution observation: 2026-09-15",
       "entry_date": null,
       "entry_price": null,
       "sellable_from": null,
@@ -10747,7 +11482,16 @@
       "first_trigger_date": null,
       "close_date": null,
       "ambiguity_reason": null,
-      "observations": [],
+      "observations": [
+        {
+          "date": "2026-09-16",
+          "open": 7.08,
+          "price": 7.22,
+          "high": 7.3,
+          "low": 7.08,
+          "source_mode": "LIVE_DAILY_TRACKER_QUOTE"
+        }
+      ],
       "review_points": {
         "T+3": {
           "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:603326:B_BREAKOUT_RETEST",
@@ -10813,15 +11557,1203 @@
           "provenance": null
         }
       }
+    },
+    "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:000701:B_BREAKOUT_RETEST": {
+      "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:000701:B_BREAKOUT_RETEST",
+      "strategy_version": "B_BREAKOUT_RETEST_LEGACY_V1_1",
+      "date": "2026-09-16",
+      "code": "000701",
+      "setup": "B_BREAKOUT_RETEST",
+      "name": "厦门信达",
+      "buy_type": "B 突破回踩",
+      "score": 53,
+      "trigger": 5.22,
+      "stop": 5.04,
+      "target": 5.44,
+      "rr": 2.076923076923082,
+      "status": "pending",
+      "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
+      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
+      "execution_verification_reason": null,
+      "entry_date": null,
+      "entry_price": null,
+      "sellable_from": null,
+      "exit_date": null,
+      "exit_price": null,
+      "exit_reason": null,
+      "realized_return_pct": null,
+      "realized_r": null,
+      "holding_sessions": null,
+      "entry_day_stop_touched": false,
+      "entry_day_target_touched": false,
+      "mfe_pct": null,
+      "mae_pct": null,
+      "mfe_mae_verification_status": null,
+      "latest_observation_date": null,
+      "latest_mark_price": null,
+      "unrealized_return_pct": null,
+      "unrealized_r": null,
+      "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE",
+      "result_price": null,
+      "days_tracked": 0,
+      "first_trigger_date": null,
+      "close_date": null,
+      "ambiguity_reason": null,
+      "observations": [],
+      "review_points": {
+        "T+3": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:000701:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+3",
+          "offset": 3,
+          "scheduled_date": "2026-09-21",
+          "review_trading_date": "2026-09-21",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:000701:B_BREAKOUT_RETEST|T+3|2026-09-21",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        },
+        "T+5": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:000701:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+5",
+          "offset": 5,
+          "scheduled_date": "2026-09-23",
+          "review_trading_date": "2026-09-23",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:000701:B_BREAKOUT_RETEST|T+5|2026-09-23",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        },
+        "T+10": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:000701:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+10",
+          "offset": 10,
+          "scheduled_date": "2026-10-08",
+          "review_trading_date": "2026-10-08",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:000701:B_BREAKOUT_RETEST|T+10|2026-10-08",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        }
+      }
+    },
+    "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:000807:B_BREAKOUT_RETEST": {
+      "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:000807:B_BREAKOUT_RETEST",
+      "strategy_version": "B_BREAKOUT_RETEST_LEGACY_V1_1",
+      "date": "2026-09-16",
+      "code": "000807",
+      "setup": "B_BREAKOUT_RETEST",
+      "name": "云铝股份",
+      "buy_type": "B 突破回踩",
+      "score": 58,
+      "trigger": 27.85,
+      "stop": 26.41,
+      "target": 29.13,
+      "rr": 2.626666666666665,
+      "status": "pending",
+      "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
+      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
+      "execution_verification_reason": null,
+      "entry_date": null,
+      "entry_price": null,
+      "sellable_from": null,
+      "exit_date": null,
+      "exit_price": null,
+      "exit_reason": null,
+      "realized_return_pct": null,
+      "realized_r": null,
+      "holding_sessions": null,
+      "entry_day_stop_touched": false,
+      "entry_day_target_touched": false,
+      "mfe_pct": null,
+      "mae_pct": null,
+      "mfe_mae_verification_status": null,
+      "latest_observation_date": null,
+      "latest_mark_price": null,
+      "unrealized_return_pct": null,
+      "unrealized_r": null,
+      "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE",
+      "result_price": null,
+      "days_tracked": 0,
+      "first_trigger_date": null,
+      "close_date": null,
+      "ambiguity_reason": null,
+      "observations": [],
+      "review_points": {
+        "T+3": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:000807:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+3",
+          "offset": 3,
+          "scheduled_date": "2026-09-21",
+          "review_trading_date": "2026-09-21",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:000807:B_BREAKOUT_RETEST|T+3|2026-09-21",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        },
+        "T+5": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:000807:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+5",
+          "offset": 5,
+          "scheduled_date": "2026-09-23",
+          "review_trading_date": "2026-09-23",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:000807:B_BREAKOUT_RETEST|T+5|2026-09-23",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        },
+        "T+10": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:000807:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+10",
+          "offset": 10,
+          "scheduled_date": "2026-10-08",
+          "review_trading_date": "2026-10-08",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:000807:B_BREAKOUT_RETEST|T+10|2026-10-08",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        }
+      }
+    },
+    "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:002339:B_BREAKOUT_RETEST": {
+      "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:002339:B_BREAKOUT_RETEST",
+      "strategy_version": "B_BREAKOUT_RETEST_LEGACY_V1_1",
+      "date": "2026-09-16",
+      "code": "002339",
+      "setup": "B_BREAKOUT_RETEST",
+      "name": "积成电子",
+      "buy_type": "B 突破回踩",
+      "score": 74,
+      "trigger": 7.64,
+      "stop": 7.28,
+      "target": 8.01,
+      "rr": 2.6499999999999946,
+      "status": "pending",
+      "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
+      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
+      "execution_verification_reason": null,
+      "entry_date": null,
+      "entry_price": null,
+      "sellable_from": null,
+      "exit_date": null,
+      "exit_price": null,
+      "exit_reason": null,
+      "realized_return_pct": null,
+      "realized_r": null,
+      "holding_sessions": null,
+      "entry_day_stop_touched": false,
+      "entry_day_target_touched": false,
+      "mfe_pct": null,
+      "mae_pct": null,
+      "mfe_mae_verification_status": null,
+      "latest_observation_date": null,
+      "latest_mark_price": null,
+      "unrealized_return_pct": null,
+      "unrealized_r": null,
+      "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE",
+      "result_price": null,
+      "days_tracked": 0,
+      "first_trigger_date": null,
+      "close_date": null,
+      "ambiguity_reason": null,
+      "observations": [],
+      "review_points": {
+        "T+3": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:002339:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+3",
+          "offset": 3,
+          "scheduled_date": "2026-09-21",
+          "review_trading_date": "2026-09-21",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:002339:B_BREAKOUT_RETEST|T+3|2026-09-21",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        },
+        "T+5": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:002339:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+5",
+          "offset": 5,
+          "scheduled_date": "2026-09-23",
+          "review_trading_date": "2026-09-23",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:002339:B_BREAKOUT_RETEST|T+5|2026-09-23",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        },
+        "T+10": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:002339:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+10",
+          "offset": 10,
+          "scheduled_date": "2026-10-08",
+          "review_trading_date": "2026-10-08",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:002339:B_BREAKOUT_RETEST|T+10|2026-10-08",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        }
+      }
+    },
+    "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:002394:B_BREAKOUT_RETEST": {
+      "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:002394:B_BREAKOUT_RETEST",
+      "strategy_version": "B_BREAKOUT_RETEST_LEGACY_V1_1",
+      "date": "2026-09-16",
+      "code": "002394",
+      "setup": "B_BREAKOUT_RETEST",
+      "name": "联发股份",
+      "buy_type": "B 突破回踩",
+      "score": 62,
+      "trigger": 10.5,
+      "stop": 10.06,
+      "target": 11.13,
+      "rr": 2.057142857142861,
+      "status": "pending",
+      "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
+      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
+      "execution_verification_reason": null,
+      "entry_date": null,
+      "entry_price": null,
+      "sellable_from": null,
+      "exit_date": null,
+      "exit_price": null,
+      "exit_reason": null,
+      "realized_return_pct": null,
+      "realized_r": null,
+      "holding_sessions": null,
+      "entry_day_stop_touched": false,
+      "entry_day_target_touched": false,
+      "mfe_pct": null,
+      "mae_pct": null,
+      "mfe_mae_verification_status": null,
+      "latest_observation_date": null,
+      "latest_mark_price": null,
+      "unrealized_return_pct": null,
+      "unrealized_r": null,
+      "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE",
+      "result_price": null,
+      "days_tracked": 0,
+      "first_trigger_date": null,
+      "close_date": null,
+      "ambiguity_reason": null,
+      "observations": [],
+      "review_points": {
+        "T+3": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:002394:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+3",
+          "offset": 3,
+          "scheduled_date": "2026-09-21",
+          "review_trading_date": "2026-09-21",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:002394:B_BREAKOUT_RETEST|T+3|2026-09-21",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        },
+        "T+5": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:002394:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+5",
+          "offset": 5,
+          "scheduled_date": "2026-09-23",
+          "review_trading_date": "2026-09-23",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:002394:B_BREAKOUT_RETEST|T+5|2026-09-23",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        },
+        "T+10": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:002394:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+10",
+          "offset": 10,
+          "scheduled_date": "2026-10-08",
+          "review_trading_date": "2026-10-08",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:002394:B_BREAKOUT_RETEST|T+10|2026-10-08",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        }
+      }
+    },
+    "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:002596:B_BREAKOUT_RETEST": {
+      "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:002596:B_BREAKOUT_RETEST",
+      "strategy_version": "B_BREAKOUT_RETEST_LEGACY_V1_1",
+      "date": "2026-09-16",
+      "code": "002596",
+      "setup": "B_BREAKOUT_RETEST",
+      "name": "海南瑞泽",
+      "buy_type": "B 突破回踩",
+      "score": 44,
+      "trigger": 3.49,
+      "stop": 3.3,
+      "target": 3.6024999999999996,
+      "rr": 2.3611111111110974,
+      "status": "pending",
+      "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
+      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
+      "execution_verification_reason": null,
+      "entry_date": null,
+      "entry_price": null,
+      "sellable_from": null,
+      "exit_date": null,
+      "exit_price": null,
+      "exit_reason": null,
+      "realized_return_pct": null,
+      "realized_r": null,
+      "holding_sessions": null,
+      "entry_day_stop_touched": false,
+      "entry_day_target_touched": false,
+      "mfe_pct": null,
+      "mae_pct": null,
+      "mfe_mae_verification_status": null,
+      "latest_observation_date": null,
+      "latest_mark_price": null,
+      "unrealized_return_pct": null,
+      "unrealized_r": null,
+      "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE",
+      "result_price": null,
+      "days_tracked": 0,
+      "first_trigger_date": null,
+      "close_date": null,
+      "ambiguity_reason": null,
+      "observations": [],
+      "review_points": {
+        "T+3": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:002596:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+3",
+          "offset": 3,
+          "scheduled_date": "2026-09-21",
+          "review_trading_date": "2026-09-21",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:002596:B_BREAKOUT_RETEST|T+3|2026-09-21",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        },
+        "T+5": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:002596:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+5",
+          "offset": 5,
+          "scheduled_date": "2026-09-23",
+          "review_trading_date": "2026-09-23",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:002596:B_BREAKOUT_RETEST|T+5|2026-09-23",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        },
+        "T+10": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:002596:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+10",
+          "offset": 10,
+          "scheduled_date": "2026-10-08",
+          "review_trading_date": "2026-10-08",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:002596:B_BREAKOUT_RETEST|T+10|2026-10-08",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        }
+      }
+    },
+    "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:600689:B_BREAKOUT_RETEST": {
+      "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:600689:B_BREAKOUT_RETEST",
+      "strategy_version": "B_BREAKOUT_RETEST_LEGACY_V1_1",
+      "date": "2026-09-16",
+      "code": "600689",
+      "setup": "B_BREAKOUT_RETEST",
+      "name": "上海三毛",
+      "buy_type": "B 突破回踩",
+      "score": 53,
+      "trigger": 11.95,
+      "stop": 11.49,
+      "target": 13.1296,
+      "rr": 5.30615384615385,
+      "status": "pending",
+      "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
+      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
+      "execution_verification_reason": null,
+      "entry_date": null,
+      "entry_price": null,
+      "sellable_from": null,
+      "exit_date": null,
+      "exit_price": null,
+      "exit_reason": null,
+      "realized_return_pct": null,
+      "realized_r": null,
+      "holding_sessions": null,
+      "entry_day_stop_touched": false,
+      "entry_day_target_touched": false,
+      "mfe_pct": null,
+      "mae_pct": null,
+      "mfe_mae_verification_status": null,
+      "latest_observation_date": null,
+      "latest_mark_price": null,
+      "unrealized_return_pct": null,
+      "unrealized_r": null,
+      "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE",
+      "result_price": null,
+      "days_tracked": 0,
+      "first_trigger_date": null,
+      "close_date": null,
+      "ambiguity_reason": null,
+      "observations": [],
+      "review_points": {
+        "T+3": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:600689:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+3",
+          "offset": 3,
+          "scheduled_date": "2026-09-21",
+          "review_trading_date": "2026-09-21",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:600689:B_BREAKOUT_RETEST|T+3|2026-09-21",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        },
+        "T+5": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:600689:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+5",
+          "offset": 5,
+          "scheduled_date": "2026-09-23",
+          "review_trading_date": "2026-09-23",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:600689:B_BREAKOUT_RETEST|T+5|2026-09-23",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        },
+        "T+10": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:600689:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+10",
+          "offset": 10,
+          "scheduled_date": "2026-10-08",
+          "review_trading_date": "2026-10-08",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:600689:B_BREAKOUT_RETEST|T+10|2026-10-08",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        }
+      }
+    },
+    "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:601279:B_BREAKOUT_RETEST": {
+      "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:601279:B_BREAKOUT_RETEST",
+      "strategy_version": "B_BREAKOUT_RETEST_LEGACY_V1_1",
+      "date": "2026-09-16",
+      "code": "601279",
+      "setup": "B_BREAKOUT_RETEST",
+      "name": "英利汽车",
+      "buy_type": "B 突破回踩",
+      "score": 52,
+      "trigger": 3.49,
+      "stop": 3.32,
+      "target": 3.72,
+      "rr": 3.4444444444444335,
+      "status": "pending",
+      "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
+      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
+      "execution_verification_reason": null,
+      "entry_date": null,
+      "entry_price": null,
+      "sellable_from": null,
+      "exit_date": null,
+      "exit_price": null,
+      "exit_reason": null,
+      "realized_return_pct": null,
+      "realized_r": null,
+      "holding_sessions": null,
+      "entry_day_stop_touched": false,
+      "entry_day_target_touched": false,
+      "mfe_pct": null,
+      "mae_pct": null,
+      "mfe_mae_verification_status": null,
+      "latest_observation_date": null,
+      "latest_mark_price": null,
+      "unrealized_return_pct": null,
+      "unrealized_r": null,
+      "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE",
+      "result_price": null,
+      "days_tracked": 0,
+      "first_trigger_date": null,
+      "close_date": null,
+      "ambiguity_reason": null,
+      "observations": [],
+      "review_points": {
+        "T+3": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:601279:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+3",
+          "offset": 3,
+          "scheduled_date": "2026-09-21",
+          "review_trading_date": "2026-09-21",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:601279:B_BREAKOUT_RETEST|T+3|2026-09-21",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        },
+        "T+5": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:601279:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+5",
+          "offset": 5,
+          "scheduled_date": "2026-09-23",
+          "review_trading_date": "2026-09-23",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:601279:B_BREAKOUT_RETEST|T+5|2026-09-23",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        },
+        "T+10": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:601279:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+10",
+          "offset": 10,
+          "scheduled_date": "2026-10-08",
+          "review_trading_date": "2026-10-08",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:601279:B_BREAKOUT_RETEST|T+10|2026-10-08",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        }
+      }
+    },
+    "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:603331:B_BREAKOUT_RETEST": {
+      "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:603331:B_BREAKOUT_RETEST",
+      "strategy_version": "B_BREAKOUT_RETEST_LEGACY_V1_1",
+      "date": "2026-09-16",
+      "code": "603331",
+      "setup": "B_BREAKOUT_RETEST",
+      "name": "百达精工",
+      "buy_type": "B 突破回踩",
+      "score": 43,
+      "trigger": 13.41,
+      "stop": 12.63,
+      "target": 13.99,
+      "rr": 2.2380952380952372,
+      "status": "pending",
+      "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
+      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
+      "execution_verification_reason": null,
+      "entry_date": null,
+      "entry_price": null,
+      "sellable_from": null,
+      "exit_date": null,
+      "exit_price": null,
+      "exit_reason": null,
+      "realized_return_pct": null,
+      "realized_r": null,
+      "holding_sessions": null,
+      "entry_day_stop_touched": false,
+      "entry_day_target_touched": false,
+      "mfe_pct": null,
+      "mae_pct": null,
+      "mfe_mae_verification_status": null,
+      "latest_observation_date": null,
+      "latest_mark_price": null,
+      "unrealized_return_pct": null,
+      "unrealized_r": null,
+      "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE",
+      "result_price": null,
+      "days_tracked": 0,
+      "first_trigger_date": null,
+      "close_date": null,
+      "ambiguity_reason": null,
+      "observations": [],
+      "review_points": {
+        "T+3": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:603331:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+3",
+          "offset": 3,
+          "scheduled_date": "2026-09-21",
+          "review_trading_date": "2026-09-21",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:603331:B_BREAKOUT_RETEST|T+3|2026-09-21",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        },
+        "T+5": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:603331:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+5",
+          "offset": 5,
+          "scheduled_date": "2026-09-23",
+          "review_trading_date": "2026-09-23",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:603331:B_BREAKOUT_RETEST|T+5|2026-09-23",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        },
+        "T+10": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:603331:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+10",
+          "offset": 10,
+          "scheduled_date": "2026-10-08",
+          "review_trading_date": "2026-10-08",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:603331:B_BREAKOUT_RETEST|T+10|2026-10-08",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        }
+      }
+    },
+    "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:603583:B_BREAKOUT_RETEST": {
+      "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:603583:B_BREAKOUT_RETEST",
+      "strategy_version": "B_BREAKOUT_RETEST_LEGACY_V1_1",
+      "date": "2026-09-16",
+      "code": "603583",
+      "setup": "B_BREAKOUT_RETEST",
+      "name": "捷昌驱动",
+      "buy_type": "B 突破回踩",
+      "score": 51,
+      "trigger": 25.9,
+      "stop": 25.13,
+      "target": 27.89,
+      "rr": 3.0588235294117685,
+      "status": "pending",
+      "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
+      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
+      "execution_verification_reason": null,
+      "entry_date": null,
+      "entry_price": null,
+      "sellable_from": null,
+      "exit_date": null,
+      "exit_price": null,
+      "exit_reason": null,
+      "realized_return_pct": null,
+      "realized_r": null,
+      "holding_sessions": null,
+      "entry_day_stop_touched": false,
+      "entry_day_target_touched": false,
+      "mfe_pct": null,
+      "mae_pct": null,
+      "mfe_mae_verification_status": null,
+      "latest_observation_date": null,
+      "latest_mark_price": null,
+      "unrealized_return_pct": null,
+      "unrealized_r": null,
+      "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE",
+      "result_price": null,
+      "days_tracked": 0,
+      "first_trigger_date": null,
+      "close_date": null,
+      "ambiguity_reason": null,
+      "observations": [],
+      "review_points": {
+        "T+3": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:603583:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+3",
+          "offset": 3,
+          "scheduled_date": "2026-09-21",
+          "review_trading_date": "2026-09-21",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:603583:B_BREAKOUT_RETEST|T+3|2026-09-21",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        },
+        "T+5": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:603583:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+5",
+          "offset": 5,
+          "scheduled_date": "2026-09-23",
+          "review_trading_date": "2026-09-23",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:603583:B_BREAKOUT_RETEST|T+5|2026-09-23",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        },
+        "T+10": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:603583:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+10",
+          "offset": 10,
+          "scheduled_date": "2026-10-08",
+          "review_trading_date": "2026-10-08",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:603583:B_BREAKOUT_RETEST|T+10|2026-10-08",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        }
+      }
+    },
+    "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:603628:B_BREAKOUT_RETEST": {
+      "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:603628:B_BREAKOUT_RETEST",
+      "strategy_version": "B_BREAKOUT_RETEST_LEGACY_V1_1",
+      "date": "2026-09-16",
+      "code": "603628",
+      "setup": "B_BREAKOUT_RETEST",
+      "name": "清源股份",
+      "buy_type": "B 突破回踩",
+      "score": 45,
+      "trigger": 10.36,
+      "stop": 9.88,
+      "target": 11.17,
+      "rr": 3.1612903225806597,
+      "status": "pending",
+      "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
+      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
+      "execution_verification_reason": null,
+      "entry_date": null,
+      "entry_price": null,
+      "sellable_from": null,
+      "exit_date": null,
+      "exit_price": null,
+      "exit_reason": null,
+      "realized_return_pct": null,
+      "realized_r": null,
+      "holding_sessions": null,
+      "entry_day_stop_touched": false,
+      "entry_day_target_touched": false,
+      "mfe_pct": null,
+      "mae_pct": null,
+      "mfe_mae_verification_status": null,
+      "latest_observation_date": null,
+      "latest_mark_price": null,
+      "unrealized_return_pct": null,
+      "unrealized_r": null,
+      "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE",
+      "result_price": null,
+      "days_tracked": 0,
+      "first_trigger_date": null,
+      "close_date": null,
+      "ambiguity_reason": null,
+      "observations": [],
+      "review_points": {
+        "T+3": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:603628:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+3",
+          "offset": 3,
+          "scheduled_date": "2026-09-21",
+          "review_trading_date": "2026-09-21",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:603628:B_BREAKOUT_RETEST|T+3|2026-09-21",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        },
+        "T+5": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:603628:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+5",
+          "offset": 5,
+          "scheduled_date": "2026-09-23",
+          "review_trading_date": "2026-09-23",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:603628:B_BREAKOUT_RETEST|T+5|2026-09-23",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        },
+        "T+10": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:603628:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+10",
+          "offset": 10,
+          "scheduled_date": "2026-10-08",
+          "review_trading_date": "2026-10-08",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:603628:B_BREAKOUT_RETEST|T+10|2026-10-08",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        }
+      }
+    },
+    "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:605003:B_BREAKOUT_RETEST": {
+      "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:605003:B_BREAKOUT_RETEST",
+      "strategy_version": "B_BREAKOUT_RETEST_LEGACY_V1_1",
+      "date": "2026-09-16",
+      "code": "605003",
+      "setup": "B_BREAKOUT_RETEST",
+      "name": "众望布艺",
+      "buy_type": "B 突破回踩",
+      "score": 48,
+      "trigger": 23.98,
+      "stop": 22.76,
+      "target": 25.71,
+      "rr": 3.041095890410975,
+      "status": "pending",
+      "execution_model": "EXECUTION_MODEL_DAILY_OHLC_T1_V1",
+      "execution_verification_status": "T_PLUS_1_OBSERVATION_PENDING",
+      "execution_verification_reason": null,
+      "entry_date": null,
+      "entry_price": null,
+      "sellable_from": null,
+      "exit_date": null,
+      "exit_price": null,
+      "exit_reason": null,
+      "realized_return_pct": null,
+      "realized_r": null,
+      "holding_sessions": null,
+      "entry_day_stop_touched": false,
+      "entry_day_target_touched": false,
+      "mfe_pct": null,
+      "mae_pct": null,
+      "mfe_mae_verification_status": null,
+      "latest_observation_date": null,
+      "latest_mark_price": null,
+      "unrealized_return_pct": null,
+      "unrealized_r": null,
+      "return_basis": "GROSS / BEFORE_FEES_AND_SLIPPAGE",
+      "result_price": null,
+      "days_tracked": 0,
+      "first_trigger_date": null,
+      "close_date": null,
+      "ambiguity_reason": null,
+      "observations": [],
+      "review_points": {
+        "T+3": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:605003:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+3",
+          "offset": 3,
+          "scheduled_date": "2026-09-21",
+          "review_trading_date": "2026-09-21",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:605003:B_BREAKOUT_RETEST|T+3|2026-09-21",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        },
+        "T+5": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:605003:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+5",
+          "offset": 5,
+          "scheduled_date": "2026-09-23",
+          "review_trading_date": "2026-09-23",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:605003:B_BREAKOUT_RETEST|T+5|2026-09-23",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        },
+        "T+10": {
+          "signal_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:605003:B_BREAKOUT_RETEST",
+          "signal_date": "2026-09-16",
+          "horizon": "T+10",
+          "offset": 10,
+          "scheduled_date": "2026-10-08",
+          "review_trading_date": "2026-10-08",
+          "snapshot_id": "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-16:605003:B_BREAKOUT_RETEST|T+10|2026-10-08",
+          "status": "PENDING",
+          "quote_date": null,
+          "open": null,
+          "price": null,
+          "high": null,
+          "low": null,
+          "return_pct": null,
+          "path_status": null,
+          "signal_status": null,
+          "reason": null,
+          "source_mode": null,
+          "provenance": null
+        }
+      }
     }
   },
-  "updated": "2026-09-14 14:36:21",
+  "updated": "2026-09-16 15:10:42",
   "review_coverage": {
     "status": "READY",
-    "report_date": "2026-09-14",
+    "report_date": "2026-09-16",
     "failure_reason": null,
-    "execution_expected": 75,
-    "execution_captured": 75,
+    "execution_expected": 91,
+    "execution_captured": 91,
     "execution_missing": 0,
     "execution_expected_signal_ids": [
       "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:002543:B_BREAKOUT_RETEST",
@@ -10898,7 +12830,23 @@
       "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:002478:B_BREAKOUT_RETEST",
       "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:002913:B_BREAKOUT_RETEST",
       "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:600018:B_BREAKOUT_RETEST",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:603406:B_BREAKOUT_RETEST"
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:603406:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:000058:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:000850:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:002224:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:002394:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:002596:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:002614:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:600148:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:600155:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:600165:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:600533:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:600616:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:600774:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:600935:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:603269:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:603323:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:603326:B_BREAKOUT_RETEST"
     ],
     "execution_captured_signal_ids": [
       "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-03:002543:B_BREAKOUT_RETEST",
@@ -10975,93 +12923,49 @@
       "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:002478:B_BREAKOUT_RETEST",
       "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:002913:B_BREAKOUT_RETEST",
       "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:600018:B_BREAKOUT_RETEST",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:603406:B_BREAKOUT_RETEST"
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:603406:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:000058:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:000850:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:002224:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:002394:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:002596:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:002614:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:600148:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:600155:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:600165:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:600533:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:600616:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:600774:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:600935:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:603269:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:603323:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-14:603326:B_BREAKOUT_RETEST"
     ],
     "execution_missing_signal_ids": [],
-    "horizon_expected": 25,
-    "horizon_captured": 25,
+    "horizon_expected": 5,
+    "horizon_captured": 5,
     "horizon_missing": 0,
     "horizon_expected_point_ids": [
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:000930:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:001217:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002073:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002099:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002291:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002385:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002391:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002394:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002556:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002825:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300016:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300133:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300148:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300268:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300318:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300765:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:600278:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:601512:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603205:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603406:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603444:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603585:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603970:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:605567:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:688002:B_BREAKOUT_RETEST|T+5|2026-09-14"
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:002394:B_BREAKOUT_RETEST|T+3|2026-09-16",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:002478:B_BREAKOUT_RETEST|T+3|2026-09-16",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:002913:B_BREAKOUT_RETEST|T+3|2026-09-16",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:600018:B_BREAKOUT_RETEST|T+3|2026-09-16",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:603406:B_BREAKOUT_RETEST|T+3|2026-09-16"
     ],
     "horizon_captured_point_ids": [
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:000930:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:001217:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002073:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002099:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002291:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002385:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002391:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002394:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002556:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002825:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300016:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300133:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300148:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300268:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300318:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300765:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:600278:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:601512:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603205:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603406:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603444:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603585:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603970:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:605567:B_BREAKOUT_RETEST|T+5|2026-09-14",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:688002:B_BREAKOUT_RETEST|T+5|2026-09-14"
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:002394:B_BREAKOUT_RETEST|T+3|2026-09-16",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:002478:B_BREAKOUT_RETEST|T+3|2026-09-16",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:002913:B_BREAKOUT_RETEST|T+3|2026-09-16",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:600018:B_BREAKOUT_RETEST|T+3|2026-09-16",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:603406:B_BREAKOUT_RETEST|T+3|2026-09-16"
     ],
     "horizon_missing_points": [],
     "horizon_expected_signal_ids": [
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:000930:B_BREAKOUT_RETEST",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:001217:B_BREAKOUT_RETEST",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002073:B_BREAKOUT_RETEST",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002099:B_BREAKOUT_RETEST",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002291:B_BREAKOUT_RETEST",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002385:B_BREAKOUT_RETEST",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002391:B_BREAKOUT_RETEST",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002394:B_BREAKOUT_RETEST",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002556:B_BREAKOUT_RETEST",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:002825:B_BREAKOUT_RETEST",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300016:B_BREAKOUT_RETEST",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300133:B_BREAKOUT_RETEST",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300148:B_BREAKOUT_RETEST",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300268:B_BREAKOUT_RETEST",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300318:B_BREAKOUT_RETEST",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:300765:B_BREAKOUT_RETEST",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:600278:B_BREAKOUT_RETEST",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:601512:B_BREAKOUT_RETEST",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603205:B_BREAKOUT_RETEST",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603406:B_BREAKOUT_RETEST",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603444:B_BREAKOUT_RETEST",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603585:B_BREAKOUT_RETEST",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:603970:B_BREAKOUT_RETEST",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:605567:B_BREAKOUT_RETEST",
-      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-07:688002:B_BREAKOUT_RETEST"
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:002394:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:002478:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:002913:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:600018:B_BREAKOUT_RETEST",
+      "B_BREAKOUT_RETEST_LEGACY_V1_1:2026-09-11:603406:B_BREAKOUT_RETEST"
     ]
   },
   "recovery_audit": {
