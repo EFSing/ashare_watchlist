@@ -5,6 +5,38 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-16 — PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1
+
+- classification：`product infrastructure + correctness`；不是策略研究、参数调整、provider
+  fallback、scheduler、Cloudflare、promotion、Final OOS 或 PR #60 工作。
+- decision：`ADOPT` a deliberately narrow per-symbol isolation policy. Exactly one symbol may be
+  quarantined only when it is in the canonical production universe, the target is a normal XSHG session,
+  the target-day quote proves ordinary trading (`TRADED` with positive OHLC and volume), the historical
+  provider response is non-empty, structurally valid, conflict-free and future-free, and its latest bar
+  is strictly before the target date with the sole classification `TARGET_DAY_HISTORICAL_STALE`.
+- decision：the isolated symbol is removed from strategy evaluation and recorded as
+  `EXCLUDED_PROVIDER_STALE` with the symbol, target/provider/latest date, quote-trade state, evidence/
+  provenance, and this policy version. A second same-class stale symbol fails closed; no percentage
+  threshold or two-symbol degraded mode exists.
+- rationale：one transient target-day provider freshness lag must not abort the whole daily production,
+  while a broad, ambiguous, malformed, future, identity, universe, benchmark, environment, auth,
+  unknown, strategy, or runtime-state failure must not be relabelled as a recoverable skip. The one-symbol
+  cap preserves an auditable completeness boundary and prevents silent broad degradation.
+- identity/report contract：`coverage_status`, evaluated count, exclusion record(s), and policy version
+  are included in the live input/generation identity, canonical watchlist/run manifest, self-contained
+  report metadata and checkpoint manifest; runtime-state rejects watchlist/checkpoint/report coverage
+  mismatches. The report explicitly renders `INPUT COVERAGE = COMPLETE` or `DEGRADED` and, for degraded
+  coverage, “本次候选名单未包含该数据异常股票。”
+- regression boundary：605366.SH reproduces quote-traded + one-session-stale historical input; the
+  single-stale path continues, the second-stale path fails closed, and existing no-trade/future/malformed/
+  identity semantics remain unchanged. Formal `B_BREAKOUT_RETEST_LEGACY_V1_1` and its frozen spec SHA are
+  unchanged.
+- governance：the persisted `origin/master=040e077b` snapshot was reconciled against live
+  `5a024185206ca868ddf10c2e871a4a34edb1b878`; live `origin/runtime-state` is
+  `520d6fab222bf553caa3eeb29cc83176318626d0`. PR #63 is merged; PR #60 remains `OPEN / DIRTY` and
+  untouched. Final OOS remains `SEALED / UNREAD`, and `data/validation/continuous_speed_probe/` remains
+  unread and untouched.
+
 ## 2026-09-15 — RUNTIME_STATE_HISTORICAL_CHECKPOINT_MUTABLE_TRACKER_VALIDATION_FIX_V1
 
 - classification：`product infrastructure + correctness`；不是策略、研究、provider、scheduler

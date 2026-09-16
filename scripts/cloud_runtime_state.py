@@ -17,6 +17,7 @@ import os
 import re
 import tempfile
 from datetime import date, datetime, time as datetime_time, timedelta, timezone
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
@@ -38,7 +39,7 @@ from track_perf import (
 )
 from upload_daily_checkpoint import CheckpointError, file_sha256, validate_manifest
 from universe_policy import BOARD_CHINEXT, BOARD_STAR, classify_board, policy_display_label
-from watchlist_schema import WatchlistSchemaError, load_watchlist
+from watchlist_schema import WatchlistSchemaError, load_watchlist, validate_input_coverage
 
 
 RUNTIME_STATE_MARKER = "GITHUB_ACTIONS_DAILY_RUNTIME_V1"
@@ -407,6 +408,44 @@ def _hash_record(path: Path) -> dict[str, Any]:
     return {"path": str(path), "byte_length": path.stat().st_size, "sha256": file_sha256(path)}
 
 
+class _InputCoverageMetaParser(HTMLParser):
+    """Read the one machine-readable coverage meta tag from a report."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.value: str | None = None
+        self.duplicate = False
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag.lower() != "meta":
+            return
+        values = dict(attrs)
+        if values.get("name") != "input-coverage-json":
+            return
+        if self.value is not None:
+            self.duplicate = True
+            return
+        content = values.get("content")
+        if content is not None:
+            self.value = content
+
+
+def _report_input_coverage(report_path: Path) -> dict[str, Any] | None:
+    try:
+        parser = _InputCoverageMetaParser()
+        parser.feed(report_path.read_text(encoding="utf-8"))
+        parser.close()
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        raise RuntimeStateError(f"report input coverage cannot be read: {report_path}") from exc
+    if parser.duplicate or parser.value is None:
+        return None
+    try:
+        value = json.loads(parser.value)
+        return validate_input_coverage(value)
+    except (TypeError, ValueError, json.JSONDecodeError) as exc:
+        raise RuntimeStateError(f"report input coverage is invalid: {report_path}") from exc
+
+
 def _manifest_paths(data_root: Path, manifest: Mapping[str, Any]) -> dict[str, Path]:
     _list_date, token = _date_parts(str(manifest.get("list_date", "")))
     paths = DataPaths(data_root)
@@ -462,6 +501,17 @@ def _validate_checkpoint_manifest(
     if manifest_path.name != expected_name:
         raise RuntimeStateError(f"checkpoint filename/date mismatch: {manifest_path.name}")
     local_paths = _manifest_paths(data_root, manifest)
+    try:
+        watchlist = load_watchlist(local_paths["watchlist"])
+    except (OSError, UnicodeDecodeError, WatchlistSchemaError) as exc:
+        raise RuntimeStateError(f"checkpoint watchlist cannot be validated: {manifest_path}") from exc
+    watchlist_coverage = watchlist.get("input_coverage")
+    manifest_coverage = manifest.get("input_coverage")
+    if watchlist_coverage != manifest_coverage:
+        raise RuntimeStateError(f"checkpoint input coverage mismatch: {manifest_path}")
+    report_coverage = _report_input_coverage(local_paths["dated_html"])
+    if watchlist_coverage != report_coverage:
+        raise RuntimeStateError(f"report input coverage mismatch: {manifest_path}")
     for key, path in local_paths.items():
         record = manifest.get(key)
         if not isinstance(record, Mapping):
@@ -810,6 +860,7 @@ def completed_run_status(data_root: str | Path, date_value: str | date | datetim
     return {
         "status": ALREADY_COMPLETED,
         "list_date": list_date,
+        "input_coverage": watchlist.get("input_coverage"),
         "watchlist": _hash_record(watchlist_path),
         "tracker": _hash_record(paths.perf_tracker_file()),
         "dated_html": _hash_record(html_path),
@@ -881,6 +932,17 @@ def build_summary(
     )
     candidates = watchlist.get("candidates", []) if watchlist else []
     candidate_count = len(candidates) if watchlist else "—"
+    input_coverage = watchlist.get("input_coverage") if watchlist else None
+    coverage_status = (
+        str(input_coverage.get("coverage_status"))
+        if isinstance(input_coverage, Mapping)
+        else "UNVERIFIED"
+    )
+    excluded_count = (
+        input_coverage.get("excluded_symbol_count", "—")
+        if isinstance(input_coverage, Mapping)
+        else "—"
+    )
     chinext_count = sum(classify_board(item.get("code")) == BOARD_CHINEXT for item in candidates if isinstance(item, Mapping))
     star_count = sum(classify_board(item.get("code")) == BOARD_STAR for item in candidates if isinstance(item, Mapping))
     watchlist_sha = file_sha256(watchlist_path) if watchlist_path.is_file() else "—"
@@ -896,6 +958,8 @@ def build_summary(
             f"- Status: {resolved_status}",
             f"- Universe: {universe}",
             f"- Candidate count: {candidate_count}",
+            f"- Input coverage: {coverage_status}",
+            f"- Excluded symbol count: {excluded_count}",
             f"- ChiNext candidates: {chinext_count if watchlist else '—'}",
             f"- STAR candidates: {star_count if watchlist else '—'}",
             f"- Strategy: {CURRENT_PROSPECTIVE_STRATEGY}",

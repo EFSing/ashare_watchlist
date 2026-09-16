@@ -9,6 +9,7 @@ import requests
 
 import live_acquisition as live
 from b_breakout_retest_v1_1 import evaluate_candidate as evaluate_b_candidate
+from development_candidate import B_STRATEGY_BINDING, DevelopmentCandidateStore, RUN_NO_CANDIDATES, RUN_PUBLISHED
 from generation_contract import (
     FUTURE_DATA_DETECTED,
     INCOMPLETE_COVERAGE,
@@ -100,10 +101,11 @@ class FakeAkShare:
 
 
 class FakeHiThink:
-    def __init__(self, *, universe=None, bars=None, index_bars=None, failures=None):
+    def __init__(self, *, universe=None, bars=None, index_bars=None, bars_by_thscode=None, failures=None):
         self._universe = universe
         self._bars = bars
         self._index_bars = index_bars
+        self._bars_by_thscode = dict(bars_by_thscode or {})
         self._failures = {key: list(values) for key, values in (failures or {}).items()}
         self.universe_calls = 0
         self.kline_calls = []
@@ -154,7 +156,10 @@ class FakeHiThink:
         bars = (
             self._index_bars
             if index and self._index_bars is not None
-            else (self._bars if self._bars is not None else _bars())
+            else self._bars_by_thscode.get(
+                thscode,
+                self._bars if self._bars is not None else _bars(),
+            )
         )
         result = []
         for row in bars:
@@ -210,11 +215,11 @@ def _bars(last_date: str = AS_OF, count: int = 21):
     ]
 
 
-def _quote_line(quote_date: str = AS_OF, *, no_trade: bool = False) -> str:
+def _quote_line(quote_date: str = AS_OF, *, no_trade: bool = False, code: str = SYMBOL) -> str:
     fields = ["0"] * 50
     fields[0] = "1"
     fields[1] = "测试股份"
-    fields[2] = "600519"
+    fields[2] = code
     fields[3] = "0.77" if no_trade else "123.45"
     fields[4] = "0.77" if no_trade else "120.00"
     fields[5] = "0" if no_trade else "121.00"
@@ -225,7 +230,8 @@ def _quote_line(quote_date: str = AS_OF, *, no_trade: bool = False) -> str:
     fields[34] = "0" if no_trade else "119.50"
     fields[38] = "0" if no_trade else "4.56"
     fields[49] = "0" if no_trade else "1.78"
-    return f'v_sh600519="{"~".join(fields)}";'
+    market = "sh" if code.startswith(("5", "6", "9")) else "sz"
+    return f'v_{market}{code}="{"~".join(fields)}";'
 
 
 def _request_get(*, quote_date: str = AS_OF, bars=None, calls=None, no_trade: bool = False):
@@ -236,7 +242,10 @@ def _request_get(*, quote_date: str = AS_OF, bars=None, calls=None, no_trade: bo
         if calls is not None:
             calls.append(url)
         if url.startswith("https://qt.gtimg.cn"):
-            return FakeResponse(text=_quote_line(quote_date, no_trade=no_trade))
+            codes = url.split("q=", 1)[1].split(",")
+            return FakeResponse(
+                text="".join(_quote_line(quote_date, no_trade=no_trade, code=code[2:]) for code in codes)
+            )
         provider_symbol = url.split("param=", 1)[1].split(",", 1)[0]
         return FakeResponse({"data": {provider_symbol: {"qfqday": bars}}})
 
@@ -755,16 +764,18 @@ def test_tencent_stock_fallback_accepts_stale_non_empty_history_for_listed_suspe
     assert stock.provider == "Tencent"
     assert stock.bar_count == 141
     assert stock.last_bar_date == "2026-08-26"
+    assert package.generation_input_manifest.provider_version_metadata["input_coverage"]["coverage_status"] == "COMPLETE"
+    assert package.generation_input_manifest.provider_version_metadata["input_coverage"]["excluded_symbols"] == []
 
 
-def test_tencent_stock_fallback_rejects_stale_history_for_ordinary_trade():
+def test_tencent_stock_fallback_stale_history_without_remaining_universe_fails_closed():
     with pytest.raises(live.LiveAcquisitionError) as caught:
         _acquire(
             hithink_client=FakeHiThink(failures={"stock": [ConnectionError("down")]}),
             request_get=_request_get(bars=_bars(last_date="2026-08-26", count=141)),
         )
 
-    assert caught.value.status == INPUT_DATE_MISMATCH
+    assert caught.value.status == INCOMPLETE_COVERAGE
 
 
 def test_hithink_stock_failure_is_fail_closed_when_fallback_is_disabled():
@@ -1323,7 +1334,7 @@ def test_stale_non_empty_stock_kline_is_accepted_for_listed_suspension():
     assert package.generation_input_manifest.status == "READY_FOR_STRATEGY_EVALUATION"
 
 
-def test_stale_non_empty_stock_kline_is_rejected_for_ordinary_trade():
+def test_stale_non_empty_stock_kline_without_remaining_universe_fails_closed():
     with pytest.raises(live.LiveAcquisitionError) as caught:
         _acquire(
             hithink_client=FakeHiThink(
@@ -1332,7 +1343,148 @@ def test_stale_non_empty_stock_kline_is_rejected_for_ordinary_trade():
             ),
         )
 
+    assert caught.value.status == INCOMPLETE_COVERAGE
+
+
+def test_stale_history_without_positive_volume_proof_remains_fatal():
+    base_request = _request_get(bars=_bars(last_date="2026-08-26", count=141))
+
+    def request_get(url, timeout):
+        response = base_request(url, timeout)
+        if url.startswith("https://qt.gtimg.cn"):
+            lhs, rhs = response.text.split("=", 1)
+            fields = rhs.strip().rstrip(";")[1:-1].split("~")
+            fields[6] = "0"
+            response = FakeResponse(text=f'{lhs}="{"~".join(fields)}";')
+        return response
+
+    with pytest.raises(live.LiveAcquisitionError) as caught:
+        _acquire(
+            hithink_client=FakeHiThink(
+                bars=_bars(last_date="2026-08-26", count=141),
+                index_bars=_bars(),
+            ),
+            request_get=request_get,
+        )
+
     assert caught.value.status == INPUT_DATE_MISMATCH
+
+
+def _multi_symbol_acquire(
+    *,
+    bars_by_code: dict[str, list[list[object]]],
+    symbols: tuple[str, ...] = ("605366", "600519"),
+):
+    universe = [
+        {
+            "thscode": f"{code}.SH",
+            "ticker": code,
+            "name": f"测试股份{code[-2:]}",
+            "exchange": "SH",
+            "asset_type": "a-share",
+        }
+        for code in symbols
+    ]
+    official = {
+        "主板A股": [
+            {"证券代码": code, "上市日期": "2001-08-23"}
+            for code in symbols
+        ]
+    }
+    hithink = FakeHiThink(
+        universe=universe,
+        bars_by_thscode={f"{code}.SH": bars_by_code[code] for code in symbols},
+        index_bars=_bars(),
+    )
+    return _acquire(
+        hithink_client=hithink,
+        akshare_module=FakeAkShare(official_roster=official),
+        request_get=_request_get(),
+        stock_bar_count=141,
+    )
+
+
+def test_605366_single_traded_stale_symbol_is_quarantined():
+    package = _multi_symbol_acquire(
+        bars_by_code={
+            "605366": _bars(last_date="2026-08-26", count=141),
+            "600519": _bars(last_date=AS_OF, count=141),
+        }
+    )
+
+    manifest = package.generation_input_manifest
+    coverage = manifest.provider_version_metadata["input_coverage"]
+    assert coverage["coverage_status"] == "DEGRADED"
+    assert coverage["evaluated_symbol_count"] == 1
+    assert coverage["excluded_symbol_count"] == 1
+    excluded = coverage["excluded_symbols"][0]
+    assert excluded["symbol"] == "605366"
+    assert excluded["provider_symbol"] == "605366.SH"
+    assert excluded["target_date"] == AS_OF
+    assert excluded["provider"] == "HiThink Financial-API"
+    assert excluded["status"] == "EXCLUDED_PROVIDER_STALE"
+    assert excluded["reason"] == "TARGET_DAY_HISTORICAL_STALE"
+    assert excluded["latest_historical_date"] == "2026-08-26"
+    assert excluded["quote_trade_state"] == "TRADED"
+    assert excluded["policy_version"] == "PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1"
+    assert excluded["evidence"]["quote"]["volume"] > 0
+    assert excluded["evidence"]["historical"]["validation"]["future_data"] is False
+    assert manifest.universe.symbols == ("600519",)
+    assert set(manifest.quote_snapshot.quotes) == {"600519"}
+    assert [item.symbol for item in manifest.stock_klines] == ["600519"]
+    assert set(package.display_names) == {"600519"}
+    assert package.provenance["input_coverage"] == coverage
+
+
+def test_second_traded_stale_symbol_fails_closed():
+    with pytest.raises(live.LiveAcquisitionError) as caught:
+        _multi_symbol_acquire(
+            bars_by_code={
+                "605366": _bars(last_date="2026-08-26", count=141),
+                "600519": _bars(last_date="2026-08-26", count=141),
+            }
+        )
+
+    assert caught.value.status == live.TARGET_DAY_HISTORICAL_STALE_LIMIT_EXCEEDED
+    assert caught.value.diagnostics["policy_version"] == "PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1"
+    assert caught.value.diagnostics["symbols"] == ["600519", "605366"]
+
+
+def test_single_stale_coverage_identity_is_deterministic():
+    bars = {
+        "605366": _bars(last_date="2026-08-26", count=141),
+        "600519": _bars(last_date=AS_OF, count=141),
+    }
+    first = _multi_symbol_acquire(bars_by_code=bars)
+    second = _multi_symbol_acquire(bars_by_code=bars)
+
+    assert first.generation_fingerprint == second.generation_fingerprint
+    assert first.content_sha256 == second.content_sha256
+    assert first.to_bytes() == second.to_bytes()
+
+
+def test_quarantined_symbol_is_absent_from_b_evaluator_input(tmp_path):
+    package = _multi_symbol_acquire(
+        bars_by_code={
+            "605366": _bars(last_date="2026-08-26", count=141),
+            "600519": _bars(last_date=AS_OF, count=141),
+        }
+    )
+
+    result = DevelopmentCandidateStore(tmp_path).generate(
+        package.generation_input_manifest,
+        names=package.display_names,
+        market_env=package.market_env,
+        strategy_binding=B_STRATEGY_BINDING,
+        input_provenance=package.provenance,
+    )
+
+    assert result.status in {RUN_PUBLISHED, RUN_NO_CANDIDATES}
+    payload = json.loads(result.output_path.read_text(encoding="utf-8"))
+    assert payload["input_coverage"]["excluded_symbols"][0]["symbol"] == "605366"
+    assert all(candidate["code"] != "605366" for candidate in payload["candidates"])
+    record = json.loads(result.run_manifest_path.read_text(encoding="utf-8"))
+    assert record["input_coverage"] == payload["input_coverage"]
 
 
 @pytest.mark.parametrize("available_bars", [260, 141, 120])
@@ -1446,6 +1598,14 @@ def test_complete_package_has_t_plus_one_market_env_and_provenance():
     assert package.generation_input_manifest.universe.universe_scope_version == "TRADABLE_UNIVERSE_SCOPE_V1"
     assert package.provenance["universe_policy"] == "ASHARE_MAIN_BOARD_ONLY_V1"
     assert package.provenance["universe_policy_metadata"]["allowed_boards"] == ["Main"]
+    assert package.generation_input_manifest.provider_version_metadata["input_coverage"] == {
+        "schema_version": "INPUT_COVERAGE_V1",
+        "coverage_status": "COMPLETE",
+        "evaluated_symbol_count": 1,
+        "excluded_symbol_count": 0,
+        "excluded_symbols": [],
+        "policy_version": "PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1",
+    }
     assert package.generation_identity_payload["universe_policy"]["name"] == "ASHARE_MAIN_BOARD_ONLY_V1"
     assert package.generation_input_manifest.index.provider == "HiThink Financial-API"
     assert package.generation_input_manifest.index.adjustment_mode == "PROVIDER_RAW_SNAPSHOT"

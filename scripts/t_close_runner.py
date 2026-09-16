@@ -495,6 +495,7 @@ def run(
         "as_of_date": package.generation_input_manifest.signal_date,
         "code_git_sha": code_git_sha,
         "evidence_capture": package.provenance.get("evidence_capture"),
+        "input_coverage": package.provenance.get("input_coverage"),
         "input_package": {
             "status": persisted.status,
             "path": str(persisted.path),

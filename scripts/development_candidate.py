@@ -38,7 +38,12 @@ from universe_policy import (
     is_live_universe_eligible,
     universe_policy_metadata,
 )
-from watchlist_schema import WatchlistSchemaError, load_watchlist, validate_watchlist
+from watchlist_schema import (
+    WatchlistSchemaError,
+    load_watchlist,
+    validate_input_coverage,
+    validate_watchlist,
+)
 
 
 DEVELOPMENT_CANDIDATE_SCHEMA = "DEVELOPMENT_CANDIDATE_RUN_V1"
@@ -441,6 +446,7 @@ def _generation_identity(
     normalized_names: Mapping[str, str],
     symbols: Any,
     market_env: Mapping[str, Any],
+    input_coverage: Mapping[str, Any] | None = None,
     user_tradability_eligibility: Mapping[str, Any] | None = None,
 ) -> tuple[str, dict[str, Any], dict[str, Any]]:
     """Return the full output identity and its auditable auxiliary inputs."""
@@ -463,6 +469,14 @@ def _generation_identity(
             "values": canonical_market_env,
         },
     }
+    if input_coverage is not None:
+        coverage = copy.deepcopy(dict(input_coverage))
+        auxiliary_values["input_coverage"] = coverage
+        auxiliary_inputs["input_coverage"] = {
+            "identity": "canonical_input_coverage",
+            "sha256": _sha256_bytes(_canonical_json(coverage)),
+            "values": coverage,
+        }
     if user_tradability_eligibility is not None:
         eligibility = copy.deepcopy(dict(user_tradability_eligibility))
         auxiliary_values["user_tradability_eligibility"] = eligibility
@@ -487,6 +501,41 @@ def _generation_identity(
     if manifest.provider_version_metadata.get("universe_policy") == UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1:
         payload["universe_policy"] = universe_policy_metadata()
     return _sha256_bytes(_canonical_json(payload)), payload, auxiliary_inputs
+
+
+def _input_coverage_for_generation(
+    manifest: GenerationInputManifest,
+    input_provenance: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Validate that live coverage metadata reaches the evaluator boundary."""
+
+    manifest_value = manifest.provider_version_metadata.get("input_coverage")
+    provenance_value = input_provenance.get("input_coverage") if isinstance(input_provenance, Mapping) else None
+    if manifest_value is None and provenance_value is None:
+        return None
+    if not isinstance(manifest_value, Mapping) or not isinstance(provenance_value, Mapping):
+        raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, "input coverage metadata is incomplete")
+    try:
+        coverage = validate_input_coverage(
+            manifest_value,
+            expected_evaluated_symbol_count=len(manifest.universe.symbols),
+            expected_target_date=manifest.signal_date,
+        )
+    except ValueError as exc:
+        raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, f"input coverage metadata is invalid: {exc}") from exc
+    if dict(provenance_value) != coverage:
+        raise DevelopmentCandidateError(RUN_OUTPUT_CONFLICT, "input coverage provenance does not match the manifest")
+    excluded_symbols = {
+        str(item.get("symbol"))
+        for item in coverage["excluded_symbols"]
+        if isinstance(item, Mapping)
+    }
+    if excluded_symbols.intersection(manifest.universe.symbols):
+        raise DevelopmentCandidateError(
+            RUN_OUTPUT_CONFLICT,
+            "excluded input symbol remains in the evaluator universe",
+        )
+    return coverage
 
 
 def _empty_or_normalized_names(names: Mapping[str, str]) -> dict[str, str]:
@@ -583,6 +632,9 @@ class DevelopmentCandidateStore:
         if manifest.provider_version_metadata.get("universe_policy") == UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1:
             record["universe_policy"] = UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1
             record["universe_policy_metadata"] = universe_policy_metadata()
+        coverage = auxiliary_inputs.get("input_coverage")
+        if isinstance(coverage, Mapping) and isinstance(coverage.get("values"), Mapping):
+            record["input_coverage"] = copy.deepcopy(dict(coverage["values"]))
         if output_sha256 is not None:
             record["output"] = {
                 "logical_identity": f"watchlist_{manifest.signal_date.replace('-', '')}.json",
@@ -721,6 +773,20 @@ class DevelopmentCandidateStore:
                     return False
             except (TypeError, ValueError):
                 return False
+        if "input_coverage" in payload_auxiliary:
+            payload_values = payload_auxiliary.get("input_coverage")
+            record_values = record_auxiliary.get("input_coverage")
+            if not isinstance(record_values, Mapping) or record_values.get("values") != payload_values:
+                return False
+            if record.get("input_coverage") != payload_values:
+                return False
+            try:
+                if record_values.get("sha256") != _sha256_bytes(_canonical_json(payload_values)):
+                    return False
+            except (TypeError, ValueError):
+                return False
+        elif "input_coverage" in record:
+            return False
         if "user_tradability_eligibility" in payload_auxiliary:
             payload_values = payload_auxiliary.get("user_tradability_eligibility")
             record_values = record_auxiliary.get("user_tradability_eligibility")
@@ -741,6 +807,7 @@ class DevelopmentCandidateStore:
         binding: StrategyBinding,
         names: Mapping[str, str],
         market_env: Mapping[str, Any],
+        input_coverage: Mapping[str, Any] | None = None,
     ) -> tuple[str, dict[str, Any], dict[str, Any]]:
         normalized_names = _empty_or_normalized_names(names)
         try:
@@ -753,6 +820,7 @@ class DevelopmentCandidateStore:
             normalized_names=normalized_names,
             symbols=symbols,
             market_env=market_env,
+            input_coverage=input_coverage,
         )
 
     def generate(
@@ -777,16 +845,22 @@ class DevelopmentCandidateStore:
             raise DevelopmentCandidateError(RUN_INPUT_NOT_READY, "names and market_env must be mappings")
 
         binding = _binding_for_call(strategy_binding)
+        input_coverage: dict[str, Any] | None = None
         try:
             if _requires_production_universe_policy(binding):
                 manifest = _apply_b_production_universe_policy(manifest)
+            input_coverage = _input_coverage_for_generation(manifest, input_provenance)
             if strategy_binding is not None:
                 _validate_nominated_candidate(binding, input_provenance)
             evaluations = list(binding.evaluate_universe(manifest))
             _validate_evaluations(evaluations, binding)
         except DevelopmentCandidateError as exc:
             generation_fingerprint, generation_payload, auxiliary_inputs = self._identity_for_failure(
-                manifest, binding=binding, names=names, market_env=market_env
+                manifest,
+                binding=binding,
+                names=names,
+                market_env=market_env,
+                input_coverage=input_coverage,
             )
             run_path = self._record(
                 manifest,
@@ -804,7 +878,11 @@ class DevelopmentCandidateStore:
             return self._result(exc.status, manifest, generation_fingerprint, binding, 0, None, None, run_path)
         except Exception as exc:
             generation_fingerprint, generation_payload, auxiliary_inputs = self._identity_for_failure(
-                manifest, binding=binding, names=names, market_env=market_env
+                manifest,
+                binding=binding,
+                names=names,
+                market_env=market_env,
+                input_coverage=input_coverage,
             )
             run_path = self._record(
                 manifest,
@@ -835,6 +913,7 @@ class DevelopmentCandidateStore:
                 normalized_names=normalized_names,
                 symbols=[item.symbol for item in final_qualified],
                 market_env=market_env,
+                input_coverage=input_coverage,
                 user_tradability_eligibility=eligibility_report,
             )
             candidates = [_candidate_payload(item, normalized_names, binding) for item in final_qualified]
@@ -851,10 +930,16 @@ class DevelopmentCandidateStore:
             }
             if manifest.provider_version_metadata.get("universe_policy") == UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1:
                 watchlist_payload["universe_policy"] = UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1
+            if input_coverage is not None:
+                watchlist_payload["input_coverage"] = copy.deepcopy(input_coverage)
             payload = validate_watchlist(watchlist_payload)
         except DevelopmentCandidateError as exc:
             generation_fingerprint, generation_payload, auxiliary_inputs = self._identity_for_failure(
-                manifest, binding=binding, names=names, market_env=market_env
+                manifest,
+                binding=binding,
+                names=names,
+                market_env=market_env,
+                input_coverage=input_coverage,
             )
             run_path = self._record(
                 manifest,
@@ -872,7 +957,11 @@ class DevelopmentCandidateStore:
             return self._result(exc.status, manifest, generation_fingerprint, binding, 0, None, None, run_path)
         except (TypeError, ValueError, WatchlistSchemaError) as exc:
             generation_fingerprint, generation_payload, auxiliary_inputs = self._identity_for_failure(
-                manifest, binding=binding, names=names, market_env=market_env
+                manifest,
+                binding=binding,
+                names=names,
+                market_env=market_env,
+                input_coverage=input_coverage,
             )
             run_path = self._record(
                 manifest,

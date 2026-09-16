@@ -11,6 +11,7 @@ enable the tracker's read-only, in-memory historical reconstruction switch.
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import html
 import json
@@ -50,7 +51,13 @@ from track_perf import (
 )
 from trading_calendar import TradingCalendar, default_calendar, previous_trading_day
 from universe_policy import policy_display_label
-from watchlist_schema import load_watchlist
+from watchlist_schema import (
+    INPUT_COVERAGE_COMPLETE,
+    INPUT_COVERAGE_DEGRADED,
+    WatchlistSchemaError,
+    load_watchlist,
+    validate_input_coverage,
+)
 
 
 _BJT = timezone(timedelta(hours=8))
@@ -220,6 +227,7 @@ def _acquisition_status(paths: DataPaths, list_date: str) -> str:
     sidecars = sorted(evidence_root.rglob("*.json")) if evidence_root.exists() else []
     if not sidecars:
         return _UNVERIFIED
+    failed_sidecars: list[dict[str, Any]] = []
     for sidecar in sidecars:
         raw_path = sidecar.with_suffix(".raw")
         if not raw_path.is_file():
@@ -230,8 +238,24 @@ def _acquisition_status(paths: DataPaths, list_date: str) -> str:
             return _UNVERIFIED
         if not isinstance(metadata, Mapping):
             return _UNVERIFIED
-        if metadata.get("target_date") != list_date or metadata.get("completeness_status") != "COMPLETE":
+        if metadata.get("target_date") != list_date:
             return _UNVERIFIED
+        if metadata.get("completeness_status") != "COMPLETE":
+            failed_sidecars.append(dict(metadata))
+    if failed_sidecars:
+        try:
+            watchlist = load_watchlist(paths.watchlist_file(list_date))
+        except (OSError, UnicodeDecodeError, WatchlistSchemaError):
+            return _UNVERIFIED
+        coverage = watchlist.get("input_coverage")
+        if (
+            isinstance(coverage, Mapping)
+            and coverage.get("coverage_status") == INPUT_COVERAGE_DEGRADED
+            and len(failed_sidecars) == 1
+            and failed_sidecars[0].get("component") == "stock_kline"
+        ):
+            return INPUT_COVERAGE_DEGRADED
+        return _UNVERIFIED
     return "COMPLETE"
 
 
@@ -253,6 +277,64 @@ def _cloud_checkpoint_status(paths: DataPaths, list_date: str) -> str:
     if status == "LOCAL_INPUTS_VERIFIED":
         return "LOCAL_INPUTS_VERIFIED"
     return _UNVERIFIED
+
+
+def _input_coverage_metadata(value: Any) -> dict[str, Any]:
+    if not isinstance(value, Mapping):
+        return {
+            "input_coverage": None,
+            "input_coverage_status": _UNVERIFIED,
+            "evaluated_symbol_count": "—",
+            "excluded_symbol_count": "—",
+            "excluded_symbol": "—",
+            "excluded_reason": "—",
+            "excluded_latest_provider_date": "—",
+            "excluded_target_date": "—",
+            "input_coverage_policy_version": "—",
+        }
+    coverage = validate_input_coverage(value)
+    records = coverage["excluded_symbols"]
+    return {
+        "input_coverage": copy.deepcopy(coverage),
+        "input_coverage_status": coverage["coverage_status"],
+        "evaluated_symbol_count": coverage["evaluated_symbol_count"],
+        "excluded_symbol_count": coverage["excluded_symbol_count"],
+        "excluded_symbol": ", ".join(str(item.get("symbol")) for item in records) or "—",
+        "excluded_reason": ", ".join(str(item.get("reason")) for item in records) or "—",
+        "excluded_latest_provider_date": ", ".join(
+            str(item.get("latest_historical_date")) for item in records
+        ) or "—",
+        "excluded_target_date": ", ".join(str(item.get("target_date")) for item in records) or "—",
+        "input_coverage_policy_version": coverage["policy_version"],
+    }
+
+
+def _input_coverage_html(metadata: Mapping[str, Any]) -> str:
+    status = str(metadata.get("input_coverage_status") or _UNVERIFIED)
+    coverage = metadata.get("input_coverage")
+    if status == INPUT_COVERAGE_DEGRADED and isinstance(coverage, Mapping):
+        return (
+            '<div class="review-callout warning"><strong>INPUT COVERAGE = DEGRADED</strong>'
+            f'<p>evaluated_symbol_count = {_esc(metadata.get("evaluated_symbol_count"))}；'
+            f'excluded_symbol_count = {_esc(metadata.get("excluded_symbol_count"))}</p>'
+            f'<p>excluded symbol = {_esc(metadata.get("excluded_symbol"))}；'
+            f'reason = {_esc(metadata.get("excluded_reason"))}；'
+            f'latest provider date = {_esc(metadata.get("excluded_latest_provider_date"))}；'
+            f'target date = {_esc(metadata.get("excluded_target_date"))}；'
+            f'policy version = {_esc(metadata.get("input_coverage_policy_version"))}</p>'
+            '<p>本次候选名单未包含该数据异常股票。</p></div>'
+        )
+    if status == INPUT_COVERAGE_COMPLETE and isinstance(coverage, Mapping):
+        return (
+            '<div class="review-callout"><strong>INPUT COVERAGE = COMPLETE</strong>'
+            f'<p>evaluated_symbol_count = {_esc(metadata.get("evaluated_symbol_count"))}；'
+            f'excluded_symbol_count = {_esc(metadata.get("excluded_symbol_count"))}；'
+            f'policy version = {_esc(metadata.get("input_coverage_policy_version"))}</p></div>'
+        )
+    return (
+        '<div class="review-callout warning"><strong>INPUT COVERAGE = UNVERIFIED</strong>'
+        '<p>该历史输入未记录新的 coverage metadata。</p></div>'
+    )
 
 
 def _point_for_signal(
@@ -580,6 +662,7 @@ def build_report_model(
         raise ValueError('SKIP_LEGACY_OR_OUT_OF_SCOPE_WATCHLIST: report requires current prospective canonical')
     if watchlist["date"] != normalized_date:
         raise ValueError(f"watchlist date {watchlist['date']} != report date {normalized_date}")
+    coverage_metadata = _input_coverage_metadata(watchlist.get("input_coverage"))
 
     cal = calendar or default_calendar()
     tracker, review_failures = _load_review_tracker(resolver, review_failure)
@@ -674,15 +757,18 @@ def build_report_model(
                     unverified_dates[signal_date] = unverified_dates.get(signal_date, 0) + 1
     acquisition_status = _acquisition_status(resolver, normalized_date)
     cloud_checkpoint_status = _cloud_checkpoint_status(resolver, normalized_date)
+    coverage_status = str(coverage_metadata.get("input_coverage_status") or _UNVERIFIED)
+    coverage_degraded = coverage_status == INPUT_COVERAGE_DEGRADED
     quality_exception_count = (
         missing_count
         + unverified_count
         + sum(ambiguity_dates.values())
-        + (1 if acquisition_status != "COMPLETE" else 0)
+        + (1 if acquisition_status not in {"COMPLETE", INPUT_COVERAGE_DEGRADED} else 0)
         + (1 if cloud_checkpoint_status != "VERIFIED" else 0)
         + sum(item != "NONE" for item in review_failures)
         + int(trade_performance.get("performance_data_incomplete") or 0)
         + int(trade_performance.get("strategy_config_errors") or 0)
+        + (1 if coverage_degraded else 0)
     )
     data_quality = [
         {
@@ -742,9 +828,15 @@ def build_report_model(
         },
         {
             "category": "acquisition",
-            "count": 0 if acquisition_status == "COMPLETE" else 1,
+            "count": 0 if acquisition_status in {"COMPLETE", INPUT_COVERAGE_DEGRADED} else 1,
             "status": acquisition_status,
-            "reason": "T-close evidence sidecars complete" if acquisition_status == "COMPLETE" else "capture completeness is not verified",
+            "reason": (
+                "T-close evidence sidecars complete"
+                if acquisition_status == "COMPLETE"
+                else "one explicitly quarantined provider-stale symbol is recorded in input coverage"
+                if acquisition_status == INPUT_COVERAGE_DEGRADED
+                else "capture completeness is not verified"
+            ),
             "signal_dates": normalized_date,
         },
         {
@@ -752,6 +844,19 @@ def build_report_model(
             "count": 0 if cloud_checkpoint_status == "VERIFIED" else 1,
             "status": cloud_checkpoint_status,
             "reason": "dated checkpoint verified" if cloud_checkpoint_status == "VERIFIED" else "local manifest is not proof of remote cloud verification",
+            "signal_dates": normalized_date,
+        },
+        {
+            "category": "输入覆盖",
+            "count": coverage_metadata.get("excluded_symbol_count", 0) if coverage_degraded else 0,
+            "status": f"INPUT COVERAGE = {coverage_status}",
+            "reason": (
+                "本次候选名单未包含该数据异常股票。"
+                if coverage_degraded
+                else "canonical production input coverage is complete"
+                if coverage_status == INPUT_COVERAGE_COMPLETE
+                else "历史输入未记录新的 coverage metadata"
+            ),
             "signal_dates": normalized_date,
         },
     ]
@@ -789,7 +894,8 @@ def build_report_model(
         f"triggered {previous_triggered}、pending {previous_pending}、same-bar {previous_ambiguous}。"
         f"今日新信号 {today_t1_pending} 个，正常等待下一交易日 observation。"
         f"历史数据质量例外 {quality_exception_count} 个；"
-        f"acquisition={acquisition_status}、review={review_status}、cloud={cloud_checkpoint_status}。"
+        f"acquisition={acquisition_status}、review={review_status}、cloud={cloud_checkpoint_status}、"
+        f"input_coverage={coverage_status}。"
         + (f"今日 T+5 PRIMARY 到期 {summary['t5_count']} 个。" if summary['t5_count'] else "今日无 T+5 PRIMARY 到期信号。")
     )
     if review_coverage and review_coverage.get('status') == REVIEW_OBSERVATION_INCOMPLETE:
@@ -816,6 +922,7 @@ def build_report_model(
         "watchlist_sha": hashlib.sha256(watchlist_bytes).hexdigest(),
         "candidate_count": len(watchlist_rows),
         "report_generated_at": generated.isoformat(),
+        **coverage_metadata,
     }
     if review_coverage:
         metadata.update({
@@ -854,6 +961,9 @@ def build_report_model(
         "strategy_rule_performance_source": trade_performance.get("historical_data_source"),
         "strategy_rule_performance_provider_calls": trade_performance.get("historical_provider_calls", 0),
         "shadow_monitor_status": shadow_monitor.get("status", "UNVERIFIED"),
+        "input_coverage_status": coverage_status,
+        "evaluated_symbol_count": coverage_metadata.get("evaluated_symbol_count"),
+        "excluded_symbol_count": coverage_metadata.get("excluded_symbol_count"),
     }
     rolling_review = {
         "status": review_coverage.get("status", _UNVERIFIED) if review_coverage else _UNVERIFIED,
@@ -1491,6 +1601,10 @@ def _friendly_data_state(model: ReportModel, overview: Mapping[str, Any]) -> str
         return '待处理'
     if model.review_status == REVIEW_OBSERVATION_INCOMPLETE:
         return '覆盖不完整'
+    if overview.get('input_coverage_status') == INPUT_COVERAGE_DEGRADED:
+        return '覆盖降级'
+    if overview.get('input_coverage_status') not in {INPUT_COVERAGE_COMPLETE}:
+        return '待核验'
     if overview.get('acquisition_status') != 'COMPLETE':
         return '待核验'
     return 'READY'
@@ -1512,10 +1626,17 @@ def _audit_metadata_html(metadata: Mapping[str, Any]) -> str:
         'horizon_coverage': '节点覆盖', 'recovery_policy': '恢复策略',
         'recovery_evidence_root': '恢复证据根目录', 'recovery_integrity': '恢复完整性',
         'recovery_provider_calls': '恢复 provider calls',
+        'input_coverage_status': 'INPUT COVERAGE',
+        'evaluated_symbol_count': '已评估股票数', 'excluded_symbol_count': '排除股票数',
+        'excluded_symbol': '排除股票', 'excluded_reason': '排除原因',
+        'excluded_latest_provider_date': '排除股票最新 provider 日期',
+        'excluded_target_date': '排除目标日期',
+        'input_coverage_policy_version': '覆盖策略版本',
     }
     return '<dl class="audit-metadata">' + ''.join(
         f'<div><dt>{_esc(labels.get(key, key))}</dt><dd><code>{_esc(value)}</code></dd></div>'
         for key, value in metadata.items()
+        if key != 'input_coverage'
     ) + '</dl>'
 
 
@@ -1653,6 +1774,12 @@ def render_html(model: ReportModel) -> str:
     audit_summary = _esc(model.summary_text)
     issue_summary = _esc('；'.join(model.anomalies))
     acquisition_complete = overview.get('acquisition_status') == 'COMPLETE'
+    acquisition_status = str(overview.get('acquisition_status') or _UNVERIFIED)
+    acquisition_label = (
+        '完整' if acquisition_complete else
+        '降级' if acquisition_status == INPUT_COVERAGE_DEGRADED else
+        '待核验'
+    )
     cloud_verified = overview.get('cloud_checkpoint_status') == 'VERIFIED'
     review_ready = model.review_status == 'READY'
     data_state = _friendly_data_state(model, overview)
@@ -1675,11 +1802,22 @@ def render_html(model: ReportModel) -> str:
         _research_panel('T+10', '延伸观察', model.review_sections['T+10']),
     ])
 
+    coverage_meta_tag = ""
+    if isinstance(metadata.get("input_coverage"), Mapping):
+        coverage_json = json.dumps(
+            metadata["input_coverage"],
+            ensure_ascii=False,
+            allow_nan=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        coverage_meta_tag = f'<meta name="input-coverage-json" content="{_esc(coverage_json)}">\n'
+
     return f"""<!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+{coverage_meta_tag}<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>A股策略复盘 · { _esc(metadata.get('review_date')) }</title>
 <style>
 :root {{
@@ -1919,9 +2057,10 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   </div>
   <div class="status-pills">
     {_status_pill('T+1', '日线', 'neutral')}
-    {_status_pill('证据', '完整' if acquisition_complete else '待核验', 'positive' if acquisition_complete else 'warning')}
+    {_status_pill('证据', acquisition_label, 'positive' if acquisition_complete else 'warning')}
     {_status_pill('复盘', '就绪' if review_ready else '待处理', 'positive' if review_ready else 'warning')}
     {_status_pill('云端', '已验证' if cloud_verified else '仅本地', 'positive' if cloud_verified else 'neutral')}
+    {_status_pill('输入覆盖', metadata.get('input_coverage_status', 'UNVERIFIED'), 'warning' if metadata.get('input_coverage_status') == 'DEGRADED' else 'positive' if metadata.get('input_coverage_status') == 'COMPLETE' else 'neutral')}
   </div>
   <nav class="section-nav" aria-label="报告章节导航">
     <a href="#overview">总览</a><a href="#trade-performance">绩效</a><a href="#tomorrow-watchlist">新名单</a><a href="#shadow-monitor">Shadow Monitor</a><a href="#daily-review">复盘</a><a href="#formal-review">节点研究</a><a href="#anomalies">数据质量</a>
@@ -1932,6 +2071,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   <div class="section-head"><div><p class="section-kicker">01 · OVERVIEW</p><h2>今日总览</h2><p class="section-subtitle">先看行动信息，再看交易结果；技术细节收纳在审计区。</p></div><span class="badge {_status_class(data_state)}">数据状态：{_esc(data_state)}</span></div>
   <div class="overview-grid"><div class="overview-lead"><span class="eyebrow">当前阅读重点</span><strong>{_esc(visible_review_note)}</strong><p>策略规则绩效按 canonical trigger / stop / target 与历史 daily OHLC 理论复算；不代表真实成交。</p></div><div class="overview-facts"><div><span>名单日期</span><strong>{_esc(metadata.get('list_date'))}</strong></div><div><span>最早执行</span><strong>{_esc(metadata.get('earliest_execution'))}</strong></div><div><span>候选数量</span><strong>{_esc(_integer(watchlist_count, '0'))}</strong></div></div></div>
   <div class="review-callout{review_callout_class}">{_esc(visible_review_note)}</div>
+  {_input_coverage_html(metadata)}
 </section>
 
 <section id="trade-performance">

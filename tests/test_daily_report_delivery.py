@@ -145,6 +145,57 @@ def test_degraded_subject_and_body_identify_incomplete_channels(tmp_path):
     assert delivery.bark_title(DATE, NOW, degraded=True) == "17:31 - A股每日复盘完成（数据不完整）"
 
 
+def test_degraded_input_coverage_is_success_delivery_metadata_not_failure(tmp_path, monkeypatch):
+    root = _data_root(tmp_path)
+    watchlist_path = root / f"watchlist_{DATE.replace('-', '')}.json"
+    payload = json.loads(watchlist_path.read_text(encoding="utf-8"))
+    payload["input_coverage"] = {
+        "schema_version": "INPUT_COVERAGE_V1",
+        "coverage_status": "DEGRADED",
+        "evaluated_symbol_count": 3,
+        "excluded_symbol_count": 1,
+        "excluded_symbols": [
+            {
+                "symbol": "605366",
+                "provider_symbol": "605366.SH",
+                "target_date": DATE,
+                "provider": "HiThink Financial-API",
+                "status": "EXCLUDED_PROVIDER_STALE",
+                "reason": "TARGET_DAY_HISTORICAL_STALE",
+                "latest_historical_date": "2026-09-11",
+                "quote_trade_state": "TRADED",
+                "evidence": {"quote": {}, "historical": {}},
+                "policy_version": "PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1",
+            }
+        ],
+        "policy_version": "PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1",
+    }
+    watchlist_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+    context = delivery.load_report_context(root, DATE, result=_success_result())
+    body = delivery.build_success_email_body(context, NOW, runtime_state_persisted="YES", run_url=None)
+    bark = delivery.build_success_bark_body(context, runtime_state_persisted="YES")
+
+    assert context.degraded is True
+    assert "InputCoverage=DEGRADED/excluded=1" in body
+    assert "数据覆盖降级：排除 1 只" in body
+    assert "数据覆盖降级：排除 1 只" in bark
+    assert "云端运行失败" not in body
+
+    counts, _messages, _bark = _capture_transports(monkeypatch)
+    first = delivery.deliver_production(
+        root, DATE, result=_success_result(), env=_env(), now_bjt=NOW, sleep_fn=lambda _seconds: None
+    )
+    assert first["status"] == delivery.DELIVERY_SUCCESS
+    counts["email"] = 0
+    counts["bark"] = 0
+    second = delivery.deliver_production(
+        root, DATE, result=_success_result(), env=_env(), now_bjt=NOW, sleep_fn=lambda _seconds: None
+    )
+    assert second["status"] == delivery.ALREADY_DELIVERED
+    assert counts == {"email": 0, "bark": 0}
+
+
 def test_failure_email_has_no_attachment_even_when_stale_reports_exist(tmp_path, monkeypatch):
     root = _data_root(tmp_path)
     _counts, messages, _bark = _capture_transports(monkeypatch)

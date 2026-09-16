@@ -14,6 +14,7 @@ no-op, a different SHA is a conflict, and neither case creates a duplicate.
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import os
@@ -26,6 +27,7 @@ from typing import Any, Iterable, Mapping, Protocol, Sequence
 
 from data_paths import DataPaths
 from trading_calendar import TradingCalendar, default_calendar
+from watchlist_schema import validate_input_coverage
 
 
 CHECKPOINT_SCHEMA = "DAILY_LIGHTWEIGHT_CLOUD_CHECKPOINT_V1"
@@ -169,6 +171,15 @@ def build_daily_checkpoint_manifest(
     strategy_version = str(watchlist.get("strategy_version", "")).strip()
     if not strategy_version:
         raise CheckpointError("LOCAL_WATCHLIST_STRATEGY_VERSION_MISSING")
+    input_coverage = None
+    if "input_coverage" in watchlist:
+        try:
+            input_coverage = validate_input_coverage(
+                watchlist["input_coverage"],
+                expected_target_date=list_date,
+            )
+        except ValueError as exc:
+            raise CheckpointError("LOCAL_WATCHLIST_INPUT_COVERAGE_INVALID") from exc
 
     cal = calendar or default_calendar()
     try:
@@ -189,7 +200,7 @@ def build_daily_checkpoint_manifest(
     except ValueError as exc:
         raise CheckpointError(f"INVALID_CREATED_AT_BJT: {created!r}") from exc
 
-    return {
+    manifest = {
         "schema_version": CHECKPOINT_SCHEMA,
         "list_date": list_date,
         "earliest_execution": earliest_execution,
@@ -211,6 +222,9 @@ def build_daily_checkpoint_manifest(
             "latest_checkpoint.json",
         ],
     }
+    if input_coverage is not None:
+        manifest["input_coverage"] = copy.deepcopy(input_coverage)
+    return manifest
 
 
 def validate_manifest(manifest: Mapping[str, Any], date_value: str | date | datetime) -> None:
@@ -240,6 +254,14 @@ def validate_manifest(manifest: Mapping[str, Any], date_value: str | date | date
         raise CheckpointError("CHECKPOINT_MANIFEST_TARGET_MISMATCH")
     if not str(manifest.get("code_git_sha", "")).strip():
         raise CheckpointError("CHECKPOINT_MANIFEST_CODE_SHA_MISSING")
+    if "input_coverage" in manifest:
+        try:
+            validate_input_coverage(
+                manifest["input_coverage"],
+                expected_target_date=list_date,
+            )
+        except ValueError as exc:
+            raise CheckpointError("CHECKPOINT_MANIFEST_INPUT_COVERAGE_INVALID") from exc
     expected_names = {
         "watchlist": f"watchlist_{token}.json",
         "perf_tracker": "perf_tracker.json",
@@ -308,6 +330,20 @@ def _verify_local_files(manifest: Mapping[str, Any], data_root: Path) -> None:
         actual_sha = file_sha256(path)
         if actual_length != record["byte_length"] or actual_sha != record["sha256"]:
             raise CheckpointError(f"LOCAL_CHECKPOINT_SHA_MISMATCH: {key}: {path}")
+
+
+def _verify_local_input_coverage(manifest: Mapping[str, Any], data_root: Path) -> None:
+    """Keep the checkpoint's explicit coverage identity tied to its watchlist."""
+
+    watchlist_path = _local_files(manifest, Path(data_root))["watchlist"]
+    try:
+        watchlist = json.loads(watchlist_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise CheckpointError("LOCAL_WATCHLIST_INPUT_COVERAGE_UNREADABLE") from exc
+    if not isinstance(watchlist, Mapping):
+        raise CheckpointError("LOCAL_WATCHLIST_INPUT_COVERAGE_UNREADABLE")
+    if watchlist.get("input_coverage") != manifest.get("input_coverage"):
+        raise CheckpointError("CHECKPOINT_INPUT_COVERAGE_CONFLICT")
 
 
 def _coerce_entry(value: RemoteEntry | Mapping[str, Any]) -> RemoteEntry:
@@ -430,6 +466,7 @@ def upload_checkpoint(
 
     list_date, token = _date_parts(str(manifest["list_date"]))
     validate_manifest(manifest, list_date)
+    _verify_local_input_coverage(manifest, Path(data_root))
     _verify_local_files(manifest, data_root)
     local_manifest_path = manifest_path or checkpoint_manifest_path(Path(data_root), token)
     desired_manifest_bytes = _canonical_json_bytes(manifest)
