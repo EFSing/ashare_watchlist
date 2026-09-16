@@ -6,6 +6,36 @@
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
+## Current task — PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1 — 2026-09-16
+
+本轮 intake 已完成最小 live reconciliation：persisted current snapshot 仍写
+`origin/master=040e077bbf208921798d2d5b1fa0bd2d51ba9a20`，实时 fetch 为
+`5a024185206ca868ddf10c2e871a4a34edb1b878`；`origin/runtime-state` 实时为
+`520d6fab222bf553caa3eeb29cc83176318626d0`。该与当前任务直接相关的旧 snapshot 已标记并完成
+`PROJECT_GOVERNANCE_STATE_CONFLICT` reconciliation。PR #63 已合并；PR #60 仍
+`OPEN / DIRTY`，不在范围内。
+
+用户已批准 `PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1`：只隔离 canonical production universe
+中恰好一只同时满足 traded target-day quote、正常 XSHG session、非空/结构有效/无 future historical
+data、latest historical `< target_date` 且错误本质为 `TARGET_DAY_HISTORICAL_STALE` 的股票；第二只
+同类 stale、no-trade 不能证明交易、future/malformed/duplicate/OHLC/volume/identity/universe/index/
+environment/provider-auth/broad-outage/unknown/strategy/runtime-state 错误仍 fail-closed。
+
+实现将过滤后的 evaluator input、machine-readable exclusion record、`coverage_status`、policy version
+绑定到 live package/generation identity、canonical watchlist/run manifest、HTML report、checkpoint 与
+runtime-state validation；日报显式显示 `INPUT COVERAGE = COMPLETE/DEGRADED`，degraded 文案为
+“本次候选名单未包含该数据异常股票。” Formal B 语义与 spec SHA 保持不变。
+
+当前独立 branch/worktree：`codex/per-symbol-provider-failure-isolation-v1`，实现已完成；PR #64
+保持 `OPEN / CLEAN / mergeable`。implementation commit
+`b9fffa22ab11df4e68e078b522780703253842d9` 仅是 implementation/historical provenance，不是 PR #64
+current head。exact-head push CI 与 PR CI 必须在 merge decision 时从 live GitHub 验证；transient PR
+head 与 CI run ID 不构成长期 governance invariant。project full pytest=`606 passed, 2 skipped,
+11 warnings`，compileall、git diff --check、Node dispatcher=`3 passed`。provider calls=`0`，production
+dispatch=`0`，runtime-state mutation=`NO`；Final OOS=`SEALED / UNREAD`，受禁目录未读取或触碰。
+当前终点为 `PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1_PR_READY_FOR_USER_MERGE_DECISION`，等待用户
+merge decision；PR #60 untouched。
+
 ## Current task — history-aware runtime-state checkpoint validation — 2026-09-15
 
 本轮已完成 live reconciliation：旧的 schedule-resilience current snapshot 仍写

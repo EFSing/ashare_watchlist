@@ -29,6 +29,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
+from watchlist_schema import INPUT_COVERAGE_DEGRADED, validate_input_coverage
+
 _BJT = timezone(timedelta(hours=8))
 DEFAULT_BARK_SERVER_URL = "https://api.day.app"
 RECEIPT_SCHEMA_VERSION = "DAILY_REPORT_DELIVERY_RECEIPT_V1"
@@ -143,6 +145,7 @@ class ReportContext:
     report_path: Path
     report_sha256: str
     degraded_reasons: tuple[str, ...]
+    input_coverage: dict[str, Any] | None = None
 
     @property
     def degraded(self) -> bool:
@@ -580,6 +583,12 @@ def load_report_context(
     candidates = watchlist.get("candidates")
     if not isinstance(candidates, list):
         raise DeliveryError("WATCHLIST_READ_FAILED")
+    input_coverage = None
+    if "input_coverage" in watchlist:
+        try:
+            input_coverage = validate_input_coverage(watchlist["input_coverage"])
+        except ValueError as exc:
+            raise DeliveryError("INPUT_COVERAGE_INVALID") from exc
     candidate_count = len(candidates)
     review_status = _review_status(normalized_date, root, result)
     shadow_status = _shadow_status(normalized_date, root, candidate_count, result)
@@ -588,6 +597,10 @@ def load_report_context(
         degraded_reasons.append(f"Review={review_status}")
     if _is_degraded_status(shadow_status, channel="shadow"):
         degraded_reasons.append(f"Shadow={shadow_status}")
+    if isinstance(input_coverage, Mapping) and input_coverage.get("coverage_status") == INPUT_COVERAGE_DEGRADED:
+        degraded_reasons.append(
+            f"InputCoverage=DEGRADED/excluded={input_coverage.get('excluded_symbol_count')}"
+        )
     bundle_status = str(_result_bundle(result).get("status") or "")
     if bundle_status == "REVIEW_FAILED_REPORT_READY" and "Review=REVIEW_FAILED" not in degraded_reasons:
         degraded_reasons.append("Review=REVIEW_FAILED")
@@ -599,6 +612,7 @@ def load_report_context(
         report_path=report_path,
         report_sha256=file_sha256(report_path),
         degraded_reasons=tuple(degraded_reasons),
+        input_coverage=input_coverage,
     )
 
 
@@ -662,6 +676,13 @@ def build_success_email_body(
     ]
     if context.degraded:
         lines.extend(["", "数据状态：数据不完整", "不完整项：" + "；".join(context.degraded_reasons)])
+    if isinstance(context.input_coverage, Mapping) and context.input_coverage.get("coverage_status") == INPUT_COVERAGE_DEGRADED:
+        lines.extend(
+            [
+                "",
+                f"数据覆盖降级：排除 {context.input_coverage.get('excluded_symbol_count')} 只",
+            ]
+        )
     lines.extend(["", "完整复盘见附件：", filename])
     if _run_url(run_url):
         lines.extend(["", f"GitHub Actions run URL：{_run_url(run_url)}"])
@@ -669,15 +690,16 @@ def build_success_email_body(
 
 
 def build_success_bark_body(context: ReportContext, *, runtime_state_persisted: str) -> str:
-    return "\n".join(
-        [
-            f"日期 {context.report_date}",
-            f"候选数量 {context.candidate_count}",
-            f"Review {context.review_status}",
-            f"Shadow {context.shadow_status}",
-            f"runtime-state persisted {runtime_state_persisted}",
-        ]
-    )
+    lines = [
+        f"日期 {context.report_date}",
+        f"候选数量 {context.candidate_count}",
+        f"Review {context.review_status}",
+        f"Shadow {context.shadow_status}",
+        f"runtime-state persisted {runtime_state_persisted}",
+    ]
+    if isinstance(context.input_coverage, Mapping) and context.input_coverage.get("coverage_status") == INPUT_COVERAGE_DEGRADED:
+        lines.append(f"数据覆盖降级：排除 {context.input_coverage.get('excluded_symbol_count')} 只")
+    return "\n".join(lines)
 
 
 def build_failure_email_body(

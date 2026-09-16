@@ -6,6 +6,41 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-16 — PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1
+
+- live intake reconciliation：此前 persisted docs 仍记录 `origin/master=040e077b`；实时
+  fetch 已核对 `origin/master=5a024185206ca868ddf10c2e871a4a34edb1b878`，与用户本轮 intake
+  预期一致。`origin/runtime-state=520d6fab222bf553caa3eeb29cc83176318626d0`，也与预期一致。
+  该旧 snapshot 与当前依赖的 live master 已构成并完成最小
+  `PROJECT_GOVERNANCE_STATE_CONFLICT` reconciliation；PR #63 已合并，PR #60 保持
+  `OPEN / DIRTY` 且 untouched。
+- user decision：采用窄化、fail-closed 的
+  `PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1`。只允许在 canonical production universe、
+  正常 XSHG target session、Tencent quote 明确 `TRADED`、HiThink/Tencent historical 非空且
+  结构有效、无 future/冲突/无效 OHLC/volume，且 latest historical date `< target_date` 时，
+  隔离恰好一只 `TARGET_DAY_HISTORICAL_STALE`；第二只同类 stale 整单失败。
+- implementation：独立 branch/worktree
+  `codex/per-symbol-provider-failure-isolation-v1`；coverage record 同时写入 live package /
+  generation fingerprint、canonical watchlist/run manifest、日报 HTML、checkpoint 和
+  runtime-state validation。filtered evaluator input 为 canonical universe 减去唯一隔离股票；
+  Formal B 与其 qualification/score/ranking/trigger/stop/target/RR/T+1/same-bar/spec SHA 不变。
+- regression：fixture 已覆盖 605366.SH（quote traded、historical latest=`2026-09-14`、target
+  `2026-09-15`）、single-stale continue、second-stale fail-closed、no-trade unchanged、
+  future/missing-trade-proof fatal、report/checkpoint mismatch 和 degraded same-day idempotency。
+- boundaries：provider live calls=`0`，production dispatch=`0`，runtime-state remote mutation=`NO`；
+  Final OOS=`SEALED / UNREAD`，`data/validation/continuous_speed_probe/` 未读取或触碰，PR #60
+  未触碰。
+- delivery：implementation commit `b9fffa22ab11df4e68e078b522780703253842d9` 仅作为
+  implementation/historical provenance 保留，不代表 PR #64 current head。实现已完成；PR #64
+  当前保持 `OPEN / CLEAN / mergeable`，不自动 merge。
+- live verification rule：exact-head push CI 与 PR CI 必须在 merge decision 时从 live GitHub 重新
+  验证；任何 transient PR head 或 CI run ID 都不固化为长期 governance invariant。
+- verification：project full pytest=`606 passed, 2 skipped, 11 warnings`（2 个 skip 是原有未提交
+  的大型 exact-date fixture 缺失），compileall、git diff --check、Node dispatcher=`3 passed`。
+  provider live calls=`0`，production dispatch=`0`，runtime-state remote mutation=`NO`。
+- terminal：`PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1_PR_READY_FOR_USER_MERGE_DECISION`，等待用户
+  对 PR #64 作 merge decision；PR #60 untouched，Final OOS=`SEALED / UNREAD`，受禁目录未读取或触碰。
+
 ## 2026-09-15 — RUNTIME_STATE_HISTORICAL_CHECKPOINT_MUTABLE_TRACKER_VALIDATION_FIX_V1
 
 - live reconciliation：此前本文件仍以 `origin/master=16f8e8a`、

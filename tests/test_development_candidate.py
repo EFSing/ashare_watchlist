@@ -1,5 +1,6 @@
 import json
 import hashlib
+from dataclasses import replace
 
 import development_candidate
 from a_platform_breakout import STRATEGY_VERSION
@@ -27,7 +28,14 @@ from development_candidate import (
 from test_a_platform_breakout import _base_bars, _manifest
 from test_b_breakout_retest_v1_1 import _b_bars
 from track_perf import ingest, new_tracker
-from watchlist_schema import load_watchlist
+from watchlist_schema import (
+    EXCLUDED_PROVIDER_STALE,
+    INPUT_COVERAGE_DEGRADED,
+    INPUT_COVERAGE_SCHEMA,
+    PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1,
+    TARGET_DAY_HISTORICAL_STALE,
+    load_watchlist,
+)
 
 
 def _market_env():
@@ -344,6 +352,57 @@ def test_explicit_b_binding_routes_b_evaluator_and_all_output_identity(tmp_path)
     assert record["strategy_version"] == B_STRATEGY_VERSION
     assert record["buy_type"] == "B 突破回踩"
     assert store.monitor("2026-08-27", strategy_binding=B_STRATEGY_BINDING).status == MONITOR_HEALTHY
+
+
+def test_b_generation_binds_input_coverage_to_watchlist_and_run_identity(tmp_path):
+    base_manifest = _manifest(_b_bars())
+    coverage = {
+        "schema_version": INPUT_COVERAGE_SCHEMA,
+        "coverage_status": INPUT_COVERAGE_DEGRADED,
+        "evaluated_symbol_count": 1,
+        "excluded_symbol_count": 1,
+        "excluded_symbols": [
+            {
+                "symbol": "605366",
+                "provider_symbol": "605366.SH",
+                "target_date": "2026-08-27",
+                "provider": "HiThink Financial-API",
+                "status": EXCLUDED_PROVIDER_STALE,
+                "reason": TARGET_DAY_HISTORICAL_STALE,
+                "latest_historical_date": "2026-08-26",
+                "quote_trade_state": "TRADED",
+                "evidence": {"quote": {}, "historical": {}},
+                "policy_version": PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1,
+            }
+        ],
+        "policy_version": PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1,
+    }
+    metadata = dict(base_manifest.provider_version_metadata)
+    metadata["input_coverage"] = coverage
+    context_metadata = dict(base_manifest.run_context.provider_version_metadata)
+    context_metadata["input_coverage"] = coverage
+    manifest = replace(
+        base_manifest,
+        run_context=replace(base_manifest.run_context, provider_version_metadata=context_metadata),
+        provider_version_metadata=metadata,
+        input_fingerprint=None,
+    )
+
+    result = DevelopmentCandidateStore(tmp_path).generate(
+        manifest,
+        names={"600000": "测试银行"},
+        market_env=_market_env(),
+        strategy_binding=B_STRATEGY_BINDING,
+        input_provenance={**_b_provenance(), "input_coverage": coverage},
+    )
+
+    assert result.status == RUN_PUBLISHED
+    payload = load_watchlist(result.output_path)
+    assert payload["input_coverage"] == coverage
+    record = json.loads(result.run_manifest_path.read_text(encoding="utf-8"))
+    assert record["input_coverage"] == coverage
+    assert record["generation_fingerprint_payload"]["auxiliary_inputs"]["input_coverage"] == coverage
+    assert record["auxiliary_inputs"]["input_coverage"]["values"] == coverage
 
 
 def test_b_package_with_accidental_a_binding_fails_closed_before_publish(tmp_path):

@@ -27,7 +27,7 @@ import time
 import unicodedata
 import urllib.parse
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from types import ModuleType
@@ -81,6 +81,15 @@ from universe_policy import (
     universe_policy_metadata,
     validate_board_policy_audit,
 )
+from watchlist_schema import (
+    EXCLUDED_PROVIDER_STALE,
+    INPUT_COVERAGE_COMPLETE,
+    INPUT_COVERAGE_DEGRADED,
+    INPUT_COVERAGE_SCHEMA,
+    PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1,
+    TARGET_DAY_HISTORICAL_STALE,
+    validate_input_coverage,
+)
 
 
 LIVE_INPUT_PACKAGE_SCHEMA = "CANDIDATE_BOUND_LIVE_INPUT_PACKAGE_V4"
@@ -102,6 +111,7 @@ INPUT_CONFLICT = "INPUT_CONFLICT"
 MISSING_DISPLAY_NAME = "MISSING_DISPLAY_NAME"
 PERSISTENCE_CONFLICT = "PERSISTENCE_CONFLICT"
 PERSISTENCE_FAILURE = "PERSISTENCE_FAILURE"
+TARGET_DAY_HISTORICAL_STALE_LIMIT_EXCEEDED = "TARGET_DAY_HISTORICAL_STALE_LIMIT_EXCEEDED"
 
 HITHINK_BASE_URL = "https://fuyao.aicubes.cn"
 HITHINK_API_KEY_ENV = "HITHINK_FINANCE_API_KEY"
@@ -1914,7 +1924,24 @@ def _fetch_qfq_bars(
             f"{minimum_acceptable_history}",
         )
     if require_last_bar_date and bars[-1]["date"] != as_of_date:
-        _fail(INPUT_DATE_MISMATCH, f"Tencent qfq latest bar for {provider_symbol} is {bars[-1]['date']} != {as_of_date}")
+        _fail(
+            INPUT_DATE_MISMATCH,
+            f"Tencent qfq latest bar for {provider_symbol} is {bars[-1]['date']} != {as_of_date}",
+            {
+                "classification": TARGET_DAY_HISTORICAL_STALE,
+                "target_date": as_of_date,
+                "latest_historical_date": bars[-1]["date"],
+                "historical_bar_count": len(bars),
+                "historical_quality": {
+                    "non_empty": True,
+                    "structure_valid": True,
+                    "future_data": False,
+                },
+                "provider": "Tencent",
+                "source": TENCENT_KLINE_SOURCE,
+                "provider_symbol": provider_symbol,
+            },
+        )
     return bars
 
 
@@ -1942,6 +1969,7 @@ def _validate_historical_bars(
     minimum_acceptable_history: int,
     as_of_date: str,
     require_last_bar_date: bool,
+    provider: str = "HiThink Financial-API",
 ) -> list[dict[str, Any]]:
     if not isinstance(bars, Sequence) or isinstance(bars, (str, bytes)):
         _fail(PROVIDER_FAILURE, f"HiThink historical bars are not a sequence for {thscode}")
@@ -1987,6 +2015,19 @@ def _validate_historical_bars(
         _fail(
             INPUT_DATE_MISMATCH,
             f"HiThink historical latest bar for {thscode} is {normalized[-1].get('date')} != {as_of_date}",
+            {
+                "classification": TARGET_DAY_HISTORICAL_STALE,
+                "target_date": as_of_date,
+                "latest_historical_date": normalized[-1].get("date"),
+                "historical_bar_count": len(normalized),
+                "historical_quality": {
+                    "non_empty": True,
+                    "structure_valid": True,
+                    "future_data": False,
+                },
+                "provider": provider,
+                "thscode": thscode,
+            },
         )
     return normalized
 
@@ -2110,6 +2151,7 @@ def _load_captured_market_bars(
         minimum_acceptable_history=minimum_acceptable_history,
         as_of_date=as_of_date,
         require_last_bar_date=require_last_bar_date,
+        provider=str(record.metadata["provider"]),
     )
     return normalized, {
         "provider": record.metadata["provider"],
@@ -2117,6 +2159,171 @@ def _load_captured_market_bars(
         "adjustment_mode": record.metadata["adjustment_mode"],
         "selection": record.metadata["selection"],
     }
+
+
+def _quote_trade_state(quote: Mapping[str, Any], target_date: str) -> str:
+    """Classify only a quote that proves ordinary target-day trading."""
+
+    if not isinstance(quote, Mapping) or quote.get("quote_date") != target_date:
+        return "UNKNOWN"
+    if is_no_trade_snapshot(quote):
+        return "NO_TRADE"
+    required = ("price", "prev_close", "open", "high", "low", "volume")
+    values: dict[str, float] = {}
+    for field_name in required:
+        value = quote.get(field_name)
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)):
+            return "UNKNOWN"
+        values[field_name] = float(value)
+    if any(values[field_name] <= 0 for field_name in ("price", "prev_close", "open", "high", "low")):
+        return "UNKNOWN"
+    if values["volume"] <= 0 or values["high"] < values["low"]:
+        return "UNKNOWN"
+    if values["high"] < values["open"] or values["high"] < values["price"]:
+        return "UNKNOWN"
+    if values["low"] > values["open"] or values["low"] > values["price"]:
+        return "UNKNOWN"
+    return "TRADED"
+
+
+def _quote_trade_evidence(quote: Mapping[str, Any]) -> dict[str, Any]:
+    fields = (
+        "code",
+        "symbol",
+        "name",
+        "quote_date",
+        "timestamp",
+        "price",
+        "prev_close",
+        "open",
+        "high",
+        "low",
+        "volume",
+        "turnover",
+        "vol_ratio",
+    )
+    return {field_name: copy.deepcopy(quote[field_name]) for field_name in fields if field_name in quote}
+
+
+def _target_day_historical_stale_record(
+    exc: LiveAcquisitionError,
+    *,
+    symbol: str,
+    thscode: str,
+    logical_identity: str,
+    target_date: str,
+    quote: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    """Return an exclusion only for the fully proven narrow stale case."""
+
+    diagnostics = exc.diagnostics
+    if exc.status != INPUT_DATE_MISMATCH or diagnostics.get("classification") != TARGET_DAY_HISTORICAL_STALE:
+        return None
+    if diagnostics.get("target_date") != target_date:
+        return None
+    latest_date = diagnostics.get("latest_historical_date")
+    if not isinstance(latest_date, str) or latest_date >= target_date:
+        return None
+    quality = diagnostics.get("historical_quality")
+    if not isinstance(quality, Mapping) or quality.get("non_empty") is not True or quality.get("structure_valid") is not True or quality.get("future_data") is not False:
+        return None
+    provider = diagnostics.get("provider")
+    if not isinstance(provider, str) or not provider.strip():
+        return None
+    if _quote_trade_state(quote, target_date) != "TRADED":
+        return None
+    record = {
+        "symbol": symbol,
+        "provider_symbol": thscode,
+        "target_date": target_date,
+        "provider": provider,
+        "status": EXCLUDED_PROVIDER_STALE,
+        "reason": TARGET_DAY_HISTORICAL_STALE,
+        "latest_historical_date": latest_date,
+        "quote_trade_state": "TRADED",
+        "evidence": {
+            "quote": {
+                "provider": "Tencent",
+                "source": TENCENT_QUOTE_SOURCE,
+                **_quote_trade_evidence(quote),
+            },
+            "historical": {
+                "provider": provider,
+                "source": diagnostics.get("source") or HITHINK_STOCK_KLINE_API,
+                "thscode": thscode,
+                "logical_identity": logical_identity,
+                "latest_historical_date": latest_date,
+                "bar_count": diagnostics.get("historical_bar_count"),
+                "validation": copy.deepcopy(dict(quality)),
+            },
+            "session": {
+                "calendar": XSHG_CALENDAR,
+                "target_date": target_date,
+                "target_day_is_trading_session": True,
+            },
+            "provenance": {
+                "quote_source": TENCENT_QUOTE_SOURCE,
+                "historical_request_identity": logical_identity,
+            },
+            "classification": TARGET_DAY_HISTORICAL_STALE,
+        },
+        "policy_version": PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1,
+    }
+    try:
+        return validate_input_coverage(
+            {
+                "schema_version": INPUT_COVERAGE_SCHEMA,
+                "coverage_status": INPUT_COVERAGE_DEGRADED,
+                "evaluated_symbol_count": 1,
+                "excluded_symbol_count": 1,
+                "excluded_symbols": [record],
+                "policy_version": PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1,
+            }
+        )["excluded_symbols"][0]
+    except ValueError:
+        return None
+
+
+def _build_input_coverage(
+    evaluated_symbol_count: int,
+    excluded_symbols: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    value = {
+        "schema_version": INPUT_COVERAGE_SCHEMA,
+        "coverage_status": INPUT_COVERAGE_DEGRADED if excluded_symbols else INPUT_COVERAGE_COMPLETE,
+        "evaluated_symbol_count": evaluated_symbol_count,
+        "excluded_symbol_count": len(excluded_symbols),
+        "excluded_symbols": [copy.deepcopy(dict(item)) for item in excluded_symbols],
+        "policy_version": PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1,
+    }
+    try:
+        return validate_input_coverage(
+            value,
+            expected_evaluated_symbol_count=evaluated_symbol_count,
+        )
+    except ValueError as exc:
+        _fail(PROVIDER_FAILURE, f"input coverage metadata is invalid: {exc}")
+        raise AssertionError from exc
+
+
+def _filter_sector_symbols(sector: Any, excluded_symbols: set[str]) -> Any:
+    if not excluded_symbols:
+        return sector
+
+    def retain(value: Any) -> Any:
+        if isinstance(value, Mapping):
+            if str(value.get("symbol", "")).strip().lower() in excluded_symbols:
+                return None
+            return {key: retain(item) for key, item in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [item for item in (retain(item) for item in value) if item is not None]
+        return copy.deepcopy(value)
+
+    return replace(
+        sector,
+        members=retain(sector.members),
+        rank_input=retain(sector.rank_input),
+    )
 
 
 def _capture_market_bars(
@@ -2271,6 +2478,17 @@ def _generation_identity_payload(
         _fail(INPUT_CONFLICT, "manifest production universe policy is missing or unsupported")
     if manifest.provider_version_metadata.get("universe_policy_metadata") != universe_policy_metadata():
         _fail(INPUT_CONFLICT, "manifest production universe policy metadata is invalid")
+    coverage = manifest.provider_version_metadata.get("input_coverage")
+    if not isinstance(coverage, Mapping):
+        _fail(PROVIDER_FAILURE, "manifest input coverage metadata is missing")
+    try:
+        normalized_coverage = validate_input_coverage(
+            coverage,
+            expected_evaluated_symbol_count=len(manifest.universe.symbols),
+            expected_target_date=manifest.signal_date,
+        )
+    except ValueError as exc:
+        _fail(PROVIDER_FAILURE, f"manifest input coverage metadata is invalid: {exc}")
     return {
         "schema_version": GENERATION_IDENTITY_SCHEMA,
         "input_package_schema": LIVE_INPUT_PACKAGE_SCHEMA,
@@ -2287,6 +2505,7 @@ def _generation_identity_payload(
             "version": manifest.universe.universe_scope_version,
         },
         "universe_policy": universe_policy_metadata(),
+        "input_coverage": normalized_coverage,
         "display_name_normalization": {
             "version": DISPLAY_NAME_NORMALIZATION_VERSION,
             "zero_width_codepoints": [
@@ -2365,6 +2584,23 @@ class LiveInputPackage:
             _fail(INPUT_CONFLICT, "generation manifest production universe policy metadata is invalid")
         if provenance.get("display_name_consistency_policy") != _display_name_policy_metadata():
             _fail(INPUT_CONFLICT, "provenance display-name consistency policy is missing or unsupported")
+        manifest_coverage = manifest_metadata.get("input_coverage")
+        provenance_coverage = provenance.get("input_coverage")
+        if not isinstance(manifest_coverage, Mapping) or not isinstance(provenance_coverage, Mapping):
+            _fail(PROVIDER_FAILURE, "input coverage metadata is missing")
+        try:
+            normalized_coverage = validate_input_coverage(
+                manifest_coverage,
+                expected_evaluated_symbol_count=len(self.generation_input_manifest.universe.symbols),
+                expected_target_date=self.generation_input_manifest.signal_date,
+            )
+        except ValueError as exc:
+            _fail(PROVIDER_FAILURE, f"input coverage metadata is invalid: {exc}")
+        if dict(provenance_coverage) != normalized_coverage:
+            _fail(INPUT_CONFLICT, "provenance input coverage does not match the generation manifest")
+        provenance_metadata = provenance.get("provider_version_metadata")
+        if not isinstance(provenance_metadata, Mapping) or provenance_metadata.get("input_coverage") != normalized_coverage:
+            _fail(INPUT_CONFLICT, "provenance provider metadata does not match input coverage")
         display_name_diagnostics = provenance.get("display_name_diagnostics")
         if not isinstance(display_name_diagnostics, Mapping):
             _fail(PROVIDER_FAILURE, "provenance display-name diagnostics are missing")
@@ -2953,6 +3189,7 @@ def acquire_live_generation_inputs(
 
     stock_klines: list[KlineManifest] = []
     stock_resolutions: dict[str, dict[str, Any]] = {}
+    excluded_provider_stale: list[dict[str, Any]] = []
     for symbol in universe.symbols:
         logical_identity, thscode, _, _ = _history_capture_spec(
             symbol,
@@ -3002,6 +3239,27 @@ def acquire_live_generation_inputs(
                 bars, resolution = cached
         except LiveAcquisitionError as exc:
             record_kline_failure("stock_kline", symbol, logical_identity, exc)
+            exclusion = _target_day_historical_stale_record(
+                exc,
+                symbol=symbol,
+                thscode=thscode,
+                logical_identity=logical_identity,
+                target_date=target_date,
+                quote=quotes[symbol],
+            )
+            if exclusion is not None:
+                excluded_provider_stale.append(exclusion)
+                if len(excluded_provider_stale) > 1:
+                    _fail(
+                        TARGET_DAY_HISTORICAL_STALE_LIMIT_EXCEEDED,
+                        "more than one target-day historical stale symbol is not eligible for isolation",
+                        {
+                            "policy_version": PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1,
+                            "reason": TARGET_DAY_HISTORICAL_STALE,
+                            "symbols": [item["symbol"] for item in excluded_provider_stale],
+                        },
+                    )
+                continue
             raise
         except Exception as exc:
             record_kline_failure("stock_kline", symbol, logical_identity, exc)
@@ -3080,6 +3338,26 @@ def acquire_live_generation_inputs(
         source=index_resolution["source"],
         temporal_semantics=LIVE_OBSERVED,
     )
+    if excluded_provider_stale:
+        excluded_set = {item["symbol"] for item in excluded_provider_stale}
+        retained_symbols = tuple(symbol for symbol in universe.symbols if symbol not in excluded_set)
+        if not retained_symbols:
+            _fail(
+                INCOMPLETE_COVERAGE,
+                "provider-stale isolation would leave no symbol for strategy evaluation",
+            )
+        universe = replace(universe, symbols=retained_symbols)
+        display_names = {
+            symbol: display_names[symbol]
+            for symbol in retained_symbols
+        }
+        quote_manifest = replace(
+            quote_manifest,
+            quotes={symbol: quote_manifest.quotes[symbol] for symbol in retained_symbols},
+        )
+        stock_klines = [item for item in stock_klines if item.symbol in set(retained_symbols)]
+        sector = _filter_sector_symbols(sector, excluded_set)
+    input_coverage = _build_input_coverage(len(universe.symbols), excluded_provider_stale)
     market_env = _market_env(index)
     runtime_versions = _runtime_versions(sina.package_version)
     sector_quality = {
@@ -3104,6 +3382,7 @@ def acquire_live_generation_inputs(
         "universe_policy_metadata": universe_policy_metadata(),
         "display_name_consistency_policy": _display_name_policy_metadata(),
         "universe_roster_quality": copy.deepcopy(universe_quality),
+        "input_coverage": copy.deepcopy(input_coverage),
         "display_name_diagnostics": {
             "mismatch_count": len(sina.display_name_mismatches),
             "mismatches": copy.deepcopy(sina.display_name_mismatches),
@@ -3222,6 +3501,7 @@ def acquire_live_generation_inputs(
             "rule": DISPLAY_NAME_NORMALIZATION_RULE,
         },
         "universe_roster_quality": copy.deepcopy(universe_quality),
+        "input_coverage": copy.deepcopy(input_coverage),
         "display_name_diagnostics": {
             "mismatch_count": len(sina.display_name_mismatches),
             "mismatches": copy.deepcopy(sina.display_name_mismatches),
@@ -3329,6 +3609,7 @@ __all__ = [
     "PersistedInputPackage",
     "PERSISTENCE_CONFLICT",
     "PERSISTENCE_FAILURE",
+    "PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1",
     "PROVIDER_FAILURE",
     "PROVIDER_UNAVAILABLE",
     "PROVIDER_RAW_SNAPSHOT",
@@ -3341,6 +3622,8 @@ __all__ = [
     "SinaSectorClient",
     "TCloseEvidenceStore",
     "TENCENT_KLINE_SOURCE",
+    "TARGET_DAY_HISTORICAL_STALE",
+    "TARGET_DAY_HISTORICAL_STALE_LIMIT_EXCEEDED",
     "TRADABLE_UNIVERSE_SCOPE_V1",
     "TRADABLE_UNIVERSE_SCOPE_VERSION",
     "UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1",

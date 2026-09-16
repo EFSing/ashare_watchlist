@@ -35,8 +35,13 @@ def _candidate(code: str, name: str, score: int, *, sector: str = "测试行业"
     }
 
 
-def _payload(list_date: str, candidates: list[dict[str, object]]) -> dict[str, object]:
-    return {
+def _payload(
+    list_date: str,
+    candidates: list[dict[str, object]],
+    *,
+    input_coverage: dict[str, object] | None = None,
+) -> dict[str, object]:
+    payload: dict[str, object] = {
         "date": f"{list_date[:4]}-{list_date[4:6]}-{list_date[6:]}",
         "mode": "close",
         "market_env": {"grade": "A"},
@@ -44,13 +49,25 @@ def _payload(list_date: str, candidates: list[dict[str, object]]) -> dict[str, o
         "candidates": candidates,
         "strategy_version": "B_BREAKOUT_RETEST_LEGACY_V1_1",
     }
+    if input_coverage is not None:
+        payload["input_coverage"] = input_coverage
+    return payload
 
 
-def _write_watchlist(root: Path, list_date: str, candidates: list[dict[str, object]]) -> dict[str, object]:
+def _write_watchlist(
+    root: Path,
+    list_date: str,
+    candidates: list[dict[str, object]],
+    *,
+    input_coverage: dict[str, object] | None = None,
+) -> dict[str, object]:
     data_root = root / "data"
     data_root.mkdir(parents=True, exist_ok=True)
     path = data_root / f"watchlist_{list_date}.json"
-    path.write_text(json.dumps(_payload(list_date, candidates), ensure_ascii=False), encoding="utf-8")
+    path.write_text(
+        json.dumps(_payload(list_date, candidates, input_coverage=input_coverage), ensure_ascii=False),
+        encoding="utf-8",
+    )
     return load_watchlist(path)
 
 
@@ -110,6 +127,52 @@ def test_report_displays_main_board_universe_and_keeps_policy_literal_in_audit(t
     assert "股票池：<strong>沪深主板 / Main Board Only</strong>" in main
     assert "ASHARE_MAIN_BOARD_ONLY_V1" not in main
     assert "ASHARE_MAIN_BOARD_ONLY_V1" in audit
+
+
+def test_report_explicitly_displays_degraded_input_coverage(tmp_path):
+    coverage = {
+        "schema_version": "INPUT_COVERAGE_V1",
+        "coverage_status": "DEGRADED",
+        "evaluated_symbol_count": 2,
+        "excluded_symbol_count": 1,
+        "excluded_symbols": [
+            {
+                "symbol": "605366",
+                "provider_symbol": "605366.SH",
+                "target_date": "2026-09-10",
+                "provider": "HiThink Financial-API",
+                "status": "EXCLUDED_PROVIDER_STALE",
+                "reason": "TARGET_DAY_HISTORICAL_STALE",
+                "latest_historical_date": "2026-09-09",
+                "quote_trade_state": "TRADED",
+                "evidence": {"quote": {}, "historical": {}},
+                "policy_version": "PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1",
+            }
+        ],
+        "policy_version": "PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1",
+    }
+    watchlist = _write_watchlist(
+        tmp_path,
+        "20260910",
+        [_candidate("600018", "剩余信号", 70)],
+        input_coverage=coverage,
+    )
+    _write_tracker(tmp_path, watchlist)
+
+    model = renderer.build_report_model("20260910", paths=_paths(tmp_path), calendar=CALENDAR)
+    text = renderer.render_html(model)
+
+    assert model.metadata["input_coverage_status"] == "DEGRADED"
+    assert model.metadata["evaluated_symbol_count"] == 2
+    assert model.metadata["excluded_symbol_count"] == 1
+    assert "INPUT COVERAGE = DEGRADED" in text
+    assert "evaluated_symbol_count = 2" in text
+    assert "excluded symbol = 605366" in text
+    assert "latest provider date = 2026-09-09" in text
+    assert "target date = 2026-09-10" in text
+    assert "policy version = PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1" in text
+    assert "本次候选名单未包含该数据异常股票。" in text
+    assert "input-coverage-json" in text
 
 
 def test_t_day_new_signal_is_explicitly_waiting_for_t1_not_missing(tmp_path):

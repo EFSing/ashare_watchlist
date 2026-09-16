@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import subprocess
 from datetime import date
+from html import escape
 from pathlib import Path
 
 import pytest
@@ -294,6 +295,71 @@ def test_current_day_checkpoint_remains_strict_for_mutable_payloads(tmp_path, mu
 
     assert result["status"] == INCOMPLETE_SAME_DAY_STATE
     assert mutated_payload in result["reason"]
+
+
+def test_degraded_checkpoint_and_report_bind_the_same_input_coverage(tmp_path):
+    data_root, payload, _tracker = _fixture(tmp_path)
+    coverage = {
+        "schema_version": "INPUT_COVERAGE_V1",
+        "coverage_status": "DEGRADED",
+        "evaluated_symbol_count": 2,
+        "excluded_symbol_count": 1,
+        "excluded_symbols": [
+            {
+                "symbol": "605366",
+                "provider_symbol": "605366.SH",
+                "target_date": DATE,
+                "provider": "HiThink Financial-API",
+                "status": "EXCLUDED_PROVIDER_STALE",
+                "reason": "TARGET_DAY_HISTORICAL_STALE",
+                "latest_historical_date": "2026-09-09",
+                "quote_trade_state": "TRADED",
+                "evidence": {"quote": {}, "historical": {}},
+                "policy_version": "PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1",
+            }
+        ],
+        "policy_version": "PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1",
+    }
+    payload["input_coverage"] = coverage
+    watchlist_path = DataPaths(data_root).watchlist_file(DATE)
+    watchlist_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    coverage_json = json.dumps(coverage, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    dated_path = DataPaths(data_root).reports_dir() / f"daily_close_{DATE.replace('-', '')}.html"
+    dated_path.write_text(
+        f'<meta name="input-coverage-json" content="{escape(coverage_json, quote=True)}">\n',
+        encoding="utf-8",
+    )
+    checkpoint_manifest_path(data_root, DATE).unlink()
+
+    manifest = build_daily_checkpoint_manifest(
+        DATE,
+        data_root=data_root,
+        calendar=CALENDAR,
+        code_git_sha="a" * 40,
+    )
+    persist_checkpoint_manifest(manifest, checkpoint_manifest_path(data_root, DATE))
+
+    assert validate_runtime_data(data_root)["status"] == "RUNTIME_STATE_VALID"
+    completion = completed_run_status(data_root, DATE)
+    assert completion["status"] == ALREADY_COMPLETED
+    assert completion["input_coverage"] == coverage
+
+    mismatched = {
+        "schema_version": "INPUT_COVERAGE_V1",
+        "coverage_status": "COMPLETE",
+        "evaluated_symbol_count": 2,
+        "excluded_symbol_count": 0,
+        "excluded_symbols": [],
+        "policy_version": "PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1",
+    }
+    mismatch_json = json.dumps(mismatched, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    dated_path.write_text(
+        f'<meta name="input-coverage-json" content="{escape(mismatch_json, quote=True)}">\n',
+        encoding="utf-8",
+    )
+    with pytest.raises(RuntimeStateError, match="report input coverage mismatch"):
+        validate_runtime_data(data_root)
+    assert completed_run_status(data_root, DATE)["status"] == INCOMPLETE_SAME_DAY_STATE
 
 
 @pytest.mark.parametrize("corruption", ["schema", "list_date", "filename", "dated_watchlist"])
