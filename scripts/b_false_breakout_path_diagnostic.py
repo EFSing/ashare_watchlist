@@ -28,6 +28,26 @@ PROTOCOL = "docs/research/b_false_breakout_path_diagnostic_v1_protocol.md"
 DEFENSE = "min_close_vs_breakout_level"
 VOLUME = "pre_t_retest_volume_ratio"
 REACT = "exceeds_retest_local_high"
+FEATURE_DEFINITIONS = {
+    "breakout_return": "close[i]/close[i-1]-1",
+    "breakout_volume_ratio": "volume[i]/mean(volume[i-20:i]); excludes breakout i",
+    "b_existing_pull_volume_ratio": "exact existing B aggregate pull volume / volume[i]; includes T",
+    "pre_t_retest_volume_ratio": "mean(volume[i+1:T])/volume[i]; excludes T",
+    "reactivation_vs_retest_ratio": "volume[T]/mean(volume[i+1:T])",
+    "reactivation_vs_breakout_ratio": "volume[T]/volume[i]",
+    "min_low_vs_breakout_level": "min(low[i+1:T])/L-1",
+    "min_close_vs_breakout_level": "min(close[i+1:T])/L-1",
+    "max_retest_depth_vs_breakout_level": "max(0,1-min(low[i+1:T])/L)",
+    "days_below_breakout_level": "count(close[i+1:T]<L)",
+    "reclaim_breakout_level_days": "bar delay from first below-L pre-T close to first later close>=L through T; missing if no breach/not reclaimed",
+    "days_to_reclaim_breakout_level": "alias of reclaim_breakout_level_days",
+    "days_from_breakout_to_signal": "T-i observed stock trading bars",
+    "days_to_reactivation_local_high": "T-first_argmin(low[i+1:T]) when close[T]>max(high[i+1:T]); otherwise missing",
+    "reactivation_price_strength": "close[T]/close[T-1]-1",
+    "reclaims_breakout_level": "close[T]>=L",
+    "exceeds_retest_local_high": "close[T]>max(high[i+1:T])",
+    "anchor": "L=max(close[i-60:i]); exact existing first qualifying breakout i",
+}
 
 
 def sha(path):
@@ -257,13 +277,25 @@ def run(source_root, output):
         if number%2000 == 0:
             print(f"qualified rows {number}/{len(identities)}",flush=True)
     frame = pd.DataFrame(rows)
+    baseline_path = root/"data/validation/b_phase_volume_path_diagnostic_v1/summary.json"
+    baseline = json.loads(baseline_path.read_text(encoding="utf8"))
+    baseline_reconciliation = {}
+    for field in volume_path.FEATURES:
+        values = frame[field].dropna()
+        prior = baseline["feature_distributions"][field]
+        match = len(values) == prior["n"] and np.isclose(values.mean(),prior["mean"],rtol=1e-12,atol=1e-12) and np.isclose(values.median(),prior["median"],rtol=1e-12,atol=1e-12)
+        if not match:
+            raise RuntimeError("volume baseline reconstruction mismatch: "+field)
+        baseline_reconciliation[field] = {"n":len(values),"mean":float(values.mean()),"median":float(values.median()),"match":True}
     summary = {"schema_version":TASK,"labels":["DEVELOPMENT","RECONSTRUCTED_RETROSPECTIVE","DIAGNOSTIC_ONLY"],
                "base_sha":BASE,"branch":"codex/b-false-breakout-path-diagnostic-v1",
                "source_sha":subprocess.check_output(["git","rev-parse","HEAD"],cwd=root,text=True).strip(),
                "implementation_sha256":sha(Path(__file__)),
                "protocol_commit":subprocess.check_output(["git","rev-parse",PROTOCOL_COMMIT],cwd=root,text=True).strip(),"protocol_sha256":sha(root/PROTOCOL),
                "cohort_identity":"frozen-qualified-B-17714","input_sha256":inputs,"spec_sha256":STRATEGY_SPEC_SHA256,
-               "feature_definitions":{"protocol":PROTOCOL,"volume_baseline":"b_phase_volume_path_diagnostic_v1_protocol.md","anchor":"exact first breakout base_hi","retest":"i+1:T-1"},
+               "feature_definitions":FEATURE_DEFINITIONS,
+               "baseline_reconciliation":{"sha256":sha(baseline_path),"decision":baseline["decision"],"features":baseline_reconciliation},
+               "reproduction_command":"python scripts/b_false_breakout_path_diagnostic.py --source-root <checkout-with-restored-frozen-daily-k>",
                "turnover_availability_state":"TURNOVER_EVIDENCE_UNAVAILABLE",
                "turnover_probe":{"source":"existing HiThink and third-party daily_basic provenance","reason":"amount is not turnover rate; gateway NO_VINTAGE_PROOF does not establish PIT validity","provider_calls":0},
                "feature_unavailable_reasons":dict(Counter(field+":"+reason for row in rows for field,reason in row["feature_unavailable"].items())),
@@ -277,7 +309,84 @@ def run(source_root, output):
                 handle.write((json.dumps(row,sort_keys=True,allow_nan=False)+"\n").encode())
     summary["event_artifact"] = {"rows":len(rows),"sha256":sha(detail),"path":str(detail.relative_to(root)).replace("\\","/")}
     (output/"summary.json").write_text(json.dumps(summary,indent=2,sort_keys=True,allow_nan=False)+"\n",encoding="utf8")
+    (root/"docs/research/b_false_breakout_path_diagnostic_v1_report.md").write_text(render_report(summary,sha(output/"summary.json")),encoding="utf8")
     return summary
+
+
+def render_report(summary, artifact_sha):
+    c = summary["sample_counts"]
+    lines = ["# B False Breakout Path Diagnostic V1 Report", "",
+        "DEVELOPMENT / RECONSTRUCTED_RETROSPECTIVE / DIAGNOSTIC_ONLY. Research question; classification unchanged.", "",
+        "## Decision", "", "`"+summary["final_research_status"]+"`", "",
+        "Research decision: `NEEDS_MORE_EVIDENCE`. Overall price-defense direction survives episode sensitivity,",
+        "but Main Board magnitude is negligible, 2023 reverses, the secondary all-STOP comparison reverses,",
+        "and reactivation fails the joint/return-conditioned support checks. The joint hypothesis is INCONCLUSIVE.",
+        "No B V2 protocol, filter, prospective deployment, or production change is authorized or created.", "",
+        "The frozen diagnostic definitions are the only candidate structure retained. Missing evidence is a",
+        "genuine pre-outcome prospective Main Board cohort with enough independent episodes across periods",
+        "to evaluate the same comparisons without redefining bins/features. It would inform a later separately",
+        "authorized B V2 decision; the existing daily Formal B path continues without this evidence.", "",
+        "## Cohort and labels", "",
+        f"Exact frozen qualified identities: {c['rows']}; TARGET={c['TARGET']}; FAST_STOP={c['FAST_STOP']}; all STOP={c['STOP']}.",
+        f"Unique (symbol, breakout_date) episodes={c['unique_episodes']}. Other outcomes: `{json.dumps(c['other'],sort_keys=True)}`.",
+        "FAST_STOP is a subset of STOP; it is not added to STOP when reporting total counts.",
+        "Formal track_perf replay supplies trigger/gap fills, entry+1 sellability, same-bar ambiguity and",
+        "T+10 time exit / T+11 deferred legal exit. V2 affine adjustment puts OHLC and frozen rule levels",
+        "on the same ex-post basis; future actions never enter features. This is a reconstructed DEVELOPMENT",
+        "execution diagnostic, not the earlier volume baseline's unconditional T+1-open return or prospective results.",
+        "Full T+11 stock coverage is required conservatively before path evaluation; 162 coverage-unavailable",
+        "rows are reported rather than assigning partial labels. This can introduce maturity/coverage selection.", "",
+        "## Increment and robustness", "",
+        "Rates are FAST_STOP/(TARGET+FAST_STOP); secondary rates are STOP/(TARGET+STOP).",
+        "Values below are percentage-point differences, high minus low defense within fixed volume bins.",
+        "Negative primary values indicate fewer FAST_STOP relative to TARGET. No independent-row p-values",
+        "or causal claims are made. All cells and per-side counts, including missing/sparse cells, are in summary.json.", "",
+        "| view | rows | episodes | price primary Δpp | price all-STOP Δpp | reactivation joint Δpp | reactivation within return Δpp |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: |"]
+    for name,r in summary["robustness"].items():
+        values = [r[k]["delta_pp"] for k in ("primary_price_increment","secondary_price_increment","reactivation_increment","reactivation_return_conditioned")]
+        formatted = ["INSUFFICIENT_DATA" if v is None else f"{v:.3f}" for v in values]
+        lines.append(f"| {name} | {r['counts']['rows']} | {r['counts']['unique_episodes']} | "+" | ".join(formatted)+" |")
+    months = [r["delta_pp"] for r in summary["leave_one_month_out"].values() if r["delta_pp"] is not None]
+    concentration = summary["episode_concentration"]
+    lines.extend(["",f"Leave-one-month-out primary range: {min(months):.3f} to {max(months):.3f} pp; all retained negative.",
+        f"Repeated-episode row share={concentration['repeated_row_share']:.2%}; largest episode={concentration['largest_episode_rows']} rows; top ten episode share={concentration['top_10_episode_row_share']:.2%}.",
+        "The earliest-episode and inverse-size views retain the primary direction; Main Board and year",
+        "instability remain decisive falsification failures. Near-limit exclusion is only the existing",
+        "ordinary-board return proxy, not an exact exchange limit state; unknown-prefix rows are unavailable.",
+        "Regimes reuse the existing frozen shadow trend definition, reconstructed through T; no historical",
+        "prospective capture is fabricated. Regime episode counts can overlap across periods.", "",
+        "## Features, baseline and turnover", "",
+        "All five reused volume features reconcile in N/mean/median to the original frozen volume summary",
+        "within 1e-12 tolerance; its VOLUME_PATH_NEEDS_MORE_EVIDENCE decision is unchanged.",
+        "The complete 3×3 defense/contraction matrix and its boolean-reactivation split are reported, with",
+        "volume-only marginal rates as baseline. No cell was chosen as a rule and no threshold was swept.",
+        "Continuous distributions for TARGET, FAST_STOP and all STOP, and every missing reason, are in the artifact.",
+        "The empty pre-T retest interval affects 1,368 rows. No-breach reclaim time is missing with NO_BREACH,",
+        "not zero. Local-high crossing can only occur at T by definition; its time-to-cross is a trough-to-T",
+        "description, not an independently identified reactivation clock. MA5 timing was optional and omitted.",
+        "`TURNOVER_EVIDENCE_UNAVAILABLE`: HiThink turnover is amount; current circulating shares cannot",
+        "backfill history. Existing daily_basic gateway is DATE_ANCHORED / NO_VINTAGE_PROOF / THIRD_PARTY_GATEWAY",
+        "and does not satisfy this task's strict PIT proof. Existing Eastmoney acquisition recorded unavailable",
+        "responses. Bounded feasibility probe reused code and provenance only: external provider calls=0.",
+        "Price defense/volume/time are observables. Seller exhaustion, capital support or accumulation are",
+        "unproved hypotheses. Social-media integers were not adopted as thresholds.", "",
+        "## Provenance and verification", "",
+        f"Base SHA: `{summary['base_sha']}`. Branch: `{summary['branch']}`.",
+        f"Source implementation commit: `{summary['source_sha']}`; code SHA-256: `{summary['implementation_sha256']}`.",
+        f"Pre-comparison protocol commit: `{summary['protocol_commit']}`; SHA-256: `{summary['protocol_sha256']}`.",
+        f"Summary file SHA-256: `{artifact_sha}`.",
+        f"Event artifact: `{summary['event_artifact']['path']}`; SHA-256: `{summary['event_artifact']['sha256']}`.",
+        "Frozen inputs and feature expressions are in summary.json. Detail is committed for remote recovery.",
+        "Focused tests=20 passed; full pytest=611 passed, 2 existing fixture skips, 10 warnings; compileall",
+        "and git diff --check PASS. Final delivery head is resolved from the remote task branch and recorded",
+        "in the delivery response; source commit above is immutable implementation provenance, not a live-head invariant.",
+        "Reproduce: `python scripts/b_false_breakout_path_diagnostic.py --source-root <checkout-with-restored-frozen-daily-k>`.",
+        "Frozen daily-K restored from verified private Drive file 1lLxp0y_csfOczwEBNYo4ysdyItBgF4Ja;",
+        "exact SHA 61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426 matched.",
+        "Production dispatch=0; runtime-state remote mutation=NO; PR #60 untouched; Formal B/spec/universe",
+        "unchanged; Final OOS SEALED / UNREAD; forbidden directory untouched.", ""])
+    return "\n".join(lines)
 
 
 if __name__ == "__main__":
