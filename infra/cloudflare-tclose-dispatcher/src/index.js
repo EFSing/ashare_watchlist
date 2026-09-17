@@ -32,6 +32,7 @@ export function buildDispatchRequest(scheduledTime, env) {
       method: "POST",
       headers: {
         Accept: "application/vnd.github+json",
+        "User-Agent": "ashare-tclose-dispatcher",
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
         "X-GitHub-Api-Version": "2022-11-28",
