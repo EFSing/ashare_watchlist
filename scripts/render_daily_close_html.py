@@ -15,6 +15,7 @@ import copy
 import hashlib
 import html
 import json
+import math
 import os
 import tempfile
 from dataclasses import dataclass
@@ -441,6 +442,8 @@ def _watchlist_rows(
     shadow_context = shadow_monitor.get("current_signal_context", {}) if isinstance(shadow_monitor, Mapping) else {}
     shadow_context = shadow_context if isinstance(shadow_context, Mapping) else {}
     for rank, candidate in enumerate(candidates, start=1):
+        shadow_entry = shadow_context.get(candidate.get("signal_id"))
+        shadow_entry = shadow_entry if isinstance(shadow_entry, Mapping) else {}
         signal = signals.get(candidate.get("signal_id"))
         is_new_signal = str(watchlist.get("date")) == report_date
         # A historical/current-date report must not expose a state derived
@@ -470,8 +473,9 @@ def _watchlist_rows(
                 "observation_status": observation_status,
                 "status_explanation": status_explanation,
                 "signal_id": candidate.get("signal_id"),
-                "shadow_context": dict(shadow_context.get(candidate.get("signal_id"), {}))
-                if isinstance(shadow_context.get(candidate.get("signal_id")), Mapping)
+                "shadow_context": dict(shadow_entry),
+                "volume_observation": dict(shadow_entry.get("volume_observation", {}))
+                if isinstance(shadow_entry.get("volume_observation"), Mapping)
                 else {},
             }
         )
@@ -1116,6 +1120,152 @@ def _position(distance):
     return '等待触发'
 
 
+def _volume_ratio_text(value: Any) -> str:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return '—'
+    if not math.isfinite(number):
+        return '—'
+    return f'{number:.2f}×'
+
+
+def _volume_share_text(value: Any) -> str:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return '—'
+    if not math.isfinite(number):
+        return '—'
+    return f'{number * 100:.1f}%'
+
+
+def _near_one(value: Any) -> bool:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return False
+    return math.isfinite(number) and round(number, 2) == 1.0
+
+
+_VOLUME_LABEL_DESCRIPTIONS = {
+    'down_volume_share': '回踩期间，下跌交易日的成交量占全部回踩成交量的比例。',
+    'up_down_volume_ratio': '上涨日平均成交量 ÷ 下跌日平均成交量。',
+    'pullback_volume_decay_ratio': '回踩后半段平均成交量 ÷ 前半段平均成交量。',
+}
+
+
+def _volume_dynamic_explanation(field: str, value: Any) -> str | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(number):
+        return None
+    if field == 'down_volume_share':
+        share = _volume_share_text(number)
+        return f'当前 {share}，表示约 {share} 的回踩成交量发生在下跌日。'
+    if field == 'up_down_volume_ratio':
+        display = _volume_ratio_text(number)
+        if _near_one(number):
+            return '上涨日与下跌日平均成交量接近。'
+        difference = f'{abs(number - 1.0) * 100:.0f}%'
+        direction = '高' if number > 1 else '低'
+        return f'当前 {display}，表示上涨日平均成交量约比下跌日{direction} {difference}。'
+    if field == 'pullback_volume_decay_ratio':
+        display = _volume_ratio_text(number)
+        if _near_one(number):
+            return '前后半段平均成交量接近。'
+        if number < 1:
+            return f'当前 {display}，表示后半段平均成交量约为前半段的 {number * 100:.0f}%，量能继续收缩。'
+        return f'当前 {display}，表示后半段平均成交量约为前半段的 {number * 100:.0f}%，较前半段增加。'
+    return None
+
+
+def _volume_missing_explanation(field: str, reason: Any) -> str | None:
+    if field == 'up_down_volume_ratio' and reason == 'NO_UP_OR_DOWN_DAY':
+        return '上涨日与下跌日样本不同时存在，暂无法计算。'
+    if field == 'pullback_volume_decay_ratio' and reason == 'PULLBACK_WINDOW_LT_4':
+        return '回踩窗口少于 4 个交易日，暂无法计算。'
+    if field == 'down_volume_share' and reason:
+        return '回踩成交量数据暂不可用。'
+    return None
+
+
+def _volume_metric_html(
+    label: str,
+    field: str,
+    value: Any,
+    reason: Any,
+    *,
+    sample_insufficient: bool,
+) -> str:
+    if sample_insufficient:
+        display = '样本不足'
+        explanation = None
+    elif value is None:
+        display = '—'
+        explanation = _volume_missing_explanation(field, reason)
+    else:
+        display = _volume_share_text(value) if field == 'down_volume_share' else _volume_ratio_text(value)
+        explanation = _volume_dynamic_explanation(field, value)
+    explanation_html = f'<small class="volume-explanation">{_esc(explanation)}</small>' if explanation else ''
+    return (
+        '<div class="volume-metric">'
+        f'<span class="volume-label">{_esc(label)}</span>'
+        f'<strong class="volume-value">{_esc(display)}</strong>'
+        f'<small>{_esc(_VOLUME_LABEL_DESCRIPTIONS[field])}</small>'
+        f'{explanation_html}'
+        '</div>'
+    )
+
+
+def _volume_card_html(title: str, metrics: str, window_days: int | None) -> str:
+    window = f'<small class="volume-window">观察窗口：{window_days} 个交易日</small>' if window_days is not None and window_days > 0 else ''
+    return (
+        '<div class="volume-card">'
+        f'<div class="volume-card-head"><strong>{_esc(title)}</strong>{window}</div>'
+        f'<div class="volume-card-metrics">{metrics}</div>'
+        '<small class="volume-observation-note">观察指标 · 不参与筛选/排名</small>'
+        '</div>'
+    )
+
+
+def _volume_observations_html(observation: Mapping[str, Any] | None) -> str:
+    data = observation if isinstance(observation, Mapping) else {}
+    reasons = data.get('missing_reason')
+    if not isinstance(reasons, Mapping):
+        reasons = data.get('feature_unavailable')
+    reasons = reasons if isinstance(reasons, Mapping) else {}
+    try:
+        window_days = int(data['window_days']) if data.get('window_days') is not None else None
+    except (TypeError, ValueError):
+        window_days = None
+    sample_insufficient = window_days == 0 and all(
+        reasons.get(field) == 'NO_PULLBACK_WINDOW' for field in ('down_volume_share', 'up_down_volume_ratio', 'pullback_volume_decay_ratio')
+    )
+    card_a = ''.join([
+        _volume_metric_html(
+            '下跌日成交量占比', 'down_volume_share', data.get('down_volume_share'),
+            reasons.get('down_volume_share'), sample_insufficient=sample_insufficient,
+        ),
+        _volume_metric_html(
+            '上涨/下跌日均量比', 'up_down_volume_ratio', data.get('up_down_volume_ratio'),
+            reasons.get('up_down_volume_ratio'), sample_insufficient=sample_insufficient,
+        ),
+    ])
+    card_b = _volume_metric_html(
+        '回踩后半/前半均量比', 'pullback_volume_decay_ratio', data.get('pullback_volume_decay_ratio'),
+        reasons.get('pullback_volume_decay_ratio'), sample_insufficient=sample_insufficient,
+    )
+    return (
+        '<div class="volume-observations">'
+        f'{_volume_card_html("回踩量能", card_a, window_days)}'
+        f'{_volume_card_html("量能衰减", card_b, window_days)}'
+        '</div>'
+    )
+
+
 def _watchlist_table(rows, earliest_execution=None):
     body = []
     for row in rows:
@@ -1125,9 +1275,6 @@ def _watchlist_table(rows, earliest_execution=None):
         distance_tone = _numeric_tone(distance)
         status = row.get('status')
         observation_status = row.get('observation_status')
-        shadow = row.get('shadow_context') if isinstance(row.get('shadow_context'), Mapping) else {}
-        shadow_market = shadow.get('market') or '—'
-        shadow_reactivation = _number(shadow.get('reactivation_vs_breakout_ratio'), 2)
         body.append(
             f'<article class="watch-row" data-search="{_esc(search)}">'
             f'<div class="watch-primary">'
@@ -1146,9 +1293,8 @@ def _watchlist_table(rows, earliest_execution=None):
             f'<span><label>距触发</label><strong class="{distance_tone}">{_esc(distance_value)}</strong>'
             f'<small>{_esc(_position(distance))}</small></span>'
             f'<span><label>T+1</label><strong>{_esc(earliest_execution)}</strong></span>'
-            f'<span><label>市场</label><strong>{_esc(shadow_market)}</strong></span>'
-            f'<span><label>再启动量能</label><strong>{_esc(shadow_reactivation)}× breakout</strong></span>'
             f'</div>'
+            f'{_volume_observations_html(row.get("volume_observation"))}'
             f'<div class="watch-meta"><span>{_esc(row.get("sector"))}</span>'
             f'<span>{_esc(row.get("status_explanation"))}</span></div>'
             f'</article>'
@@ -1655,7 +1801,6 @@ def _shadow_monitor_html(shadow: Mapping[str, Any]) -> str:
         ("累计信号", _integer(overall.get("signals"), "0")),
         ("已触发", _integer(overall.get("triggered"), "0")),
         ("FAST_STOP", _integer(overall.get("fast_stop_count"), "0")),
-        ("当前 regime", shadow.get("current_regime") or "—"),
     ]
     stats = '<div class="metric-strip">' + ''.join(
         f'<div class="metric-item"><span>{_esc(label)}</span><strong>{_esc(value)}</strong></div>'
@@ -1669,50 +1814,10 @@ def _shadow_monitor_html(shadow: Mapping[str, Any]) -> str:
             '</div>'
         )
 
-    def market_rows(rows: Any) -> str:
-        if not isinstance(rows, list) or not rows:
-            return '<div class="empty-state">暂无可分层的 market regime 样本。</div>'
-        body = []
-        for row in rows:
-            body.append([
-                _text(row.get("environment")),
-                _integer(row.get("n"), "0"),
-                _integer(row.get("fast_stop_count"), "0"),
-                _percent(row.get("fast_stop_rate")),
-                _number(row.get("profit_factor")),
-                _percent(row.get("expectancy"), signed=True),
-            ])
-        return _simple_table(
-            ("环境", "样本", "FAST_STOP", "FAST_STOP rate", "PF", "Expectancy"),
-            ['<tr>' + ''.join(f'<td>{_esc(cell)}</td>' for cell in row) + '</tr>' for row in body],
-            table_class="metric-detail-table",
-        )
-
-    reactivation_rows = shadow.get("reactivation_rows")
-    if isinstance(reactivation_rows, list) and reactivation_rows:
-        reactivation_body = []
-        for row in reactivation_rows:
-            reactivation_body.append([
-                _text(row.get("bucket")),
-                _integer(row.get("sample"), "0"),
-                _number(row.get("median_reactivation_vs_breakout_ratio")),
-            ])
-        reactivation_html = _simple_table(
-            ("Outcome", "样本", "median reactivation / breakout"),
-            ['<tr>' + ''.join(f'<td>{_esc(cell)}</td>' for cell in row) + '</tr>' for row in reactivation_body],
-            table_class="metric-detail-table",
-        )
-    else:
-        reactivation_html = '<div class="empty-state">暂无 reactivation 描述统计。</div>'
-
     return (
         stats
-        + '<div class="secondary-label"><span>Market regime</span><small>仅描述，不参与正式 signal path</small></div>'
-        + '<div class="table-scroll">' + market_rows(shadow.get("trend_rows")) + '</div>'
-        + '<div class="secondary-label"><span>Volatility regime</span><small>固定定义版本 ' + _esc(shadow.get("definition_version", "—")) + '</small></div>'
-        + '<div class="table-scroll">' + market_rows(shadow.get("vol_rows")) + '</div>'
-        + '<div class="secondary-label"><span>Reactivation</span><small>continuous median；无 frozen bins</small></div>'
-        + '<div class="table-scroll">' + reactivation_html + '</div>'
+        + '<div class="secondary-label"><span>Prospective shadow observation</span>'
+        + '<small>仅描述，不参与正式名单、评分、排序或交易参数</small></div>'
     )
 
 
@@ -1925,6 +2030,19 @@ input[type=search] {{ width: min(360px, 100%); padding: 8px 10px; border: 1px so
 .watch-facts span:last-child strong {{ color: var(--text); }}
 .watch-facts small {{ display: block; color: var(--muted); font-size: 10px; }}
 .watch-meta {{ display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 7px 0 0 38px; color: var(--muted); font-size: 11px; }}
+.volume-observations {{ display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 7px; min-width: 0; margin: 11px 0 0 38px; }}
+.volume-card {{ min-width: 0; padding: 10px 11px; border: 1px solid var(--border); background: var(--surface-2); }}
+.volume-card-head {{ display: flex; align-items: baseline; justify-content: space-between; gap: 8px; min-width: 0; color: var(--text); font-size: 13px; }}
+.volume-card-head strong {{ font-weight: 700; }}
+.volume-window {{ color: var(--muted); font-size: 11px; font-weight: 400; white-space: nowrap; }}
+.volume-card-metrics {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 9px; }}
+.volume-card:last-child .volume-card-metrics {{ grid-template-columns: minmax(0, 1fr); }}
+.volume-metric {{ min-width: 0; }}
+.volume-label {{ display: block; color: var(--muted); font-size: 12px; }}
+.volume-value {{ display: block; margin-top: 3px; color: var(--text); font-size: 19px; font-variant-numeric: tabular-nums; }}
+.volume-metric small {{ display: block; margin-top: 4px; color: var(--muted); font-size: 11px; line-height: 1.45; }}
+.volume-metric .volume-explanation {{ color: var(--text); }}
+.volume-observation-note {{ display: block; margin-top: 9px; color: var(--muted); font-size: 11px; }}
 .action-list {{ display: grid; gap: 7px; }}
 .action-row {{ min-width: 0; padding: 12px 13px; border: 1px solid var(--border); border-left: 3px solid var(--accent); background: var(--surface); }}
 .action-row.positive {{ border-left-color: var(--positive); }}
@@ -2001,6 +2119,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   .watch-primary {{ grid-template-columns: 24px minmax(0, 1fr) auto; }}
   .watch-state {{ grid-column: 2 / -1; justify-content: flex-start; }}
   .watch-facts, .watch-meta {{ margin-left: 32px; }}
+  .volume-observations {{ grid-template-columns: 1fr; margin-left: 32px; }}
   .action-facts {{ grid-template-columns: repeat(3, 1fr); }}
   .research-panels {{ grid-template-columns: 1fr; }}
   .coverage-strip {{ grid-template-columns: repeat(2, 1fr); }}
@@ -2034,6 +2153,9 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   .watch-facts small {{ font-size: 11px; }}
   .watch-meta {{ margin-left: 34px; gap: 5px 12px; font-size: 12px; overflow-wrap: anywhere; }}
   .watch-meta > span {{ min-width: 0; }}
+  .volume-observations {{ grid-template-columns: 1fr; margin: 12px 0 0 34px; }}
+  .volume-card-metrics, .volume-card:last-child .volume-card-metrics {{ grid-template-columns: 1fr; }}
+  .volume-window {{ white-space: normal; text-align: right; }}
   .action-top {{ flex-direction: column; align-items: flex-start; gap: 8px; }}
   .action-status {{ justify-content: flex-start; }}
   .action-facts {{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }}
@@ -2086,7 +2208,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
 </section>
 
 <section id="shadow-monitor">
-  <div class="section-head"><div><p class="section-kicker">04 · PROSPECTIVE SHADOW MONITOR</p><h2>Prospective Shadow Monitor</h2><p class="section-subtitle">仅记录市场环境、再启动量能与后续结果；不参与正式名单、评分、排序或交易参数。</p></div></div>
+  <div class="section-head"><div><p class="section-kicker">04 · PROSPECTIVE SHADOW MONITOR</p><h2>Prospective Shadow Monitor</h2><p class="section-subtitle">仅记录 prospective shadow 样本与后续结果；不参与正式名单、评分、排序或交易参数。</p></div></div>
   {shadow_html}
 </section>
 
