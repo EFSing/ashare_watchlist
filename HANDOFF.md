@@ -6,6 +6,29 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-17 — CLOUDFLARE_SECONDARY_DISPATCHER_RECONCILIATION_V1
+
+- Independent branch: `codex/cloudflare-secondary-dispatcher-reconciliation-v1`;
+  base at intake: `origin/master=9c3f011ebc06d33347372b3792ec28f11c505f40`,
+  `origin/runtime-state=55fdd5167911ed074df9212cbca01fdda1c58a6b`.
+  Fetch and resolve the branch's live remote HEAD when resuming; these are provenance.
+- `PROJECT_GOVERNANCE_STATE_CONFLICT`: PR #64 is merged; earlier awaiting-merge
+  entries are superseded. Account reads confirm `ashare-tclose-dispatcher` deployed,
+  workers.dev enabled, Cron `25 9 * * 1-5` present, required secret configured.
+  Earlier Cloudflare `PREPARED / NOT_ACTIVE` descriptions are superseded by these
+  account facts; successful dispatch and actual PAT permission/expiry remain UNRESOLVED.
+- Minimal implementation commit: `149f5e339d1c70d8c16b9c6bb90acb04131ab3d1`;
+  explicit GitHub User-Agent and `workers_dev = true`, preserving deployed exposure.
+  Node tests 3 passed; focused Python tests 136 passed; syntax/diff checks and
+  Wrangler 4.133.0 deploy dry-run passed. Existing concurrency, ALREADY_COMPLETED,
+  XSHG and acquisition-date gates remain the authorities.
+- Next: inspect this branch's PR and exact-head CI, user merge decision, then
+  separately authorize redeployment of this existing Worker. No secret/Cron change
+  is justified by current evidence. No automatic merge or deployment.
+- Production dispatch=0; Cloudflare account mutation=0; runtime-state mutation=0.
+  Formal B/research/PR #60 untouched; Final OOS SEALED / UNREAD; prohibited directory
+  not read or touched. Classification remains product blocker diagnostic (STRICT PATH).
+
 ## 2026-09-16 — PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1
 
 - live intake reconciliation：此前 persisted docs 仍记录 `origin/master=040e077b`；实时
