@@ -229,7 +229,7 @@ def run(source_root, output):
         dates,close,vol,high,low = cache[key]
         end = int(np.searchsorted(dates,anchor,side="right")); start = max(0,end-replay.LOOKBACK_BARS)
         arrays = tuple(a[start:end] for a in (close,vol,high,low))
-        dt = [replay._date_from_ms(int(x)) for x in dates[start:end]]
+        dt = [store["date_text"][int(x)] for x in dates[start:end]]
         features = path_features(*arrays,dt)
         p = positions[t]
         projection = evaluate_numeric_projection(symbol=symbol,signal_date=t,earliest_execution_date=row["earliest_execution_date"],bars=arrays,index_bars=index_bars[:p+1])
