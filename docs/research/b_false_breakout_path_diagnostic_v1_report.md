@@ -80,12 +80,12 @@ unproved hypotheses. Social-media integers were not adopted as thresholds.
 ## Provenance and verification
 
 Base SHA: `9c3f011ebc06d33347372b3792ec28f11c505f40`. Branch: `codex/b-false-breakout-path-diagnostic-v1`.
-Source implementation commit: `135fa7aa235fbc6a296e56f012207e7d78d9ede1`; code SHA-256: `932db2123948f1ad413d92a203a4c3511b6f3bb610c873052a3d07a8ce430bb2`.
+Source implementation commit: `cd34319f779276c0616742f54335f16fa7bbaa8e`; code SHA-256: `7ab8ab56d339bb97990dbc63462fbf00dc3376bd99bb945d64cb3cb1a92f2252`.
 Pre-comparison protocol commit: `ad975a0ff6e24921b0be8792d75c282700be1c50`; SHA-256: `77c3b26a48b5f07415fbd9753c9fed98eb5d98b4fc616f1d4972a7212c49b273`.
-Summary file SHA-256: `dc9ec93e76f2e07b788e52d041748255ddec1bcd93967ee71c58d1a1b5284455`.
+Summary file SHA-256: `e78f64b837d0e88f6547d1c6c8e4b3832efa96afc8663849c34aab79f8b842e4`.
 Event artifact: `data/validation/b_false_breakout_path_diagnostic_v1/events.jsonl.gz`; SHA-256: `d30f17e647ac9848af3b759956e450d72c222afe2787f5d5823f51511a4a3e4d`.
 Frozen inputs and feature expressions are in summary.json. Detail is committed for remote recovery.
-Focused tests=21 passed (final rerun after additional unknown-proxy regression); full pytest=611 passed, 2 existing fixture skips, 10 warnings; compileall
+Focused tests=21 passed; full pytest=611 passed, 2 existing fixture skips, 10 warnings; compileall
 and git diff --check PASS. Final delivery head is resolved from the remote task branch and recorded
 in the delivery response; source commit above is immutable implementation provenance, not a live-head invariant.
 Reproduce: `python scripts/b_false_breakout_path_diagnostic.py --source-root <checkout-with-restored-frozen-daily-k>`.

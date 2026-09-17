@@ -22,11 +22,11 @@
   TURNOVER_EVIDENCE_UNAVAILABLE: existing sources lack strict PIT proof; provider data calls=0.
 - Remote recovery branch: codex/b-false-breakout-path-diagnostic-v1. Fetch and resolve
   origin/codex/b-false-breakout-path-diagnostic-v1 for current remote HEAD; do not base on PR #60.
-  Immutable source implementation HEAD: 135fa7aa235fbc6a296e56f012207e7d78d9ede1.
+  Immutable source implementation HEAD: cd34319f779276c0616742f54335f16fa7bbaa8e.
   Protocol pre-comparison commit: ad975a0ff6e24921b0be8792d75c282700be1c50.
   Protocol/report: docs/research/b_false_breakout_path_diagnostic_v1_{protocol,report}.md;
   committed events + summary: data/validation/b_false_breakout_path_diagnostic_v1/.
-  Summary SHA-256: dc9ec93e76f2e07b788e52d041748255ddec1bcd93967ee71c58d1a1b5284455.
+  Summary SHA-256: e78f64b837d0e88f6547d1c6c8e4b3832efa96afc8663849c34aab79f8b842e4.
   Event SHA-256: d30f17e647ac9848af3b759956e450d72c222afe2787f5d5823f51511a4a3e4d.
 - Verification: final focused 21 passed; full 611 passed, 2 original fixture skips, 10 warnings;
   compileall and diff check PASS. Repeated frozen reconstruction reproduced exact same event bytes.
