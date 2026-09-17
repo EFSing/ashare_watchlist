@@ -16,8 +16,9 @@
   H1/H2/H4 are directional overall/Main Board/unique episode but not year-consistent; H3/H5 fail
   the preregistered direction; both permitted matrices reverse in the price-defense HIGH row.
   H5 is an exact #66 baseline alias and adds no established information.
-- Branch: `codex/b-pullback-volume-asymmetry-diagnostic-v1`; protocol `d0a477d...`; implementation
-  `35a707c...`; final checkpoint HEAD is recorded in `HANDOFF.md` after push. Draft PR pending.
+- Branch: `codex/b-pullback-volume-asymmetry-diagnostic-v1`; remote HEAD
+  `f27d24bc1243309815c2b6668b85e357533c3808`; protocol `d0a477d...`; implementation `35a707c...`.
+  Draft PR pending.
 
 ## 2026-09-17 — B_FALSE_BREAKOUT_PATH_DIAGNOSTIC_V1 complete
 

@@ -17,12 +17,12 @@
 - H1/H2/H4 support the preregistered direction overall/Main Board/unique episode, but year
   consistency is insufficient; H3 and H5 do not support it. Both permitted matrices reverse in
   the price-defense HIGH row. H5 is an exact #66 baseline alias, so no incremental information.
-- Protocol commit: `d0a477db3f375ef19fdec51bb091ac3162ea6278`; implementation commit before this
-  checkpoint: `35a707c2655c450f32d407a84d53fcc8699d983e`.
+- Protocol commit: `d0a477db3f375ef19fdec51bb091ac3162ea6278`; implementation commit:
+  `35a707c2655c450f32d407a84d53fcc8699d983e`.
 - Verification: focused/relevant 22 passed; full 619 passed, 2 skipped, 10 warnings;
   compileall and diff check PASS. Draft PR is to be created from the pushed branch below; no merge.
-- Remote recovery branch: `codex/b-pullback-volume-asymmetry-diagnostic-v1`; update the remote HEAD
-  after the checkpoint commit before continuing. Final OOS remains `SEALED / UNREAD`.
+- Remote recovery branch: `codex/b-pullback-volume-asymmetry-diagnostic-v1`; remote HEAD:
+  `f27d24bc1243309815c2b6668b85e357533c3808`. Final OOS remains `SEALED / UNREAD`.
 
 ## 2026-09-17 — B_FALSE_BREAKOUT_PATH_DIAGNOSTIC_V1 complete
 
