@@ -561,9 +561,18 @@ def main(argv: list[str] | None = None) -> int:
         if not args.preflight and result.get("status") == T_CLOSE_SUCCESS_STATUS and result.get("watchlist", {}).get("path"):
             result["daily_close_bundle"] = _run_daily_close_reporting(args.as_of_date, data_root)
     except (LiveAcquisitionError, OSError, RuntimeError, ValueError) as exc:
+        diagnostics = getattr(exc, "diagnostics", {})
+        if not isinstance(diagnostics, dict):
+            diagnostics = {}
         print(
             json.dumps(
-                {"status": "T_CLOSE_RUN_FAILED", "error_type": type(exc).__name__, "error_detail": str(exc)[:1000]},
+                {
+                    "status": "T_CLOSE_RUN_FAILED",
+                    "error_type": type(exc).__name__,
+                    "error_status": getattr(exc, "status", None),
+                    "error_detail": str(exc)[:1000],
+                    "diagnostics": diagnostics,
+                },
                 ensure_ascii=False,
                 sort_keys=True,
             )

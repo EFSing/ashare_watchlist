@@ -6,6 +6,29 @@
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
+## Current task — SINGLE_AUTHORITATIVE_MARKET_DATA_SOURCE_V1
+
+本轮将生产行情决策收敛为 HiThink Financial-API 单一权威来源：universe、snapshot、个股
+historical K 线与指数 historical K 线均只能使用 HiThink。Tencent quote、Tencent Kline fallback
+与 AkShare exchange-roster production calls 必须为 `0`；Sina `新浪行业` 仅保留为可选、失败软化的
+sector enrichment，不能成为行情或 universe 的替代来源。生产 provenance 须持久记录该 policy
+identity、provider/API、fallbacks=`[]` 与调用计数。
+
+target-day trade state 只有 `TRADED`、`NO_TRADE`、`UNKNOWN` 三态。null/partial snapshot 或缺少
+T 日历史 bar 不得自动解释为 NO_TRADE；HiThink historical stale 只允许一次同源重试，仍无法证明
+目标日状态时 fail-closed，并返回 symbol、target_date、latest_historical_date、provider、retry_count
+等诊断。旧的单票 stale isolation 不再执行，不能扩大为 degraded coverage。
+
+HiThink snapshot 的 `turnover` 只按成交额语义保存为 `turnover_amount`，不是换手率；当前 Formal B
+不要求 turnover/vol_ratio，缺失保持缺失，禁止补 0 或伪造换手率。Formal B 规则、selection/rank/
+threshold、T+1 与冻结 spec SHA 保持不变。Final OOS=`SEALED / UNREAD`，
+`data/validation/continuous_speed_probe/` 保持未读未触碰。
+
+代码在独立分支 `codex/single-authoritative-market-data-source-v1` 上实施；合并与生产动作须在
+实时核对最终 PR head、exact-head CI、master correctness CI 与 canonical runtime-state 后执行。用户已
+明确授权：安全条件全部满足时直接 squash merge；merge 后核验 2026-09-17 canonical completion，若未完成
+则直接以 `mode=production`、`as_of_date=2026-09-17`、`trigger_source=manual` 调度，不再次请求确认。
+
 ## Current task — HITHINK_LIST_DATE_UNIVERSE_ELIGIBILITY_FIX_V1 — 2026-09-17
 
 本轮为 `correctness blocker`（STRICT PATH）。live intake 仅使用本仓库 remote：

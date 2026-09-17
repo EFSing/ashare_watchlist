@@ -382,9 +382,10 @@ def _candidate_payload(
     }
     for field_name, value in values.items():
         if field_name not in {"code", "name", "sector", "buy_type", "target_type", "setup", "strategy_version"}:
-            if value is None:
+            if value is None and field_name != "turnover":
                 raise DevelopmentCandidateError(RUN_EVALUATION_FAILURE, f"qualified {code} has no {field_name}")
-            _finite(value, f"candidate.{field_name}")
+            if value is not None:
+                _finite(value, f"candidate.{field_name}")
     return values
 
 

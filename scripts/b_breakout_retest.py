@@ -38,7 +38,7 @@ from a_platform_breakout import (
     _bar_number,
     _canonical_json,
     _index_change,
-    _quote_number,
+    _optional_quote_number,
     _same_symbol,
     _sector_evidence,
     _sha256,
@@ -293,7 +293,7 @@ def _evaluate_arrays(
     h60, hhv120 = float(np.max(hi[-60:])), float(np.max(hi[-120:]))
     total_vol = float(np.sum(vol_by_price))
     overhang = float(np.sum(vol_by_price[bins[:-1] > close * 1.02]) / total_vol) if total_vol > 0 else 0.0
-    turnover = _quote_number(quote, "turnover", "换手率")
+    turnover = _optional_quote_number(quote, "turnover", "换手率")
     features = FeatureSnapshot(
         str(symbol).strip().lower(), close, ma5, ma20, vma20_prev, vol_ratio_k,
         chg1, chg5, chg10, chg20, bias20, llv250, hhv250, pos250,
@@ -358,7 +358,7 @@ def _evaluate_arrays(
         prior_five_mean=float(np.mean(c[-6:-1])), sector_chg=sector_chg, rs=rs, rr=rr,
     )
     risk_flags: list[str] = []
-    if turnover > 10:
+    if turnover is not None and turnover > 10:
         risk_flags.append("HIGH_TURNOVER")
     if overhang > 0.35:
         risk_flags.append("OVERHANG")

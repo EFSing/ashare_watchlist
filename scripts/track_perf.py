@@ -20,8 +20,9 @@ from pathlib import Path
 from statistics import mean, median
 from typing import Any, Iterable, Mapping
 
+import requests
+
 from data_paths import DataPaths
-from tencent_quotes import QuoteDataError, fetch_quotes, validate_quotes
 from trading_calendar import CalendarUnavailable, TradingCalendar, default_calendar
 from watchlist_schema import (
     WatchlistSchemaError,
@@ -85,6 +86,10 @@ class TrackerSchemaError(ValueError):
     """The tracker is neither the supported v2 model nor migratable v1."""
 
 
+class QuoteDataError(RuntimeError):
+    """Provider-neutral tracker observation error."""
+
+
 def new_tracker() -> dict[str, Any]:
     return {"version": 2, "signals": {}, "updated": None, "review_coverage": None}
 
@@ -98,6 +103,127 @@ def parse_date(value: date | datetime | str) -> date:
     if len(text) != 8 or not text.isdigit():
         raise ValueError(f"invalid date: {value!r}")
     return datetime.strptime(text, "%Y%m%d").date()
+
+
+def _tracker_number(value: Any, field_name: str) -> float:
+    if isinstance(value, bool) or value is None:
+        raise QuoteDataError(f"tracker quote {field_name} is missing")
+    try:
+        number = float(value)
+    except (TypeError, ValueError) as exc:
+        raise QuoteDataError(f"tracker quote {field_name} is not numeric") from exc
+    if not math.isfinite(number):
+        raise QuoteDataError(f"tracker quote {field_name} is not finite")
+    return number
+
+
+def _validate_tracker_quotes(
+    quotes: Mapping[str, Mapping[str, Any]],
+    *,
+    expected_codes: Iterable[str],
+    expected_date: date | datetime | str,
+) -> None:
+    expected = {str(code).strip().lower().zfill(6) for code in expected_codes}
+    actual = {str(code).strip().lower().zfill(6) for code in quotes}
+    if expected != actual:
+        raise QuoteDataError(
+            f"HiThink tracker quote coverage mismatch; missing={sorted(expected - actual)}, "
+            f"extra={sorted(actual - expected)}"
+        )
+    expected_date_text = parse_date(expected_date).isoformat()
+    for raw_code, quote in quotes.items():
+        code = str(raw_code).strip().lower().zfill(6)
+        if not isinstance(quote, Mapping) or str(quote.get("code", code)).strip().lower().zfill(6) != code:
+            raise QuoteDataError(f"tracker quote map key {code!r} does not match quote code")
+        if quote.get("quote_date") != expected_date_text:
+            raise QuoteDataError(
+                f"stale HiThink tracker quote for {code}: {quote.get('quote_date')} != {expected_date_text}"
+            )
+        opening = _tracker_number(quote.get("open"), f"{code}.open")
+        price = _tracker_number(quote.get("price"), f"{code}.price")
+        high = _tracker_number(quote.get("high"), f"{code}.high")
+        low = _tracker_number(quote.get("low"), f"{code}.low")
+        # The tracker preserves the existing observation semantics.  It only
+        # needs finite numeric OHLC inputs; the close-generation adapter is
+        # the boundary that enforces provider bar geometry.
+        if min(opening, price, high, low) <= 0:
+            raise QuoteDataError(f"tracker quote OHLC conflict for {code}")
+
+
+def fetch_quotes(
+    codes: Iterable[str],
+    expected_date: date | datetime | str,
+    *,
+    timeout: float = 15.0,
+    retries: int = 3,
+    request_get: Any | None = None,
+    **_ignored: Any,
+) -> dict[str, dict[str, Any]]:
+    """Fetch daily tracker observations from HiThink historical bars only.
+
+    The name is retained because the tracker tests and call sites inject a
+    function with this seam.  It is no longer a Tencent adapter and does not
+    synthesize turnover-rate fields.
+    """
+
+    del retries, request_get, _ignored
+    from live_acquisition import HiThinkClient, _resolve_market_bars
+
+    target = parse_date(expected_date).isoformat()
+    normalized_codes = [str(code).strip().lower().zfill(6) for code in codes]
+    client = HiThinkClient()
+    quotes: dict[str, dict[str, Any]] = {}
+    for code in normalized_codes:
+        try:
+            bars, resolution = _resolve_market_bars(
+                client,
+                code,
+                requested_count=260,
+                minimum_acceptable_history=2,
+                as_of_date=target,
+                timeout=timeout,
+                request_get=requests.get,
+                retries=3,
+                index=False,
+                allow_tencent_fallback=False,
+                allow_stale_as_of=False,
+            )
+        except Exception as exc:
+            raise QuoteDataError(
+                f"HiThink tracker historical quote unavailable for {code}: {type(exc).__name__}: {exc}"
+            ) from exc
+        if not bars or bars[-1].get("date") != target:
+            latest = bars[-1].get("date") if bars else None
+            raise QuoteDataError(
+                f"HiThink tracker historical quote for {code} is stale: {latest} != {target}"
+            )
+        current = bars[-1]
+        previous = bars[-2]
+        quote = {
+            "code": code,
+            "quote_date": target,
+            "price": current["close"],
+            "prev_close": previous["close"],
+            "open": current["open"],
+            "high": current["high"],
+            "low": current["low"],
+            "volume": current.get("volume"),
+            "chg_pct": (
+                (float(current["close"]) / float(previous["close"]) - 1.0) * 100.0
+                if float(previous["close"]) > 0
+                else None
+            ),
+            "turnover_amount": current.get("turnover"),
+            "provider": resolution.get("provider"),
+            "source": resolution.get("source"),
+        }
+        _validate_tracker_quotes(
+            {code: quote},
+            expected_codes=[code],
+            expected_date=target,
+        )
+        quotes[code] = quote
+    return quotes
 
 
 def trading_days_after(
@@ -1741,8 +1867,8 @@ def load_strategy_rule_historical_ohlc(
     K-line capture is the only historical source, and a missing bar is a
     performance data gap.  Cloud production explicitly enables the
     ``ASHARE_EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION`` switch.  In that
-    mode, missing symbols are read through the existing provider/fallback
-    adapter into memory only; no raw response, bar, tracker observation, or
+    mode, missing symbols are read through the existing HiThink adapter into
+    memory only; no raw response, bar, tracker observation, or
     prospective input is persisted.
     """
 
@@ -1773,7 +1899,7 @@ def load_strategy_rule_historical_ohlc(
     except Exception as exc:
         errors.append(f"historical cache adapter unavailable: {type(exc).__name__}")
         DEFAULT_STOCK_BAR_COUNT = 260
-        ALLOW_TENCENT_KLINE_FALLBACK = True
+        ALLOW_TENCENT_KLINE_FALLBACK = False
         HiThinkClient = None  # type: ignore[assignment]
         TCloseEvidenceStore = None  # type: ignore[assignment]
         _resolve_market_bars = None  # type: ignore[assignment]
@@ -2356,7 +2482,11 @@ def update(
     if quotes is None:
         quotes = fetch_quotes(codes, expected_date=today_date)
     else:
-        validate_quotes(quotes, expected_codes=codes, expected_date=today_date)
+        _validate_tracker_quotes(
+            quotes,
+            expected_codes=codes,
+            expected_date=today_date,
+        )
 
     changed = 0
     for signal in due_or_active:

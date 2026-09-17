@@ -306,6 +306,11 @@ def validate_watchlist(payload: Any) -> dict[str, Any]:
         if not isinstance(raw["buy_type"], str) or not raw["buy_type"].strip():
             raise WatchlistSchemaError(f"candidate {code} buy_type must be non-empty")
         for field in NUMERIC_CANDIDATE_FIELDS & set(raw):
+            # Current production does not require turnover-rate semantics.
+            # Preserve an explicit missing diagnostic as null; every formal
+            # numeric selection field remains strictly finite.
+            if field == "turnover" and raw[field] is None:
+                continue
             _finite_number(raw[field], field, code)
         for field in ("price", "trigger", "stop", "target", "rr"):
             if float(raw[field]) <= 0:

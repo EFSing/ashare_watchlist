@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
-from tencent_quotes import is_no_trade_snapshot
+from market_data_core import is_no_trade_snapshot
 from trading_calendar import CalendarUnavailable, TradingCalendar, default_calendar
 
 

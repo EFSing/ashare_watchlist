@@ -167,6 +167,22 @@ def test_volume_ratio_exactly_1_8_passes():
     assert result.status == QUALIFIED_LEGACY_BASELINE
 
 
+def test_missing_turnover_is_optional_and_never_filled_with_zero():
+    with_turnover = _evaluate()
+    without_turnover = _evaluate(quote_updates={"turnover": None})
+
+    assert with_turnover.status == without_turnover.status == QUALIFIED_LEGACY_BASELINE
+    assert with_turnover.features is not None
+    assert without_turnover.features is not None
+    assert with_turnover.features.turnover == pytest.approx(11.0)
+    assert without_turnover.features.turnover is None
+    assert with_turnover.matched_conditions == without_turnover.matched_conditions
+    assert with_turnover.failed_conditions == without_turnover.failed_conditions
+    assert with_turnover.score_total == without_turnover.score_total
+    assert with_turnover.risk_flags == ("HIGH_TURNOVER",)
+    assert without_turnover.risk_flags == ()
+
+
 def test_one_day_change_exactly_3_percent_passes():
     bars = _base_bars()
     bars[-1] = _bar(date.fromisoformat(AS_OF), close=10.3, high=10.4, low=10.0, volume=180)

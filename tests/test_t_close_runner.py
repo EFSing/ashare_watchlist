@@ -6,6 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import t_close_runner as runner
+from live_acquisition import LiveAcquisitionError
 from trading_calendar import TradingCalendar
 
 
@@ -98,6 +99,38 @@ def test_main_persists_daily_close_bundle_after_successful_tclose_run(monkeypatc
 
     assert result["status"] == runner.T_CLOSE_SUCCESS_STATUS
     assert result["daily_close_bundle"] == bundle
+
+
+def test_main_emits_structured_live_acquisition_diagnostics(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr(
+        runner,
+        "run",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            LiveAcquisitionError(
+                "INPUT_DATE_MISMATCH",
+                "stale target-day historical bar",
+                {
+                    "symbol": "600519",
+                    "target_date": "2026-09-17",
+                    "latest_historical_date": "2026-09-16",
+                    "provider": "HiThink Financial-API",
+                    "retry_count": 1,
+                },
+            )
+        ),
+    )
+
+    assert runner.main([
+        "--as-of-date", "2026-09-17",
+        "--data-root", str(tmp_path / "data"),
+        "--evidence-root", str(tmp_path / "evidence"),
+    ]) == 1
+    result = json.loads(capsys.readouterr().out)
+
+    assert result["status"] == "T_CLOSE_RUN_FAILED"
+    assert result["error_status"] == "INPUT_DATE_MISMATCH"
+    assert result["diagnostics"]["symbol"] == "600519"
+    assert result["diagnostics"]["retry_count"] == 1
 
 
 def test_preflight_marks_authorized_weekend_backfill_without_provider_calls(monkeypatch, tmp_path):
