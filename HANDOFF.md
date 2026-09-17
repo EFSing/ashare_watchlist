@@ -6,6 +6,16 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-17 — B_FALSE_BREAKOUT_PATH_DIAGNOSTIC_V1 intake
+
+PROJECT_GOVERNANCE_STATE_CONFLICT: prior current #64 OPEN/awaiting merge statements are
+superseded. Live #64 merged at 9c3f011ebc06d33347372b3792ec28f11c505f40; master correctness
+35110366743 and daily-t-close 35112190996 success at that exact SHA. runtime-state intake
+55fdd5167911ed074df9212cbca01fdda1c58a6b. Only open PR is #60, untouched.
+Current research question: diagnostic-only price-defense increment over frozen volume baseline.
+Independent branch codex/b-false-breakout-path-diagnostic-v1; protocol frozen before comparisons.
+Formal B unchanged; Final OOS SEALED / UNREAD; forbidden directory untouched.
+
 ## 2026-09-16 — PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1
 
 - live intake reconciliation：此前 persisted docs 仍记录 `origin/master=040e077b`；实时
