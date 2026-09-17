@@ -52,6 +52,8 @@ OUTCOME_AMBIGUOUS = "AMBIGUOUS"
 
 REGIME_DEFINITION_VERSION = "B_SHADOW_MARKET_REGIME_DEFINITION_V1"
 VOLUME_DEFINITION_VERSION = "B_SHADOW_REACTIVATION_VOLUME_PATH_V1"
+VOLUME_OBSERVATION_VERSION = "B_VOLUME_PROSPECTIVE_REPORT_OBSERVATION_V1"
+VOLUME_OBSERVATION_PROTOCOL_COMMIT_SHA = "cebda9ec8d8c085424e4b674a3353204e90bd7a0"
 FAST_STOP_DEFINITION = "STOP on first or second sellable XSHG session (D+1 or D+2)"
 RECOVERY_HORIZONS = (3, 5, 10)
 VOL_LOW_MAX_DAILY_STD_PCT = 1.0
@@ -80,6 +82,11 @@ _REACTIVATION_FIELDS = (
     "pre_t_retest_volume_ratio",
     "reactivation_vs_retest_ratio",
     "reactivation_vs_breakout_ratio",
+)
+_VOLUME_OBSERVATION_FIELDS = (
+    "down_volume_share",
+    "up_down_volume_ratio",
+    "pullback_volume_decay_ratio",
 )
 
 
@@ -193,6 +200,13 @@ def _definitions() -> dict[str, Any]:
             "implementation": "scripts/b_phase_volume_path_diagnostic.py::_first_breakout_trace",
             "threshold_selection": "descriptive_only_no_outcome_threshold",
             "report_grouping": "continuous_median_only_when_no_frozen_bins",
+        },
+        "volume_observation": {
+            "version": VOLUME_OBSERVATION_VERSION,
+            "protocol_commit_sha": VOLUME_OBSERVATION_PROTOCOL_COMMIT_SHA,
+            "window": "R=i+1:T-1; signal day T excluded",
+            "fields": list(_VOLUME_OBSERVATION_FIELDS),
+            "observational_only": True,
         },
         "outcome": {
             "entry": "first post-signal XSHG session with high >= canonical trigger; entry price is canonical trigger",
@@ -369,10 +383,108 @@ def _market_snapshot(index_manifest: Mapping[str, Any], signal_date: str) -> dic
     return result
 
 
-def _stock_snapshot(candidate: Mapping[str, Any], stock_klines: Any, signal_date: str) -> tuple[dict[str, Any], dict[str, Any]]:
+def _empty_volume_observation(reason: str, *, window_days: int | None = None) -> dict[str, Any]:
+    return {
+        "observation_version": VOLUME_OBSERVATION_VERSION,
+        "protocol_commit_sha": VOLUME_OBSERVATION_PROTOCOL_COMMIT_SHA,
+        "window_days": window_days,
+        **{field: None for field in _VOLUME_OBSERVATION_FIELDS},
+        "missing_reason": {field: reason for field in _VOLUME_OBSERVATION_FIELDS},
+    }
+
+
+def _safe_volume_ratio(numerator: float, denominator: float) -> tuple[float | None, str | None]:
+    if not math.isfinite(numerator) or not math.isfinite(denominator):
+        return None, "NON_FINITE_NUMERATOR_OR_DENOMINATOR"
+    if denominator == 0:
+        return None, "ZERO_DENOMINATOR"
+    result = numerator / denominator
+    if not math.isfinite(result):
+        return None, "NON_FINITE_RESULT"
+    return float(result), None
+
+
+def _finite_volume_mean(values: np.ndarray) -> float | None:
+    if len(values) == 0 or not np.all(np.isfinite(values)):
+        return None
+    result = float(np.mean(values))
+    return result if math.isfinite(result) else None
+
+
+def _pullback_volume_observation(
+    close: np.ndarray,
+    volume: np.ndarray,
+    trace: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Calculate the frozen report-only volume observables for ``R=i+1:T-1``."""
+
+    breakout_index = int(trace["breakout_index"])
+    signal_index = len(close) - 1
+    pullback_close = np.asarray(close[breakout_index + 1:signal_index], dtype=float)
+    pullback_volume = np.asarray(volume[breakout_index + 1:signal_index], dtype=float)
+    result: dict[str, Any] = {
+        "observation_version": VOLUME_OBSERVATION_VERSION,
+        "protocol_commit_sha": VOLUME_OBSERVATION_PROTOCOL_COMMIT_SHA,
+        "window_days": int(len(pullback_volume)),
+        **{field: None for field in _VOLUME_OBSERVATION_FIELDS},
+        "missing_reason": {},
+    }
+
+    if len(pullback_close) == 0:
+        result["missing_reason"] = {
+            field: "NO_PULLBACK_WINDOW" for field in _VOLUME_OBSERVATION_FIELDS
+        }
+        return result
+
+    previous_close = np.asarray(close[breakout_index:signal_index], dtype=float)[:len(pullback_close)]
+    up = pullback_close > previous_close
+    down = pullback_close < previous_close
+
+    total_volume = float(np.sum(pullback_volume)) if np.all(np.isfinite(pullback_volume)) else math.nan
+    if not math.isfinite(total_volume) or total_volume <= 0:
+        result["missing_reason"]["down_volume_share"] = "INVALID_PULLBACK_VOLUME_SUM"
+    else:
+        value, reason = _safe_volume_ratio(float(np.sum(pullback_volume[down])), total_volume)
+        result["down_volume_share"] = value
+        if reason:
+            result["missing_reason"]["down_volume_share"] = reason
+
+    if not np.any(up) or not np.any(down):
+        result["missing_reason"]["up_down_volume_ratio"] = "NO_UP_OR_DOWN_DAY"
+    else:
+        up_mean = _finite_volume_mean(pullback_volume[up])
+        down_mean = _finite_volume_mean(pullback_volume[down])
+        if up_mean is None or down_mean is None or down_mean <= 0:
+            result["missing_reason"]["up_down_volume_ratio"] = "INVALID_UP_OR_DOWN_VOLUME"
+        else:
+            value, reason = _safe_volume_ratio(up_mean, down_mean)
+            result["up_down_volume_ratio"] = value
+            if reason:
+                result["missing_reason"]["up_down_volume_ratio"] = reason
+
+    if len(pullback_volume) < 4:
+        result["missing_reason"]["pullback_volume_decay_ratio"] = "PULLBACK_WINDOW_LT_4"
+    else:
+        split = len(pullback_volume) // 2
+        first_mean = _finite_volume_mean(pullback_volume[:split])
+        second_mean = _finite_volume_mean(pullback_volume[split:])
+        if first_mean is None or second_mean is None or first_mean <= 0:
+            result["missing_reason"]["pullback_volume_decay_ratio"] = "INVALID_PULLBACK_HALF_VOLUME"
+        else:
+            value, reason = _safe_volume_ratio(second_mean, first_mean)
+            result["pullback_volume_decay_ratio"] = value
+            if reason:
+                result["missing_reason"]["pullback_volume_decay_ratio"] = reason
+    return result
+
+
+def _stock_snapshot(
+    candidate: Mapping[str, Any], stock_klines: Any, signal_date: str
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     code = _code(candidate.get("code"))
     unavailable: dict[str, str] = {}
     trace: dict[str, Any] | None = None
+    volume_observation = _empty_volume_observation("STOCK_KLINE_NOT_IN_INPUT_PACKAGE")
     matching: Mapping[str, Any] | None = None
     if isinstance(stock_klines, list):
         for item in stock_klines:
@@ -387,6 +499,7 @@ def _stock_snapshot(candidate: Mapping[str, Any], stock_klines: Any, signal_date
         if not bars or bars[-1]["date"] != signal_date:
             reason = f"STOCK_KLINE_T_CLOSE_UNAVAILABLE:{bars[-1]['date'] if bars else 'NONE'}"
             unavailable.update({field: reason for field in (*_REACTIVATION_FIELDS, *_CONTEXT_FIELDS[1:-1])})
+            volume_observation = _empty_volume_observation(reason)
         else:
             try:
                 close = np.asarray([_required_number(item.get("close"), f"stock[{code}].close") for item in bars], dtype=float)
@@ -398,8 +511,12 @@ def _stock_snapshot(candidate: Mapping[str, Any], stock_klines: Any, signal_date
                 raise
             except (TypeError, ValueError, ZeroDivisionError) as exc:
                 unavailable.update({field: f"VOLUME_PATH_CALCULATION_FAILED:{type(exc).__name__}" for field in (*_REACTIVATION_FIELDS, *_CONTEXT_FIELDS[1:-1])})
+                volume_observation = _empty_volume_observation(f"VOLUME_PATH_CALCULATION_FAILED:{type(exc).__name__}")
             if trace is None:
                 unavailable.update({field: "B_BREAKOUT_TRACE_UNAVAILABLE" for field in (*_REACTIVATION_FIELDS, *_CONTEXT_FIELDS[1:-1])})
+                volume_observation = _empty_volume_observation("B_BREAKOUT_TRACE_UNAVAILABLE")
+            else:
+                volume_observation = _pullback_volume_observation(close, volume, trace)
 
     reactivation = {field: (trace.get(field) if trace else None) for field in _REACTIVATION_FIELDS}
     reactivation["feature_unavailable"] = {
@@ -420,7 +537,7 @@ def _stock_snapshot(candidate: Mapping[str, Any], stock_klines: Any, signal_date
             **({field: "B_BREAKOUT_TRACE_UNAVAILABLE" for field in _CONTEXT_FIELDS[1:-1]} if trace is None else {}),
         },
     }
-    return reactivation, structural
+    return reactivation, structural, volume_observation
 
 
 def _pre_outcome_semantic(value: Mapping[str, Any]) -> dict[str, Any]:
@@ -663,6 +780,7 @@ def _capture_record(
     market: Mapping[str, Any],
     reactivation: Mapping[str, Any],
     structural: Mapping[str, Any],
+    volume_observation: Mapping[str, Any],
     source: Mapping[str, Any],
 ) -> dict[str, Any]:
     signal_id = str(candidate.get("signal_id", ""))
@@ -676,6 +794,7 @@ def _capture_record(
         "market_regime": deepcopy(dict(market)),
         "reactivation": deepcopy(dict(reactivation)),
         "structural_context": deepcopy(dict(structural)),
+        "volume_observation": deepcopy(dict(volume_observation)),
         "captured_at_bjt": source.get("captured_at_bjt"),
         "source": deepcopy(dict(source)),
     }
@@ -776,13 +895,14 @@ def capture_t_close_signals(
     actions = {"added": 0, "idempotent": 0, "complete": 0, "incomplete": 0, "expected": len(watchlist["candidates"])}
     for candidate in watchlist["candidates"]:
         market = _market_snapshot(index_manifest, signal_date)
-        reactivation, structural = _stock_snapshot(candidate, stock_klines, signal_date)
+        reactivation, structural, volume_observation = _stock_snapshot(candidate, stock_klines, signal_date)
         record = _capture_record(
             candidate,
             signal_date=signal_date,
             market=market,
             reactivation=reactivation,
             structural=structural,
+            volume_observation=volume_observation,
             source=source,
         )
         action = _upsert_record(store, record)
@@ -984,6 +1104,9 @@ def build_shadow_summary(
             record["signal_id"]: {
                 "market": f"{record.get('pre_outcome', {}).get('market_regime', {}).get('trend_regime') or '—'} / {record.get('pre_outcome', {}).get('market_regime', {}).get('vol_regime') or '—'}",
                 "reactivation_vs_breakout_ratio": record.get("pre_outcome", {}).get("reactivation", {}).get("reactivation_vs_breakout_ratio"),
+                "volume_observation": deepcopy(
+                    dict(record.get("pre_outcome", {}).get("volume_observation", {}))
+                ) if isinstance(record.get("pre_outcome", {}).get("volume_observation"), Mapping) else {},
                 "capture_status": record.get("pre_outcome", {}).get("capture_status"),
             }
             for record in current_records
