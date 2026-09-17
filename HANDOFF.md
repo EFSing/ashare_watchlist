@@ -30,9 +30,9 @@
   market-data fallback tests passed。
 - boundaries：production dispatch=`0`，runtime-state remote mutation=`0`，Cloudflare mutation=`0`；
   Final OOS=`SEALED / UNREAD`，`data/validation/continuous_speed_probe/` 未读取或触碰。
-- next：push branch，核对 push 后 exact-head CI，并创建 target=`master` 的 PR；不自动 merge。
-  当前 last-known remote branch head 为 implementation commit；后续 governance commit/PR head
-  以 live GitHub 为准。
+- delivery：已 push branch 并创建 target=`master` 的 Draft PR #70
+  (`https://github.com/EFSing/ashare_watchlist/pull/70`)；当前 PR head 与 CI 状态以 live GitHub
+  为准，不自动 merge。
 
 ## 2026-09-17 — B_VOLUME_PROSPECTIVE_REPORT_OBSERVATION_V1
 

@@ -26,9 +26,10 @@ fail-closed/原语义。
 
 验证：full pytest=`620 passed, 2 skipped, 10 warnings`，compileall 与 `git diff --check`
 通过；Formal B spec SHA=`f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`
-且未修改。当前 next action 是 push branch、确认 exact-head CI、创建 target=`master` 的 PR；不自动
-merge。production dispatch/runtime-state remote mutation/Cloudflare mutation 均为 `0`，Final OOS
-仍为 `SEALED / UNREAD`，受禁目录未读取或触碰。
+且未修改。已创建 target=`master` 的 Draft PR #70
+(`https://github.com/EFSing/ashare_watchlist/pull/70`)；当前 PR head 与 exact-head CI 状态以 live
+GitHub 为准，后续不自动 merge。production dispatch/runtime-state remote mutation/Cloudflare mutation
+均为 `0`，Final OOS 仍为 `SEALED / UNREAD`，受禁目录未读取或触碰。
 
 ## Current task — B_VOLUME_PROSPECTIVE_REPORT_OBSERVATION_V1 — 2026-09-17
 
