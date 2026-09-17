@@ -6,6 +6,20 @@
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
+## Cloudflare secondary dispatcher — active after verified redeploy — 2026-09-17
+
+PR #65 已合并为 `master@ba081f8aba834d636c5a0222d9a6067731a8f819`，post-merge
+correctness run `35173116115` 为 `success`。现有 `ashare-tclose-dispatcher` 已从该 clean master
+重新部署；Worker version 从 `885bd833-5463-4cc1-9451-16a23026a605` 更新为
+`ef7368ce-9995-4c96-b29b-c9710f4fc88b`。只读复核确认 workers.dev enabled、Cron 保持
+`25 9 * * 1-5`、GitHub dispatch secret binding configured、deployed source 含显式
+`User-Agent`、routes=`0`，且无 KV/D1/Queue/Durable Object binding。
+
+本次未修改 secret、Cron、workers.dev subdomain、route 或其他 account setting；未手工触发
+Cron、scheduled handler 或 production workflow。Cloudflare account mutation=`1`（授权的现有
+Worker redeploy），secret mutation=`0`，production dispatch=`0`，runtime-state mutation=`0`。
+下一验证节点为自然发生的 Cloudflare Cron wake-up，不为验证目的制造 production dispatch。
+
 ## Current task — PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1 — 2026-09-16
 
 本轮 intake 已完成最小 live reconciliation：persisted current snapshot 仍写
