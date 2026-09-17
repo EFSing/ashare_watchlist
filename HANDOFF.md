@@ -20,6 +20,7 @@
 - Exact cohort: 17,714 rows, 4,338 TARGET, 4,623 FAST_STOP, 7,953 all STOP (includes FAST_STOP),
   9,766 unique breakout episodes. Five volume baseline features reconciled; original conclusion unchanged.
   TURNOVER_EVIDENCE_UNAVAILABLE: existing sources lack strict PIT proof; provider data calls=0.
+- Delivery: draft PR #66 https://github.com/EFSing/ashare_watchlist/pull/66; no automatic merge.
 - Remote recovery branch: codex/b-false-breakout-path-diagnostic-v1. Fetch and resolve
   origin/codex/b-false-breakout-path-diagnostic-v1 for current remote HEAD; do not base on PR #60.
   Immutable source implementation HEAD: cd34319f779276c0616742f54335f16fa7bbaa8e.
