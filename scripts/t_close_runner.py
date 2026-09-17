@@ -322,12 +322,21 @@ def _preflight(
         else "SAME_CALENDAR_DATE"
     )
 
-    package_versions = {
+    required_package_versions = {
         "requests": _package_version("requests"),
-        "akshare": _package_version("akshare"),
+        "pandas": _package_version("pandas"),
         "exchange_calendars": _package_version("exchange-calendars"),
     }
-    packages_ready = all(value != "UNKNOWN_ORIGIN" for value in package_versions.values())
+    akshare_version = _package_version("akshare")
+    package_versions = {
+        **required_package_versions,
+        "akshare": (
+            {"status": "AVAILABLE", "version": akshare_version}
+            if akshare_version != "UNKNOWN_ORIGIN"
+            else {"status": "UNAVAILABLE"}
+        ),
+    }
+    packages_ready = all(value != "UNKNOWN_ORIGIN" for value in required_package_versions.values())
     credential_ready = bool(os.environ.get(HITHINK_API_KEY_ENV, "").strip())
     _check_writable(data_root)
     _check_writable(evidence_root)

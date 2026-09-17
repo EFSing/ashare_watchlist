@@ -73,10 +73,8 @@ from tencent_quotes import (
 )
 from trading_calendar import CalendarUnavailable, TradingCalendar, default_calendar
 from universe_policy import (
-    BOARD_UNKNOWN,
     UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1,
     build_board_policy_audit,
-    classify_board,
     is_live_universe_eligible,
     universe_policy_metadata,
     validate_board_policy_audit,
@@ -136,8 +134,13 @@ AKSHARE_SZSE_A_SHARE_SYMBOL = "A股列表"
 SSE_OFFICIAL_LISTED_ROSTER_URL = "https://www.sse.com.cn/assortment/stock/list/share/"
 SZSE_OFFICIAL_LISTED_ROSTER_URL = "https://www.szse.cn/market/product/stock/list/index.html"
 EXCHANGE_OFFICIAL_LISTED_ROSTER_VERSION = "EXCHANGE_OFFICIAL_CURRENT_LISTED_ROSTER_V1"
+HITHINK_MAIN_BOARD_LIVE_UNIVERSE_V1 = "HITHINK_MAIN_BOARD_LIVE_UNIVERSE_V1"
 HITHINK_LIVE_PRIMARY = "SUPPORTED"
 EXACT_SINA_SECTOR_SOURCE = "AVAILABLE"
+SECTOR_ENRICHMENT_AVAILABLE = "AVAILABLE"
+SECTOR_ENRICHMENT_UNAVAILABLE_DEFAULTED = "UNAVAILABLE_DEFAULTED"
+MISSING_SECTOR_RESOLUTION = "FROZEN_MISSING_SECTOR_DEFAULT_V1"
+MISSING_SECTOR_DEFAULT = {"sector_name": "-", "sector_rank": 50, "sector_chg": 0.0}
 MARKET_DATA_FAILOVER_POLICY_VERSION = "LIVE_MARKET_DATA_FAILOVER_POLICY_V1"
 TENCENT_FALLBACK_VERSION = "TENCENT_QFQ_FALLBACK_V1"
 TENCENT_QUOTE_SOURCE = "qt.gtimg.cn"
@@ -887,17 +890,22 @@ class _HiThinkReadFailure(RuntimeError):
         super().__init__(f"{api_name} failed after {attempts} attempts: {type(cause).__name__}")
 
 
-def _load_akshare(module: ModuleType | Any | None) -> tuple[Any, str]:
+def _load_akshare(
+    module: ModuleType | Any | None,
+    package_version: str | None = None,
+) -> tuple[Any, str]:
     if module is None:
         try:
             module = importlib.import_module("akshare")
         except Exception as exc:
             _fail(PROVIDER_UNAVAILABLE, f"AkShare import failed: {type(exc).__name__}")
-    try:
-        version = importlib.metadata.version("akshare")
-    except importlib.metadata.PackageNotFoundError as exc:
-        _fail(PROVIDER_UNAVAILABLE, "AkShare package version is unavailable")
-        raise AssertionError from exc
+    if package_version is not None:
+        version = str(package_version).strip() or "UNAVAILABLE"
+    else:
+        try:
+            version = importlib.metadata.version("akshare")
+        except importlib.metadata.PackageNotFoundError:
+            version = "UNAVAILABLE"
     return module, version
 
 
@@ -1098,10 +1106,10 @@ class SinaSectorClient:
         package_version: str | None = None,
         capture_store: TCloseEvidenceStore | None = None,
     ) -> None:
-        self.module, actual_version = _load_akshare(module)
+        self.module, actual_version = _load_akshare(module, package_version)
         self.package_version = package_version or actual_version
         if not isinstance(self.package_version, str) or not self.package_version.strip():
-            _fail(PROVIDER_UNAVAILABLE, "AkShare package version is empty")
+            self.package_version = "UNAVAILABLE"
         self.package_version = self.package_version.strip()
         self.capture_store = capture_store
         self._apis = (AKSHARE_SINA_SPOT_API, AKSHARE_SINA_DETAIL_API)
@@ -1125,6 +1133,7 @@ class SinaSectorClient:
         return {
             "package": "akshare",
             "version": self.package_version,
+            "status": "AVAILABLE" if self.package_version != "UNAVAILABLE" else "UNAVAILABLE",
             "source_url": SINA_SOURCE_URL,
             "source_urls": {
                 "spot": SINA_SPOT_SOURCE_URL,
@@ -1241,10 +1250,10 @@ class ExchangeListedRosterClient:
         package_version: str | None = None,
         capture_store: TCloseEvidenceStore | None = None,
     ) -> None:
-        self.module, actual_version = _load_akshare(module)
+        self.module, actual_version = _load_akshare(module, package_version)
         self.package_version = package_version or actual_version
         if not isinstance(self.package_version, str) or not self.package_version.strip():
-            _fail(PROVIDER_UNAVAILABLE, "AkShare package version is empty")
+            self.package_version = "UNAVAILABLE"
         self.package_version = self.package_version.strip()
         self.capture_store = capture_store
         self.read_attempts: list[dict[str, Any]] = []
@@ -1347,7 +1356,11 @@ def akshare_runtime_capability() -> dict[str, Any]:
     return SinaSectorClient().capability_report()
 
 
-def _runtime_versions(akshare_version: str) -> dict[str, Any]:
+def _runtime_versions(
+    akshare_version: str | None = None,
+    *,
+    akshare_status: str | None = None,
+) -> dict[str, Any]:
     try:
         exchange_calendars_version = importlib.metadata.version("exchange-calendars")
     except importlib.metadata.PackageNotFoundError:
@@ -1357,13 +1370,22 @@ def _runtime_versions(akshare_version: str) -> dict[str, Any]:
             PROVIDER_UNAVAILABLE,
             f"exchange-calendars runtime is {exchange_calendars_version}, expected {EXCHANGE_CALENDARS_VERSION}",
         )
-    required = {"akshare": akshare_version, "exchange_calendars": exchange_calendars_version}
+    required: dict[str, str] = {"exchange_calendars": exchange_calendars_version}
     for package in ("pandas", "requests"):
         try:
             required[package] = importlib.metadata.version(package)
         except importlib.metadata.PackageNotFoundError:
             _fail(PROVIDER_UNAVAILABLE, f"required runtime package version is unavailable: {package}")
-    optional: dict[str, str] = {}
+    if akshare_status is None:
+        akshare_status = (
+            "AVAILABLE"
+            if isinstance(akshare_version, str) and akshare_version.strip() not in {"", "UNAVAILABLE"}
+            else "UNAVAILABLE"
+        )
+    akshare_metadata: dict[str, str] = {"status": akshare_status}
+    if akshare_status == "AVAILABLE" and isinstance(akshare_version, str) and akshare_version.strip():
+        akshare_metadata["version"] = akshare_version.strip()
+    optional: dict[str, Any] = {"akshare": akshare_metadata}
     try:
         optional["pyarrow"] = importlib.metadata.version("pyarrow")
     except importlib.metadata.PackageNotFoundError:
@@ -1544,8 +1566,6 @@ def _build_universe(
     frame: Any,
     as_of_date: str,
     retrieved_at_bjt: str,
-    official_roster: Mapping[str, Mapping[str, Any]],
-    roster_audit: Mapping[str, Any],
 ) -> tuple[UniverseManifest, dict[str, str], dict[str, Any]]:
     rows = _records(
         frame,
@@ -1558,66 +1578,76 @@ def _build_universe(
             "asset_type": ("asset_type",),
         },
     )
-    names: dict[str, str] = {}
+    scoped_names: dict[str, str] = {}
+    seen_symbols: set[str] = set()
+    canonical_rows: list[dict[str, Any]] = []
     for index, row in enumerate(rows):
         asset_type = _text(_field(row, ("asset_type",), f"universe[{index}].asset_type"), "universe asset_type")
-        exchange = _text(_field(row, ("exchange",), f"universe[{index}].exchange"), "universe exchange").upper()
         if asset_type.lower() != "a-share":
-            continue
-        # BJ is intentionally outside the current tradable product scope;
-        # its absence is not an incomplete SH/SZ coverage signal.
-        if exchange == "BJ":
-            continue
-        if exchange not in {"SH", "SZ"}:
-            continue
-        symbol = _code(_field(row, ("ticker", "thscode"), f"universe[{index}].ticker"), f"universe[{index}].ticker")
-        thscode = _text(_field(row, ("thscode",), f"universe[{index}].thscode"), "universe thscode").upper()
-        if not thscode.endswith(f".{exchange}"):
+            _fail(INPUT_CONFLICT, f"HiThink universe asset_type is not a-share for row {index}")
+        exchange = _text(_field(row, ("exchange",), f"universe[{index}].exchange"), "universe exchange").upper()
+        if "ticker" not in row or "thscode" not in row:
+            _fail(INPUT_CONFLICT, f"HiThink universe row {index} must contain ticker and thscode")
+        symbol = _code(row["ticker"], f"universe[{index}].ticker")
+        thscode = _text(row["thscode"], f"universe[{index}].thscode").upper()
+        if thscode != f"{symbol}.{exchange}":
             _fail(INPUT_CONFLICT, f"HiThink universe exchange/thscode conflict for {symbol}")
-        if classify_board(symbol) == BOARD_UNKNOWN:
-            continue
         name = _display_name(
             _field(row, ("name",), f"universe[{index}].name"),
             f"universe[{index}].name",
         )
-        if symbol in names:
+        if symbol in seen_symbols:
             _fail(INPUT_CONFLICT, f"duplicate universe symbol: {symbol}")
-        names[symbol] = name
-    if not names:
+        seen_symbols.add(symbol)
+        canonical_rows.append(
+            {
+                "symbol": symbol,
+                "thscode": thscode,
+                "name": name,
+                "exchange": exchange,
+                "asset_type": "a-share",
+            }
+        )
+        # BJ and other exchanges remain outside the explicit SH/SZ product
+        # scope.  Board admission itself is delegated to the existing policy
+        # helper below; no provider roster is involved.
+        if exchange in {"SH", "SZ"}:
+            scoped_names[symbol] = name
+    if not scoped_names:
         _fail(INCOMPLETE_COVERAGE, "universe has no symbols")
-    hithink_symbols = set(names)
-    official_symbols = set(official_roster)
-    scope_symbols = hithink_symbols & official_symbols
-    board_policy_audit = build_board_policy_audit(scope_symbols)
+    hithink_symbols = set(scoped_names)
+    board_policy_audit = build_board_policy_audit(hithink_symbols)
     retained_names = {
         symbol: name
-        for symbol, name in names.items()
-        if symbol in official_symbols and is_live_universe_eligible(symbol)
+        for symbol, name in scoped_names.items()
+        if is_live_universe_eligible(symbol)
     }
-    universe_quality = copy.deepcopy(dict(roster_audit))
-    universe_quality.update(
-        {
-            "hithink_broad_count": len(names),
-            "hithink_broad_symbols": sorted(hithink_symbols),
-            "hithink_only_count": len(hithink_symbols - official_symbols),
-            "hithink_only_symbols": sorted(hithink_symbols - official_symbols),
-            "roster_only_count": len(official_symbols - hithink_symbols),
-            "roster_only_symbols": sorted(official_symbols - hithink_symbols),
-            "universe_policy": universe_policy_metadata(),
-            "board_policy_audit": board_policy_audit,
-            "retained_count": len(retained_names),
-        }
-    )
+    canonical_rows.sort(key=lambda item: (item["symbol"], item["thscode"]))
+    universe_quality = {
+        "identity": HITHINK_MAIN_BOARD_LIVE_UNIVERSE_V1,
+        "as_of_date": as_of_date,
+        "source": f"HiThink Financial-API {HITHINK_UNIVERSE_API}",
+        "scope": _tradable_universe_scope_metadata(),
+        "selection_rule": "HITHINK_A_SHARE_THEN_EXISTING_MAIN_BOARD_POLICY",
+        "source_row_count": len(canonical_rows),
+        "hithink_broad_count": len(hithink_symbols),
+        "hithink_broad_symbols": sorted(hithink_symbols),
+        "retained_symbols": sorted(retained_names),
+        "retained_count": len(retained_names),
+        "universe_policy": universe_policy_metadata(),
+        "board_policy_audit": board_policy_audit,
+        "content_sha256": _sha256_json({"as_of_date": as_of_date, "rows": canonical_rows}),
+        "semantic_sha256": _sha256_json(
+            {"as_of_date": as_of_date, "retained_symbols": sorted(retained_names)}
+        ),
+    }
     if not retained_names:
-        _fail(INCOMPLETE_COVERAGE, "HiThink universe and official roster have no Main Board symbols")
+        _fail(INCOMPLETE_COVERAGE, "HiThink universe has no Main Board symbols")
     return (
         UniverseManifest(
             as_of_date=as_of_date,
             retrieved_at_bjt=retrieved_at_bjt,
-            source=(
-                f"HiThink Financial-API {HITHINK_UNIVERSE_API} ∩ "
-                f"{EXCHANGE_OFFICIAL_LISTED_ROSTER_VERSION}"
-            ),
+            source=f"HiThink Financial-API {HITHINK_UNIVERSE_API}",
             symbols=tuple(retained_names),
             temporal_semantics=LIVE_OBSERVED,
             universe_scope=TRADABLE_UNIVERSE_SCOPE_V1,
@@ -1775,6 +1805,141 @@ def _build_sector(
         rank_input=rank_input,
         temporal_semantics=LIVE_OBSERVED,
     )
+
+
+def _missing_sector_record(symbol: str, display_name: str) -> dict[str, Any]:
+    return {
+        "symbol": symbol,
+        "display_name": None,
+        "universe_display_name": display_name,
+        "sector_code": None,
+        **copy.deepcopy(MISSING_SECTOR_DEFAULT),
+        "resolution": MISSING_SECTOR_RESOLUTION,
+    }
+
+
+def _build_missing_sector(
+    as_of_date: str,
+    retrieved_at_bjt: str,
+    names: Mapping[str, str],
+) -> SectorManifest:
+    """Build the frozen B missing-sector input without substituting a taxonomy."""
+
+    return SectorManifest(
+        as_of_date=as_of_date,
+        retrieved_at_bjt=retrieved_at_bjt,
+        source=(
+            f"AkShare/Sina {SINA_TAXONOMY} optional enrichment "
+            f"{SECTOR_ENRICHMENT_UNAVAILABLE_DEFAULTED}"
+        ),
+        definitions={},
+        members={},
+        rank_input=[
+            _missing_sector_record(symbol, names[symbol])
+            for symbol in sorted(names)
+        ],
+        temporal_semantics=LIVE_OBSERVED,
+    )
+
+
+def _sector_quality(
+    client: SinaSectorClient | None,
+    names: Mapping[str, str],
+    *,
+    status: str,
+) -> dict[str, Any]:
+    if status == SECTOR_ENRICHMENT_AVAILABLE and client is not None:
+        resolved_memberships = dict(sorted(client.resolved_sector_memberships.items()))
+        return {
+            "status": SECTOR_ENRICHMENT_AVAILABLE,
+            "duplicate_row_count": len(client.duplicate_sector_rows),
+            "duplicate_rows": copy.deepcopy(client.duplicate_sector_rows),
+            "ambiguous_membership_count": 0,
+            "multi_sector_symbol_count": len(client.multi_sector_symbols),
+            "multi_sector_symbols": sorted(client.multi_sector_symbols),
+            "resolution_policy": SECTOR_RESOLUTION_POLICY,
+            "raw_membership_row_count": len(client.sector_member_traversal),
+            "resolved_memberships": resolved_memberships,
+            "resolved_memberships_sha256": _sha256_json(resolved_memberships),
+            "outside_universe_membership_count": len(client.outside_universe_memberships),
+            "missing_universe_symbol_count": len(client.missing_universe_symbols),
+            "missing_universe_symbols": copy.deepcopy(client.missing_universe_symbols),
+        }
+
+    resolved_memberships = {
+        symbol: _missing_sector_record(symbol, names[symbol])
+        for symbol in sorted(names)
+    }
+    return {
+        "status": SECTOR_ENRICHMENT_UNAVAILABLE_DEFAULTED,
+        "duplicate_row_count": 0,
+        "duplicate_rows": [],
+        "ambiguous_membership_count": 0,
+        "multi_sector_symbol_count": 0,
+        "multi_sector_symbols": [],
+        "resolution_policy": SECTOR_RESOLUTION_POLICY,
+        "raw_membership_row_count": 0,
+        "resolved_memberships": resolved_memberships,
+        "resolved_memberships_sha256": _sha256_json(resolved_memberships),
+        "outside_universe_membership_count": 0,
+        "missing_universe_symbol_count": len(resolved_memberships),
+        "missing_universe_symbols": sorted(resolved_memberships),
+    }
+
+
+def _sector_capability(client: SinaSectorClient | None) -> dict[str, Any]:
+    if client is not None:
+        return client.capability_report()
+    return {
+        "package": "akshare",
+        "version": "UNAVAILABLE",
+        "status": "UNAVAILABLE",
+        "source_url": SINA_SOURCE_URL,
+        "source_urls": {
+            "spot": SINA_SPOT_SOURCE_URL,
+            "detail_count": SINA_DETAIL_COUNT_SOURCE_URL,
+            "detail": SINA_DETAIL_SOURCE_URL,
+        },
+        "taxonomy": SINA_TAXONOMY,
+        "source_status": "UNAVAILABLE",
+        "exact_legacy_taxonomy": True,
+        "forbidden_substitutions": ["申万行业", "同花顺行业"],
+        "apis": {
+            AKSHARE_SINA_SPOT_API: False,
+            AKSHARE_SINA_DETAIL_API: False,
+        },
+    }
+
+
+def _sector_enrichment_metadata(
+    client: SinaSectorClient | None,
+    *,
+    status: str,
+    failure: Exception | None = None,
+) -> dict[str, Any]:
+    capability = _sector_capability(client)
+    metadata: dict[str, Any] = {
+        "provider": "AkShare/Sina",
+        "status": status,
+        "source_identity": SINA_SOURCE_URL,
+        "taxonomy": SINA_TAXONOMY,
+        "api_version": capability.get("version", "UNAVAILABLE"),
+        "exact_legacy_taxonomy": True,
+        "forbidden_substitutions": ["申万行业", "同花顺行业"],
+    }
+    if failure is not None:
+        last_attempt = client.read_attempts[-1] if client is not None and client.read_attempts else {}
+        metadata.update(
+            {
+                "error_type": type(failure).__name__,
+                "error_source_identity": getattr(failure, "api_name", None)
+                or last_attempt.get("api", "sina_sector"),
+                "error_attempts": getattr(failure, "attempts", None)
+                if getattr(failure, "attempts", None) is not None
+                else last_attempt.get("attempts"),
+            }
+        )
+    return metadata
 
 
 def _utc_midnight_ms(value: str) -> int:
@@ -2393,53 +2558,54 @@ def _market_env(index: IndexManifest) -> dict[str, Any]:
     }
 
 
-def _validate_universe_roster_quality(value: Any, as_of_date: str) -> None:
+def _validate_universe_quality(value: Any, as_of_date: str) -> None:
     if not isinstance(value, Mapping):
-        _fail(PROVIDER_FAILURE, "manifest official-roster quality is missing")
-    if value.get("identity") != EXCHANGE_OFFICIAL_LISTED_ROSTER_VERSION:
-        _fail(PROVIDER_FAILURE, "manifest official-roster identity is unsupported")
+        _fail(PROVIDER_FAILURE, "manifest HiThink universe quality is missing")
+    if value.get("identity") != HITHINK_MAIN_BOARD_LIVE_UNIVERSE_V1:
+        _fail(PROVIDER_FAILURE, "manifest HiThink universe identity is unsupported")
     if value.get("as_of_date") != as_of_date:
-        _fail(INPUT_DATE_MISMATCH, "official-roster as_of_date does not match the generation date")
-    if value.get("listing_date_rule") != "listing_date <= as_of_date":
-        _fail(PROVIDER_FAILURE, "official-roster listing-date rule is missing or unsupported")
+        _fail(INPUT_DATE_MISMATCH, "HiThink universe as_of_date does not match the generation date")
+    if value.get("source") != f"HiThink Financial-API {HITHINK_UNIVERSE_API}":
+        _fail(PROVIDER_FAILURE, "HiThink universe source is missing or unsupported")
+    if value.get("scope") != _tradable_universe_scope_metadata():
+        _fail(PROVIDER_FAILURE, "HiThink universe scope is missing or unsupported")
+    if value.get("selection_rule") != "HITHINK_A_SHARE_THEN_EXISTING_MAIN_BOARD_POLICY":
+        _fail(PROVIDER_FAILURE, "HiThink universe selection rule is missing or unsupported")
     if value.get("universe_policy") != universe_policy_metadata():
-        _fail(PROVIDER_FAILURE, "official-roster production universe policy is missing or unsupported")
+        _fail(PROVIDER_FAILURE, "HiThink universe policy is missing or unsupported")
     try:
         validate_board_policy_audit(value.get("board_policy_audit"))
     except ValueError as exc:
-        _fail(PROVIDER_FAILURE, f"official-roster board policy audit is invalid: {exc}")
-    counts = value.get("source_row_counts")
-    if not isinstance(counts, Mapping) or set(counts) != {"sse_main_board", "sse_star", "szse_a_share"}:
-        _fail(PROVIDER_FAILURE, "official-roster source row counts are invalid")
-    if any(isinstance(count, bool) or not isinstance(count, int) or count <= 0 for count in counts.values()):
-        _fail(PROVIDER_FAILURE, "official-roster source row counts are incomplete")
-    for field_name in (
-        "hithink_broad_symbols",
-        "hithink_only_symbols",
-        "roster_only_symbols",
-        "pre_listing_symbols",
-    ):
+        _fail(PROVIDER_FAILURE, f"HiThink universe board policy audit is invalid: {exc}")
+    for field_name in ("hithink_broad_symbols", "retained_symbols"):
         symbols = value.get(field_name)
         if not isinstance(symbols, list) or symbols != sorted(set(symbols)):
-            _fail(PROVIDER_FAILURE, f"official-roster diagnostic list is invalid: {field_name}")
-    count_fields = (
-        ("hithink_broad_count", "hithink_broad_symbols"),
-        ("hithink_only_count", "hithink_only_symbols"),
-        ("roster_only_count", "roster_only_symbols"),
-        ("pre_listing_count", "pre_listing_symbols"),
-    )
-    for count_field, list_field in count_fields:
+            _fail(PROVIDER_FAILURE, f"HiThink universe symbol list is invalid: {field_name}")
+    for count_field, list_field in (("hithink_broad_count", "hithink_broad_symbols"), ("retained_count", "retained_symbols")):
         count = value.get(count_field)
         if isinstance(count, bool) or not isinstance(count, int) or count != len(value[list_field]):
-            _fail(PROVIDER_FAILURE, f"official-roster diagnostic count is invalid: {count_field}")
-    for field_name in ("canonical_combined_symbol_count", "official_listed_count", "retained_count"):
+            _fail(PROVIDER_FAILURE, f"HiThink universe count is invalid: {count_field}")
+    source_row_count = value.get("source_row_count")
+    if (
+        isinstance(source_row_count, bool)
+        or not isinstance(source_row_count, int)
+        or source_row_count <= 0
+        or source_row_count < value["hithink_broad_count"]
+    ):
+        _fail(PROVIDER_FAILURE, "HiThink universe source row count is invalid")
+    retained_symbols = value["retained_symbols"]
+    if not set(retained_symbols).issubset(value["hithink_broad_symbols"]):
+        _fail(PROVIDER_FAILURE, "HiThink retained symbols are outside the broad universe")
+    if any(not is_live_universe_eligible(symbol) for symbol in retained_symbols):
+        _fail(PROVIDER_FAILURE, "HiThink retained symbols violate the Main Board policy")
+    for field_name in ("hithink_broad_count", "retained_count"):
         count = value.get(field_name)
         if isinstance(count, bool) or not isinstance(count, int) or count <= 0:
-            _fail(PROVIDER_FAILURE, f"official-roster count is invalid: {field_name}")
+            _fail(PROVIDER_FAILURE, f"HiThink universe count is invalid: {field_name}")
     for field_name in ("content_sha256", "semantic_sha256"):
         digest = value.get(field_name)
         if not isinstance(digest, str) or len(digest) != 64 or any(character not in "0123456789abcdef" for character in digest):
-            _fail(PROVIDER_FAILURE, f"official-roster {field_name} is not a SHA-256 digest")
+            _fail(PROVIDER_FAILURE, f"HiThink universe {field_name} is not a SHA-256 digest")
 
 
 def _generation_identity_payload(
@@ -2472,8 +2638,8 @@ def _generation_identity_payload(
         != _sha256_json(dict(sorted(resolved_memberships.items())))
     ):
         _fail(PROVIDER_FAILURE, "manifest resolved sector membership identity is invalid")
-    roster_quality = manifest.provider_version_metadata.get("universe_roster_quality")
-    _validate_universe_roster_quality(roster_quality, manifest.signal_date)
+    universe_quality = manifest.provider_version_metadata.get("universe_quality")
+    _validate_universe_quality(universe_quality, manifest.signal_date)
     if manifest.provider_version_metadata.get("universe_policy") != UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1:
         _fail(INPUT_CONFLICT, "manifest production universe policy is missing or unsupported")
     if manifest.provider_version_metadata.get("universe_policy_metadata") != universe_policy_metadata():
@@ -2489,6 +2655,16 @@ def _generation_identity_payload(
         )
     except ValueError as exc:
         _fail(PROVIDER_FAILURE, f"manifest input coverage metadata is invalid: {exc}")
+    sector_enrichment = manifest.provider_version_metadata.get("sector_enrichment")
+    if not isinstance(sector_enrichment, Mapping):
+        _fail(PROVIDER_FAILURE, "manifest sector enrichment metadata is missing")
+    if (
+        sector_enrichment.get("provider") != "AkShare/Sina"
+        or sector_enrichment.get("taxonomy") != SINA_TAXONOMY
+        or sector_enrichment.get("status")
+        not in {SECTOR_ENRICHMENT_AVAILABLE, SECTOR_ENRICHMENT_UNAVAILABLE_DEFAULTED}
+    ):
+        _fail(PROVIDER_FAILURE, "manifest sector enrichment metadata is invalid")
     return {
         "schema_version": GENERATION_IDENTITY_SCHEMA,
         "input_package_schema": LIVE_INPUT_PACKAGE_SCHEMA,
@@ -2515,7 +2691,8 @@ def _generation_identity_payload(
             "rule": DISPLAY_NAME_NORMALIZATION_RULE,
         },
         "display_name_consistency_policy": _display_name_policy_metadata(),
-        "universe_roster_quality": copy.deepcopy(dict(roster_quality)),
+        "universe_quality": copy.deepcopy(dict(universe_quality)),
+        "sector_enrichment": copy.deepcopy(dict(sector_enrichment)),
         "display_name_diagnostics": {
             "mismatch_count": mismatch_count,
             "mismatches": copy.deepcopy(mismatches),
@@ -2582,6 +2759,21 @@ class LiveInputPackage:
             _fail(INPUT_CONFLICT, "generation manifest production universe policy is missing or unsupported")
         if manifest_metadata.get("universe_policy_metadata") != universe_policy_metadata():
             _fail(INPUT_CONFLICT, "generation manifest production universe policy metadata is invalid")
+        manifest_sector_enrichment = manifest_metadata.get("sector_enrichment")
+        provenance_sector_enrichment = provenance.get("sector_enrichment")
+        if not isinstance(manifest_sector_enrichment, Mapping) or not isinstance(
+            provenance_sector_enrichment, Mapping
+        ):
+            _fail(PROVIDER_FAILURE, "sector enrichment metadata is missing")
+        if dict(manifest_sector_enrichment) != dict(provenance_sector_enrichment):
+            _fail(INPUT_CONFLICT, "provenance sector enrichment does not match the generation manifest")
+        if (
+            provenance_sector_enrichment.get("provider") != "AkShare/Sina"
+            or provenance_sector_enrichment.get("taxonomy") != SINA_TAXONOMY
+            or provenance_sector_enrichment.get("status")
+            not in {SECTOR_ENRICHMENT_AVAILABLE, SECTOR_ENRICHMENT_UNAVAILABLE_DEFAULTED}
+        ):
+            _fail(PROVIDER_FAILURE, "provenance sector enrichment metadata is invalid")
         if provenance.get("display_name_consistency_policy") != _display_name_policy_metadata():
             _fail(INPUT_CONFLICT, "provenance display-name consistency policy is missing or unsupported")
         manifest_coverage = manifest_metadata.get("input_coverage")
@@ -2616,6 +2808,9 @@ class LiveInputPackage:
         sector_quality = provenance.get("sector_membership_quality")
         if not isinstance(sector_quality, Mapping):
             _fail(PROVIDER_FAILURE, "provenance sector membership quality is missing")
+        sector_status = provenance_sector_enrichment["status"]
+        if sector_quality.get("status") != sector_status:
+            _fail(INPUT_CONFLICT, "provenance sector quality status does not match sector enrichment")
         duplicate_rows = sector_quality.get("duplicate_rows")
         duplicate_count = sector_quality.get("duplicate_row_count")
         if (
@@ -2654,13 +2849,13 @@ class LiveInputPackage:
             != _sha256_json(dict(sorted(resolved_memberships.items())))
         ):
             _fail(PROVIDER_FAILURE, "provenance resolved sector membership identity is invalid")
-        roster_quality = provenance.get("universe_roster_quality")
-        _validate_universe_roster_quality(roster_quality, self.generation_input_manifest.signal_date)
-        manifest_roster_quality = self.generation_input_manifest.provider_version_metadata.get(
-            "universe_roster_quality"
+        universe_quality = provenance.get("universe_quality")
+        _validate_universe_quality(universe_quality, self.generation_input_manifest.signal_date)
+        manifest_universe_quality = self.generation_input_manifest.provider_version_metadata.get(
+            "universe_quality"
         )
-        if manifest_roster_quality != roster_quality:
-            _fail(INPUT_CONFLICT, "provenance official-roster quality does not match the generation manifest")
+        if manifest_universe_quality != universe_quality:
+            _fail(INPUT_CONFLICT, "provenance HiThink universe quality does not match the generation manifest")
         if provenance.get("observation_status") != LIVE_OBSERVED:
             _fail("UNSUPPORTED_MODE", "live input provenance must be LIVE_OBSERVED")
         retrieved_at = provenance.get("retrieved_at_bjt")
@@ -2726,8 +2921,6 @@ class LiveInputPackage:
             "freshness_and_session_close",
             "universe_non_empty_and_unique",
             "universe_listing_eligibility",
-            "sector_definitions_membership_rank",
-            "sector_membership_resolved_exact_v0",
             "display_name_coverage_and_symbol_identity",
             "quote_t_date_and_coverage",
             "stock_kline_as_of_t_no_future_bar",
@@ -2735,6 +2928,17 @@ class LiveInputPackage:
         )
         if any(checks.get(name) != "PASS" for name in required_checks):
             _fail(PROVIDER_FAILURE, "provenance quality checks are not all PASS")
+        expected_sector_check = (
+            "PASS"
+            if sector_status == SECTOR_ENRICHMENT_AVAILABLE
+            else "DEFAULTED"
+        )
+        if (
+            checks.get("sector_enrichment") != sector_status
+            or checks.get("sector_definitions_membership_rank") != expected_sector_check
+            or checks.get("sector_membership_resolved_exact_v0") != expected_sector_check
+        ):
+            _fail(PROVIDER_FAILURE, "provenance sector quality checks are inconsistent")
         if checks.get("generation_manifest") != READY_FOR_STRATEGY_EVALUATION:
             _fail(PROVIDER_FAILURE, "provenance generation manifest is not READY")
         recovery = provenance.get("recovery")
@@ -2887,16 +3091,12 @@ def acquire_live_generation_inputs(
     )
     if not all(callable(getattr(hithink, name, None)) for name in ("universe", "historical_bars", "capability_report")):
         _fail(PROVIDER_UNAVAILABLE, "HiThink client capability is incomplete")
-    sina = SinaSectorClient(
-        sina_module if sina_module is not None else akshare_module,
-        akshare_version,
-        evidence_store,
-    )
-    roster_client = ExchangeListedRosterClient(
-        sina.module,
-        sina.package_version,
-        evidence_store,
-    )
+    # AkShare is deliberately initialized only after the authoritative
+    # HiThink universe has passed validation.  It is optional sector
+    # enrichment and must never gate universe construction or market data.
+    sina: SinaSectorClient | None = None
+    sector_status = SECTOR_ENRICHMENT_UNAVAILABLE_DEFAULTED
+    sector_failure: Exception | None = None
     acquisition_started = time.monotonic()
     retrieved_at_bjt = _timestamp_text(observed_at)
     try:
@@ -2941,62 +3141,38 @@ def acquire_live_generation_inputs(
             ),
         )
     try:
-        official_roster, roster_audit = _build_official_listed_roster(roster_client, target_date)
         universe, display_names, universe_quality = _build_universe(
             universe_frame,
             target_date,
             retrieved_at_bjt,
-            official_roster,
-            roster_audit,
         )
     except LiveAcquisitionError:
         raise
     except Exception as exc:
-        if evidence_store is not None:
-            evidence_store.record_failure(
-                "official_listed_roster",
-                provider="AkShare",
-                source_identity="EXCHANGE_OFFICIAL_CURRENT_LISTED_ROSTER_V1",
-                provider_version=roster_client.package_version,
-                error_type=type(exc).__name__,
-                error_detail=str(exc),
-                request_identity="official_listed_roster",
-            )
-        _fail(
-            PROVIDER_FAILURE,
-            _akshare_failure_message(
-                roster_client,
-                exc,
-                elapsed_seconds=time.monotonic() - acquisition_started,
-                universe_symbol_count=0,
-                unexecuted_stage="exact Sina sector, Tencent quotes, stock/index Kline, market_env, manifest, persistence",
-            ),
-        )
+        _fail(PROVIDER_FAILURE, f"HiThink universe validation failed: {type(exc).__name__}")
     try:
+        sina = SinaSectorClient(
+            sina_module if sina_module is not None else akshare_module,
+            akshare_version,
+            evidence_store,
+        )
         sector = _build_sector(sina, target_date, retrieved_at_bjt, display_names)
-    except LiveAcquisitionError:
-        raise
+        sector_status = SECTOR_ENRICHMENT_AVAILABLE
     except Exception as exc:
+        sector_failure = exc
         if evidence_store is not None:
             evidence_store.record_failure(
                 "sina_sector",
-                provider="AkShare",
+                provider="AkShare/Sina",
                 source_identity=SINA_SOURCE_URL,
-                provider_version=sina.package_version,
+                provider_version=getattr(sina, "package_version", "UNAVAILABLE"),
                 error_type=type(exc).__name__,
                 error_detail=str(exc),
                 request_identity="sina_sector",
             )
-        _fail(
-            PROVIDER_FAILURE,
-            _akshare_failure_message(
-                sina,
-                exc,
-                elapsed_seconds=time.monotonic() - acquisition_started,
-                universe_symbol_count=len(universe.symbols),
-                unexecuted_stage="Tencent quotes, stock/index Kline, market_env, manifest, persistence",
-            ),
-        )
+        # Discard every partial definition/member read.  The frozen B
+        # evaluator receives only its existing missing-sector tuple.
+        sector = _build_missing_sector(target_date, retrieved_at_bjt, display_names)
 
     get = request_get or requests.get
     quote_provider_version = f"requests/{_installed_version('requests')}"
@@ -3359,35 +3535,38 @@ def acquire_live_generation_inputs(
         sector = _filter_sector_symbols(sector, excluded_set)
     input_coverage = _build_input_coverage(len(universe.symbols), excluded_provider_stale)
     market_env = _market_env(index)
-    runtime_versions = _runtime_versions(sina.package_version)
-    sector_quality = {
-        "duplicate_row_count": len(sina.duplicate_sector_rows),
-        "duplicate_rows": copy.deepcopy(sina.duplicate_sector_rows),
-        "ambiguous_membership_count": 0,
-        "multi_sector_symbol_count": len(sina.multi_sector_symbols),
-        "multi_sector_symbols": sorted(sina.multi_sector_symbols),
-        "resolution_policy": SECTOR_RESOLUTION_POLICY,
-        "raw_membership_row_count": len(sina.sector_member_traversal),
-        "resolved_memberships": dict(sorted(sina.resolved_sector_memberships.items())),
-        "resolved_memberships_sha256": _sha256_json(
-            dict(sorted(sina.resolved_sector_memberships.items()))
-        ),
-        "outside_universe_membership_count": len(sina.outside_universe_memberships),
-        "missing_universe_symbol_count": len(sina.missing_universe_symbols),
-        "missing_universe_symbols": copy.deepcopy(sina.missing_universe_symbols),
-    }
+    sector_enrichment = _sector_enrichment_metadata(
+        sina,
+        status=sector_status,
+        failure=sector_failure,
+    )
+    runtime_versions = _runtime_versions(
+        sector_enrichment.get("api_version"),
+        akshare_status=("AVAILABLE" if sina is not None else "UNAVAILABLE"),
+    )
+    sector_quality = _sector_quality(
+        sina if sector_status == SECTOR_ENRICHMENT_AVAILABLE else None,
+        display_names,
+        status=sector_status,
+    )
+    sector_diagnostics = (
+        {
+            "mismatch_count": len(sina.display_name_mismatches),
+            "mismatches": copy.deepcopy(sina.display_name_mismatches),
+        }
+        if sina is not None and sector_status == SECTOR_ENRICHMENT_AVAILABLE
+        else {"mismatch_count": 0, "mismatches": []}
+    )
     provider_metadata = {
         "runtime": runtime_versions,
         "universe_policy": UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1,
         "universe_policy_metadata": universe_policy_metadata(),
         "display_name_consistency_policy": _display_name_policy_metadata(),
-        "universe_roster_quality": copy.deepcopy(universe_quality),
+        "universe_quality": copy.deepcopy(universe_quality),
         "input_coverage": copy.deepcopy(input_coverage),
-        "display_name_diagnostics": {
-            "mismatch_count": len(sina.display_name_mismatches),
-            "mismatches": copy.deepcopy(sina.display_name_mismatches),
-        },
+        "display_name_diagnostics": sector_diagnostics,
         "sector_membership_quality": copy.deepcopy(sector_quality),
+        "sector_enrichment": copy.deepcopy(sector_enrichment),
         "market_data_failover": {
             "policy_version": MARKET_DATA_FAILOVER_POLICY_VERSION,
             "tencent_fallback_allowed": bool(allow_tencent_fallback),
@@ -3406,13 +3585,12 @@ def acquire_live_generation_inputs(
                 "selection": "PRIMARY",
                 "scope": _tradable_universe_scope_metadata(),
                 "broad_source": "HiThink Financial-API",
-                "official_listed_roster": roster_client.capability_report(),
-                "selection_rule": "HITHINK_BROAD_INTERSECT_OFFICIAL_ROSTER_EXCHANGE_LISTED_AS_OF_T",
+                "provenance_identity": HITHINK_MAIN_BOARD_LIVE_UNIVERSE_V1,
+                "selection_rule": "HITHINK_A_SHARE_THEN_EXISTING_MAIN_BOARD_POLICY",
                 "production_policy": universe_policy_metadata(),
             },
             "sector": {
-                "provider": "AkShare",
-                "api_version": sina.package_version,
+                **copy.deepcopy(sector_enrichment),
                 "source_url": SINA_SOURCE_URL,
                 "source_urls": {
                     "spot": SINA_SPOT_SOURCE_URL,
@@ -3446,7 +3624,7 @@ def acquire_live_generation_inputs(
             },
         },
         "hithink_capability": hithink.capability_report(),
-        "akshare_sina_capability": sina.capability_report(),
+        "akshare_sina_capability": _sector_capability(sina),
     }
     if weekend_backfill:
         provider_metadata.update(
@@ -3500,13 +3678,11 @@ def acquire_live_generation_inputs(
             ],
             "rule": DISPLAY_NAME_NORMALIZATION_RULE,
         },
-        "universe_roster_quality": copy.deepcopy(universe_quality),
+        "universe_quality": copy.deepcopy(universe_quality),
         "input_coverage": copy.deepcopy(input_coverage),
-        "display_name_diagnostics": {
-            "mismatch_count": len(sina.display_name_mismatches),
-            "mismatches": copy.deepcopy(sina.display_name_mismatches),
-        },
+        "display_name_diagnostics": copy.deepcopy(sector_diagnostics),
         "sector_membership_quality": copy.deepcopy(sector_quality),
+        "sector_enrichment": copy.deepcopy(sector_enrichment),
         "universe_scope": _tradable_universe_scope_metadata(),
         "universe_policy": UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1,
         "universe_policy_metadata": universe_policy_metadata(),
@@ -3541,8 +3717,13 @@ def acquire_live_generation_inputs(
             "freshness_and_session_close": "PASS",
             "universe_non_empty_and_unique": "PASS",
             "universe_listing_eligibility": "PASS",
-            "sector_definitions_membership_rank": "PASS",
-            "sector_membership_resolved_exact_v0": "PASS",
+            "sector_enrichment": sector_status,
+            "sector_definitions_membership_rank": (
+                "PASS" if sector_status == SECTOR_ENRICHMENT_AVAILABLE else "DEFAULTED"
+            ),
+            "sector_membership_resolved_exact_v0": (
+                "PASS" if sector_status == SECTOR_ENRICHMENT_AVAILABLE else "DEFAULTED"
+            ),
             "display_name_coverage_and_symbol_identity": "PASS",
             "quote_t_date_and_coverage": "PASS",
             "stock_kline_as_of_t_no_future_bar": "PASS",
@@ -3597,6 +3778,7 @@ __all__ = [
     "HITHINK_BASE_URL",
     "HITHINK_INDEX_KLINE_API",
     "HITHINK_LIVE_PRIMARY",
+    "HITHINK_MAIN_BOARD_LIVE_UNIVERSE_V1",
     "HITHINK_MAX_ATTEMPTS",
     "HITHINK_STOCK_KLINE_API",
     "HITHINK_UNIVERSE_API",
@@ -3617,6 +3799,10 @@ __all__ = [
     "SINA_DETAIL_COUNT_SOURCE_URL",
     "SINA_DETAIL_SOURCE_URL",
     "SINA_SPOT_SOURCE_URL",
+    "SECTOR_ENRICHMENT_AVAILABLE",
+    "SECTOR_ENRICHMENT_UNAVAILABLE_DEFAULTED",
+    "MISSING_SECTOR_DEFAULT",
+    "MISSING_SECTOR_RESOLUTION",
     "SSE_OFFICIAL_LISTED_ROSTER_URL",
     "SZSE_OFFICIAL_LISTED_ROSTER_URL",
     "SinaSectorClient",
