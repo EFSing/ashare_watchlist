@@ -29,9 +29,11 @@
 - verification：focused new test=`7 passed`；relevant suite=`94 passed, 2 warnings`；full
   pytest=`613 passed, 2 skipped, 10 warnings`；compileall 与 `git diff --check` passed。2 个 skip
   为既有大型 exact-date fixture 缺失。
-- next：push branch，创建独立 PR，核对 live exact-head CI/PR 状态后等待用户 merge decision；不自动
-  merge #66/#67/#68/#60 或本 PR。目标终点为
-  `B_VOLUME_PROSPECTIVE_REPORT_PR_READY`。
+- delivery：独立 PR #69 已创建并保持 `DRAFT`：
+  https://github.com/EFSing/ashare_watchlist/pull/69 。当前 live head=
+  `3d5ff0926d976e18b7dd0365ec25670753b9dc0f`，PR checks=`2 / 2 checks OK`，无 base conflict；
+  不自动 merge #66/#67/#68/#60 或本 PR。
+- terminal：`B_VOLUME_PROSPECTIVE_REPORT_PR_READY`；下一步仅等待用户对 PR #69 的 merge decision。
 
 ## 2026-09-17 — CLOUDFLARE_SECONDARY_DISPATCHER_RECONCILIATION_V1
 
