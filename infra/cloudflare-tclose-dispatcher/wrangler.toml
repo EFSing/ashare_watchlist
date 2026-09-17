@@ -1,6 +1,7 @@
 name = "ashare-tclose-dispatcher"
 main = "src/index.js"
 compatibility_date = "2026-09-15"
+workers_dev = true
 
 [triggers]
 crons = ["25 9 * * 1-5"]

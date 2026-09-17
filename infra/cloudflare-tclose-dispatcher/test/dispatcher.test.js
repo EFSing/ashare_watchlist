@@ -12,6 +12,7 @@ const TOKEN = "test-token-never-logged";
 
 test("Cron scheduledTime binds the BJT target date", () => {
   assert.equal(targetDateFromScheduledTime(SCHEDULED_TIME), "2026-09-14");
+  assert.equal(targetDateFromScheduledTime(Date.parse("2026-09-14T16:25:00Z")), "2026-09-15");
 });
 
 test("dispatch payload is explicit and contains no token", async () => {
@@ -36,6 +37,7 @@ test("dispatch payload is explicit and contains no token", async () => {
   });
   assert.equal(result.status, "DISPATCHED");
   assert.equal(seen.init.headers.Authorization, `Bearer ${TOKEN}`);
+  assert.equal(seen.init.headers["User-Agent"], "ashare-tclose-dispatcher");
   assert.equal(JSON.parse(seen.init.body).inputs.as_of_date, "2026-09-14");
 });
 
