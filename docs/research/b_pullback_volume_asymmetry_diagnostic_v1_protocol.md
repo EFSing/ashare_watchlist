@@ -110,6 +110,12 @@ The two and only two 2D matrices are:
 Every 3×3 cell reports count, `FAST_STOP/(TARGET+FAST_STOP)`, and the secondary
 `STOP/(TARGET+STOP)` rate. No cell is promoted into a rule.
 
+For the bounded incremental check, use only these same two matrices: a volume feature is
+`matrix_consistent` when its expected endpoint-rate direction appears in at least two of the three
+price-defense rows with usable endpoint cells and no usable row has the opposite direction. This is
+a fixed summary of all matrix rows, not a best-cell selection; no additional matrix or conditional
+model is permitted.
+
 ## Pre-registered directions and falsification
 
 - H1: TARGET `down_volume_share` is lower than FAST_STOP.
