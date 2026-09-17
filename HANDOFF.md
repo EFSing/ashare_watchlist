@@ -6,6 +6,24 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-17 — B_PULLBACK_VOLUME_ASYMMETRY_DIAGNOSTIC_V1 complete
+
+- Classification: research question, unchanged; DEVELOPMENT / DIAGNOSTIC_ONLY. Not a product blocker.
+- Terminal: `B_PULLBACK_VOLUME_ASYMMETRY_PROSPECTIVE_EVIDENCE_REQUIRED`; decision
+  `NEEDS_MORE_EVIDENCE`. No Formal B, production, runtime-state, or Final OOS change.
+- Exact reconciliation passed against #66 head `9dcd93f6460006eed9f1d0e421b45c3abe5adc99`:
+  frozen cohort 17,714 rows (TARGET 4,338; FAST_STOP 4,623; all STOP 7,953), 9,766 episodes;
+  pullback window `i+1:T-1`; breakout level `max(close[i-60:i])`.
+- H1/H2/H4 support the preregistered direction overall/Main Board/unique episode, but year
+  consistency is insufficient; H3 and H5 do not support it. Both permitted matrices reverse in
+  the price-defense HIGH row. H5 is an exact #66 baseline alias, so no incremental information.
+- Protocol commit: `d0a477db3f375ef19fdec51bb091ac3162ea6278`; implementation commit:
+  `35a707c2655c450f32d407a84d53fcc8699d983e`.
+- Verification: focused/relevant 22 passed; full 619 passed, 2 skipped, 10 warnings;
+  compileall and diff check PASS. Draft PR is to be created from the pushed branch below; no merge.
+- Remote recovery branch: `codex/b-pullback-volume-asymmetry-diagnostic-v1`; remote HEAD:
+  `f27d24bc1243309815c2b6668b85e357533c3808`. Final OOS remains `SEALED / UNREAD`.
+
 ## 2026-09-17 — B_FALSE_BREAKOUT_PATH_DIAGNOSTIC_V1 complete
 
 - Classification: research question, unchanged; DEVELOPMENT / DIAGNOSTIC_ONLY. Not a product blocker.
