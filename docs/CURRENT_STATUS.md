@@ -25,10 +25,11 @@ Final OOS=`SEALED / UNREAD`。
 
 验证：focused=`7 passed`，relevant=`94 passed, 2 warnings`，full=`613 passed, 2 skipped,
 10 warnings`，compileall 与 `git diff --check` 通过。独立 PR #69
-(https://github.com/EFSing/ashare_watchlist/pull/69) 已创建并保持 `DRAFT`；当前 PR head
-`c6f7caf6fb4a0a8751ee2b4eca7973e4a0466e4a` 的 checks=`2 / 2 checks OK`，无 base conflict。当前终点为
-`B_VOLUME_PROSPECTIVE_REPORT_PR_READY`，等待用户 merge decision；classification=`research question
-(non-blocking) + product report integration`，不自动 merge。
+(https://github.com/EFSing/ashare_watchlist/pull/69) 已创建并保持 `DRAFT`；PR head、exact-head CI
+与 base mergeability 均属于 live GitHub 状态。Live PR head / exact-head CI must be re-verified at
+merge decision; transient PR head is not a governance invariant。当前终点为
+`B_VOLUME_PROSPECTIVE_REPORT_GOVERNANCE_RECONCILED`，等待用户 merge decision；classification=`STRICT
+governance reconciliation`，不自动 merge。
 
 ## Current task — PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1 — 2026-09-16
 

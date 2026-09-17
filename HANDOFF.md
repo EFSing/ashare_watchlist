@@ -30,10 +30,12 @@
   pytest=`613 passed, 2 skipped, 10 warnings`；compileall 与 `git diff --check` passed。2 个 skip
   为既有大型 exact-date fixture 缺失。
 - delivery：独立 PR #69 已创建并保持 `DRAFT`：
-  https://github.com/EFSing/ashare_watchlist/pull/69 。当前 live head=
-  `c6f7caf6fb4a0a8751ee2b4eca7973e4a0466e4a`，PR checks=`2 / 2 checks OK`，无 base conflict；
-  不自动 merge #66/#67/#68/#60 或本 PR。
-- terminal：`B_VOLUME_PROSPECTIVE_REPORT_PR_READY`；下一步仅等待用户对 PR #69 的 merge decision。
+  https://github.com/EFSing/ashare_watchlist/pull/69 。PR head、exact-head CI 与 base
+  mergeability 均属于 live GitHub 状态。Live PR head / exact-head CI must be re-verified at
+  merge decision; transient PR head is not a governance invariant。不自动 merge
+  #66/#67/#68/#60 或本 PR。
+- terminal：`B_VOLUME_PROSPECTIVE_REPORT_GOVERNANCE_RECONCILED`；下一步仅在 merge decision
+  时重新核验 PR #69 的 live head、exact-head CI、DRAFT 与 mergeability。
 
 ## 2026-09-17 — CLOUDFLARE_SECONDARY_DISPATCHER_RECONCILIATION_V1
 
