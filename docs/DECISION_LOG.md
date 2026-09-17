@@ -5,6 +5,19 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-17 — Pullback volume asymmetry diagnostic: require more evidence
+
+`NEEDS_MORE_EVIDENCE`: `B_PULLBACK_VOLUME_ASYMMETRY_PROSPECTIVE_EVIDENCE_REQUIRED`.
+The diagnostic exactly reused #66's frozen cohort, pullback window, breakout level, and existing
+helpers. H1/H2/H4 show the preregistered overall direction in the permitted aggregates, but the
+year pattern is not stable; H3 and H5 do not support the direction, and both allowed matrices
+reverse in the price-defense HIGH row. H5 is the existing `reactivation_vs_retest_ratio` baseline
+alias, so no incremental information is established.
+
+This remains a non-blocking research question. Do not change Formal B, filters, thresholds, ranking,
+production dispatch, runtime-state, or Final OOS. Any future prospective evidence collection needs a
+separately authorized protocol; no B V2 or parameter decision is adopted by this diagnostic.
+
 ## 2026-09-17 — False-breakout diagnostic: require prospective evidence
 
 NEEDS_MORE_EVIDENCE: B_FALSE_BREAKOUT_PATH_DIAGNOSTIC_PROSPECTIVE_EVIDENCE_REQUIRED.

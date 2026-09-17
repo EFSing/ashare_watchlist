@@ -6,6 +6,19 @@
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
+## 2026-09-17 — B_PULLBACK_VOLUME_ASYMMETRY_DIAGNOSTIC_V1 complete
+
+- Classification: research question; DEVELOPMENT / DIAGNOSTIC_ONLY; not a product blocker.
+- Terminal: `B_PULLBACK_VOLUME_ASYMMETRY_PROSPECTIVE_EVIDENCE_REQUIRED`; decision
+  `NEEDS_MORE_EVIDENCE`. Exact #66 frozen cohort/window/level reconciliation passed; no Formal B,
+  production, runtime-state, or Final OOS change.
+- Cohort: 17,714 rows; TARGET 4,338; FAST_STOP 4,623; all STOP 7,953; 9,766 episodes.
+  H1/H2/H4 are directional overall/Main Board/unique episode but not year-consistent; H3/H5 fail
+  the preregistered direction; both permitted matrices reverse in the price-defense HIGH row.
+  H5 is an exact #66 baseline alias and adds no established information.
+- Branch: `codex/b-pullback-volume-asymmetry-diagnostic-v1`; protocol `d0a477d...`; implementation
+  `35a707c...`; final checkpoint HEAD is recorded in `HANDOFF.md` after push. Draft PR pending.
+
 ## 2026-09-17 — B_FALSE_BREAKOUT_PATH_DIAGNOSTIC_V1 complete
 
 - Classification: research question, unchanged; DEVELOPMENT / DIAGNOSTIC_ONLY. Not a product blocker.
