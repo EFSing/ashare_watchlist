@@ -8,6 +8,17 @@
 
 ## 2026-09-17 — CLOUDFLARE_SECONDARY_DISPATCHER_RECONCILIATION_V1
 
+- Redeploy completed from clean `master@ba081f8aba834d636c5a0222d9a6067731a8f819`
+  after post-merge correctness run `35173116115` succeeded. Previous Worker version
+  `885bd833-5463-4cc1-9451-16a23026a605` was replaced by
+  `ef7368ce-9995-4c96-b29b-c9710f4fc88b` in deployment
+  `f1252cf7-2628-4005-9d08-ec671d90550b`.
+- Post-deploy read-only verification: workers.dev enabled, Cron remains
+  `25 9 * * 1-5`, `GITHUB_ACTIONS_DISPATCH_TOKEN` remains configured, deployed
+  source contains the explicit `User-Agent`, routes=`0`, and no KV/D1/Queue/
+  Durable Object bindings exist. Secret mutation=`0`, production dispatch=`0`,
+  runtime-state mutation=`0`.
+
 - Independent branch: `codex/cloudflare-secondary-dispatcher-reconciliation-v1`;
   base at intake: `origin/master=9c3f011ebc06d33347372b3792ec28f11c505f40`,
   `origin/runtime-state=55fdd5167911ed074df9212cbca01fdda1c58a6b`.
@@ -22,9 +33,8 @@
   Node tests 3 passed; focused Python tests 136 passed; syntax/diff checks and
   Wrangler 4.133.0 deploy dry-run passed. Existing concurrency, ALREADY_COMPLETED,
   XSHG and acquisition-date gates remain the authorities.
-- Next: inspect this branch's PR and exact-head CI, user merge decision, then
-  separately authorize redeployment of this existing Worker. No secret/Cron change
-  is justified by current evidence. No automatic merge or deployment.
+- Redeployment is complete. The next real verification is the next naturally
+  scheduled Cloudflare wake-up; do not create a production test dispatch.
 - Production dispatch=0; Cloudflare account mutation=0; runtime-state mutation=0.
   Formal B/research/PR #60 untouched; Final OOS SEALED / UNREAD; prohibited directory
   not read or touched. Classification remains product blocker diagnostic (STRICT PATH).
