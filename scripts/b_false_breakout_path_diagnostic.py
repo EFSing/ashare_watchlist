@@ -308,8 +308,8 @@ def run(source_root, output):
             for row in rows:
                 handle.write((json.dumps(row,sort_keys=True,allow_nan=False)+"\n").encode())
     summary["event_artifact"] = {"rows":len(rows),"sha256":sha(detail),"path":str(detail.relative_to(root)).replace("\\","/")}
-    (output/"summary.json").write_text(json.dumps(summary,indent=2,sort_keys=True,allow_nan=False)+"\n",encoding="utf8")
-    (root/"docs/research/b_false_breakout_path_diagnostic_v1_report.md").write_text(render_report(summary,sha(output/"summary.json")),encoding="utf8")
+    (output/"summary.json").write_text(json.dumps(summary,indent=2,sort_keys=True,allow_nan=False)+"\n",encoding="utf8",newline="\n")
+    (root/"docs/research/b_false_breakout_path_diagnostic_v1_report.md").write_text(render_report(summary,sha(output/"summary.json")),encoding="utf8",newline="\n")
     return summary
 
 
@@ -378,7 +378,7 @@ def render_report(summary, artifact_sha):
         f"Summary file SHA-256: `{artifact_sha}`.",
         f"Event artifact: `{summary['event_artifact']['path']}`; SHA-256: `{summary['event_artifact']['sha256']}`.",
         "Frozen inputs and feature expressions are in summary.json. Detail is committed for remote recovery.",
-        "Focused tests=20 passed; full pytest=611 passed, 2 existing fixture skips, 10 warnings; compileall",
+        "Focused tests=21 passed; full pytest=611 passed, 2 existing fixture skips, 10 warnings; compileall",
         "and git diff --check PASS. Final delivery head is resolved from the remote task branch and recorded",
         "in the delivery response; source commit above is immutable implementation provenance, not a live-head invariant.",
         "Reproduce: `python scripts/b_false_breakout_path_diagnostic.py --source-root <checkout-with-restored-frozen-daily-k>`.",
