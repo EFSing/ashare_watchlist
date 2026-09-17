@@ -6,6 +6,34 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-17 — REMOVE_AKSHARE_FROM_PRODUCTION_CRITICAL_PATH_V1
+
+- classification：`correctness blocker + product blocker`（STRICT PATH）。旧 acquisition chain
+  的 AkShare exchange roster JSON 解码失败会在 universe 阶段阻断整单，直接影响每日可用路径。
+- live reconciliation：本文件原顶层仍是 #69 的旧 snapshot；本任务依赖的实时状态为
+  `origin/master=73912d6781b4524299a5bda28f03d16f8818ed79`、
+  `origin/runtime-state=be8236629684b34dab5672df774918273536a5d9`，因此标记并完成最小
+  `PROJECT_GOVERNANCE_STATE_CONFLICT` reconciliation。PR #60/#66/#67/#68 均保持 untouched。
+- branch/worktree：`codex/remove-akshare-production-critical-path-v1`，独立 worktree
+  `D:\dev\ashare-watchlist-remove-akshare-v1`，基于 live `origin/master`；implementation
+  commit=`01c14f9358e3dc988cb3d5db24031d0c1a4579dd`。
+- decision：HiThink Financial-API `/api/meta/tickers/list` 是 SH/SZ a-share live universe
+  的直接来源；继续复用 `ASHARE_MAIN_BOARD_ONLY_V1` / 既有 Main Board classifier。AkShare
+  roster production calls=`0`，不再做 exchange-roster intersection；HiThink empty/malformed/
+  duplicate/identity/asset/exchange/policy-empty 仍 fail-closed。
+- sector：AkShare/Sina `新浪行业` 仅为 `OPTIONAL_FAIL_SOFT`。完整成功时保持原 exact taxonomy；
+  import/API/JSON/timeout/partial-read 失败时整体 `UNAVAILABLE_DEFAULTED`，所有 symbol 使用
+  frozen `("-", 50, 0.0)`，不接入 THS/申万替代。
+- verification：full pytest=`620 passed, 2 skipped, 10 warnings`；compileall 与
+  `git diff --check` passed；Formal B spec SHA 保持
+  `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`。Tencent/HiThink
+  market-data fallback tests passed。
+- boundaries：production dispatch=`0`，runtime-state remote mutation=`0`，Cloudflare mutation=`0`；
+  Final OOS=`SEALED / UNREAD`，`data/validation/continuous_speed_probe/` 未读取或触碰。
+- delivery：已 push branch 并创建 target=`master` 的 Draft PR #70
+  (`https://github.com/EFSing/ashare_watchlist/pull/70`)；当前 PR head 与 CI 状态以 live GitHub
+  为准，不自动 merge。
+
 ## 2026-09-17 — B_VOLUME_PROSPECTIVE_REPORT_OBSERVATION_V1
 
 - classification：`research question (non-blocking) + product report integration`；任务只冻结并展示

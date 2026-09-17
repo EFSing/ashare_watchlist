@@ -5,6 +5,20 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-17 — REMOVE_AKSHARE_FROM_PRODUCTION_CRITICAL_PATH_V1
+
+- classification：`ADOPT` as a production correctness/product decision, not a strategy or
+  research decision.
+- decision：HiThink Financial-API `/api/meta/tickers/list` is the authoritative SH/SZ a-share live
+  universe source, followed by the existing `ASHARE_MAIN_BOARD_ONLY_V1` policy. AkShare exchange
+  rosters are compatibility/history-only and have zero production prerequisite calls.
+- decision：exact Sina `新浪行业` remains the only sector taxonomy. It is optional fail-soft enrichment;
+  any unavailable or partial read is discarded and every symbol receives the existing Formal B
+  missing-sector tuple `("-", 50, 0.0)`. THS/申万 substitution is `NOT AUTHORIZED`.
+- invariants：Formal B formula/threshold/rank/trigger/stop/target/RR/T+1 and spec SHA
+  `f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd` are unchanged; HiThink/Tencent
+  market-data fallback remains unchanged. Final OOS stays `SEALED / UNREAD`.
+
 ## 2026-09-17 — B_VOLUME_PROSPECTIVE_REPORT_OBSERVATION_V1
 
 - decision：`ADOPT` the #68 prospective observation contract with no strategy or research-data

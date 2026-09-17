@@ -6,6 +6,31 @@
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
+## Current task — REMOVE_AKSHARE_FROM_PRODUCTION_CRITICAL_PATH_V1 — 2026-09-17
+
+本轮为 `correctness blocker + product blocker`（STRICT PATH）。实时 intake 已确认
+`origin/master=73912d6781b4524299a5bda28f03d16f8818ed79`、
+`origin/runtime-state=be8236629684b34dab5672df774918273536a5d9`；顶层旧 #69 snapshot 与 live
+状态构成 `PROJECT_GOVERNANCE_STATE_CONFLICT`，已完成最小 reconciliation。PR #60/#66/#67/#68
+保持 untouched。
+
+独立 branch/worktree 为 `codex/remove-akshare-production-critical-path-v1` /
+`D:\dev\ashare-watchlist-remove-akshare-v1`，implementation commit
+`01c14f9358e3dc988cb3d5db24031d0c1a4579dd`。HiThink Financial-API
+`/api/meta/tickers/list` 现为 SH/SZ a-share live universe 直接来源，既有
+`ASHARE_MAIN_BOARD_ONLY_V1` policy 不变；AkShare exchange roster 不再是 production prerequisite，
+production calls=`0`。Sina `新浪行业` 为 `OPTIONAL_FAIL_SOFT`；失败或 partial read 时全量使用
+Formal B 已有 missing-sector default `sector_name="-"`、`sector_rank=50`、`sector_chg=0.0`，不使用
+THS/申万替代。HiThink universe validation 与 Tencent/HiThink market-data fallback 保持
+fail-closed/原语义。
+
+验证：full pytest=`620 passed, 2 skipped, 10 warnings`，compileall 与 `git diff --check`
+通过；Formal B spec SHA=`f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`
+且未修改。已创建 target=`master` 的 Draft PR #70
+(`https://github.com/EFSing/ashare_watchlist/pull/70`)；当前 PR head 与 exact-head CI 状态以 live
+GitHub 为准，后续不自动 merge。production dispatch/runtime-state remote mutation/Cloudflare mutation
+均为 `0`，Final OOS 仍为 `SEALED / UNREAD`，受禁目录未读取或触碰。
+
 ## Current task — B_VOLUME_PROSPECTIVE_REPORT_OBSERVATION_V1 — 2026-09-17
 
 本轮基于 live `origin/master=ba081f8aba834d636c5a0222d9a6067731a8f819` 创建独立
