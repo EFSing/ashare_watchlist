@@ -31,7 +31,7 @@
   为既有大型 exact-date fixture 缺失。
 - delivery：独立 PR #69 已创建并保持 `DRAFT`：
   https://github.com/EFSing/ashare_watchlist/pull/69 。当前 live head=
-  `3d5ff0926d976e18b7dd0365ec25670753b9dc0f`，PR checks=`2 / 2 checks OK`，无 base conflict；
+  `c6f7caf6fb4a0a8751ee2b4eca7973e4a0466e4a`，PR checks=`2 / 2 checks OK`，无 base conflict；
   不自动 merge #66/#67/#68/#60 或本 PR。
 - terminal：`B_VOLUME_PROSPECTIVE_REPORT_PR_READY`；下一步仅等待用户对 PR #69 的 merge decision。
 
