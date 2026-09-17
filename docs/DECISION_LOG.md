@@ -5,6 +5,24 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-17 — False-breakout diagnostic: require prospective evidence
+
+NEEDS_MORE_EVIDENCE: B_FALSE_BREAKOUT_PATH_DIAGNOSTIC_PROSPECTIVE_EVIDENCE_REQUIRED.
+This research question remains non-blocking. Frozen DEVELOPMENT cohort and existing volume definitions
+were reused without strategy changes. Conditional price defense separates TARGET from FAST_STOP overall
+(-5.873 pp) and by earliest episode (-8.683 pp), but Main Board magnitude (-0.354 pp) is negligible,
+2023 reverses (+7.279 pp), secondary all-STOP and joint reactivation fail expected direction.
+The joint structural hypothesis is INCONCLUSIVE; these are not stable B V2 or production findings.
+
+Retain only the pre-registered diagnostic definitions. Missing evidence is a genuine prospective Main
+Board sample with independent episodes across periods and unchanged definitions/bins, used only by a
+later separately authorized B V2 decision. Existing Formal B daily operation may continue. No B V2,
+filter, parameter tuning, prospective deployment or automatic follow-up is adopted. Turnover evidence
+is unavailable under strict PIT requirements; no amount/static shares/proxy substitutions are allowed.
+Report and machine-readable evidence: docs/research/b_false_breakout_path_diagnostic_v1_report.md and
+ data/validation/b_false_breakout_path_diagnostic_v1/summary.json. PR #64 is merged; PR #60 untouched.
+Final OOS remains SEALED / UNREAD; frozen B/spec/universe and historical canonical artifacts unchanged.
+
 ## 2026-09-16 — PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1
 
 - classification：`product infrastructure + correctness`；不是策略研究、参数调整、provider

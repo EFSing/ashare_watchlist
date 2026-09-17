@@ -6,6 +6,40 @@
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
+## 2026-09-17 — B_FALSE_BREAKOUT_PATH_DIAGNOSTIC_V1 complete
+
+- Classification: research question, unchanged; DEVELOPMENT / DIAGNOSTIC_ONLY. Not a product blocker.
+- PROJECT_GOVERNANCE_STATE_CONFLICT reconciled: PR #64 merged at master
+  9c3f011ebc06d33347372b3792ec28f11c505f40; exact-head correctness 35110366743 and
+  daily-t-close 35112190996 success. runtime-state intake 55fdd5167911ed074df9212cbca01fdda1c58a6b.
+  Earlier #64 OPEN/awaiting-merge entries below are superseded historical provenance.
+- Terminal: B_FALSE_BREAKOUT_PATH_DIAGNOSTIC_PROSPECTIVE_EVIDENCE_REQUIRED;
+  decision NEEDS_MORE_EVIDENCE; joint hypothesis INCONCLUSIVE. Overall conditional price-defense
+  FAST_STOP contrast -5.873 pp, Main -0.354 pp, earliest episode -8.683 pp; 2023 reverses +7.279 pp.
+  Secondary all-STOP contrast +2.549 pp and joint reactivation +5.780 pp fail expected direction.
+- Exact cohort: 17,714 rows, 4,338 TARGET, 4,623 FAST_STOP, 7,953 all STOP (includes FAST_STOP),
+  9,766 unique breakout episodes. Five volume baseline features reconciled; original conclusion unchanged.
+  TURNOVER_EVIDENCE_UNAVAILABLE: existing sources lack strict PIT proof; provider data calls=0.
+- Delivery: draft PR #66 https://github.com/EFSing/ashare_watchlist/pull/66; no automatic merge.
+- Remote recovery branch: codex/b-false-breakout-path-diagnostic-v1. Fetch and resolve
+  origin/codex/b-false-breakout-path-diagnostic-v1 for current remote HEAD; do not base on PR #60.
+  Immutable source implementation HEAD: cd34319f779276c0616742f54335f16fa7bbaa8e.
+  Protocol pre-comparison commit: ad975a0ff6e24921b0be8792d75c282700be1c50.
+  Protocol/report: docs/research/b_false_breakout_path_diagnostic_v1_{protocol,report}.md;
+  committed events + summary: data/validation/b_false_breakout_path_diagnostic_v1/.
+  Summary SHA-256: e78f64b837d0e88f6547d1c6c8e4b3832efa96afc8663849c34aab79f8b842e4.
+  Event SHA-256: d30f17e647ac9848af3b759956e450d72c222afe2787f5d5823f51511a4a3e4d.
+- Verification: final focused 21 passed; full 611 passed, 2 original fixture skips, 10 warnings;
+  compileall and diff check PASS. Repeated frozen reconstruction reproduced exact same event bytes.
+- Frozen daily-K is private Drive file 1lLxp0y_csfOczwEBNYo4ysdyItBgF4Ja, 180,203,424 bytes;
+  restored SHA 61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426 matched.
+  Other required inputs and all deliverables are Git-tracked; no new local-only recovery dependency.
+- Next: this bounded retrospective study is finished. A separately authorized genuine prospective
+  Main Board evidence collection would evaluate the frozen definitions before any B V2 decision.
+  No outstanding user decision is required here; no automatic new protocol/filter/observation deployment.
+  Existing daily Formal B remains usable and unchanged. PR #60 untouched; production dispatch=0;
+  runtime-state remote mutation=NO; Final OOS SEALED / UNREAD; forbidden directory untouched.
+
 ## Current task — PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1 — 2026-09-16
 
 本轮 intake 已完成最小 live reconciliation：persisted current snapshot 仍写
