@@ -6,6 +6,32 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-17 — HITHINK_QUOTE_PRIMARY_REMOVE_TENCENT_QUOTE_BLOCKER_V1 — decision node
+
+- classification：`correctness blocker` 分析（STRICT PATH，NO STRATEGY CHANGE）；停在真实 decision
+  node，未修改 production 行为、未创建 migration PR。
+- live reconciliation：实时 `origin/master=9528484`（#70 merged）、`origin/runtime-state=be82366`；
+  本文件此前顶层仍把 #70 记为 Draft，构成 `PROJECT_GOVERNANCE_STATE_CONFLICT`，已本次最小
+  reconciliation。PR #60/#66/#67/#68 untouched。
+- failure evidence：`daily-t-close` run `35212735555`（`master@9528484`）在
+  `Tencent quote acquisition failed: 001246: empty Tencent field p[38] (turnover)` 失败；
+  preflight 与 runtime-state restore 正常，失败在 quote 阶段、尚未进入 stock Kline 评估。
+- root cause（本轮新增）：`001246.SZ 力勤资源` 为 pre-listing（`list_date=null`、2026 年
+  historical 0 根、snapshot 全 null、Tencent `prev_close=0`）；#70 的 universe 不再使用官方
+  listed roster，`universe_listing_eligibility` 为硬编码 `PASS`，因此 pre-listing 标的进入
+  universe。仅迁移 quote provider 不能恢复 2026-09-17（全 null quote → `UNKNOWN`；空历史 →
+  `PROVIDER_FAILURE`）。
+- decision required：universe listing eligibility、quote `turnover`（Formal B executable path
+  实际读取换手率）、NO_TRADE 证据形态、target-day 证据；证据与选项见
+  `docs/hithink_quote_primary_decision_node_audit_20260917.md`。
+- boundaries：production dispatch=`0`，runtime-state remote mutation=`0`，Cloudflare mutation=`0`；
+  provider 只读 probe calls：HiThink 15 / Tencent 2；Formal B spec SHA 未变；
+  Final OOS=`SEALED / UNREAD`。
+- remote recovery branch：`codex/hithink-quote-primary-v1`（docs-only）。恢复时先 fetch 并读取
+  该 branch 的 live remote HEAD 与本文件，再按下一节 next action 继续。
+- next action：等待用户对上述 4 个 decision 的选择后再实现；在未获决定前不修改 provider、
+  universe、Formal B 或 production 状态。
+
 ## 2026-09-17 — REMOVE_AKSHARE_FROM_PRODUCTION_CRITICAL_PATH_V1
 
 - classification：`correctness blocker + product blocker`（STRICT PATH）。旧 acquisition chain

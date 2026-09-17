@@ -6,6 +6,38 @@
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
+## Current task — HITHINK_QUOTE_PRIMARY_REMOVE_TENCENT_QUOTE_BLOCKER_V1 — 2026-09-17
+
+本轮为 `correctness blocker`（STRICT PATH，NO STRATEGY CHANGE），目标是把 production T-close
+quote snapshot 从 Tencent 迁移到 HiThink Financial-API。实时 intake 确认为
+`origin/master=9528484887abe724bad555f9475f2cf2fb98b144`（PR #70 已 merged）、
+`origin/runtime-state=be8236629684b34dab5672df774918273536a5d9`；本文与 `HANDOFF.md` 原先仍把
+#70 记为 Draft，构成 `PROJECT_GOVERNANCE_STATE_CONFLICT`，已按最小 reconciliation 记录，
+历史段落不改写。PR #60/#66/#67/#68 untouched。
+
+失败证据：`daily-t-close` run `35212735555`（`master@9528484`）在
+`Tencent quote acquisition failed: 001246: empty Tencent field p[38] (turnover)` 失败；preflight
+与 runtime-state restore 正常，失败在 quote 阶段、尚未进入 stock Kline 评估。
+
+实现前停在真实 decision node，未修改 provider、universe、Formal B 或 production 状态：
+
+- quote `turnover`：Formal B `B_BREAKOUT_RETEST_LEGACY_V1_1` 的 executable path 实际读取
+  `quote["turnover"]`（换手率），缺失即 `INSUFFICIENT_DATA`；HiThink snapshot 的 `turnover`
+  是成交额，二者不可互换 → `HITHINK_QUOTE_FORMAL_B_DEPENDENCY_DECISION_REQUIRED`。
+- NO_TRADE 证据：HiThink 对未交易标的返回整行 null，与现有显式零形态不等价 →
+  `HITHINK_QUOTE_TRADE_STATE_DECISION_REQUIRED`。
+- target-day 证据：HiThink snapshot 无 per-record 交易日字段 →
+  `HITHINK_QUOTE_SCHEMA_CONTRACT_DECISION_REQUIRED`。
+- root cause（本轮新增）：`001246.SZ 力勤资源` 为 pre-listing；#70 移除官方 listed roster 交集后
+  universe 不再排除未上市标的，`universe_listing_eligibility` 为硬编码 `PASS`。仅迁移 quote
+  provider 不能恢复 2026-09-17。
+
+证据、schema 实测、调用计数与选项见
+`docs/hithink_quote_primary_decision_node_audit_20260917.md`。boundaries：production
+dispatch=`0`，runtime-state remote mutation=`0`，Cloudflare mutation=`0`，provider 只读 probe
+calls=HiThink 15 / Tencent 2；Formal B spec SHA 未变；Final OOS=`SEALED / UNREAD`。当前终点为
+decision node，等待用户选择后再实现；不自动 merge。
+
 ## Current task — REMOVE_AKSHARE_FROM_PRODUCTION_CRITICAL_PATH_V1 — 2026-09-17
 
 本轮为 `correctness blocker + product blocker`（STRICT PATH）。实时 intake 已确认
