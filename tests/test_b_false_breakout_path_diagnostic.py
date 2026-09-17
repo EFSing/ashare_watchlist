@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from b_false_breakout_path_diagnostic import path_features, label_state, contrast
+from b_false_breakout_path_diagnostic import path_features, label_state, contrast, analyze
 from test_b_phase_volume_path_diagnostic import _fixture
 from track_perf import rebuild_execution_state_from_observations
 from trading_calendar import TradingCalendar
@@ -73,3 +73,16 @@ def test_primary_denominator_excludes_nonfast_stop_and_sparse_pairs():
     assert contrast(frame,'defense',1,3,['volume'])['delta_pp'] == -50
     assert contrast(frame,'defense',1,3,['volume'],True)['delta_pp'] == pytest.approx(-100/7)
     assert contrast(frame.iloc[:20],'defense',1,3,['volume'])['state'] == 'INSUFFICIENT_DATA'
+
+
+def test_unknown_board_limit_proxy_is_unavailable_in_sensitivity():
+    features = path_features(*_fixture())
+    rows = [dict(**features, symbol=symbol, signal_date='2024-01-02', year='2024',
+                 board=board, episode=symbol+'|2023-12-20', regime='TREND_UP',
+                 label=label, near_price_limit_proxy=proxy)
+            for symbol,board,label,proxy in [('600000.sh','main','TARGET',False),
+                                             ('830001.bj','OUT_OF_SCOPE_PREFIX','FAST_STOP',None)]]
+    result = analyze(pd.DataFrame(rows))
+    assert result['sample_counts']['rows'] == 2
+    assert result['robustness']['exclude_near_limit_proxy']['counts']['rows'] == 1
+    assert result['robustness']['main']['counts']['FAST_STOP'] == 0
