@@ -6,11 +6,35 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
-## 2026-09-17 — REMOVE_AKSHARE_FROM_PRODUCTION_CRITICAL_PATH_V1
+## 2026-09-17 — HITHINK_LIST_DATE_UNIVERSE_ELIGIBILITY_FIX_V1
+
+- classification：`correctness blocker`（STRICT PATH）。2026-09-17 production failure 中，
+  `001246.SZ`（力勤资源，`list_date=null`）在 universe 阶段未被排除而到达 Tencent quote；本任务
+  只修复 HiThink list-date eligibility，不改变 provider、Kline、Formal B 或交易语义。
+- live intake：仅使用本仓库的 live remote。`origin/master=9528484887abe724bad555f9475f2cf2fb98b144`
+  已包含合并后的 PR #70，`origin/runtime-state=be8236629684b34dab5672df774918273536a5d9`；PR #71
+  为 docs-only open PR，不作为 base。其余既有 open PR untouched。
+- decision：HiThink `/api/meta/tickers/list` 仍是 universe authority；SH/SZ A-share 先通过既有
+  Main Board policy，再要求可解析 `list_date <= target_date`。null/empty 与 future date exclude，
+  malformed non-null date fail-closed；不新增 delisting/ST/suspension/seasoning policy。AkShare roster
+  production calls=`0`。
+- branch/worktree：`codex/hithink-list-date-universe-eligibility-v1`，独立 worktree
+  `ashare_watchlist-hithink-list-date-universe-eligibility-v1`，基于 live `origin/master`。
+- implementation：`HITHINK_LIST_DATE_ELIGIBILITY_V1` 的 counts、policy、target、source 与 fingerprint
+  写入现有 universe quality，并绑定 generation identity；001246 在 quote 前回归覆盖。
+- boundaries：Tencent quote/Kline fallback、stale isolation、Formal B 与 provider contract 未改变；
+  development provider live calls=`0`，production dispatch=`0`，runtime-state remote mutation=`0`。
+  Final OOS=`SEALED / UNREAD`，`data/validation/continuous_speed_probe/` 未读取或触碰。
+- verification：focused/relevant=`180 passed`；full pytest=`630 passed, 2 skipped, 11 warnings`；
+  compileall 与 `git diff --check` passed。
+- delivery：PR #72 (`https://github.com/EFSing/ashare_watchlist/pull/72`) 已创建为非 Draft；文档提交
+  后须以最终 head 重新核验 exact-head CI 与 mergeability，不自动 merge、不执行 production rerun。
+
+## Historical completed task — REMOVE_AKSHARE_FROM_PRODUCTION_CRITICAL_PATH_V1
 
 - classification：`correctness blocker + product blocker`（STRICT PATH）。旧 acquisition chain
   的 AkShare exchange roster JSON 解码失败会在 universe 阶段阻断整单，直接影响每日可用路径。
-- live reconciliation：本文件原顶层仍是 #69 的旧 snapshot；本任务依赖的实时状态为
+- live reconciliation：本历史记录当时处理了本文件原顶层的 #69 旧 snapshot；当时实时状态为
   `origin/master=73912d6781b4524299a5bda28f03d16f8818ed79`、
   `origin/runtime-state=be8236629684b34dab5672df774918273536a5d9`，因此标记并完成最小
   `PROJECT_GOVERNANCE_STATE_CONFLICT` reconciliation。PR #60/#66/#67/#68 均保持 untouched。
@@ -30,9 +54,8 @@
   market-data fallback tests passed。
 - boundaries：production dispatch=`0`，runtime-state remote mutation=`0`，Cloudflare mutation=`0`；
   Final OOS=`SEALED / UNREAD`，`data/validation/continuous_speed_probe/` 未读取或触碰。
-- delivery：已 push branch 并创建 target=`master` 的 Draft PR #70
-  (`https://github.com/EFSing/ashare_watchlist/pull/70`)；当前 PR head 与 CI 状态以 live GitHub
-  为准，不自动 merge。
+- delivery：已 push branch 并创建 target=`master` 的 Draft PR #70；PR #70 后续已合并，当前
+  PR/head/CI 状态以 live GitHub 为准，不自动 merge。
 
 ## 2026-09-17 — B_VOLUME_PROSPECTIVE_REPORT_OBSERVATION_V1
 

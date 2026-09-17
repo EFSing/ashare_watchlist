@@ -75,6 +75,7 @@ from trading_calendar import CalendarUnavailable, TradingCalendar, default_calen
 from universe_policy import (
     UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1,
     build_board_policy_audit,
+    classify_board,
     is_live_universe_eligible,
     universe_policy_metadata,
     validate_board_policy_audit,
@@ -147,6 +148,11 @@ TENCENT_QUOTE_SOURCE = "qt.gtimg.cn"
 TENCENT_KLINE_SOURCE = "web.ifzq.gtimg.cn/appstock/app/fqkline/get"
 INDEX_SYMBOL = "sh000001"
 HITHINK_INDEX_SYMBOL = "000001.SH"
+HITHINK_LIST_DATE_ELIGIBILITY_V1 = "HITHINK_LIST_DATE_ELIGIBILITY_V1"
+HITHINK_UNIVERSE_SELECTION_RULE = (
+    "HITHINK_A_SHARE_THEN_EXISTING_MAIN_BOARD_POLICY_THEN_LIST_DATE_ELIGIBILITY"
+)
+HITHINK_LIST_DATE_SOURCE = "HiThink ticker list"
 
 
 def _tradable_universe_scope_metadata() -> dict[str, Any]:
@@ -657,6 +663,28 @@ def _text(value: Any, field_name: str) -> str:
     if _missing(value) or not isinstance(value, str):
         _fail(INCOMPLETE_COVERAGE, f"{field_name} is missing")
     return value.strip()
+
+
+def _hithink_list_date(value: Any, field_name: str) -> str | None:
+    """Normalize an optional HiThink list date, failing closed when malformed."""
+
+    value = _python_scalar(value)
+    if _missing(value):
+        return None
+    if isinstance(value, bool):
+        _fail(PROVIDER_FAILURE, f"{field_name} is malformed")
+    if isinstance(value, datetime):
+        return value.date().isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    text = str(value).strip()
+    if not re.fullmatch(r"(?:\d{8}|\d{4}[-/]\d{2}[-/]\d{2})", text):
+        _fail(PROVIDER_FAILURE, f"{field_name} is malformed")
+    try:
+        return _canonical_date(text)
+    except (TypeError, ValueError, OverflowError) as exc:
+        _fail(PROVIDER_FAILURE, f"{field_name} is malformed: {type(exc).__name__}")
+    raise AssertionError("unreachable list-date parser")
 
 
 def _display_name(value: Any, field_name: str) -> str:
@@ -1576,9 +1604,11 @@ def _build_universe(
             "name": ("name",),
             "exchange": ("exchange",),
             "asset_type": ("asset_type",),
+            "list_date": ("list_date",),
         },
     )
     scoped_names: dict[str, str] = {}
+    scoped_list_dates: dict[str, str | None] = {}
     seen_symbols: set[str] = set()
     canonical_rows: list[dict[str, Any]] = []
     for index, row in enumerate(rows):
@@ -1596,6 +1626,10 @@ def _build_universe(
             _field(row, ("name",), f"universe[{index}].name"),
             f"universe[{index}].name",
         )
+        list_date = _hithink_list_date(
+            _field(row, ("list_date",), f"universe[{index}].list_date"),
+            f"universe[{index}].list_date",
+        )
         if symbol in seen_symbols:
             _fail(INPUT_CONFLICT, f"duplicate universe symbol: {symbol}")
         seen_symbols.add(symbol)
@@ -1606,6 +1640,7 @@ def _build_universe(
                 "name": name,
                 "exchange": exchange,
                 "asset_type": "a-share",
+                "list_date": list_date,
             }
         )
         # BJ and other exchanges remain outside the explicit SH/SZ product
@@ -1613,14 +1648,66 @@ def _build_universe(
         # helper below; no provider roster is involved.
         if exchange in {"SH", "SZ"}:
             scoped_names[symbol] = name
+            scoped_list_dates[symbol] = list_date
     if not scoped_names:
         _fail(INCOMPLETE_COVERAGE, "universe has no symbols")
     hithink_symbols = set(scoped_names)
     board_policy_audit = build_board_policy_audit(hithink_symbols)
-    retained_names = {
-        symbol: name
-        for symbol, name in scoped_names.items()
-        if is_live_universe_eligible(symbol)
+    target = date.fromisoformat(as_of_date)
+    retained_names: dict[str, str] = {}
+    listing_date_decisions: list[dict[str, Any]] = []
+    main_board_count = 0
+    excluded_not_listed_count = 0
+    excluded_future_list_date_count = 0
+    for symbol in sorted(scoped_names):
+        board = classify_board(symbol)
+        list_date = scoped_list_dates[symbol]
+        if not is_live_universe_eligible(symbol):
+            decision = "NON_MAIN_BOARD"
+            eligible = False
+        elif list_date is None:
+            decision = "NOT_YET_LISTED_OR_NOT_PROVEN_LISTED"
+            eligible = False
+            main_board_count += 1
+            excluded_not_listed_count += 1
+        elif date.fromisoformat(list_date) > target:
+            decision = "FUTURE_LIST_DATE"
+            eligible = False
+            main_board_count += 1
+            excluded_future_list_date_count += 1
+        else:
+            decision = "ELIGIBLE"
+            eligible = True
+            main_board_count += 1
+            retained_names[symbol] = scoped_names[symbol]
+        listing_date_decisions.append(
+            {
+                "symbol": symbol,
+                "board": board,
+                "list_date": list_date,
+                "decision": decision,
+                "eligible": eligible,
+            }
+        )
+    listing_date_audit_payload = {
+        "policy_version": HITHINK_LIST_DATE_ELIGIBILITY_V1,
+        "target_date": as_of_date,
+        "source": HITHINK_LIST_DATE_SOURCE,
+        "source_identity": f"HiThink Financial-API {HITHINK_UNIVERSE_API}",
+        "decisions": listing_date_decisions,
+    }
+    listing_date_audit = {
+        "policy_version": HITHINK_LIST_DATE_ELIGIBILITY_V1,
+        "target_date": as_of_date,
+        "source": HITHINK_LIST_DATE_SOURCE,
+        "source_identity": f"HiThink Financial-API {HITHINK_UNIVERSE_API}",
+        "input_count": len(hithink_symbols),
+        "main_board_count": main_board_count,
+        "eligible_count": len(retained_names),
+        "excluded_not_listed_count": excluded_not_listed_count,
+        "excluded_future_list_date_count": excluded_future_list_date_count,
+        "status": "PASS",
+        "audit_sha256": _sha256_json(listing_date_audit_payload),
     }
     canonical_rows.sort(key=lambda item: (item["symbol"], item["thscode"]))
     universe_quality = {
@@ -1628,7 +1715,7 @@ def _build_universe(
         "as_of_date": as_of_date,
         "source": f"HiThink Financial-API {HITHINK_UNIVERSE_API}",
         "scope": _tradable_universe_scope_metadata(),
-        "selection_rule": "HITHINK_A_SHARE_THEN_EXISTING_MAIN_BOARD_POLICY",
+        "selection_rule": HITHINK_UNIVERSE_SELECTION_RULE,
         "source_row_count": len(canonical_rows),
         "hithink_broad_count": len(hithink_symbols),
         "hithink_broad_symbols": sorted(hithink_symbols),
@@ -1636,13 +1723,18 @@ def _build_universe(
         "retained_count": len(retained_names),
         "universe_policy": universe_policy_metadata(),
         "board_policy_audit": board_policy_audit,
+        "list_date_eligibility": listing_date_audit,
         "content_sha256": _sha256_json({"as_of_date": as_of_date, "rows": canonical_rows}),
         "semantic_sha256": _sha256_json(
-            {"as_of_date": as_of_date, "retained_symbols": sorted(retained_names)}
+            {
+                "as_of_date": as_of_date,
+                "retained_symbols": sorted(retained_names),
+                "list_date_eligibility": listing_date_audit,
+            }
         ),
     }
     if not retained_names:
-        _fail(INCOMPLETE_COVERAGE, "HiThink universe has no Main Board symbols")
+        _fail(INCOMPLETE_COVERAGE, "HiThink universe has no eligible Main Board symbols")
     return (
         UniverseManifest(
             as_of_date=as_of_date,
@@ -2558,6 +2650,60 @@ def _market_env(index: IndexManifest) -> dict[str, Any]:
     }
 
 
+def _validate_list_date_eligibility_audit(
+    value: Any,
+    *,
+    as_of_date: str,
+    input_count: int,
+    main_board_count: int,
+    eligible_count: int,
+    board_policy_audit: Mapping[str, Any],
+) -> None:
+    if not isinstance(value, Mapping):
+        _fail(PROVIDER_FAILURE, "HiThink list-date eligibility audit is missing")
+    if value.get("policy_version") != HITHINK_LIST_DATE_ELIGIBILITY_V1:
+        _fail(PROVIDER_FAILURE, "HiThink list-date eligibility policy is unsupported")
+    if value.get("target_date") != as_of_date:
+        _fail(INPUT_DATE_MISMATCH, "HiThink list-date eligibility target date does not match the generation date")
+    if value.get("source") != HITHINK_LIST_DATE_SOURCE:
+        _fail(PROVIDER_FAILURE, "HiThink list-date eligibility source is missing or unsupported")
+    if value.get("source_identity") != f"HiThink Financial-API {HITHINK_UNIVERSE_API}":
+        _fail(PROVIDER_FAILURE, "HiThink list-date eligibility source identity is missing or unsupported")
+    if value.get("status") != "PASS":
+        _fail(PROVIDER_FAILURE, "HiThink list-date eligibility audit is not PASS")
+    for field_name in (
+        "input_count",
+        "main_board_count",
+        "eligible_count",
+        "excluded_not_listed_count",
+        "excluded_future_list_date_count",
+    ):
+        count = value.get(field_name)
+        if isinstance(count, bool) or not isinstance(count, int) or count < 0:
+            _fail(PROVIDER_FAILURE, f"HiThink list-date eligibility count is invalid: {field_name}")
+    if value["input_count"] != input_count:
+        _fail(PROVIDER_FAILURE, "HiThink list-date eligibility input count does not match the broad universe")
+    if value["main_board_count"] != main_board_count:
+        _fail(PROVIDER_FAILURE, "HiThink list-date eligibility Main Board count does not match the board audit")
+    if value["eligible_count"] != eligible_count:
+        _fail(PROVIDER_FAILURE, "HiThink list-date eligibility count does not match retained symbols")
+    if value["main_board_count"] != (
+        value["eligible_count"]
+        + value["excluded_not_listed_count"]
+        + value["excluded_future_list_date_count"]
+    ):
+        _fail(PROVIDER_FAILURE, "HiThink list-date eligibility counts are inconsistent")
+    digest = value.get("audit_sha256")
+    if (
+        not isinstance(digest, str)
+        or len(digest) != 64
+        or any(character not in "0123456789abcdef" for character in digest)
+    ):
+        _fail(PROVIDER_FAILURE, "HiThink list-date eligibility audit fingerprint is invalid")
+    if value["main_board_count"] != board_policy_audit["board_counts"]["Main"]:
+        _fail(PROVIDER_FAILURE, "HiThink list-date eligibility Main Board count is not auditable")
+
+
 def _validate_universe_quality(value: Any, as_of_date: str) -> None:
     if not isinstance(value, Mapping):
         _fail(PROVIDER_FAILURE, "manifest HiThink universe quality is missing")
@@ -2569,12 +2715,13 @@ def _validate_universe_quality(value: Any, as_of_date: str) -> None:
         _fail(PROVIDER_FAILURE, "HiThink universe source is missing or unsupported")
     if value.get("scope") != _tradable_universe_scope_metadata():
         _fail(PROVIDER_FAILURE, "HiThink universe scope is missing or unsupported")
-    if value.get("selection_rule") != "HITHINK_A_SHARE_THEN_EXISTING_MAIN_BOARD_POLICY":
+    if value.get("selection_rule") != HITHINK_UNIVERSE_SELECTION_RULE:
         _fail(PROVIDER_FAILURE, "HiThink universe selection rule is missing or unsupported")
     if value.get("universe_policy") != universe_policy_metadata():
         _fail(PROVIDER_FAILURE, "HiThink universe policy is missing or unsupported")
+    board_policy_audit = value.get("board_policy_audit")
     try:
-        validate_board_policy_audit(value.get("board_policy_audit"))
+        validate_board_policy_audit(board_policy_audit)
     except ValueError as exc:
         _fail(PROVIDER_FAILURE, f"HiThink universe board policy audit is invalid: {exc}")
     for field_name in ("hithink_broad_symbols", "retained_symbols"):
@@ -2598,6 +2745,14 @@ def _validate_universe_quality(value: Any, as_of_date: str) -> None:
         _fail(PROVIDER_FAILURE, "HiThink retained symbols are outside the broad universe")
     if any(not is_live_universe_eligible(symbol) for symbol in retained_symbols):
         _fail(PROVIDER_FAILURE, "HiThink retained symbols violate the Main Board policy")
+    _validate_list_date_eligibility_audit(
+        value.get("list_date_eligibility"),
+        as_of_date=as_of_date,
+        input_count=value["hithink_broad_count"],
+        main_board_count=board_policy_audit["board_counts"]["Main"],
+        eligible_count=value["retained_count"],
+        board_policy_audit=board_policy_audit,
+    )
     for field_name in ("hithink_broad_count", "retained_count"):
         count = value.get(field_name)
         if isinstance(count, bool) or not isinstance(count, int) or count <= 0:
@@ -3586,7 +3741,11 @@ def acquire_live_generation_inputs(
                 "scope": _tradable_universe_scope_metadata(),
                 "broad_source": "HiThink Financial-API",
                 "provenance_identity": HITHINK_MAIN_BOARD_LIVE_UNIVERSE_V1,
-                "selection_rule": "HITHINK_A_SHARE_THEN_EXISTING_MAIN_BOARD_POLICY",
+                "selection_rule": HITHINK_UNIVERSE_SELECTION_RULE,
+                "list_date_eligibility": {
+                    "policy_version": HITHINK_LIST_DATE_ELIGIBILITY_V1,
+                    "source": HITHINK_LIST_DATE_SOURCE,
+                },
                 "production_policy": universe_policy_metadata(),
             },
             "sector": {
@@ -3716,7 +3875,7 @@ def acquire_live_generation_inputs(
             "observation_date": "PASS",
             "freshness_and_session_close": "PASS",
             "universe_non_empty_and_unique": "PASS",
-            "universe_listing_eligibility": "PASS",
+            "universe_listing_eligibility": universe_quality["list_date_eligibility"]["status"],
             "sector_enrichment": sector_status,
             "sector_definitions_membership_rank": (
                 "PASS" if sector_status == SECTOR_ENRICHMENT_AVAILABLE else "DEFAULTED"
@@ -3777,10 +3936,13 @@ __all__ = [
     "HITHINK_API_VERSION",
     "HITHINK_BASE_URL",
     "HITHINK_INDEX_KLINE_API",
+    "HITHINK_LIST_DATE_ELIGIBILITY_V1",
+    "HITHINK_LIST_DATE_SOURCE",
     "HITHINK_LIVE_PRIMARY",
     "HITHINK_MAIN_BOARD_LIVE_UNIVERSE_V1",
     "HITHINK_MAX_ATTEMPTS",
     "HITHINK_STOCK_KLINE_API",
+    "HITHINK_UNIVERSE_SELECTION_RULE",
     "HITHINK_UNIVERSE_API",
     "HiThinkClient",
     "INPUT_CONFLICT",
