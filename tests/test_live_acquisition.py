@@ -145,6 +145,7 @@ class FakeHiThink:
                 "name": "测试股份",
                 "exchange": "SH",
                 "asset_type": "a-share",
+                "list_date": "2001-08-23",
             }
         ]
 
@@ -494,6 +495,7 @@ def test_hithink_universe_identity_errors_fail_closed_before_optional_sector(
         "name": "测试股份",
         "exchange": "SH",
         "asset_type": "a-share",
+        "list_date": "2001-08-23",
     }
     row.update(universe_row)
     ak = FakeAkShare()
@@ -518,6 +520,7 @@ def test_hithink_duplicate_universe_symbol_fails_closed_before_optional_sector()
         "name": "测试股份",
         "exchange": "SH",
         "asset_type": "a-share",
+        "list_date": "2001-08-23",
     }
     ak = FakeAkShare()
 
@@ -576,6 +579,7 @@ def test_bj_is_excluded_by_explicit_sh_sz_scope_without_coverage_failure():
                 "name": "测试股份",
                 "exchange": "SH",
                 "asset_type": "a-share",
+                "list_date": "2001-08-23",
             },
             {
                 "thscode": "430047.BJ",
@@ -583,6 +587,7 @@ def test_bj_is_excluded_by_explicit_sh_sz_scope_without_coverage_failure():
                 "name": "北交测试",
                 "exchange": "BJ",
                 "asset_type": "a-share",
+                "list_date": "2020-07-27",
             },
         ]
     )
@@ -626,6 +631,7 @@ def test_prelisting_symbol_is_excluded_before_quote_and_kline():
                 "name": "测试股份",
                 "exchange": "SH",
                 "asset_type": "a-share",
+                "list_date": "2001-08-23",
             },
             {
                 "thscode": "301686.SZ",
@@ -633,6 +639,7 @@ def test_prelisting_symbol_is_excluded_before_quote_and_kline():
                 "name": "中塑股份",
                 "exchange": "SZ",
                 "asset_type": "a-share",
+                "list_date": None,
             },
         ]
     )
@@ -653,6 +660,138 @@ def test_prelisting_symbol_is_excluded_before_quote_and_kline():
     assert ak.roster_calls == []
 
 
+def _listing_date_row(symbol, exchange="SZ", *, name="测试股份", list_date="2001-08-23"):
+    return {
+        "thscode": f"{symbol}.{exchange}",
+        "ticker": symbol,
+        "name": name,
+        "exchange": exchange,
+        "asset_type": "a-share",
+        "list_date": list_date,
+    }
+
+
+@pytest.mark.parametrize(
+    ("candidate_list_date", "expected_symbols", "not_listed_count", "future_count"),
+    [
+        ("2026-09-16", ("000001", "600519"), 0, 0),
+        ("2026-09-17", ("000001", "600519"), 0, 0),
+        ("2026-09-18", ("600519",), 0, 1),
+        (None, ("600519",), 1, 0),
+        ("", ("600519",), 1, 0),
+    ],
+)
+def test_hithink_list_date_eligibility_is_target_date_aware(
+    candidate_list_date, expected_symbols, not_listed_count, future_count
+):
+    universe, _, quality = live._build_universe(
+        FakeFrame(
+            [
+                _listing_date_row("600519", "SH", list_date="2001-08-23"),
+                _listing_date_row("000001", "SZ", list_date=candidate_list_date),
+            ]
+        ),
+        "2026-09-17",
+        "2026-09-17T15:05:00+08:00",
+    )
+
+    assert universe.symbols == expected_symbols
+    audit = quality["list_date_eligibility"]
+    assert audit["policy_version"] == live.HITHINK_LIST_DATE_ELIGIBILITY_V1
+    assert audit["target_date"] == "2026-09-17"
+    assert audit["source"] == "HiThink ticker list"
+    assert audit["input_count"] == 2
+    assert audit["main_board_count"] == 2
+    assert audit["eligible_count"] == len(expected_symbols)
+    assert audit["excluded_not_listed_count"] == not_listed_count
+    assert audit["excluded_future_list_date_count"] == future_count
+    assert audit["status"] == "PASS"
+    assert len(audit["audit_sha256"]) == 64
+
+
+def test_hithink_malformed_non_null_list_date_fails_closed():
+    with pytest.raises(live.LiveAcquisitionError) as caught:
+        live._build_universe(
+            FakeFrame(
+                [
+                    _listing_date_row("600519", "SH"),
+                    _listing_date_row("000001", "SZ", list_date="2026-99-99"),
+                ]
+            ),
+            "2026-09-17",
+            "2026-09-17T15:05:00+08:00",
+        )
+
+    assert caught.value.status == live.PROVIDER_FAILURE
+    assert "list_date" in str(caught.value)
+
+
+def test_hithink_missing_list_date_column_fails_closed():
+    row = _listing_date_row("600519", "SH")
+    row.pop("list_date")
+
+    with pytest.raises(live.LiveAcquisitionError) as caught:
+        live._build_universe(
+            FakeFrame([row]),
+            "2026-09-17",
+            "2026-09-17T15:05:00+08:00",
+        )
+
+    assert caught.value.status == live.PROVIDER_FAILURE
+
+
+def test_001246_is_excluded_before_quote_stage_by_null_list_date():
+    target_date = "2026-09-17"
+    calls = []
+    hithink = FakeHiThink(
+        universe=[
+            _listing_date_row("600519", "SH", list_date="2001-08-23"),
+            _listing_date_row("001246", "SZ", name="力勤资源", list_date=None),
+        ],
+        bars=_bars(last_date=target_date),
+        index_bars=_bars(last_date=target_date),
+    )
+    ak = FakeAkShare()
+
+    package = _acquire(
+        as_of_date=target_date,
+        now_bjt="2026-09-17T15:05:00+08:00",
+        hithink_client=hithink,
+        akshare_module=ak,
+        request_get=_request_get(
+            quote_date=target_date,
+            bars=_bars(last_date=target_date),
+            calls=calls,
+        ),
+    )
+
+    assert package.generation_input_manifest.universe.symbols == ("600519",)
+    assert all("001246" not in call for call in calls)
+    assert all(symbol != "001246.SZ" for symbol, _index in hithink.kline_calls)
+    audit = package.provenance["universe_quality"]["list_date_eligibility"]
+    assert audit["excluded_not_listed_count"] == 1
+    assert package.provenance["quality_checks"]["universe_listing_eligibility"] == "PASS"
+    assert ak.roster_calls == []
+
+
+def test_empty_list_date_filtered_universe_fails_closed_before_quote():
+    calls = []
+    ak = FakeAkShare()
+
+    with pytest.raises(live.LiveAcquisitionError) as caught:
+        _acquire(
+            hithink_client=FakeHiThink(
+                universe=[_listing_date_row("001246", "SZ", name="力勤资源", list_date=None)]
+            ),
+            akshare_module=ak,
+            request_get=_request_get(calls=calls),
+        )
+
+    assert caught.value.status == INCOMPLETE_COVERAGE
+    assert ak.definition_calls == 0
+    assert calls == []
+
+
 def test_listed_suspended_st_symbol_is_retained_before_final_user_eligibility():
     frame = FakeFrame(
         [
@@ -662,6 +801,7 @@ def test_listed_suspended_st_symbol_is_retained_before_final_user_eligibility():
                 "name": "测试股份",
                 "exchange": "SH",
                 "asset_type": "a-share",
+                "list_date": "2001-08-23",
             },
             {
                 "thscode": "002731.SZ",
@@ -669,6 +809,7 @@ def test_listed_suspended_st_symbol_is_retained_before_final_user_eligibility():
                 "name": "*ST萃华",
                 "exchange": "SZ",
                 "asset_type": "a-share",
+                "list_date": "2012-12-07",
             },
         ]
     )
@@ -681,9 +822,9 @@ def test_listed_suspended_st_symbol_is_retained_before_final_user_eligibility():
 def test_main_board_symbols_are_retained_and_star_is_excluded_by_exact_symbol_join():
     frame = FakeFrame(
         [
-            {"thscode": "600519.SH", "ticker": "600519", "name": "沪市", "exchange": "SH", "asset_type": "a-share"},
-            {"thscode": "688001.SH", "ticker": "688001", "name": "科创", "exchange": "SH", "asset_type": "a-share"},
-            {"thscode": "000001.SZ", "ticker": "000001", "name": "深市", "exchange": "SZ", "asset_type": "a-share"},
+            {"thscode": "600519.SH", "ticker": "600519", "name": "沪市", "exchange": "SH", "asset_type": "a-share", "list_date": "2001-08-23"},
+            {"thscode": "688001.SH", "ticker": "688001", "name": "科创", "exchange": "SH", "asset_type": "a-share", "list_date": "2020-07-22"},
+            {"thscode": "000001.SZ", "ticker": "000001", "name": "深市", "exchange": "SZ", "asset_type": "a-share", "list_date": "1991-04-03"},
         ]
     )
     universe, _, _ = live._build_universe(frame, AS_OF, NOW)
@@ -695,9 +836,9 @@ def test_chinext_and_star_are_excluded_before_quote_and_kline():
     calls = []
     hithink = FakeHiThink(
         universe=[
-            {"thscode": "600519.SH", "ticker": "600519", "name": "沪市", "exchange": "SH", "asset_type": "a-share"},
-            {"thscode": "300001.SZ", "ticker": "300001", "name": "创业板", "exchange": "SZ", "asset_type": "a-share"},
-            {"thscode": "688001.SH", "ticker": "688001", "name": "科创板", "exchange": "SH", "asset_type": "a-share"},
+            {"thscode": "600519.SH", "ticker": "600519", "name": "沪市", "exchange": "SH", "asset_type": "a-share", "list_date": "2001-08-23"},
+            {"thscode": "300001.SZ", "ticker": "300001", "name": "创业板", "exchange": "SZ", "asset_type": "a-share", "list_date": "2010-08-20"},
+            {"thscode": "688001.SH", "ticker": "688001", "name": "科创板", "exchange": "SH", "asset_type": "a-share", "list_date": "2020-07-22"},
         ]
     )
     ak = FakeAkShare()
@@ -740,6 +881,7 @@ def test_missing_universe_name_fails_closed():
                         "name": "",
                         "exchange": "SH",
                         "asset_type": "a-share",
+                        "list_date": "2001-08-23",
                     }
                 ]
             )
@@ -1152,6 +1294,7 @@ def _custom_name_universe(name):
             "name": name,
             "exchange": "SH",
             "asset_type": "a-share",
+            "list_date": "2001-08-23",
         }
     ]
 
@@ -1480,6 +1623,7 @@ def _multi_symbol_acquire(
             "name": f"测试股份{code[-2:]}",
             "exchange": "SH",
             "asset_type": "a-share",
+            "list_date": "2001-08-23",
         }
         for code in symbols
     ]
@@ -1886,6 +2030,7 @@ def test_hithink_universe_evidence_is_part_of_input_identity():
                 "name": "测试股份-更新",
                 "exchange": "SH",
                 "asset_type": "a-share",
+                "list_date": "2001-08-23",
             }
         ],
         bars=_bars(),
@@ -1897,6 +2042,31 @@ def test_hithink_universe_evidence_is_part_of_input_identity():
         "universe_quality"
     ]["content_sha256"]
     assert first.generation_input_manifest.input_fingerprint != changed.generation_input_manifest.input_fingerprint
+    assert first.generation_fingerprint != changed.generation_fingerprint
+
+
+def test_hithink_list_date_eligibility_is_part_of_generation_identity():
+    first = _acquire()
+    changed = _acquire(
+        hithink_client=FakeHiThink(
+            universe=[
+                {
+                    "thscode": "600519.SH",
+                    "ticker": SYMBOL,
+                    "name": "测试股份",
+                    "exchange": "SH",
+                    "asset_type": "a-share",
+                    "list_date": "2001-08-24",
+                }
+            ],
+            bars=_bars(),
+            index_bars=_bars(),
+        )
+    )
+
+    first_audit = first.provenance["universe_quality"]["list_date_eligibility"]
+    changed_audit = changed.provenance["universe_quality"]["list_date_eligibility"]
+    assert first_audit["audit_sha256"] != changed_audit["audit_sha256"]
     assert first.generation_fingerprint != changed.generation_fingerprint
 
 
