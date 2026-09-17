@@ -127,7 +127,7 @@ def analyze(frame):
     d, v, ret = DEFENSE+"_bin", VOLUME+"_bin", "reactivation_price_strength_bin"
     views = {"overall": frame, "main": frame[frame.board == "main"],
              "earliest_episode": frame.sort_values(["signal_date","symbol"]).drop_duplicates("episode"),
-             "exclude_near_limit_proxy": frame[~frame.near_price_limit_proxy],
+             "exclude_near_limit_proxy": frame[frame.near_price_limit_proxy == False],
              "singleton": frame[frame.episode_size == 1], "repeated": frame[frame.episode_size > 1]}
     inverse = frame.copy(); inverse.weight = 1/inverse.episode_size
     views["inverse_episode_weight"] = inverse
