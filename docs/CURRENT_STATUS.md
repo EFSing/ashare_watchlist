@@ -1,10 +1,32 @@
 # CURRENT STATUS
 
-更新时间：2026-09-15（Asia/Shanghai）
+更新时间：2026-09-17（Asia/Shanghai）
 
 本文件只记录当前有效状态；历史实现过程与旧 checkpoint 以 Git history / PR / CI 为 provenance，
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
+
+## Current task — B_VOLUME_PROSPECTIVE_REPORT_OBSERVATION_V1 — 2026-09-17
+
+本轮基于 live `origin/master=ba081f8aba834d636c5a0222d9a6067731a8f819` 创建独立
+branch/worktree `codex/b-volume-prospective-report-observation-v1`，并先提交 protocol freeze
+`cebda9ec8d8c085424e4b674a3353204e90bd7a0`，再提交实现
+`533838b14a7a38cba2ca8baf60e3dce02a4cd06c`。研究输入来自 #68 head
+`916916426f3af6d5e8a451c4baea0fa69a119378`；窗口严格为 `R=i+1:T-1`，signal day excluded，
+level 与 `_first_breakout_trace` 复用。
+
+已冻结并接入未来日报的三项观察为上涨/下跌日均量比、下跌日成交量占比、回踩后半/前半均量比；
+缺失不转零，观察 fail-soft 且不参与筛选/排名。日报新增 `回踩量能`、`量能衰减` 卡片并删除
+可见的“市场”和“再启动量能 → breakout”字段；底层 legacy shadow 字段保留。machine persistence
+复用现有 `shadow_monitor/b_shadow_monitor.json` 的 `pre_outcome.volume_observation`，无需 schema
+redesign。Formal B、strategy/filter/rank/threshold、provider、历史报告、production dispatch 与
+runtime-state remote mutation 均未改变；`origin/runtime-state=55fdd5167911ed074df9212cbca01fdda1c58a6b`，
+Final OOS=`SEALED / UNREAD`。
+
+验证：focused=`7 passed`，relevant=`94 passed, 2 warnings`，full=`613 passed, 2 skipped,
+10 warnings`，compileall 与 `git diff --check` 通过。当前下一步为 push branch、创建独立 PR、实时
+核对 exact-head CI，等待用户 merge decision；classification=`research question (non-blocking) +
+product report integration`，不自动 merge。
 
 ## Current task — PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1 — 2026-09-16
 

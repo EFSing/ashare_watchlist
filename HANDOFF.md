@@ -6,6 +6,33 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-17 — B_VOLUME_PROSPECTIVE_REPORT_OBSERVATION_V1
+
+- classification：`research question (non-blocking) + product report integration`；任务只冻结并展示
+  #68 的 prospective observation，不改变 Formal B、候选过滤、阈值、排序或交易语义。
+- live intake：`origin/master=ba081f8aba834d636c5a0222d9a6067731a8f819`，
+  `origin/runtime-state=55fdd5167911ed074df9212cbca01fdda1c58a6b`；独立 branch/worktree 为
+  `codex/b-volume-prospective-report-observation-v1`，基于该 live master。
+- #68 source head=`916916426f3af6d5e8a451c4baea0fa69a119378`，source protocol commit=
+  `d0a477db3f375ef19fdec51bb091ac3162ea6278`。本任务先冻结的 protocol commit=
+  `cebda9ec8d8c085424e4b674a3353204e90bd7a0`；实现 commit=
+  `533838b14a7a38cba2ca8baf60e3dce02a4cd06c`。
+- 冻结窗口为 breakout `i`、signal `T`、`R=i+1:T-1`，signal day excluded，level 复用
+  `max(close[i-60:i])` 与 `_first_breakout_trace`。唯一三项观察为
+  `up_down_volume_ratio`、`down_volume_share`、`pullback_volume_decay_ratio`；缺失保持缺失。
+- 未来日报已接入 `回踩量能` 与 `量能衰减` 两张观察卡，删除可见的低价值“市场”和
+  “再启动量能 → breakout”展示；保留底层 legacy shadow 字段，观察文案明确不参与筛选/排名。
+- machine persistence=`ACTIVE`：复用现有 `shadow_monitor/b_shadow_monitor.json` 的
+  `pre_outcome.volume_observation` 与 current-signal context，无 runtime-state schema redesign、
+  历史日报回写或生产 dispatch。Formal B、threshold/rank、provider、Final OOS（SEALED / UNREAD）
+  均 untouched；runtime-state remote mutation=`0`。
+- verification：focused new test=`7 passed`；relevant suite=`94 passed, 2 warnings`；full
+  pytest=`613 passed, 2 skipped, 10 warnings`；compileall 与 `git diff --check` passed。2 个 skip
+  为既有大型 exact-date fixture 缺失。
+- next：push branch，创建独立 PR，核对 live exact-head CI/PR 状态后等待用户 merge decision；不自动
+  merge #66/#67/#68/#60 或本 PR。目标终点为
+  `B_VOLUME_PROSPECTIVE_REPORT_PR_READY`。
+
 ## 2026-09-17 — CLOUDFLARE_SECONDARY_DISPATCHER_RECONCILIATION_V1
 
 - Independent branch: `codex/cloudflare-secondary-dispatcher-reconciliation-v1`;

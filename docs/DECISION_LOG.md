@@ -5,6 +5,30 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-17 — B_VOLUME_PROSPECTIVE_REPORT_OBSERVATION_V1
+
+- decision：`ADOPT` the #68 prospective observation contract with no strategy or research-data
+  reinterpretation. Use breakout `i`, signal `T`, and exactly `R=i+1:T-1`; exclude the signal day,
+  reuse `_first_breakout_trace`, and reuse `max(close[i-60:i])` as the level.
+- frozen metrics：primary `up_down_volume_ratio` is mean up-day volume divided by mean down-day
+  volume; secondary `down_volume_share` is down-day volume divided by all pullback volume; secondary
+  `pullback_volume_decay_ratio` is later-half mean volume divided by earlier-half mean volume, with an
+  odd middle day assigned to the later half. Missing classes, invalid denominators, or insufficient
+  windows remain missing and never become zero.
+- explicitly excluded：`worst_price_day_volume_ratio` and `reactivation_vs_pullback_volume` are not
+  frozen or displayed. Their underlying legacy fields may remain for compatibility, but the daily report
+  no longer presents “市场” or “再启动量能 → breakout”.
+- report boundary：render only `回踩量能` and `量能衰减` observation cards, with neutral explanatory
+  text and `观察指标 · 不参与筛选/排名`; fail-soft observation metadata must not change candidate
+  membership, order, rank, threshold, or Formal B semantics.
+- persistence boundary：`pre_outcome.volume_observation` in the existing shadow monitor is the durable
+  machine-readable slot; no new runtime-state schema, historical report rewrite, production dispatch, or
+  remote runtime-state mutation is authorized by this task.
+- provenance：implementation is on independent branch
+  `codex/b-volume-prospective-report-observation-v1`, based on live
+  `origin/master=ba081f8aba834d636c5a0222d9a6067731a8f819`; protocol freeze commit is
+  `cebda9ec8d8c085424e4b674a3353204e90bd7a0`. Final OOS remains `SEALED / UNREAD`.
+
 ## 2026-09-16 — PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1
 
 - classification：`product infrastructure + correctness`；不是策略研究、参数调整、provider
