@@ -5,6 +5,15 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-17 — HITHINK_LIST_DATE_UNIVERSE_ELIGIBILITY_FIX_V1
+
+- decision：HiThink Financial-API `/api/meta/tickers/list` remains the authoritative SH/SZ a-share
+  universe source, but a symbol enters the live universe only after the existing
+  `ASHARE_MAIN_BOARD_ONLY_V1` policy and a parseable `list_date <= target_date` check.
+- invariants：null/empty and future list dates are excluded during universe construction; malformed
+  non-null list dates fail closed as provider/schema integrity. This does not add delisting/ST/
+  suspension/seasoning policy and does not change Tencent quote/Kline, fallback, or Formal B semantics.
+
 ## 2026-09-17 — REMOVE_AKSHARE_FROM_PRODUCTION_CRITICAL_PATH_V1
 
 - classification：`ADOPT` as a production correctness/product decision, not a strategy or

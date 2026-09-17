@@ -6,9 +6,35 @@
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
-## Current task — REMOVE_AKSHARE_FROM_PRODUCTION_CRITICAL_PATH_V1 — 2026-09-17
+## Current task — HITHINK_LIST_DATE_UNIVERSE_ELIGIBILITY_FIX_V1 — 2026-09-17
 
-本轮为 `correctness blocker + product blocker`（STRICT PATH）。实时 intake 已确认
+本轮为 `correctness blocker`（STRICT PATH）。live intake 仅使用本仓库 remote：
+`origin/master=9528484887abe724bad555f9475f2cf2fb98b144`（已包含合并后的 PR #70）、
+`origin/runtime-state=be8236629684b34dab5672df774918273536a5d9`。PR #71 为 docs-only open PR，
+不作为 base；其他既有 open PR untouched。
+
+2026-09-17 production failure 中，`001246.SZ`（力勤资源，`list_date=null`）在 universe 阶段到达
+Tencent quote。本任务在 HiThink universe construction 阶段强制既有 SH/SZ A-share + Main Board
+policy 后的 `list_date <= target_date` eligibility：null/empty 与 future date exclude，malformed
+non-null date fail-closed。HiThink ticker list 仍为 universe authority；不新增 delisting/ST/
+suspension/seasoning policy，AkShare roster production calls=`0`。
+
+独立 branch/worktree 为 `codex/hithink-list-date-universe-eligibility-v1` /
+`ashare_watchlist-hithink-list-date-universe-eligibility-v1`，基于 live `origin/master`。新增
+`HITHINK_LIST_DATE_ELIGIBILITY_V1` 的 policy、target、source、counts 与 fingerprint，并纳入
+generation identity；Tencent quote/Kline fallback、stale isolation、Formal B、provider contract
+未改变。
+
+验证：focused/relevant=`180 passed`；full pytest=`630 passed, 2 skipped, 11 warnings`，compileall
+与 `git diff --check` 通过。development provider live calls=`0`，production dispatch=`0`，
+runtime-state remote mutation=`0`；Final OOS=`SEALED / UNREAD`，受禁目录未读取或触碰。PR #72
+(`https://github.com/EFSing/ashare_watchlist/pull/72`) 已创建为非 Draft；文档提交后以最终 head
+重新核验 exact-head CI 与 mergeability，不自动 merge、不执行 production rerun。
+
+## Historical completed task — REMOVE_AKSHARE_FROM_PRODUCTION_CRITICAL_PATH_V1 — 2026-09-17
+
+本节记录已完成的历史任务：当时为 `correctness blocker + product blocker`（STRICT PATH）。实时 intake
+已确认
 `origin/master=73912d6781b4524299a5bda28f03d16f8818ed79`、
 `origin/runtime-state=be8236629684b34dab5672df774918273536a5d9`；顶层旧 #69 snapshot 与 live
 状态构成 `PROJECT_GOVERNANCE_STATE_CONFLICT`，已完成最小 reconciliation。PR #60/#66/#67/#68
@@ -26,10 +52,9 @@ fail-closed/原语义。
 
 验证：full pytest=`620 passed, 2 skipped, 10 warnings`，compileall 与 `git diff --check`
 通过；Formal B spec SHA=`f50c7be101b5c0ffe218cd8daebb4797f4a533c2c27e5c29adab2cf751e2eecd`
-且未修改。已创建 target=`master` 的 Draft PR #70
-(`https://github.com/EFSing/ashare_watchlist/pull/70`)；当前 PR head 与 exact-head CI 状态以 live
-GitHub 为准，后续不自动 merge。production dispatch/runtime-state remote mutation/Cloudflare mutation
-均为 `0`，Final OOS 仍为 `SEALED / UNREAD`，受禁目录未读取或触碰。
+且未修改。已创建 target=`master` 的 Draft PR #70，随后已合并；其余历史边界保持记录。production
+dispatch/runtime-state remote mutation/Cloudflare mutation 均为 `0`，Final OOS 仍为
+`SEALED / UNREAD`，受禁目录未读取或触碰。
 
 ## Current task — B_VOLUME_PROSPECTIVE_REPORT_OBSERVATION_V1 — 2026-09-17
 
