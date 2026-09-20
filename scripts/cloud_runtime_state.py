@@ -62,6 +62,8 @@ _VALID_TRIGGER_SOURCES = {"manual", "cloudflare-cron", "external-scheduler"}
 _DATE_TOKEN = re.compile(r"^\d{8}$")
 _WATCHLIST_NAME = re.compile(r"^watchlist_\d{8}\.json$")
 _DATED_REPORT_NAME = re.compile(r"^daily_close_\d{8}\.html$")
+_VOLUME_OBSERVATION_NAME = re.compile(r"^volume_observations_\d{8}\.json$")
+_VOLUME_ENRICHED_REPORT_NAME = re.compile(r"^daily_close_\d{8}_volume_enriched\.html$")
 _DIAGNOSTIC_NAME = re.compile(r"^daily_input_diagnostic_\d{8}\.json$")
 _CHECKPOINT_NAME = re.compile(r"^daily_checkpoint_\d{8}\.json$")
 _DELIVERY_RECEIPT_NAME = re.compile(r"^daily_delivery_\d{8}\.json$")
@@ -247,6 +249,10 @@ def _is_allowlisted_data_relative(relative: Path) -> bool:
         return True
     if _DATED_REPORT_NAME.fullmatch(Path(token).name) and token.startswith("reports/"):
         return True
+    if _VOLUME_ENRICHED_REPORT_NAME.fullmatch(Path(token).name) and token.startswith("reports/addenda/"):
+        return True
+    if _VOLUME_OBSERVATION_NAME.fullmatch(Path(token).name) and token.startswith("volume_observations/"):
+        return True
     if _DIAGNOSTIC_NAME.fullmatch(Path(token).name) and token.startswith("diagnostics/"):
         return True
     if _CHECKPOINT_NAME.fullmatch(Path(token).name) and token.startswith("checkpoints/"):
@@ -266,6 +272,8 @@ def _data_candidates(root: Path) -> Iterable[Path]:
         "perf_tracker.json",
         "shadow_monitor/b_shadow_monitor.json",
         "reports/daily_close_????????.html",
+        "reports/addenda/daily_close_????????_volume_enriched.html",
+        "volume_observations/volume_observations_????????.json",
         "diagnostics/daily_input_diagnostic_????????.json",
         "reports/latest.html",
         "reports/perf_report.md",

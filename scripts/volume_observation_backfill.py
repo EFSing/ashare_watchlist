@@ -18,6 +18,7 @@ import html
 import json
 import math
 from pathlib import Path
+import re
 import subprocess
 from typing import Any, Callable, Mapping, Sequence
 
@@ -117,6 +118,131 @@ def _read_source_bytes(source: str | Path) -> tuple[bytes, str]:
         return path.read_bytes(), str(path)
     except OSError as exc:
         raise VolumeAddendumError(f"cannot read watchlist source {path}: {exc}") from exc
+
+
+def _strip_markup(value: str) -> str:
+    return html.unescape(re.sub(r"<[^>]+>", "", value)).strip()
+
+
+def _parse_addendum_metric(cell: str, *, share: bool) -> float | None:
+    strong = re.search(r"<strong>(.*?)</strong>", cell, re.S)
+    value = _strip_markup(strong.group(1) if strong else cell)
+    if value in {"", "—", "-"}:
+        return None
+    try:
+        return float(value.rstrip("%×")) / 100.0 if share else float(value.rstrip("%×"))
+    except ValueError as exc:
+        raise VolumeAddendumError(f"cannot parse existing addendum metric {value!r}") from exc
+
+
+def _parse_addendum_reason(cell: str) -> str | None:
+    match = re.search(r'<small class="missing">(.*?)</small>', cell, re.S)
+    return _strip_markup(match.group(1)) if match else None
+
+
+def load_existing_volume_addendum_summary(
+    addendum_source: str | Path,
+    watchlist_source: str | Path,
+    *,
+    original_artifacts: Mapping[str, str],
+) -> dict[str, Any]:
+    """Recover the ten already-computed observations without another fetch."""
+
+    payload, source_label = _read_source_bytes(addendum_source)
+    text = payload.decode("utf-8")
+    if RETROSPECTIVE_VOLUME_ENRICHMENT not in text:
+        raise VolumeAddendumError("existing addendum is not RETROSPECTIVE_VOLUME_ENRICHMENT")
+    for key, expected in original_artifacts.items():
+        if expected and str(expected) not in text:
+            raise VolumeAddendumError(f"existing addendum is missing original artifact {key}")
+
+    _watchlist, locked_candidates, watchlist_label, watchlist_sha256 = _load_locked_watchlist(watchlist_source)
+    expected_watchlist_sha = str(original_artifacts.get("watchlist_sha256") or "")
+    if expected_watchlist_sha and watchlist_sha256 != expected_watchlist_sha:
+        raise VolumeAddendumError("watchlist SHA conflicts with existing addendum provenance")
+
+    row_pattern = re.compile(
+        r"<tr>\s*<td>(?P<rank>\d+)</td>\s*<td><code>(?P<code>\d{6})</code></td>\s*"
+        r"<td>(?P<name>.*?)</td>\s*<td>(?P<score>.*?)</td>\s*"
+        r"<td>(?P<share>.*?)</td>\s*<td>(?P<ratio>.*?)</td>\s*"
+        r"<td>(?P<decay>.*?)</td>\s*<td>(?P<status>.*?)</td>\s*</tr>",
+        re.S,
+    )
+    parsed_rows = {match.group("code"): match.groupdict() for match in row_pattern.finditer(text)}
+    if set(parsed_rows) != set(LOCKED_CODES):
+        raise VolumeAddendumError("existing addendum candidate code set is not exactly locked")
+
+    candidates: list[dict[str, Any]] = []
+    for candidate in locked_candidates:
+        code = candidate["code"]
+        row = parsed_rows[code]
+        if _strip_markup(row["name"]) != str(candidate["name"]):
+            raise VolumeAddendumError(f"existing addendum name conflict for {code}")
+        observation = {
+            "observation_version": VOLUME_OBSERVATION_VERSION,
+            "protocol_commit_sha": VOLUME_OBSERVATION_PROTOCOL_COMMIT_SHA,
+            "window_days": None,
+            **_MISSING_METRIC,
+            "missing_reason": {},
+        }
+        for field, cell, share in (
+            ("down_volume_share", row["share"], True),
+            ("up_down_volume_ratio", row["ratio"], False),
+            ("pullback_volume_decay_ratio", row["decay"], False),
+        ):
+            value = _parse_addendum_metric(cell, share=share)
+            observation[field] = value
+            if value is None:
+                observation["missing_reason"][field] = (
+                    _parse_addendum_reason(cell) or "ADDENDUM_MISSING_REASON_NOT_RECORDED"
+                )
+        status = _strip_markup(row["status"])
+        valid = status.startswith("VALID") or status.startswith("PARTIAL")
+        complete = status.startswith("VALID") and all(
+            observation.get(field) is not None for field in VOLUME_OBSERVATION_FIELDS
+        )
+        candidates.append({
+            "rank": candidate["rank"],
+            "code": code,
+            "name": candidate["name"],
+            "score": candidate["score"],
+            "price": candidate["price"],
+            "signal_id": candidate["signal_id"],
+            "observation": observation,
+            "valid": valid,
+            "complete": complete,
+            "validation_reason": None,
+            "source_kind": "EXISTING_COMPUTED_ADDENDUM",
+        })
+    valid_count = sum(item["valid"] for item in candidates)
+    complete_count = sum(item["complete"] for item in candidates)
+    return {
+        "schema_version": REPORT_SCHEMA_VERSION,
+        "report_kind": RETROSPECTIVE_VOLUME_ENRICHMENT,
+        "target_date": TARGET_DATE,
+        "source_watchlist": watchlist_label,
+        "source_addendum": source_label,
+        "watchlist_sha256": watchlist_sha256,
+        "original_artifacts": dict(original_artifacts),
+        "candidate_count": len(candidates),
+        "valid_count": valid_count,
+        "missing_count": len(candidates) - valid_count,
+        "complete_count": complete_count,
+        "partial_count": valid_count - complete_count,
+        "candidates": candidates,
+        "input_source_status": "EXISTING_COMPUTED_ADDENDUM",
+        "source_mode": "LOCKED_EXISTING_VOLUME_OBSERVATIONS",
+        "provider": EXPECTED_PROVIDER,
+        "provider_call_symbols": [],
+        "historical_kline_call_count": 0,
+        "universe_call_count": 0,
+        "snapshot_call_count": 0,
+        "formal_b_evaluator_call_count": 0,
+        "prospective_shadow_capture": "NOT_CREATED",
+        "retrieval_started_at_bjt": "EXISTING_COMPUTED_OBSERVATIONS",
+        "retrieval_finished_at_bjt": "EXISTING_COMPUTED_OBSERVATIONS",
+        "generated_at_bjt": _timestamp(None),
+    }
 
 
 def _as_code(value: Any, field: str) -> str:
@@ -506,6 +632,146 @@ def _write_report(path: Path, html_text: str, *, watchlist_sha256: str) -> None:
         path.write_text(html_text, encoding="utf-8", newline="\n")
     except OSError as exc:
         raise VolumeAddendumError(f"cannot write addendum report {path}: {exc}") from exc
+
+
+_ENRICHED_REPORT_STYLE = """
+<style id="retrospective-volume-card-style">
+.volume-observations { display:grid; grid-template-columns:minmax(0,1fr); min-width:0; margin:11px 0 0 38px; }
+.volume-card { min-width:0; overflow:hidden; padding:10px 11px; border:1px solid var(--border); background:var(--surface-2); }
+.volume-card-head { display:flex; align-items:baseline; justify-content:space-between; gap:8px; min-width:0; font-size:13px; }
+.volume-card-head strong { font-weight:700; }
+.volume-window { color:var(--muted); font-size:11px; white-space:nowrap; }
+.volume-observation-note { display:block; margin-top:9px; color:var(--muted); font-size:11px; }
+.volume-metric-list { display:grid; gap:7px; margin-top:9px; min-width:0; }
+.volume-metric-row { display:grid; grid-template-columns:minmax(108px,1.05fr) minmax(118px,1fr) minmax(4.8em,auto); align-items:center; gap:10px; min-width:0; }
+.volume-metric-label, .volume-metric-bar { min-width:0; }
+.volume-label { display:block; overflow:hidden; color:var(--text); font-size:12px; font-weight:650; text-overflow:ellipsis; white-space:nowrap; }
+.volume-explanation { display:block; overflow:hidden; margin-top:2px; color:var(--muted); font-size:11px; white-space:nowrap; text-overflow:ellipsis; }
+.volume-value { display:block; min-width:4.8em; color:var(--text); font-size:16px; font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap; }
+.volume-bar, .volume-ratio-visual { min-width:0; }
+.volume-bar-track, .volume-ratio-track { position:relative; display:block; height:7px; overflow:hidden; border-radius:999px; background:#e3eaee; }
+.volume-bar-fill, .volume-ratio-fill { position:absolute; top:0; bottom:0; display:block; border-radius:inherit; background:var(--accent); }
+.volume-ratio-fill { background:#6d9d68; }
+.volume-ratio-baseline { position:absolute; top:-2px; bottom:-2px; left:50%; z-index:1; width:2px; background:#8a5a00; }
+.volume-bar-scale, .volume-ratio-scale { display:flex; justify-content:space-between; gap:4px; margin-top:2px; color:var(--muted); font-size:9px; white-space:nowrap; }
+.volume-ratio-scale span:nth-child(2) { color:#8a5a00; }
+.volume-summary { margin:9px 0 0; overflow-wrap:anywhere; color:var(--text); font-size:11px; line-height:1.4; }
+.volume-summary span { margin-right:5px; color:var(--muted); font-weight:650; }
+.sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
+@media (max-width:600px) {
+  .volume-observations { grid-template-columns:1fr; margin:12px 0 0 34px; }
+  .volume-metric-row { grid-template-columns:minmax(84px,1fr) minmax(90px,1.1fr) 4.4em; gap:6px; }
+  .volume-ratio-scale, .volume-bar-scale { font-size:8px; }
+}
+</style>
+"""
+
+
+def _balanced_div_end(text: str, start: int) -> int:
+    tags = re.compile(r"</?div\b[^>]*>", re.I)
+    depth = 0
+    for match in tags.finditer(text, start):
+        depth += -1 if match.group(0).lower().startswith("</") else 1
+        if depth == 0:
+            return match.end()
+    raise VolumeAddendumError("volume observation block is not balanced")
+
+
+def _scrub_private_paths(text: str) -> str:
+    scrubbed = re.sub(r"(?i)[A-Z]:\\Users\\[^\"<>\r\n]+", "[LOCAL_PATH_REDACTED]", text)
+    return re.sub(r"(?i)/Users/[^\"<>\r\n]+", "[LOCAL_PATH_REDACTED]", scrubbed)
+
+
+def render_volume_enriched_report(
+    formal_report_source: str | Path,
+    output_path: str | Path,
+    summary: Mapping[str, Any],
+    *,
+    expected_formal_report_sha256: str | None = None,
+) -> dict[str, Any]:
+    """Copy the formal report and replace only its volume card blocks by code."""
+
+    from render_daily_close_html import _volume_observations_html
+
+    output = Path(output_path)
+    if output.name in _FORMAL_REPORT_NAMES or not output.name.endswith("_volume_enriched.html"):
+        raise VolumeAddendumError("enriched output must be a new *_volume_enriched.html artifact")
+    source_bytes, source_label = _read_source_bytes(formal_report_source)
+    formal_sha256 = _sha256_bytes(source_bytes)
+    if expected_formal_report_sha256 and formal_sha256 != expected_formal_report_sha256:
+        raise VolumeAddendumError("formal report SHA conflicts with expected original artifact")
+    text = source_bytes.decode("utf-8")
+    candidate_by_code = {
+        str(item.get("code")).zfill(6): item
+        for item in summary.get("candidates", [])
+        if isinstance(item, Mapping)
+    }
+    if set(candidate_by_code) != set(LOCKED_CODES):
+        raise VolumeAddendumError("enrichment summary does not contain exactly the ten locked codes")
+
+    article_open = re.compile(r'<article\b[^>]*class="[^\"]*\bwatch-row\b[^\"]*"[^>]*>', re.I)
+    volume_open = re.compile(r'<div\b[^>]*class="[^\"]*\bvolume-observations\b[^\"]*"[^>]*>', re.I)
+    replacements: list[tuple[int, int, str]] = []
+    seen_codes: set[str] = set()
+    for match in article_open.finditer(text):
+        article_end = text.find("</article>", match.end())
+        if article_end < 0:
+            raise VolumeAddendumError("formal report watchlist article is not closed")
+        article = text[match.start():article_end + len("</article>")]
+        code_match = re.search(r'<div\b[^>]*class="[^\"]*\bsecurity\b[^\"]*"[^>]*>.*?<strong>(\d{6})</strong>', article, re.S | re.I)
+        if not code_match:
+            continue
+        code = code_match.group(1).zfill(6)
+        if code not in candidate_by_code or code in seen_codes:
+            raise VolumeAddendumError(f"formal report candidate mapping conflict for {code}")
+        volume_match = volume_open.search(article)
+        if not volume_match:
+            raise VolumeAddendumError(f"formal report volume card missing for {code}")
+        volume_end = _balanced_div_end(article, volume_match.start())
+        rendered = _volume_observations_html(candidate_by_code[code]["observation"])
+        replacements.append((match.start() + volume_match.start(), match.start() + volume_end, rendered))
+        seen_codes.add(code)
+    if seen_codes != set(LOCKED_CODES):
+        raise VolumeAddendumError("formal report does not contain every locked candidate")
+    for start, end, replacement in reversed(replacements):
+        text = text[:start] + replacement + text[end:]
+
+    report_meta = (
+        f'<meta name="report-kind" content="{RETROSPECTIVE_VOLUME_ENRICHMENT}">\n'
+        f'<meta name="original-formal-report-sha256" content="{_esc(formal_sha256)}">\n'
+        f'<meta name="original-watchlist-sha256" content="{_esc(summary["original_artifacts"].get("watchlist_sha256", ""))}">\n'
+        '<meta name="volume-observation-source" content="EXISTING_COMPUTED_ADDENDUM">\n'
+    )
+    if "</head>" not in text.lower():
+        raise VolumeAddendumError("formal report has no head element")
+    text = re.sub(r"</head>", report_meta + _ENRICHED_REPORT_STYLE + "</head>", text, count=1, flags=re.I)
+    banner = (
+        '<div class="retrospective-volume-banner" style="margin:14px 0;padding:12px 14px;'
+        'border:1px solid #e5c785;background:#fff8e6;color:#5c4300;border-radius:6px">'
+        '<strong>RETROSPECTIVE_VOLUME_ENRICHMENT</strong>'
+        '<p style="margin:5px 0 0">量能为事后补充观察，不属于当时的前瞻捕获，不参与 Formal B 筛选或排名。</p>'
+        '<p style="margin:5px 0 0">原正式报告的候选身份、参数、Score、显示排名与顺序均保留；本页只替换量能观察卡片。</p>'
+        '</div>'
+    )
+    text = re.sub(r"(<main(?:\s[^>]*)?>)", r"\1" + banner, text, count=1, flags=re.I)
+    text = re.sub(r"(<title>.*?</title>)", r"<title>A股正式日报 · 2026-09-18 · 量能事后补充</title>", text, count=1, flags=re.I | re.S)
+    text = _scrub_private_paths(text)
+    text = re.sub(r"[ \t]+(?=\r?$)", "", text, flags=re.M)
+    html_text = text
+    _write_report(
+        output,
+        html_text,
+        watchlist_sha256=str(summary["original_artifacts"].get("watchlist_sha256") or ""),
+    )
+    return {
+        "report_kind": RETROSPECTIVE_VOLUME_ENRICHMENT,
+        "source_formal_report": source_label,
+        "formal_report_sha256": formal_sha256,
+        "output_path": str(output),
+        "output_sha256": _sha256_bytes(html_text.encode("utf-8")),
+        "candidate_count": len(seen_codes),
+        "mapped_codes": sorted(seen_codes),
+    }
 
 
 def generate_volume_addendum(

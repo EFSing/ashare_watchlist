@@ -25,6 +25,10 @@ from typing import Any, Iterable, Mapping
 
 from data_paths import DataPaths
 from b_shadow_monitor import ShadowMonitorError, build_report_view, load_store
+from volume_observation import (
+    VOLUME_OBSERVATION_STORE_SCHEMA,
+    load_volume_observation_store,
+)
 from track_perf import (
     REVIEW_HORIZONS,
     REVIEW_POINT_CAPTURED,
@@ -457,11 +461,57 @@ def _load_shadow_monitor(
         }
 
 
+def _load_volume_observations(
+    paths: DataPaths,
+    report_date: str,
+    watchlist: Mapping[str, Any],
+) -> tuple[dict[str, dict[str, Any]], str]:
+    """Read the independent stock-only observation store, fail-soft."""
+
+    store = load_volume_observation_store(paths.volume_observation_file(report_date))
+    if not isinstance(store, Mapping):
+        return {}, "UNAVAILABLE"
+    if (
+        store.get("schema_version") != VOLUME_OBSERVATION_STORE_SCHEMA
+        or store.get("report_date") != report_date
+        or store.get("observational_only") is not True
+        or store.get("participates_in_ranking") is not False
+    ):
+        return {}, "UNAVAILABLE"
+    raw = store.get("observations")
+    if not isinstance(raw, Mapping):
+        return {}, "UNAVAILABLE"
+    expected_ids = {
+        str(candidate.get("signal_id"))
+        for candidate in watchlist.get("candidates", [])
+        if isinstance(candidate, Mapping)
+    }
+    expected_codes = {
+        str(candidate.get("code")).zfill(6)
+        for candidate in watchlist.get("candidates", [])
+        if isinstance(candidate, Mapping)
+    }
+    result: dict[str, dict[str, Any]] = {}
+    for key, item in raw.items():
+        if not isinstance(item, Mapping) or not isinstance(item.get("observation"), Mapping):
+            continue
+        signal_id = str(item.get("signal_id") or key)
+        code = str(item.get("code") or "").zfill(6)
+        if signal_id not in expected_ids or code not in expected_codes:
+            continue
+        observation = dict(item["observation"])
+        result[signal_id] = observation
+        result[f"code:{code}"] = observation
+    status = str(store.get("status") or "PARTIAL") if result else "UNAVAILABLE"
+    return result, status
+
+
 def _watchlist_rows(
     watchlist: Mapping[str, Any],
     tracker: Mapping[str, Any] | None,
     report_date: str,
     shadow_monitor: Mapping[str, Any] | None = None,
+    volume_observations: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     signals = tracker.get("signals", {}) if isinstance(tracker, Mapping) else {}
     signals = signals if isinstance(signals, Mapping) else {}
@@ -472,6 +522,7 @@ def _watchlist_rows(
     rows: list[dict[str, Any]] = []
     shadow_context = shadow_monitor.get("current_signal_context", {}) if isinstance(shadow_monitor, Mapping) else {}
     shadow_context = shadow_context if isinstance(shadow_context, Mapping) else {}
+    independent_context = volume_observations if isinstance(volume_observations, Mapping) else {}
     for rank, candidate in enumerate(candidates, start=1):
         shadow_entry = shadow_context.get(candidate.get("signal_id"))
         shadow_entry = shadow_entry if isinstance(shadow_entry, Mapping) else {}
@@ -486,6 +537,11 @@ def _watchlist_rows(
         if not is_new_signal and status is not None:
             observation_status = "已记录"
             status_explanation = "按已有 tracker 状态展示"
+        independent_observation = independent_context.get(candidate.get("signal_id"))
+        if not isinstance(independent_observation, Mapping):
+            independent_observation = independent_context.get(f"code:{str(candidate.get('code')).zfill(6)}")
+        if not isinstance(independent_observation, Mapping):
+            independent_observation = shadow_entry.get("volume_observation")
         rows.append(
             {
                 "rank": rank,
@@ -505,8 +561,8 @@ def _watchlist_rows(
                 "status_explanation": status_explanation,
                 "signal_id": candidate.get("signal_id"),
                 "shadow_context": dict(shadow_entry),
-                "volume_observation": dict(shadow_entry.get("volume_observation", {}))
-                if isinstance(shadow_entry.get("volume_observation"), Mapping)
+                "volume_observation": dict(independent_observation)
+                if isinstance(independent_observation, Mapping)
                 else {},
             }
         )
@@ -721,6 +777,9 @@ def build_report_model(
         historical_provenance=historical_provenance,
     )
     shadow_monitor = _load_shadow_monitor(resolver, normalized_date, watchlist)
+    volume_observations, volume_observation_status = _load_volume_observations(
+        resolver, normalized_date, watchlist,
+    )
     execution_audit = build_trade_performance_summary(
         performance_tracker,
         normalized_date,
@@ -738,7 +797,13 @@ def build_report_model(
     previous_signals, active_signals, closed_today = _daily_collections(
         tracker, normalized_date, previous_date, resolver, review_failures
     )
-    watchlist_rows = _watchlist_rows(watchlist, tracker, normalized_date, shadow_monitor)
+    watchlist_rows = _watchlist_rows(
+        watchlist,
+        tracker,
+        normalized_date,
+        shadow_monitor,
+        volume_observations,
+    )
 
     anomalies = list(review_failures)
     anomalies.extend(review_issues)
@@ -961,6 +1026,7 @@ def build_report_model(
         "watchlist_sha": hashlib.sha256(watchlist_bytes).hexdigest(),
         "candidate_count": len(watchlist_rows),
         "report_generated_at": generated.isoformat(),
+        "volume_observation_status": volume_observation_status,
         **coverage_metadata,
     }
     if review_coverage:
@@ -1000,6 +1066,7 @@ def build_report_model(
         "strategy_rule_performance_source": trade_performance.get("historical_data_source"),
         "strategy_rule_performance_provider_calls": trade_performance.get("historical_provider_calls", 0),
         "shadow_monitor_status": shadow_monitor.get("status", "UNVERIFIED"),
+        "volume_observation_status": volume_observation_status,
         "input_coverage_status": coverage_status,
         "evaluated_symbol_count": coverage_metadata.get("evaluated_symbol_count"),
         "excluded_symbol_count": coverage_metadata.get("excluded_symbol_count"),
@@ -1184,47 +1251,109 @@ def _near_one(value: Any) -> bool:
 
 
 _VOLUME_LABEL_DESCRIPTIONS = {
-    'down_volume_share': '回踩期间，下跌交易日的成交量占全部回踩成交量的比例。',
-    'up_down_volume_ratio': '上涨日平均成交量 ÷ 下跌日平均成交量。',
-    'pullback_volume_decay_ratio': '回踩后半段平均成交量 ÷ 前半段平均成交量。',
+    'down_volume_share': '回踩期间下跌日成交量占全部回踩成交量的比例。',
+    'up_down_volume_ratio': '上涨日平均成交量相对下跌日平均成交量。',
+    'pullback_volume_decay_ratio': '回踩后半段平均成交量相对前半段平均成交量。',
+}
+_VOLUME_LEGACY_LABELS = {
+    'down_volume_share': '下跌日成交量占比',
+    'up_down_volume_ratio': '上涨/下跌日均量比',
+    'pullback_volume_decay_ratio': '回踩后半/前半均量比',
 }
 
 
-def _volume_dynamic_explanation(field: str, value: Any) -> str | None:
+def _volume_number(value: Any) -> float | None:
     try:
         number = float(value)
     except (TypeError, ValueError):
         return None
-    if not math.isfinite(number):
+    return number if math.isfinite(number) else None
+
+
+def _volume_dynamic_explanation(field: str, value: Any) -> str | None:
+    number = _volume_number(value)
+    if number is None:
         return None
     if field == 'down_volume_share':
-        share = _volume_share_text(number)
-        return f'当前 {share}，表示约 {share} 的回踩成交量发生在下跌日。'
+        return '下跌日成交集中' if number >= 0.5 else '下跌日成交占比不高'
+    if field == 'up_down_volume_ratio':
+        if _near_one(number):
+            return '两者平均成交接近'
+        return '上涨日平均成交更大' if number > 1 else '下跌日平均成交更大'
+    if field == 'pullback_volume_decay_ratio':
+        if _near_one(number):
+            return '前后半段平均成交接近'
+        if number < 1:
+            return f'回踩后期缩量约 {abs(1 - number) * 100:.0f}%'
+        return f'回踩后期放量约 {(number - 1) * 100:.0f}%'
+    return None
+
+
+def _volume_legacy_explanation(field: str, value: Any) -> str | None:
+    number = _volume_number(value)
+    if number is None:
+        return None
+    if field == 'down_volume_share':
+        return f'当前 {_volume_share_text(number)}，表示约 {_volume_share_text(number)} 的回踩成交量发生在下跌日。'
     if field == 'up_down_volume_ratio':
         display = _volume_ratio_text(number)
         if _near_one(number):
             return '上涨日与下跌日平均成交量接近。'
-        difference = f'{abs(number - 1.0) * 100:.0f}%'
         direction = '高' if number > 1 else '低'
-        return f'当前 {display}，表示上涨日平均成交量约比下跌日{direction} {difference}。'
+        return f'当前 {display}，表示上涨日平均成交量约比下跌日{direction} {abs(number - 1.0) * 100:.0f}%。'
     if field == 'pullback_volume_decay_ratio':
         display = _volume_ratio_text(number)
         if _near_one(number):
             return '前后半段平均成交量接近。'
-        if number < 1:
-            return f'当前 {display}，表示后半段平均成交量约为前半段的 {number * 100:.0f}%，量能继续收缩。'
-        return f'当前 {display}，表示后半段平均成交量约为前半段的 {number * 100:.0f}%，较前半段增加。'
+        ending = '量能继续收缩。' if number < 1 else '较前半段增加。'
+        return f'当前 {display}，表示后半段平均成交量约为前半段的 {number * 100:.0f}%，{ending}'
     return None
 
 
-def _volume_missing_explanation(field: str, reason: Any) -> str | None:
+def _volume_missing_explanation(field: str, reason: Any) -> str:
+    if reason == 'PULLBACK_WINDOW_LT_4':
+        return '回踩窗口不足 4 个交易日'
+    if reason == 'NO_PULLBACK_WINDOW':
+        return '没有可用的回踩窗口'
     if field == 'up_down_volume_ratio' and reason == 'NO_UP_OR_DOWN_DAY':
-        return '上涨日与下跌日样本不同时存在，暂无法计算。'
-    if field == 'pullback_volume_decay_ratio' and reason == 'PULLBACK_WINDOW_LT_4':
-        return '回踩窗口少于 4 个交易日，暂无法计算。'
-    if field == 'down_volume_share' and reason:
-        return '回踩成交量数据暂不可用。'
-    return None
+        return '上涨日与下跌日样本不同时存在'
+    return '回踩成交量数据暂不可用'
+
+
+def _volume_bar_html(field: str, value: Any, reason: Any) -> str:
+    number = _volume_number(value)
+    raw_reason = f' 原始原因：{reason}' if reason else ''
+    if field == 'down_volume_share':
+        if number is None:
+            return '<div class="volume-bar volume-bar-missing" title="无可用刻度"><span class="volume-bar-track"><span class="volume-bar-fill"></span></span><span class="volume-bar-scale"><span>0%</span><span>100%</span></span></div>'
+        position = min(max(number, 0.0), 1.0) * 100.0
+        out = ' volume-bar-out-of-scale' if number < 0 or number > 1 else ''
+        return (
+            f'<div class="volume-bar{out}" title="下跌日量占比刻度：0% 至 100%。{_esc(raw_reason)}">'
+            f'<span class="volume-bar-track"><span class="volume-bar-fill" style="width:{position:.2f}%"></span></span>'
+            '<span class="volume-bar-scale"><span>0%</span><span>100%</span></span></div>'
+        )
+    if number is None:
+        return (
+            f'<div class="volume-ratio-visual volume-bar-missing" title="比例刻度：下限至 2.00×；基线 1.00×。{_esc(raw_reason)}">'
+            '<div class="volume-ratio-scale"><span>← 缩量</span><span>基线 1.00×</span><span>放量 →</span></div>'
+            '<span class="volume-ratio-track"><span class="volume-ratio-baseline"></span></span></div>'
+        )
+    position = min(max(number, 0.0), 2.0) / 2.0 * 100.0
+    out = ' volume-bar-out-of-scale' if number < 0 or number > 2 else ''
+    if position < 50:
+        left = position
+        width = 50 - position
+        direction = '缩量'
+    else:
+        left = 50
+        width = position - 50
+        direction = '放量'
+    return (
+        f'<div class="volume-ratio-visual{out}" title="比例刻度：0.00× 至 2.00×；基线 1.00×；当前方向：{direction}。{_esc(raw_reason)}">'
+        '<div class="volume-ratio-scale"><span>← 缩量</span><span>基线 1.00×</span><span>放量 →</span></div>'
+        f'<span class="volume-ratio-track"><span class="volume-ratio-baseline"></span><span class="volume-ratio-fill" style="left:{left:.2f}%;width:{width:.2f}%"></span></span></div>'
+    )
 
 
 def _volume_metric_html(
@@ -1237,33 +1366,40 @@ def _volume_metric_html(
 ) -> str:
     if sample_insufficient:
         display = '样本不足'
-        explanation = None
+        explanation = _volume_missing_explanation(field, reason)
     elif value is None:
         display = '—'
         explanation = _volume_missing_explanation(field, reason)
     else:
         display = _volume_share_text(value) if field == 'down_volume_share' else _volume_ratio_text(value)
         explanation = _volume_dynamic_explanation(field, value)
-    explanation_html = f'<small class="volume-explanation">{_esc(explanation)}</small>' if explanation else ''
+    legacy = _volume_legacy_explanation(field, value)
+    legacy_html = f'<span class="sr-only">{_esc(legacy)}</span>' if legacy else ''
+    raw_reason = f' 原始原因：{reason}' if reason else ''
+    legacy_label = _VOLUME_LEGACY_LABELS[field]
+    display_label = {
+        'down_volume_share': '下跌日量占比',
+        'up_down_volume_ratio': '涨/跌日均量比',
+        'pullback_volume_decay_ratio': '后半/前半均量比',
+    }[field]
     return (
-        '<div class="volume-metric">'
-        f'<span class="volume-label">{_esc(label)}</span>'
+        f'<div class="volume-metric-row" title="{_esc(_VOLUME_LABEL_DESCRIPTIONS[field] + raw_reason)}">'
+        f'<div class="volume-metric-label"><span class="volume-label" aria-label="{_esc(legacy_label)}">{_esc(display_label)}</span>'
+        f'<small class="volume-explanation">{_esc(explanation)}</small></div>'
+        f'<div class="volume-metric-bar">{_volume_bar_html(field, value, reason)}</div>'
         f'<strong class="volume-value">{_esc(display)}</strong>'
-        f'<small>{_esc(_VOLUME_LABEL_DESCRIPTIONS[field])}</small>'
-        f'{explanation_html}'
+        f'{legacy_html}'
         '</div>'
     )
 
 
-def _volume_card_html(title: str, metrics: str, window_days: int | None) -> str:
-    window = f'<small class="volume-window">观察窗口：{window_days} 个交易日</small>' if window_days is not None and window_days > 0 else ''
-    return (
-        '<div class="volume-card">'
-        f'<div class="volume-card-head"><strong>{_esc(title)}</strong>{window}</div>'
-        f'<div class="volume-card-metrics">{metrics}</div>'
-        '<small class="volume-observation-note">观察指标 · 不参与筛选/排名</small>'
-        '</div>'
-    )
+def _volume_factual_summary(data: Mapping[str, Any]) -> str:
+    statements = []
+    for field in ('down_volume_share', 'up_down_volume_ratio', 'pullback_volume_decay_ratio'):
+        statement = _volume_dynamic_explanation(field, data.get(field))
+        if statement:
+            statements.append(statement)
+    return '；'.join(statements) + '。' if statements else '量能观察数据不足，暂不作事实总结。'
 
 
 def _volume_observations_html(observation: Mapping[str, Any] | None) -> str:
@@ -1276,27 +1412,38 @@ def _volume_observations_html(observation: Mapping[str, Any] | None) -> str:
         window_days = int(data['window_days']) if data.get('window_days') is not None else None
     except (TypeError, ValueError):
         window_days = None
-    sample_insufficient = window_days == 0 and all(
-        reasons.get(field) == 'NO_PULLBACK_WINDOW' for field in ('down_volume_share', 'up_down_volume_ratio', 'pullback_volume_decay_ratio')
-    )
-    card_a = ''.join([
-        _volume_metric_html(
-            '下跌日成交量占比', 'down_volume_share', data.get('down_volume_share'),
-            reasons.get('down_volume_share'), sample_insufficient=sample_insufficient,
-        ),
-        _volume_metric_html(
-            '上涨/下跌日均量比', 'up_down_volume_ratio', data.get('up_down_volume_ratio'),
-            reasons.get('up_down_volume_ratio'), sample_insufficient=sample_insufficient,
-        ),
-    ])
-    card_b = _volume_metric_html(
-        '回踩后半/前半均量比', 'pullback_volume_decay_ratio', data.get('pullback_volume_decay_ratio'),
-        reasons.get('pullback_volume_decay_ratio'), sample_insufficient=sample_insufficient,
+    metrics = []
+    for field, label in (
+        ('down_volume_share', '下跌日量占比'),
+        ('up_down_volume_ratio', '涨/跌日均量比'),
+        ('pullback_volume_decay_ratio', '后半/前半均量比'),
+    ):
+        reason = reasons.get(field)
+        sample_insufficient = reason in {'PULLBACK_WINDOW_LT_4', 'NO_PULLBACK_WINDOW'}
+        metrics.append(
+            _volume_metric_html(
+                label,
+                field,
+                data.get(field),
+                reason,
+                sample_insufficient=sample_insufficient,
+            )
+        )
+    window = (
+        f'观察窗口：{window_days} 个交易日'
+        if window_days is not None and window_days > 0
+        else '观察窗口：不足'
+        if window_days == 0
+        else '观察窗口：回踩区间'
     )
     return (
         '<div class="volume-observations">'
-        f'{_volume_card_html("回踩量能", card_a, window_days)}'
-        f'{_volume_card_html("量能衰减", card_b, window_days)}'
+        '<div class="volume-card">'
+        f'<div class="volume-card-head"><strong>回踩量能 · 量能衰减</strong><small class="volume-window">{_esc(window)}</small></div>'
+        '<small class="volume-observation-note">观察指标 · 不参与筛选/排名</small>'
+        f'<div class="volume-metric-list">{"".join(metrics)}</div>'
+        f'<p class="volume-summary"><span>事实总结</span>{_esc(_volume_factual_summary(data))}</p>'
+        '</div>'
         '</div>'
     )
 
@@ -2065,18 +2212,28 @@ input[type=search] {{ width: min(360px, 100%); padding: 8px 10px; border: 1px so
 .watch-facts span:last-child strong {{ color: var(--text); }}
 .watch-facts small {{ display: block; color: var(--muted); font-size: 10px; }}
 .watch-meta {{ display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 7px 0 0 38px; color: var(--muted); font-size: 11px; }}
-.volume-observations {{ display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 7px; min-width: 0; margin: 11px 0 0 38px; }}
-.volume-card {{ min-width: 0; padding: 10px 11px; border: 1px solid var(--border); background: var(--surface-2); }}
+.volume-observations {{ display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; min-width: 0; margin: 11px 0 0 38px; }}
+.volume-card {{ min-width: 0; overflow: hidden; padding: 10px 11px; border: 1px solid var(--border); background: var(--surface-2); }}
 .volume-card-head {{ display: flex; align-items: baseline; justify-content: space-between; gap: 8px; min-width: 0; color: var(--text); font-size: 13px; }}
 .volume-card-head strong {{ font-weight: 700; }}
 .volume-window {{ color: var(--muted); font-size: 11px; font-weight: 400; white-space: nowrap; }}
-.volume-card-metrics {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 9px; }}
-.volume-card:last-child .volume-card-metrics {{ grid-template-columns: minmax(0, 1fr); }}
-.volume-metric {{ min-width: 0; }}
-.volume-label {{ display: block; color: var(--muted); font-size: 12px; }}
-.volume-value {{ display: block; margin-top: 3px; color: var(--text); font-size: 19px; font-variant-numeric: tabular-nums; }}
-.volume-metric small {{ display: block; margin-top: 4px; color: var(--muted); font-size: 11px; line-height: 1.45; }}
-.volume-metric .volume-explanation {{ color: var(--text); }}
+.volume-metric-list {{ display: grid; gap: 7px; margin-top: 9px; min-width: 0; }}
+.volume-metric-row {{ display: grid; grid-template-columns: minmax(108px, 1.05fr) minmax(118px, 1fr) minmax(4.8em, auto); align-items: center; gap: 10px; min-width: 0; }}
+.volume-metric-label, .volume-metric-bar {{ min-width: 0; }}
+.volume-label {{ display: block; overflow: hidden; color: var(--text); font-size: 12px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }}
+.volume-explanation {{ display: block; overflow: hidden; margin-top: 2px; color: var(--muted); font-size: 11px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }}
+.volume-value {{ display: block; min-width: 4.8em; color: var(--text); font-size: 16px; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }}
+.volume-bar, .volume-ratio-visual {{ min-width: 0; }}
+.volume-bar-track, .volume-ratio-track {{ position: relative; display: block; height: 7px; overflow: hidden; border-radius: 999px; background: #e3eaee; }}
+.volume-bar-fill, .volume-ratio-fill {{ position: absolute; top: 0; bottom: 0; display: block; border-radius: inherit; background: var(--accent); }}
+.volume-ratio-fill {{ background: #6d9d68; }}
+.volume-ratio-baseline {{ position: absolute; top: -2px; bottom: -2px; left: 50%; z-index: 1; width: 2px; background: var(--warning); }}
+.volume-bar-scale, .volume-ratio-scale {{ display: flex; justify-content: space-between; gap: 4px; margin-top: 2px; color: var(--muted); font-size: 9px; line-height: 1.2; white-space: nowrap; }}
+.volume-ratio-scale span:nth-child(2) {{ color: var(--warning); }}
+.volume-bar-missing .volume-bar-fill, .volume-bar-missing .volume-ratio-fill {{ display: none; }}
+.volume-bar-out-of-scale {{ outline: 1px dashed var(--warning); outline-offset: 2px; }}
+.volume-summary {{ margin: 9px 0 0; overflow-wrap: anywhere; color: var(--text); font-size: 11px; line-height: 1.4; }}
+.volume-summary span {{ margin-right: 5px; color: var(--muted); font-weight: 650; }}
 .volume-observation-note {{ display: block; margin-top: 9px; color: var(--muted); font-size: 11px; }}
 .action-list {{ display: grid; gap: 7px; }}
 .action-row {{ min-width: 0; padding: 12px 13px; border: 1px solid var(--border); border-left: 3px solid var(--accent); background: var(--surface); }}
@@ -2190,6 +2347,8 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   .watch-meta > span {{ min-width: 0; }}
   .volume-observations {{ grid-template-columns: 1fr; margin: 12px 0 0 34px; }}
   .volume-card-metrics, .volume-card:last-child .volume-card-metrics {{ grid-template-columns: 1fr; }}
+  .volume-metric-row {{ grid-template-columns: minmax(84px, 1fr) minmax(90px, 1.1fr) 4.4em; gap: 6px; }}
+  .volume-ratio-scale, .volume-bar-scale {{ font-size: 8px; }}
   .volume-window {{ white-space: normal; text-align: right; }}
   .action-top {{ flex-direction: column; align-items: flex-start; gap: 8px; }}
   .action-status {{ justify-content: flex-start; }}
