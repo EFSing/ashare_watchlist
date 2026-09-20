@@ -5,6 +5,31 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-18 — SINGLE_AUTHORITATIVE_MARKET_DATA_SOURCE_V1
+
+- classification：`ADOPT` as a production correctness and provenance decision; not a strategy,
+  research, or parameter change.
+- decision：HiThink Financial-API is the sole authoritative production market-data source for
+  `/api/meta/tickers/list`, `/api/a-share/prices/snapshot`, `/api/a-share/prices/historical`, and
+  `/api/a-share-index/prices/historical`. Tencent quote/Kline paths are retired from execution, and
+  AkShare exchange rosters are not production inputs. Sina `新浪行业` remains optional fail-soft
+  enrichment only.
+- decision：target-day trade state is explicitly tri-state (`TRADED`, `NO_TRADE`, `UNKNOWN`). Null or
+  partial snapshots never become `NO_TRADE`; an ordinary or ambiguous state must be confirmed by the
+  same provider's target-day historical bar. A stale HiThink historical response receives exactly one
+  bounded same-source retry; unresolved stale/ambiguous state fails closed with symbol/date/provider/
+  retry diagnostics. Per-symbol stale isolation is retired.
+- decision：HiThink's snapshot `turnover` field is traded amount, not turnover rate. It is stored under
+  `turnover_amount`; turnover-rate and vol-ratio are optional for current Formal B, remain missing when
+  unavailable, and are never replaced with zero or a fabricated metric. Formal B formula, selection,
+  ranking, thresholds, T+1 semantics, and frozen spec SHA remain unchanged.
+- identity/provenance：persist `SINGLE_AUTHORITATIVE_MARKET_DATA_SOURCE_V1`, authoritative APIs,
+  fallback list, zero Tencent/AkShare-roster call counts, trade-state policy and turnover semantics in
+  the existing provider metadata and generation provenance. No transient commit/run SHA is a durable
+  policy invariant; live master/PR/CI/runtime-state must be re-read at delivery boundaries.
+- boundary：Final OOS remains `SEALED / UNREAD`; `data/validation/continuous_speed_probe/` remains
+  unread and untouched. Existing PR #60/#66/#67/#68/#71 are outside this task.
+
 ## 2026-09-17 — HITHINK_LIST_DATE_UNIVERSE_ELIGIBILITY_FIX_V1
 
 - decision：HiThink Financial-API `/api/meta/tickers/list` remains the authoritative SH/SZ a-share

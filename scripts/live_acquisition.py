@@ -27,11 +27,11 @@ import time
 import unicodedata
 import urllib.parse
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from types import ModuleType
-from typing import Any
+from typing import Any, NoReturn
 
 import requests
 
@@ -61,15 +61,12 @@ from generation_contract import (
     UniverseManifest,
     freeze_generation_inputs,
 )
-from tencent_quotes import (
-    MissingQuoteError,
-    QuoteCaptureError,
-    QuoteDataError,
-    QuoteParseError,
-    StaleQuoteError,
-    fetch_quotes,
+from market_data_core import (
+    TRADE_STATE_NO_TRADE,
+    TRADE_STATE_TRADED,
+    TRADE_STATE_UNKNOWN,
+    classify_trade_state,
     is_no_trade_snapshot,
-    to_symbol,
 )
 from trading_calendar import CalendarUnavailable, TradingCalendar, default_calendar
 from universe_policy import (
@@ -81,7 +78,6 @@ from universe_policy import (
     validate_board_policy_audit,
 )
 from watchlist_schema import (
-    EXCLUDED_PROVIDER_STALE,
     INPUT_COVERAGE_COMPLETE,
     INPUT_COVERAGE_DEGRADED,
     INPUT_COVERAGE_SCHEMA,
@@ -111,6 +107,8 @@ MISSING_DISPLAY_NAME = "MISSING_DISPLAY_NAME"
 PERSISTENCE_CONFLICT = "PERSISTENCE_CONFLICT"
 PERSISTENCE_FAILURE = "PERSISTENCE_FAILURE"
 TARGET_DAY_HISTORICAL_STALE_LIMIT_EXCEEDED = "TARGET_DAY_HISTORICAL_STALE_LIMIT_EXCEEDED"
+HITHINK_SINGLE_SOURCE_TRADE_STATE_DECISION_REQUIRED = "HITHINK_SINGLE_SOURCE_TRADE_STATE_DECISION_REQUIRED"
+SINGLE_AUTHORITATIVE_MARKET_DATA_SOURCE_V1 = "SINGLE_AUTHORITATIVE_MARKET_DATA_SOURCE_V1"
 
 HITHINK_BASE_URL = "https://fuyao.aicubes.cn"
 HITHINK_API_KEY_ENV = "HITHINK_FINANCE_API_KEY"
@@ -142,10 +140,6 @@ SECTOR_ENRICHMENT_AVAILABLE = "AVAILABLE"
 SECTOR_ENRICHMENT_UNAVAILABLE_DEFAULTED = "UNAVAILABLE_DEFAULTED"
 MISSING_SECTOR_RESOLUTION = "FROZEN_MISSING_SECTOR_DEFAULT_V1"
 MISSING_SECTOR_DEFAULT = {"sector_name": "-", "sector_rank": 50, "sector_chg": 0.0}
-MARKET_DATA_FAILOVER_POLICY_VERSION = "LIVE_MARKET_DATA_FAILOVER_POLICY_V1"
-TENCENT_FALLBACK_VERSION = "TENCENT_QFQ_FALLBACK_V1"
-TENCENT_QUOTE_SOURCE = "qt.gtimg.cn"
-TENCENT_KLINE_SOURCE = "web.ifzq.gtimg.cn/appstock/app/fqkline/get"
 INDEX_SYMBOL = "sh000001"
 HITHINK_INDEX_SYMBOL = "000001.SH"
 HITHINK_LIST_DATE_ELIGIBILITY_V1 = "HITHINK_LIST_DATE_ELIGIBILITY_V1"
@@ -197,7 +191,11 @@ AKSHARE_MAX_ATTEMPTS = 3
 AKSHARE_RETRY_BACKOFF_SECONDS = 0.25
 HITHINK_MAX_ATTEMPTS = 3
 HITHINK_RETRY_BACKOFF_SECONDS = 0.25
-ALLOW_TENCENT_KLINE_FALLBACK = True
+# Kept as a compatibility keyword for historical callers.  The production
+# path is hard-disabled and never invokes a Tencent helper.
+ALLOW_TENCENT_KLINE_FALLBACK = False
+HITHINK_STALE_RETRY_BACKOFF_SECONDS = 0.25
+HITHINK_QUOTE_BATCH_SIZE = 100
 
 
 class LiveAcquisitionError(GenerationContractError):
@@ -873,6 +871,143 @@ def _normalize_hithink_bars(raw_bars: Sequence[Any], thscode: str) -> list[dict[
     return bars
 
 
+def _optional_hithink_quote_number(value: Any, field_name: str) -> float | None:
+    value = _python_scalar(value)
+    if _missing(value):
+        return None
+    if isinstance(value, bool):
+        _fail(PROVIDER_FAILURE, f"{field_name} is boolean")
+    try:
+        number = float(value)
+    except (TypeError, ValueError) as exc:
+        _fail(PROVIDER_FAILURE, f"{field_name} is not numeric")
+        raise AssertionError from exc
+    if not math.isfinite(number):
+        _fail(PROVIDER_FAILURE, f"{field_name} is not finite")
+    return number
+
+
+def _normalize_hithink_snapshots(
+    payload: Any,
+    *,
+    target_date: str,
+    display_names: Mapping[str, str],
+) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
+    """Normalize HiThink's minimal snapshot rows without importing its schema downstream."""
+
+    if isinstance(payload, Mapping):
+        rows = payload.get("items", payload.get("item"))
+        timestamps = payload.get("timestamps", [])
+    else:
+        rows = payload
+        timestamps = []
+    if not isinstance(rows, Sequence) or isinstance(rows, (str, bytes)):
+        _fail(PROVIDER_FAILURE, "HiThink snapshot rows are not a sequence")
+    normalized: dict[str, dict[str, Any]] = {}
+    explicit_record_dates = 0
+    for index, raw_row in enumerate(rows):
+        if not isinstance(raw_row, Mapping):
+            _fail(PROVIDER_FAILURE, f"HiThink snapshot row {index} is not an object")
+        raw_thscode = raw_row.get("thscode")
+        raw_ticker = raw_row.get("ticker")
+        if _missing(raw_ticker) and isinstance(raw_thscode, str) and "." in raw_thscode:
+            raw_ticker = raw_thscode.split(".", 1)[0]
+        code = _code(raw_ticker, f"hithink_snapshot[{index}].ticker")
+        if code not in display_names:
+            # The endpoint may return an extra row if a provider ignores an
+            # optional batch filter.  Ignore extras only after validating the
+            # requested rows; they are not part of the package contract.
+            continue
+        thscode = str(raw_thscode or "").strip().upper()
+        if thscode and thscode != _hithink_thscode(code):
+            _fail(INPUT_CONFLICT, f"HiThink snapshot thscode mismatch for {code}")
+        if code in normalized:
+            _fail(INPUT_CONFLICT, f"duplicate HiThink snapshot row for {code}")
+        raw_date = next(
+            (raw_row.get(name) for name in ("quote_date", "trade_date", "date") if name in raw_row),
+            None,
+        )
+        if not _missing(raw_date):
+            try:
+                canonical_date = _canonical_date(raw_date)
+            except (TypeError, ValueError, OverflowError) as exc:
+                _fail(PROVIDER_FAILURE, f"HiThink snapshot date is malformed for {code}")
+                raise AssertionError from exc
+            if canonical_date != target_date:
+                _fail(
+                    INPUT_DATE_MISMATCH,
+                    f"HiThink snapshot date for {code} is {canonical_date} != {target_date}",
+                    {"symbol": code, "target_date": target_date, "provider_date": canonical_date},
+                )
+            explicit_record_dates += 1
+            date_evidence = "HITHINK_SNAPSHOT_RECORD_DATE"
+        else:
+            # QuoteSnapshotManifest needs a canonical requested date, but the
+            # provider did not supply one.  This is not claimed as trade-date
+            # proof; same-provider historical validation below must establish
+            # the target-day evidence before the package is frozen.
+            date_evidence = "NOT_PROVIDER_VERIFIED"
+
+        price = _optional_hithink_quote_number(
+            raw_row.get("last_price"), f"hithink_snapshot[{index}].last_price"
+        )
+        prev_close = _optional_hithink_quote_number(
+            raw_row.get("prev_price"), f"hithink_snapshot[{index}].prev_price"
+        )
+        opening = _optional_hithink_quote_number(
+            raw_row.get("open_price"), f"hithink_snapshot[{index}].open_price"
+        )
+        high = _optional_hithink_quote_number(
+            raw_row.get("high_price"), f"hithink_snapshot[{index}].high_price"
+        )
+        low = _optional_hithink_quote_number(
+            raw_row.get("low_price"), f"hithink_snapshot[{index}].low_price"
+        )
+        volume = _optional_hithink_quote_number(
+            raw_row.get("volume"), f"hithink_snapshot[{index}].volume"
+        )
+        chg_pct = _optional_hithink_quote_number(
+            raw_row.get("price_change_ratio_pct"),
+            f"hithink_snapshot[{index}].price_change_ratio_pct",
+        )
+        turnover_amount = _optional_hithink_quote_number(
+            raw_row.get("turnover"), f"hithink_snapshot[{index}].turnover"
+        )
+        quote = {
+            "code": code,
+            "symbol": code,
+            "name": display_names[code],
+            "quote_date": target_date,
+            "timestamp": raw_row.get("timestamp"),
+            "price": price,
+            "prev_close": prev_close,
+            "open": opening,
+            "high": high,
+            "low": low,
+            "volume": volume,
+            "chg_pct": chg_pct,
+            # HiThink calls this field turnover, but it is traded amount.  A
+            # different name prevents it from masquerading as turnover rate.
+            "turnover_amount": turnover_amount,
+            "quote_date_evidence": date_evidence,
+        }
+        quote["trade_state"] = classify_trade_state(quote)
+        normalized[code] = quote
+    metadata = {
+        "provider": "HiThink Financial-API",
+        "api": HITHINK_QUOTE_API,
+        "response_timestamps": list(timestamps) if isinstance(timestamps, Sequence) else [],
+        "record_count": len(normalized),
+        "explicit_record_date_count": explicit_record_dates,
+        "target_date_evidence": (
+            "PROVIDER_RECORD_DATE"
+            if explicit_record_dates == len(normalized) and normalized
+            else "REQUIRES_SAME_PROVIDER_HISTORICAL_CONFIRMATION"
+        ),
+    }
+    return dict(sorted(normalized.items())), metadata
+
+
 def _response_bytes(response: Any) -> tuple[bytes, str]:
     content = getattr(response, "content", None)
     if isinstance(content, bytes):
@@ -1075,6 +1210,39 @@ class HiThinkClient:
                 effective_trading_date=self.capture_store.as_of_date,
             )
         return rows
+
+    def snapshots(
+        self,
+        thscodes: Sequence[str],
+        *,
+        timeout: float = 15.0,
+    ) -> dict[str, Any]:
+        """Read the minimal HiThink quote snapshot for the requested symbols."""
+
+        requested = [str(value).strip().upper() for value in thscodes if str(value).strip()]
+        if not requested:
+            return {"items": [], "timestamps": []}
+        rows: list[dict[str, Any]] = []
+        timestamps: list[Any] = []
+        for start in range(0, len(requested), HITHINK_QUOTE_BATCH_SIZE):
+            batch = requested[start : start + HITHINK_QUOTE_BATCH_SIZE]
+            params = {
+                "thscodes": ",".join(batch),
+                "limit": len(batch),
+                "offset": 0,
+            }
+            data = self._read(
+                HITHINK_QUOTE_API,
+                HITHINK_QUOTE_API,
+                params,
+                timeout=timeout,
+            )
+            page = data.get("item")
+            if not isinstance(page, list):
+                raise ValueError("HiThink snapshot item is not a list")
+            rows.extend(item for item in page if isinstance(item, Mapping))
+            timestamps.append(data.get("timestamp"))
+        return {"items": rows, "timestamps": timestamps}
 
     def historical_bars(
         self,
@@ -2089,119 +2257,6 @@ def _akshare_failure_message(
     )
 
 
-def _request_json(
-    url: str,
-    *,
-    timeout: float,
-    retries: int,
-    request_get: Callable[..., Any],
-    raw_response_callback: Callable[[Any], None] | None = None,
-) -> Mapping[str, Any]:
-    last_error: Exception | None = None
-    for attempt in range(retries):
-        try:
-            response = request_get(url, timeout=timeout)
-            if raw_response_callback is not None:
-                raw_response_callback(response)
-            raise_for_status = getattr(response, "raise_for_status", None)
-            if callable(raise_for_status):
-                raise_for_status()
-            payload = response.json()
-            if not isinstance(payload, Mapping):
-                raise ValueError("response JSON is not an object")
-            return payload
-        except LiveAcquisitionError:
-            raise
-        except Exception as exc:
-            last_error = exc
-            if attempt + 1 < retries:
-                time.sleep(attempt + 1)
-    _fail(PROVIDER_FAILURE, f"Tencent Kline request failed after {retries} attempts: {type(last_error).__name__}")
-    raise AssertionError
-
-
-def _fetch_qfq_bars(
-    symbol: str,
-    *,
-    requested_count: int,
-    minimum_acceptable_history: int,
-    as_of_date: str,
-    require_last_bar_date: bool = True,
-    timeout: float,
-    retries: int,
-    request_get: Callable[..., Any],
-    raw_response_callback: Callable[[Any], None] | None = None,
-) -> list[dict[str, Any]]:
-    provider_symbol = to_symbol(symbol)
-    url = f"https://{TENCENT_KLINE_SOURCE}?param={provider_symbol},day,,,{requested_count},qfq"
-    payload = _request_json(
-        url,
-        timeout=timeout,
-        retries=retries,
-        request_get=request_get,
-        raw_response_callback=raw_response_callback,
-    )
-    data = payload.get("data")
-    if not isinstance(data, Mapping):
-        _fail(PROVIDER_FAILURE, f"Tencent Kline response has no data object for {provider_symbol}")
-    record = data.get(provider_symbol)
-    if not isinstance(record, Mapping):
-        _fail(INCOMPLETE_COVERAGE, f"Tencent Kline response has no symbol record for {provider_symbol}")
-    raw_bars = record.get("qfqday")
-    if not isinstance(raw_bars, Sequence) or isinstance(raw_bars, (str, bytes)) or not raw_bars:
-        _fail(INCOMPLETE_COVERAGE, f"Tencent qfqday is empty for {provider_symbol}")
-    bars: list[dict[str, Any]] = []
-    seen_dates: set[str] = set()
-    for index, raw_bar in enumerate(raw_bars):
-        if not isinstance(raw_bar, Sequence) or isinstance(raw_bar, (str, bytes)) or len(raw_bar) < 6:
-            _fail(PROVIDER_FAILURE, f"Tencent qfq bar {provider_symbol}[{index}] is incomplete")
-        try:
-            bar_date = _canonical_date(raw_bar[0])
-        except (TypeError, ValueError) as exc:
-            _fail(PROVIDER_FAILURE, f"Tencent qfq bar {provider_symbol}[{index}] has invalid date")
-            raise AssertionError from exc
-        if bar_date in seen_dates:
-            _fail(INPUT_CONFLICT, f"duplicate Tencent qfq bar date for {provider_symbol}: {bar_date}")
-        seen_dates.add(bar_date)
-        if bar_date > as_of_date:
-            _fail(FUTURE_DATA_DETECTED, f"Tencent qfq bar {provider_symbol} is after {as_of_date}: {bar_date}")
-        opening = _number(raw_bar[1], f"{provider_symbol}[{index}].open", positive=True)
-        closing = _number(raw_bar[2], f"{provider_symbol}[{index}].close", positive=True)
-        high = _number(raw_bar[3], f"{provider_symbol}[{index}].high", positive=True)
-        low = _number(raw_bar[4], f"{provider_symbol}[{index}].low", positive=True)
-        volume = _number(raw_bar[5], f"{provider_symbol}[{index}].volume", non_negative=True)
-        if high < low or high < opening or high < closing or low > opening or low > closing:
-            _fail(INPUT_CONFLICT, f"Tencent qfq OHLC conflict for {provider_symbol} on {bar_date}")
-        bars.append({"date": bar_date, "open": opening, "high": high, "low": low, "close": closing, "volume": volume})
-    bars.sort(key=lambda item: item["date"])
-    if len(bars) < minimum_acceptable_history:
-        _fail(
-            INCOMPLETE_COVERAGE,
-            f"Tencent qfq coverage for {provider_symbol} is {len(bars)} < "
-            f"{minimum_acceptable_history}",
-        )
-    if require_last_bar_date and bars[-1]["date"] != as_of_date:
-        _fail(
-            INPUT_DATE_MISMATCH,
-            f"Tencent qfq latest bar for {provider_symbol} is {bars[-1]['date']} != {as_of_date}",
-            {
-                "classification": TARGET_DAY_HISTORICAL_STALE,
-                "target_date": as_of_date,
-                "latest_historical_date": bars[-1]["date"],
-                "historical_bar_count": len(bars),
-                "historical_quality": {
-                    "non_empty": True,
-                    "structure_valid": True,
-                    "future_data": False,
-                },
-                "provider": "Tencent",
-                "source": TENCENT_KLINE_SOURCE,
-                "provider_symbol": provider_symbol,
-            },
-        )
-    return bars
-
-
 def _is_hithink_transient(exc: Exception) -> bool:
     if isinstance(
         exc,
@@ -2217,6 +2272,22 @@ def _is_hithink_transient(exc: Exception) -> bool:
         return False
     status_code = getattr(getattr(exc, "response", None), "status_code", None)
     return status_code in {408, 429} or isinstance(status_code, int) and 500 <= status_code <= 599
+
+
+def _fetch_qfq_bars(*args: Any, **kwargs: Any) -> NoReturn:
+    """Compatibility seam proving that the retired cross-provider path is inert."""
+
+    del args, kwargs
+    _fail(
+        PROVIDER_FAILURE,
+        "Tencent Kline fallback is retired under SINGLE_AUTHORITATIVE_MARKET_DATA_SOURCE_V1",
+        {
+            "provider": "HiThink Financial-API",
+            "fallback_provider": "Tencent",
+            "fallback_allowed": False,
+        },
+    )
+    raise AssertionError("unreachable retired fallback")
 
 
 def _validate_historical_bars(
@@ -2304,60 +2375,104 @@ def _resolve_market_bars(
     allow_stale_as_of: bool = False,
     tencent_raw_response_callback: Callable[[Any], None] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Resolve bars from HiThink only, with one bounded same-source stale retry.
+
+    ``request_get``, ``retries``, ``allow_tencent_fallback`` and the callback
+    remain in the signature for callers from the previous provider policy.  A
+    production resolution deliberately ignores them: a different provider is
+    never allowed to repair an ambiguous or stale HiThink result.
+    """
+
     if requested_count <= 0 or minimum_acceptable_history <= 0:
         _fail(INCOMPLETE_COVERAGE, "historical retrieval target and minimum history must be positive")
+    del request_get, retries, allow_tencent_fallback, tencent_raw_response_callback
     start_ms, end_ms = _historical_window(as_of_date, requested_count)
     thscode = HITHINK_INDEX_SYMBOL if index else _hithink_thscode(symbol)
-    try:
-        bars = client.historical_bars(
-            thscode,
-            start=start_ms,
-            end=end_ms,
-            index=index,
-            timeout=timeout,
-        )
-        normalized = _validate_historical_bars(
-            bars,
-            thscode,
-            minimum_acceptable_history=minimum_acceptable_history,
-            as_of_date=as_of_date,
-            require_last_bar_date=index or not allow_stale_as_of,
-        )
-        return normalized, {
-            "provider": "HiThink Financial-API",
-            "source": (
-                f"{HITHINK_INDEX_KLINE_API}(unadjusted)"
-                if index
-                else f"{HITHINK_STOCK_KLINE_API}(adjust=forward)"
-            ),
-            "adjustment_mode": PROVIDER_RAW_SNAPSHOT if index else PROVIDER_QFQ_SNAPSHOT,
-            "selection": "PRIMARY",
-        }
-    except LiveAcquisitionError:
-        raise
-    except Exception as exc:
-        if not _is_hithink_transient(exc) and not isinstance(exc, _HiThinkReadFailure):
-            _fail(PROVIDER_FAILURE, f"HiThink historical acquisition failed for {thscode}: {type(exc).__name__}")
-        if not allow_tencent_fallback:
-            _fail(PROVIDER_FAILURE, f"HiThink historical acquisition failed for {thscode}: fallback disabled")
-        tencent_symbol = INDEX_SYMBOL if index else symbol
-        fallback = _fetch_qfq_bars(
-            tencent_symbol,
-            requested_count=requested_count,
-            minimum_acceptable_history=minimum_acceptable_history,
-            as_of_date=as_of_date,
-            require_last_bar_date=index or not allow_stale_as_of,
-            timeout=timeout,
-            retries=retries,
-            request_get=request_get,
-            raw_response_callback=tencent_raw_response_callback,
-        )
-        return fallback, {
-            "provider": "Tencent",
-            "source": TENCENT_KLINE_SOURCE,
-            "adjustment_mode": PROVIDER_QFQ_SNAPSHOT,
-            "selection": "EXPLICIT_FALLBACK",
-        }
+    require_last_bar_date = index or not allow_stale_as_of
+    source = (
+        f"{HITHINK_INDEX_KLINE_API}(unadjusted)"
+        if index
+        else f"{HITHINK_STOCK_KLINE_API}(adjust=forward)"
+    )
+    for stale_retry_count in range(2):
+        try:
+            bars = client.historical_bars(
+                thscode,
+                start=start_ms,
+                end=end_ms,
+                index=index,
+                timeout=timeout,
+            )
+            normalized = _validate_historical_bars(
+                bars,
+                thscode,
+                minimum_acceptable_history=minimum_acceptable_history,
+                as_of_date=as_of_date,
+                require_last_bar_date=require_last_bar_date,
+            )
+            return normalized, {
+                "provider": "HiThink Financial-API",
+                "source": source,
+                "adjustment_mode": PROVIDER_RAW_SNAPSHOT if index else PROVIDER_QFQ_SNAPSHOT,
+                "selection": (
+                    "PRIMARY_STALE_ALLOWED_FOR_EXPLICIT_NO_TRADE"
+                    if allow_stale_as_of and normalized[-1].get("date") != as_of_date
+                    else "PRIMARY"
+                ),
+                "retry_count": stale_retry_count,
+            }
+        except LiveAcquisitionError as exc:
+            diagnostics = dict(exc.diagnostics)
+            is_stale = (
+                exc.status == INPUT_DATE_MISMATCH
+                and diagnostics.get("classification") == TARGET_DAY_HISTORICAL_STALE
+            )
+            if not is_stale or not require_last_bar_date or stale_retry_count >= 1:
+                if is_stale:
+                    diagnostics.update(
+                        {
+                            "symbol": symbol,
+                            "target_date": as_of_date,
+                            "latest_historical_date": diagnostics.get("latest_historical_date"),
+                            "provider": "HiThink Financial-API",
+                            "retry_count": stale_retry_count,
+                        }
+                    )
+                    detail = str(exc)
+                    prefix = f"{exc.status}: "
+                    if detail.startswith(prefix):
+                        detail = detail[len(prefix):]
+                    raise LiveAcquisitionError(exc.status, detail, diagnostics) from exc
+                raise
+            time.sleep(HITHINK_STALE_RETRY_BACKOFF_SECONDS)
+        except Exception as exc:
+            # Provider transport/read failures are terminal for this source.
+            # HiThinkClient already owns its bounded transport retry policy;
+            # there is no cross-provider fallback here.
+            if _is_hithink_transient(exc) or isinstance(exc, _HiThinkReadFailure):
+                _fail(
+                    PROVIDER_FAILURE,
+                    f"HiThink historical acquisition failed for {thscode}; no alternate provider is permitted",
+                    {
+                        "symbol": symbol,
+                        "target_date": as_of_date,
+                        "provider": "HiThink Financial-API",
+                        "retry_count": stale_retry_count,
+                        "exception_type": type(exc).__name__,
+                    },
+                )
+            _fail(
+                PROVIDER_FAILURE,
+                f"HiThink historical acquisition failed for {thscode}: {type(exc).__name__}",
+                {
+                    "symbol": symbol,
+                    "target_date": as_of_date,
+                    "provider": "HiThink Financial-API",
+                    "retry_count": stale_retry_count,
+                    "exception_type": type(exc).__name__,
+                },
+            )
+    raise AssertionError("unreachable HiThink historical resolution loop")
 
 
 def _history_capture_spec(
@@ -2418,129 +2533,6 @@ def _load_captured_market_bars(
     }
 
 
-def _quote_trade_state(quote: Mapping[str, Any], target_date: str) -> str:
-    """Classify only a quote that proves ordinary target-day trading."""
-
-    if not isinstance(quote, Mapping) or quote.get("quote_date") != target_date:
-        return "UNKNOWN"
-    if is_no_trade_snapshot(quote):
-        return "NO_TRADE"
-    required = ("price", "prev_close", "open", "high", "low", "volume")
-    values: dict[str, float] = {}
-    for field_name in required:
-        value = quote.get(field_name)
-        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)):
-            return "UNKNOWN"
-        values[field_name] = float(value)
-    if any(values[field_name] <= 0 for field_name in ("price", "prev_close", "open", "high", "low")):
-        return "UNKNOWN"
-    if values["volume"] <= 0 or values["high"] < values["low"]:
-        return "UNKNOWN"
-    if values["high"] < values["open"] or values["high"] < values["price"]:
-        return "UNKNOWN"
-    if values["low"] > values["open"] or values["low"] > values["price"]:
-        return "UNKNOWN"
-    return "TRADED"
-
-
-def _quote_trade_evidence(quote: Mapping[str, Any]) -> dict[str, Any]:
-    fields = (
-        "code",
-        "symbol",
-        "name",
-        "quote_date",
-        "timestamp",
-        "price",
-        "prev_close",
-        "open",
-        "high",
-        "low",
-        "volume",
-        "turnover",
-        "vol_ratio",
-    )
-    return {field_name: copy.deepcopy(quote[field_name]) for field_name in fields if field_name in quote}
-
-
-def _target_day_historical_stale_record(
-    exc: LiveAcquisitionError,
-    *,
-    symbol: str,
-    thscode: str,
-    logical_identity: str,
-    target_date: str,
-    quote: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    """Return an exclusion only for the fully proven narrow stale case."""
-
-    diagnostics = exc.diagnostics
-    if exc.status != INPUT_DATE_MISMATCH or diagnostics.get("classification") != TARGET_DAY_HISTORICAL_STALE:
-        return None
-    if diagnostics.get("target_date") != target_date:
-        return None
-    latest_date = diagnostics.get("latest_historical_date")
-    if not isinstance(latest_date, str) or latest_date >= target_date:
-        return None
-    quality = diagnostics.get("historical_quality")
-    if not isinstance(quality, Mapping) or quality.get("non_empty") is not True or quality.get("structure_valid") is not True or quality.get("future_data") is not False:
-        return None
-    provider = diagnostics.get("provider")
-    if not isinstance(provider, str) or not provider.strip():
-        return None
-    if _quote_trade_state(quote, target_date) != "TRADED":
-        return None
-    record = {
-        "symbol": symbol,
-        "provider_symbol": thscode,
-        "target_date": target_date,
-        "provider": provider,
-        "status": EXCLUDED_PROVIDER_STALE,
-        "reason": TARGET_DAY_HISTORICAL_STALE,
-        "latest_historical_date": latest_date,
-        "quote_trade_state": "TRADED",
-        "evidence": {
-            "quote": {
-                "provider": "Tencent",
-                "source": TENCENT_QUOTE_SOURCE,
-                **_quote_trade_evidence(quote),
-            },
-            "historical": {
-                "provider": provider,
-                "source": diagnostics.get("source") or HITHINK_STOCK_KLINE_API,
-                "thscode": thscode,
-                "logical_identity": logical_identity,
-                "latest_historical_date": latest_date,
-                "bar_count": diagnostics.get("historical_bar_count"),
-                "validation": copy.deepcopy(dict(quality)),
-            },
-            "session": {
-                "calendar": XSHG_CALENDAR,
-                "target_date": target_date,
-                "target_day_is_trading_session": True,
-            },
-            "provenance": {
-                "quote_source": TENCENT_QUOTE_SOURCE,
-                "historical_request_identity": logical_identity,
-            },
-            "classification": TARGET_DAY_HISTORICAL_STALE,
-        },
-        "policy_version": PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1,
-    }
-    try:
-        return validate_input_coverage(
-            {
-                "schema_version": INPUT_COVERAGE_SCHEMA,
-                "coverage_status": INPUT_COVERAGE_DEGRADED,
-                "evaluated_symbol_count": 1,
-                "excluded_symbol_count": 1,
-                "excluded_symbols": [record],
-                "policy_version": PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1,
-            }
-        )["excluded_symbols"][0]
-    except ValueError:
-        return None
-
-
 def _build_input_coverage(
     evaluated_symbol_count: int,
     excluded_symbols: Sequence[Mapping[str, Any]],
@@ -2561,26 +2553,6 @@ def _build_input_coverage(
     except ValueError as exc:
         _fail(PROVIDER_FAILURE, f"input coverage metadata is invalid: {exc}")
         raise AssertionError from exc
-
-
-def _filter_sector_symbols(sector: Any, excluded_symbols: set[str]) -> Any:
-    if not excluded_symbols:
-        return sector
-
-    def retain(value: Any) -> Any:
-        if isinstance(value, Mapping):
-            if str(value.get("symbol", "")).strip().lower() in excluded_symbols:
-                return None
-            return {key: retain(item) for key, item in value.items()}
-        if isinstance(value, (list, tuple)):
-            return [item for item in (retain(item) for item in value) if item is not None]
-        return copy.deepcopy(value)
-
-    return replace(
-        sector,
-        members=retain(sector.members),
-        rank_input=retain(sector.rank_input),
-    )
 
 
 def _capture_market_bars(
@@ -3244,7 +3216,10 @@ def acquire_live_generation_inputs(
         request_get=hithink_request_get,
         capture_store=evidence_store,
     )
-    if not all(callable(getattr(hithink, name, None)) for name in ("universe", "historical_bars", "capability_report")):
+    if not all(
+        callable(getattr(hithink, name, None))
+        for name in ("universe", "snapshots", "historical_bars", "capability_report")
+    ):
         _fail(PROVIDER_UNAVAILABLE, "HiThink client capability is incomplete")
     # AkShare is deliberately initialized only after the authoritative
     # HiThink universe has passed validation.  It is optional sector
@@ -3292,7 +3267,7 @@ def acquire_live_generation_inputs(
                 exc,
                 elapsed_seconds=time.monotonic() - acquisition_started,
                 universe_symbol_count=0,
-                unexecuted_stage="exact Sina sector, Tencent quotes, stock/index Kline, market_env, manifest, persistence",
+                unexecuted_stage="exact Sina sector, HiThink quotes, stock/index Kline, market_env, manifest, persistence",
             ),
         )
     try:
@@ -3329,172 +3304,81 @@ def acquire_live_generation_inputs(
         # evaluator receives only its existing missing-sector tuple.
         sector = _build_missing_sector(target_date, retrieved_at_bjt, display_names)
 
+    # ``request_get`` and ``quote_retries`` are retained for API compatibility
+    # with existing callers, but all production reads below are through the
+    # HiThink client.  Tencent is intentionally not even a recovery branch.
     get = request_get or requests.get
-    quote_provider_version = f"requests/{_installed_version('requests')}"
-
-    def quote_identity(batch_index: int, batch: Sequence[str]) -> str:
-        return f"batch={batch_index};codes={','.join(batch)}"
-
-    def capture_quote_response(
-        batch_index: int,
-        batch: list[str],
-        url: str,
-        response: Any,
-    ) -> None:
-        if evidence_store is None:
-            return
-        payload, encoding = _response_bytes(response)
-        evidence_store.capture_raw(
-            "tencent_quote",
-            quote_identity(batch_index, batch),
-            payload,
-            provider="Tencent",
-            source_identity=TENCENT_QUOTE_SOURCE,
-            provider_version=quote_provider_version,
-            request_identity=url,
-            record_count=len(batch),
-            batch_count=1,
-            effective_trading_date=target_date,
-            encoding=encoding,
-            content_type="provider_response",
-            metadata_extra={
-                "decode_encoding": "gbk",
-                "codes": list(batch),
-            },
-        )
-
-    def load_quote_response(batch_index: int, batch: list[str], url: str) -> str | None:
-        if evidence_store is None:
-            return None
-        record = evidence_store.load_raw("tencent_quote", quote_identity(batch_index, batch))
-        if record is None:
-            return None
-        if record.metadata.get("content_type") != "provider_response":
-            _fail(PERSISTENCE_CONFLICT, f"Tencent quote capture is not a provider response for batch {batch_index}")
-        try:
-            return record.payload.decode(str(record.metadata.get("decode_encoding", "gbk")))
-        except UnicodeDecodeError as exc:
-            _fail(PERSISTENCE_CONFLICT, f"Tencent quote capture cannot be decoded for batch {batch_index}: {type(exc).__name__}")
-
+    del quote_retries
+    hithink_quote_provider_version = HITHINK_API_VERSION
+    requested_thscodes = [_hithink_thscode(symbol) for symbol in universe.symbols]
     try:
-        quotes = fetch_quotes(
-            universe.symbols,
-            expected_date=target_date,
-            timeout=quote_timeout,
-            retries=quote_retries,
-            request_get=get,
-            raw_response_callback=capture_quote_response,
-            cached_response_loader=load_quote_response,
+        snapshot_payload = hithink.snapshots(requested_thscodes, timeout=quote_timeout)
+        quotes, quote_metadata = _normalize_hithink_snapshots(
+            snapshot_payload,
+            target_date=target_date,
+            display_names=display_names,
         )
-    except MissingQuoteError as exc:
+    except LiveAcquisitionError as exc:
         if evidence_store is not None:
             evidence_store.record_failure(
-                "tencent_quote",
-                provider="Tencent",
-                source_identity=TENCENT_QUOTE_SOURCE,
-                provider_version=quote_provider_version,
+                "hithink_quote",
+                provider="HiThink Financial-API",
+                source_identity=HITHINK_QUOTE_API,
+                provider_version=hithink_quote_provider_version,
                 error_type=type(exc).__name__,
                 error_detail=str(exc),
-                request_identity="tencent_quote_snapshot",
-                response_component="tencent_quote",
+                request_identity=HITHINK_QUOTE_API,
+                response_component="hithink_response",
             )
-        _fail(INCOMPLETE_COVERAGE, "Tencent quote coverage is incomplete")
-        raise AssertionError from exc
-    except StaleQuoteError as exc:
-        if evidence_store is not None:
-            evidence_store.record_failure(
-                "tencent_quote",
-                provider="Tencent",
-                source_identity=TENCENT_QUOTE_SOURCE,
-                provider_version=quote_provider_version,
-                error_type=type(exc).__name__,
-                error_detail=str(exc),
-                request_identity="tencent_quote_snapshot",
-                response_component="tencent_quote",
-            )
-        _fail(INPUT_DATE_MISMATCH, "Tencent quote is not a T-date quote")
-        raise AssertionError from exc
-    except QuoteParseError as exc:
-        if evidence_store is not None:
-            evidence_store.record_failure(
-                "tencent_quote",
-                provider="Tencent",
-                source_identity=TENCENT_QUOTE_SOURCE,
-                provider_version=quote_provider_version,
-                error_type=type(exc).__name__,
-                error_detail=str(exc),
-                request_identity="tencent_quote_snapshot",
-                response_component="tencent_quote",
-            )
-        if str(exc) == "empty Tencent quote response":
-            _fail(INCOMPLETE_COVERAGE, "Tencent quote response is empty")
-        _fail(PROVIDER_FAILURE, "Tencent quote response is malformed")
-        raise AssertionError from exc
-    except QuoteDataError as exc:
-        if evidence_store is not None:
-            evidence_store.record_failure(
-                "tencent_quote",
-                provider="Tencent",
-                source_identity=TENCENT_QUOTE_SOURCE,
-                provider_version=quote_provider_version,
-                error_type=type(exc).__name__,
-                error_detail=str(exc),
-                request_identity="tencent_quote_snapshot",
-                response_component="tencent_quote",
-            )
+        quote_diagnostics = dict(exc.diagnostics)
+        quote_diagnostics.update(
+            {
+                "provider": "HiThink Financial-API",
+                "stage": "hithink_quote_snapshot",
+                "exception_type": type(exc).__name__,
+            }
+        )
         detail = str(exc)
-        diagnostics = {
-            "provider": "Tencent",
-            "stage": "tencent_quote_snapshot",
-            "exception_type": type(exc).__name__,
-            "exception_detail": detail,
-        }
+        prefix = f"{exc.status}: "
+        if detail.startswith(prefix):
+            detail = detail[len(prefix):]
+        raise LiveAcquisitionError(exc.status, detail, quote_diagnostics) from exc
+    except Exception as exc:
+        if evidence_store is not None:
+            evidence_store.record_failure(
+                "hithink_quote",
+                provider="HiThink Financial-API",
+                source_identity=HITHINK_QUOTE_API,
+                provider_version=hithink_quote_provider_version,
+                error_type=type(exc).__name__,
+                error_detail=str(exc),
+                request_identity=HITHINK_QUOTE_API,
+                response_component="hithink_response",
+            )
         _fail(
             PROVIDER_FAILURE,
-            f"Tencent quote acquisition failed: {detail or type(exc).__name__}",
-            diagnostics,
+            f"HiThink quote acquisition failed: {type(exc).__name__}",
+            {
+                "provider": "HiThink Financial-API",
+                "stage": "hithink_quote_snapshot",
+                "exception_type": type(exc).__name__,
+            },
         )
-        raise AssertionError from exc
     expected_symbols = set(universe.symbols)
     actual_symbols = set(quotes)
     if actual_symbols != expected_symbols:
         missing = sorted(expected_symbols - actual_symbols)
         extra = sorted(actual_symbols - expected_symbols)
-        _fail(INPUT_CONFLICT, f"Tencent quote identity mismatch; missing={missing}, extra={extra}")
-    quote_manifest = QuoteSnapshotManifest(
-        as_of_date=target_date,
-        retrieved_at_bjt=retrieved_at_bjt,
-        source=TENCENT_QUOTE_SOURCE,
-        provider="Tencent",
-        quotes=quotes,
-        temporal_semantics=LIVE_OBSERVED,
-    )
-
-    def capture_tencent_kline_response(
-        symbol: str,
-        requested_count: int,
-        index: bool,
-        response: Any,
-    ) -> None:
-        if evidence_store is None:
-            return
-        payload, encoding = _response_bytes(response)
-        provider_symbol = to_symbol(symbol)
-        url = f"https://{TENCENT_KLINE_SOURCE}?param={provider_symbol},day,,,{requested_count},qfq"
-        evidence_store.capture_raw(
-            "tencent_kline_response",
-            f"{symbol};index={str(index).lower()};count={requested_count}",
-            payload,
-            provider="Tencent",
-            source_identity=TENCENT_KLINE_SOURCE,
-            provider_version=f"requests/{_installed_version('requests')}",
-            request_identity=url,
-            effective_trading_date=target_date,
-            encoding=encoding,
-            content_type="provider_response",
-            metadata_extra={"decode_encoding": "utf-8", "provider_symbol": provider_symbol},
+        _fail(
+            INCOMPLETE_COVERAGE if missing else INPUT_CONFLICT,
+            f"HiThink quote identity mismatch; missing={missing}, extra={extra}",
+            {
+                "provider": "HiThink Financial-API",
+                "target_date": target_date,
+                "missing_symbols": missing,
+                "extra_symbols": extra,
+            },
         )
-
     def record_kline_failure(
         component: str,
         symbol: str,
@@ -3511,16 +3395,11 @@ def acquire_live_generation_inputs(
             error_type=type(exc).__name__,
             error_detail=str(exc),
             request_identity=f"{symbol}:{logical_identity}",
-            response_component=(
-                "tencent_kline_response"
-                if evidence_store.latest("tencent_kline_response") is not None
-                else "hithink_response"
-            ),
+            response_component="hithink_response",
         )
 
     stock_klines: list[KlineManifest] = []
     stock_resolutions: dict[str, dict[str, Any]] = {}
-    excluded_provider_stale: list[dict[str, Any]] = []
     for symbol in universe.symbols:
         logical_identity, thscode, _, _ = _history_capture_spec(
             symbol,
@@ -3554,9 +3433,6 @@ def acquire_live_generation_inputs(
                     index=False,
                     allow_tencent_fallback=allow_tencent_fallback,
                     allow_stale_as_of=is_no_trade_snapshot(quotes[symbol]),
-                    tencent_raw_response_callback=lambda response, symbol=symbol: capture_tencent_kline_response(
-                        symbol, stock_bar_count, False, response
-                    ),
                 )
                 if evidence_store is not None:
                     _capture_market_bars(
@@ -3570,31 +3446,49 @@ def acquire_live_generation_inputs(
                 bars, resolution = cached
         except LiveAcquisitionError as exc:
             record_kline_failure("stock_kline", symbol, logical_identity, exc)
-            exclusion = _target_day_historical_stale_record(
-                exc,
-                symbol=symbol,
-                thscode=thscode,
-                logical_identity=logical_identity,
-                target_date=target_date,
-                quote=quotes[symbol],
-            )
-            if exclusion is not None:
-                excluded_provider_stale.append(exclusion)
-                if len(excluded_provider_stale) > 1:
-                    _fail(
-                        TARGET_DAY_HISTORICAL_STALE_LIMIT_EXCEEDED,
-                        "more than one target-day historical stale symbol is not eligible for isolation",
-                        {
-                            "policy_version": PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1,
-                            "reason": TARGET_DAY_HISTORICAL_STALE,
-                            "symbols": [item["symbol"] for item in excluded_provider_stale],
-                        },
-                    )
-                continue
             raise
         except Exception as exc:
             record_kline_failure("stock_kline", symbol, logical_identity, exc)
             _fail(PROVIDER_FAILURE, f"Kline acquisition failed for {symbol}: {type(exc).__name__}")
+        quote = quotes[symbol]
+        quote_state = classify_trade_state(quote)
+        latest_bar = bars[-1]
+        latest_bar_date = latest_bar.get("date")
+        latest_volume = float(latest_bar.get("volume", 0.0))
+        if latest_bar_date == target_date:
+            if quote_state == TRADE_STATE_NO_TRADE and latest_volume > 0:
+                _fail(
+                    INPUT_CONFLICT,
+                    f"HiThink quote and target-day historical bar disagree on trade state for {symbol}",
+                    {
+                        "symbol": symbol,
+                        "target_date": target_date,
+                        "provider": "HiThink Financial-API",
+                        "quote_trade_state": quote_state,
+                        "historical_volume": latest_volume,
+                    },
+                )
+            if latest_volume > 0:
+                quote["trade_state"] = TRADE_STATE_TRADED
+                quote["trade_state_evidence"] = "HITHINK_HISTORICAL_TARGET_BAR"
+            elif quote_state == TRADE_STATE_UNKNOWN:
+                quote["trade_state"] = TRADE_STATE_NO_TRADE
+                quote["trade_state_evidence"] = "HITHINK_HISTORICAL_TARGET_BAR_ZERO_VOLUME"
+        elif quote_state not in {TRADE_STATE_NO_TRADE}:
+            # _resolve_market_bars is strict for UNKNOWN/TRADED snapshots;
+            # this branch is a defensive guard for custom adapters.
+            _fail(
+                HITHINK_SINGLE_SOURCE_TRADE_STATE_DECISION_REQUIRED,
+                f"HiThink cannot establish target-day trade state for {symbol}",
+                {
+                    "symbol": symbol,
+                    "target_date": target_date,
+                    "latest_historical_date": latest_bar_date,
+                    "provider": "HiThink Financial-API",
+                    "quote_trade_state": quote_state,
+                    "retry_count": resolution.get("retry_count", 0),
+                },
+            )
         stock_resolutions[symbol] = resolution
         stock_klines.append(
             KlineManifest(
@@ -3639,9 +3533,6 @@ def acquire_live_generation_inputs(
                 request_get=get,
                 index=True,
                 allow_tencent_fallback=allow_tencent_fallback,
-                tencent_raw_response_callback=lambda response: capture_tencent_kline_response(
-                    INDEX_SYMBOL, index_bar_count, True, response
-                ),
             )
             if evidence_store is not None:
                 _capture_market_bars(
@@ -3669,26 +3560,15 @@ def acquire_live_generation_inputs(
         source=index_resolution["source"],
         temporal_semantics=LIVE_OBSERVED,
     )
-    if excluded_provider_stale:
-        excluded_set = {item["symbol"] for item in excluded_provider_stale}
-        retained_symbols = tuple(symbol for symbol in universe.symbols if symbol not in excluded_set)
-        if not retained_symbols:
-            _fail(
-                INCOMPLETE_COVERAGE,
-                "provider-stale isolation would leave no symbol for strategy evaluation",
-            )
-        universe = replace(universe, symbols=retained_symbols)
-        display_names = {
-            symbol: display_names[symbol]
-            for symbol in retained_symbols
-        }
-        quote_manifest = replace(
-            quote_manifest,
-            quotes={symbol: quote_manifest.quotes[symbol] for symbol in retained_symbols},
-        )
-        stock_klines = [item for item in stock_klines if item.symbol in set(retained_symbols)]
-        sector = _filter_sector_symbols(sector, excluded_set)
-    input_coverage = _build_input_coverage(len(universe.symbols), excluded_provider_stale)
+    quote_manifest = QuoteSnapshotManifest(
+        as_of_date=target_date,
+        retrieved_at_bjt=retrieved_at_bjt,
+        source=HITHINK_QUOTE_API,
+        provider="HiThink Financial-API",
+        quotes=quotes,
+        temporal_semantics=LIVE_OBSERVED,
+    )
+    input_coverage = _build_input_coverage(len(universe.symbols), [])
     market_env = _market_env(index)
     sector_enrichment = _sector_enrichment_metadata(
         sina,
@@ -3712,6 +3592,46 @@ def acquire_live_generation_inputs(
         if sina is not None and sector_status == SECTOR_ENRICHMENT_AVAILABLE
         else {"mismatch_count": 0, "mismatches": []}
     )
+    quote_metadata["target_date_evidence"] = "SAME_PROVIDER_HISTORICAL_OR_EXPLICIT_NO_TRADE"
+    quote_metadata["trade_state_counts"] = {
+        state: sum(1 for quote in quotes.values() if quote.get("trade_state") == state)
+        for state in (TRADE_STATE_TRADED, TRADE_STATE_NO_TRADE, TRADE_STATE_UNKNOWN)
+    }
+    if quote_metadata["trade_state_counts"][TRADE_STATE_UNKNOWN] > 0:
+        _fail(
+            HITHINK_SINGLE_SOURCE_TRADE_STATE_DECISION_REQUIRED,
+            "HiThink trade state remains UNKNOWN after same-provider validation",
+            {
+                "target_date": target_date,
+                "provider": "HiThink Financial-API",
+                "symbols": sorted(
+                    symbol for symbol, quote in quotes.items()
+                    if quote.get("trade_state") == TRADE_STATE_UNKNOWN
+                ),
+            },
+        )
+    market_data_source = {
+        "policy_version": SINGLE_AUTHORITATIVE_MARKET_DATA_SOURCE_V1,
+        "authoritative_provider": "HiThink Financial-API",
+        "authoritative_base_url": HITHINK_BASE_URL,
+        "authoritative_apis": {
+            "universe": HITHINK_UNIVERSE_API,
+            "quotes": HITHINK_QUOTE_API,
+            "stock_klines": HITHINK_STOCK_KLINE_API,
+            "index_klines": HITHINK_INDEX_KLINE_API,
+        },
+        "fallbacks": [],
+        "tencent_production_calls": 0,
+        "akshare_roster_production_calls": 0,
+        "trade_state_policy": {
+            "states": [TRADE_STATE_TRADED, TRADE_STATE_NO_TRADE, TRADE_STATE_UNKNOWN],
+            "ambiguous_action": HITHINK_SINGLE_SOURCE_TRADE_STATE_DECISION_REQUIRED,
+            "same_provider_stale_retry_count": 1,
+        },
+        "turnover_rate_required": False,
+        "turnover_rate_provider": "NONE",
+        "turnover_amount_field": "turnover_amount",
+    }
     provider_metadata = {
         "runtime": runtime_versions,
         "universe_policy": UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1,
@@ -3722,15 +3642,17 @@ def acquire_live_generation_inputs(
         "display_name_diagnostics": sector_diagnostics,
         "sector_membership_quality": copy.deepcopy(sector_quality),
         "sector_enrichment": copy.deepcopy(sector_enrichment),
+        "market_data_source": market_data_source,
+        # Compatibility-shaped audit node for downstream readers of the
+        # previous metadata schema.  It explicitly describes the absence of
+        # fallback rather than advertising an executable fallback policy.
         "market_data_failover": {
-            "policy_version": MARKET_DATA_FAILOVER_POLICY_VERSION,
-            "tencent_fallback_allowed": bool(allow_tencent_fallback),
-            "tencent_fallback_version": TENCENT_FALLBACK_VERSION,
-            "fallback_symbols": sorted(
-                [symbol for symbol, resolution in stock_resolutions.items() if resolution["selection"] == "EXPLICIT_FALLBACK"]
-                + ([INDEX_SYMBOL] if index_resolution["selection"] == "EXPLICIT_FALLBACK" else [])
-            ),
+            "policy_version": SINGLE_AUTHORITATIVE_MARKET_DATA_SOURCE_V1,
+            "tencent_fallback_allowed": False,
+            "fallback_symbols": [],
+            "fallbacks": [],
         },
+        "quote_snapshot": copy.deepcopy(quote_metadata),
         "providers": {
             "universe": {
                 "provider": "HiThink Financial-API",
@@ -3762,7 +3684,12 @@ def acquire_live_generation_inputs(
                 "detail_api": AKSHARE_SINA_DETAIL_API,
                 "forbidden_substitutions": ["申万行业", "同花顺行业"],
             },
-            "quotes": {"provider": "Tencent", "source": TENCENT_QUOTE_SOURCE},
+            "quotes": {
+                "provider": "HiThink Financial-API",
+                "source": HITHINK_QUOTE_API,
+                "target_date_evidence": quote_metadata.get("target_date_evidence"),
+                "turnover_semantics": "turnover_amount_only;not_turnover_rate",
+            },
             "stock_klines": {
                 "provider": "HiThink Financial-API",
                 "api_version": HITHINK_API_VERSION,
@@ -3770,7 +3697,7 @@ def acquire_live_generation_inputs(
                 "api": HITHINK_STOCK_KLINE_API,
                 "adjust": "forward",
                 "primary": "HiThink Financial-API",
-                "fallback": "Tencent",
+                "fallback": None,
             },
             "index": {
                 "provider": "HiThink Financial-API",
@@ -3779,7 +3706,7 @@ def acquire_live_generation_inputs(
                 "api": HITHINK_INDEX_KLINE_API,
                 "adjustment_mode": PROVIDER_RAW_SNAPSHOT,
                 "primary": "HiThink Financial-API",
-                "fallback": "Tencent",
+                "fallback": None,
             },
         },
         "hithink_capability": hithink.capability_report(),
@@ -3936,6 +3863,7 @@ __all__ = [
     "HITHINK_API_VERSION",
     "HITHINK_BASE_URL",
     "HITHINK_INDEX_KLINE_API",
+    "HITHINK_QUOTE_API",
     "HITHINK_LIST_DATE_ELIGIBILITY_V1",
     "HITHINK_LIST_DATE_SOURCE",
     "HITHINK_LIVE_PRIMARY",
@@ -3944,6 +3872,8 @@ __all__ = [
     "HITHINK_STOCK_KLINE_API",
     "HITHINK_UNIVERSE_SELECTION_RULE",
     "HITHINK_UNIVERSE_API",
+    "HITHINK_SINGLE_SOURCE_TRADE_STATE_DECISION_REQUIRED",
+    "SINGLE_AUTHORITATIVE_MARKET_DATA_SOURCE_V1",
     "HiThinkClient",
     "INPUT_CONFLICT",
     "LiveAcquisitionError",
@@ -3969,7 +3899,6 @@ __all__ = [
     "SZSE_OFFICIAL_LISTED_ROSTER_URL",
     "SinaSectorClient",
     "TCloseEvidenceStore",
-    "TENCENT_KLINE_SOURCE",
     "TARGET_DAY_HISTORICAL_STALE",
     "TARGET_DAY_HISTORICAL_STALE_LIMIT_EXCEEDED",
     "TRADABLE_UNIVERSE_SCOPE_V1",

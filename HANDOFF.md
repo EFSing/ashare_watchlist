@@ -6,6 +6,25 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-18 — SINGLE_AUTHORITATIVE_MARKET_DATA_SOURCE_V1
+
+- decision：生产 universe、snapshot、个股/指数 historical K 线只允许 HiThink Financial-API；
+  Tencent quote/Kline 与 AkShare exchange roster production calls=`0`。Sina `新浪行业` 仅为
+  optional fail-soft sector enrichment。
+- safety：target-day trade state 使用 `TRADED` / `NO_TRADE` / `UNKNOWN`；null/partial 或缺少 T 日
+  historical bar 不得推断为 NO_TRADE。HiThink stale 只做一次同源重试，仍不确定就 fail-closed，
+  diagnostics 必须包含 symbol、target_date、latest_historical_date、provider、retry_count；不做
+  per-symbol stale isolation。
+- turnover：HiThink `turnover` 按成交额记录为 `turnover_amount`，不是换手率；Formal B 当前不
+  要求 turnover/vol_ratio，缺失保持缺失，禁止补 0 或伪造。
+- delivery：分支为 `codex/single-authoritative-market-data-source-v1`。用户已授权在最终 PR
+  head、exact-head CI、master correctness CI、Formal B SHA、工作树范围与 runtime-state canonical
+  completion 全部安全后直接 squash merge；merge 后若 2026-09-17 尚未 canonical completed，则直接
+  以 `mode=production`、`as_of_date=2026-09-17`、`trigger_source=manual` 调度并监控到终态。
+- boundaries：PR #60/#66/#67/#68/#71 untouched；Final OOS=`SEALED / UNREAD`；
+  `data/validation/continuous_speed_probe/` 未读未触碰。实时状态以 remote/CI/runtime-state 为准，
+  不把 transient SHA 或 run ID 写成永久治理不变量。
+
 ## 2026-09-17 — HITHINK_LIST_DATE_UNIVERSE_ELIGIBILITY_FIX_V1
 
 - classification：`correctness blocker`（STRICT PATH）。2026-09-17 production failure 中，

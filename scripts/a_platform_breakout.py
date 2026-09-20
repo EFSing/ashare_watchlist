@@ -262,7 +262,7 @@ class FeatureSnapshot:
     overhang: float
     idx_chg5: float
     rs: float
-    turnover: float
+    turnover: float | None
     sector_name: str
     sector_rank: float
     sector_chg: float
@@ -517,6 +517,25 @@ def _quote_number(quote: Mapping[str, Any], *names: str) -> float:
     raise ValueError(f"quote is missing numeric field: {', '.join(names)}")
 
 
+def _optional_quote_number(quote: Mapping[str, Any], *names: str) -> float | None:
+    """Read an optional diagnostic quote field without changing B semantics."""
+
+    for name in names:
+        if name not in quote or quote[name] is None:
+            continue
+        value = quote[name]
+        if isinstance(value, bool):
+            return None
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            return None
+        if math.isfinite(number):
+            return number
+        return None
+    return None
+
+
 def _index_change(index_bars: Sequence[Mapping[str, Any]]) -> float:
     if len(index_bars) < 6:
         raise ValueError("index needs at least six bars for chg5")
@@ -568,7 +587,11 @@ def evaluate_candidate(manifest: GenerationInputManifest, symbol: str) -> Candid
     try:
         if quote is None:
             raise ValueError("quote is missing")
-        turnover = _quote_number(quote, "turnover", "换手率")
+        # Turnover is a display/risk diagnostic only.  It is deliberately
+        # optional because the current authoritative HiThink snapshot field
+        # is traded amount, not turnover rate.  No formal B selection rule
+        # consumes it.
+        turnover = _optional_quote_number(quote, "turnover", "换手率")
         bars = item.bars
         if len(manifest.index.bars) < 6:
             raise ValueError("index has fewer than six bars")
@@ -685,7 +708,7 @@ def evaluate_candidate(manifest: GenerationInputManifest, symbol: str) -> Candid
             prior_five_mean=float(np.mean(c[-6:-1])), sector_chg=sector_chg, rs=rs, rr=rr,
         )
         risk_flags: list[str] = []
-        if turnover > 10:
+        if turnover is not None and turnover > 10:
             risk_flags.append("HIGH_TURNOVER")
         if overhang > 0.35:
             risk_flags.append("OVERHANG")

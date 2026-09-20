@@ -71,6 +71,18 @@ def test_corrected_evaluator_uses_v0_missing_sector_default_and_continues():
     }
 
 
+def test_formal_b_does_not_require_or_synthesize_turnover():
+    result = evaluate_candidate(
+        _manifest(_b_bars(), quote_updates={"turnover": None}),
+        SYMBOL,
+    )
+
+    assert result.status == "QUALIFIED_LEGACY_BASELINE"
+    assert result.features is not None
+    assert result.features.turnover is None
+    assert "HIGH_TURNOVER" not in result.risk_flags
+
+
 def test_corrected_evaluator_resolves_multi_sector_last_write_wins():
     sector_evidence = {
         SYMBOL: [
