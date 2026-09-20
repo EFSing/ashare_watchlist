@@ -6,6 +6,24 @@
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
+## Current task — FRIDAY_VOLUME_OBSERVATION_ONLY_BACKFILL_V1 — 2026-09-20
+
+本轮是 `RETROSPECTIVE_VOLUME_ENRICHMENT / REPORT_ONLY`：只消费已持久化的 2026-09-18 正式
+十只 B 候选，补充下跌日成交量占比、上涨/下跌日均量比、回踩后半/前半均量比。候选身份、原有
+顺序、Score 与 Formal B 语义冻结；不重扫、不重筛、不重排、不运行 `daily-t-close`，不读取或写入
+prospective shadow/runtime-state。
+
+实时 reconciliation 已关闭旧入口记录的 `PROJECT_GOVERNANCE_STATE_CONFLICT`：live
+`origin/master=9bc58344beb5ce9bee2fdfebf4d1e1b452cad6c2`，live
+`origin/runtime-state=40cbde2c30da2e2251956b52001b034b75b62ab5`，PR #73/#74/#75/#76 已合并。
+本任务 branch 为 `codex/friday-volume-observation-only-backfill-v1`，PR #77，head
+`4ba2798f620c119046046855950faabb7d0db77e`；exact-head CI 需以推送文档后的最终 head 重读。
+
+独立 addendum `data/reports/daily_close_20260918_volume_addendum.html` 已生成：10/10 输入验证
+通过，9 只三项全有效；`600929` 的第三项因 `PULLBACK_WINDOW_LT_4` 缺失。实际只读取十只
+股票的 HiThink 历史 K 线，未调用 universe/snapshot/Formal B/shadow/production；本地 full pytest
+为 `663 passed, 2 skipped, 11 warnings`。原 canonical artifact SHA 与报告中记录的身份绑定保持不变。
+
 ## Current task — PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1 — 2026-09-20
 
 本轮为 `correctness blocker + product blocker`（STRICT PATH）：正式生产对能够明确归属到单只股票

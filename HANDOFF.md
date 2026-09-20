@@ -6,6 +6,33 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-20 — FRIDAY_VOLUME_OBSERVATION_ONLY_BACKFILL_V1
+
+- classification：`RETROSPECTIVE_VOLUME_ENRICHMENT / REPORT_ONLY`。本轮只为已持久化的
+  2026-09-18 Formal B 十只候选生成独立量能补充，不重扫 universe、不重跑 Formal B、不改写
+  canonical watchlist/checkpoint/report/delivery/tracker/shadow/runtime-state，也不启动
+  `daily-t-close`。
+- `PROJECT_GOVERNANCE_STATE_CONFLICT`：旧入口仍停留在 PR #76 合并前的
+  `origin/master=4009108...` / `origin/runtime-state=7db58b...`；实时 fetch 已核对
+  `origin/master=9bc58344beb5ce9bee2fdfebf4d1e1b452cad6c2`、PR #73/#74/#75/#76 已合并，
+  `origin/runtime-state=40cbde2c30da2e2251956b52001b034b75b62ab5`。本条只做最小入口修正。
+- locked identity：原 watchlist SHA-256=`5c16a0e7d57bc78249b05ea067aa798ace2c1e79bac78c1e40532a6b279573ea`；
+  checkpoint=`64224f29ef102a283b5e83100705484ae55371a33c4e424a8bcffefc331ee376`；formal
+  report=`acfbec2a7399c2eb83a5fe62c83ccbbfaf4852b9d9c8013b62de256789178aaa`；delivery
+  receipt=`d37bf69a170f474faa0bd8fdf35a45820cb7c6767055e67b6d6fdd1e283c3751`。顺序固定为
+  `000701,000807,001217,001222,600689,600929,601599,603096,603628,605003`。
+- implementation：独立 branch/worktree 为 `codex/friday-volume-observation-only-backfill-v1` /
+  `C:\awv`，PR #77，head=`4ba2798f620c119046046855950faabb7d0db77e`。工具只读取可信缓存或
+  对上述十只调用 HiThink historical K-line，复用既有三项纯计算；未来日期、身份/OHLCV
+  不兼容逐票 fail-soft，绝不写 prospective shadow。
+- result：独立 addendum 为 `data/reports/daily_close_20260918_volume_addendum.html`，实际
+  10/10 输入验证通过，9 只三项全有效；`600929` 的后半/前半均量比为
+  `PULLBACK_WINDOW_LT_4`。报告 output SHA-256=`e1c110f64741690ccea2d85dd6762df2eafab2f28abf2753c503fc06e7da5d4e`。
+- verification：local full pytest=`663 passed, 2 skipped, 11 warnings`；实际 provider
+  access=`10` 个定向历史 K 线 symbol，universe/snapshot/Formal B/shadow calls=`0`，production
+  dispatch=`0`，remote runtime-state mutation=`0`。PR #77 exact-head CI 尚需在最终文档 head
+  上重读；不自动 merge，终点仍为用户 merge decision。
+
 ## 2026-09-20 — PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1
 
 - classification：`correctness blocker + product blocker`（STRICT PATH）。目标是让正式生产
