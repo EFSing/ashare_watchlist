@@ -6,6 +6,28 @@
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
+## Current task — FRIDAY_WEEKEND_BACKFILL_PREFLIGHT_STATE_FIX_V1 — 2026-09-20
+
+本轮是 `correctness blocker`（STRICT PATH）：PR #74 合并后的真实 run `35492829019` 在
+`AUTHORIZED_WEEKEND_BACKFILL_READY` preflight 状态处被 workflow 误拒，未进入真实行情调用。实时
+`origin/master=bb061be8e5e81e6584878e578c097972a1ecc428` 已包含 PR #74；live
+`origin/runtime-state=7db58bee3aadde658a01bc9c0bbf371ff444d1dc` 只有 9/18 operational failure
+notice，没有 9/18 canonical success artifact。该旧的“PR #74 待合并”文字已完成最小
+`PROJECT_GOVERNANCE_STATE_CONFLICT` reconciliation。
+
+修复 branch/worktree 为 `codex/friday-weekend-backfill-preflight-state-fix-20260920` /
+`D:\dev\ashare-watchlist-friday-weekend-backfill-preflight-fix`，PR #75：
+https://github.com/EFSing/ashare_watchlist/pull/75。workflow 仍只在精确手动 production、
+`as_of_date=2026-09-18`、manual source、显式授权时接受 `AUTHORIZED_WEEKEND_BACKFILL_READY`；
+普通 production 仍只接受 `POST_CLOSE_DIAGNOSTIC_READY`，凭证和 runtime package gate 不变。
+
+local relevant=`47 passed`；full pytest=`645 passed, 2 skipped, 10 warnings`；compileall 与
+`git diff --check` 通过。production dispatch、provider calls、runtime-state remote mutation
+均为 `0`；Final OOS=`SEALED / UNREAD`，受禁目录未读未触碰。下一步只核对 PR #75 最终 head 的
+exact-head CI 与 mergeability，终点为
+`FRIDAY_WEEKEND_BACKFILL_PREFLIGHT_STATE_FIX_PR_READY_FOR_USER_MERGE_DECISION`，不自动合并或
+触发 production。
+
 ## Current task — FRIDAY_WEEKEND_BACKFILL_20260918_V1 — 2026-09-20
 
 本轮为 `correctness blocker`（STRICT PATH）：只为 2026-09-18 这一个目标交易日接通显式授权的

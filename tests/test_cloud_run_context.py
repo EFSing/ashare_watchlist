@@ -118,3 +118,22 @@ def test_workflow_has_explicit_date_binding_and_stale_skip_gate():
     assert "persist-failure-notice" in workflow
     assert "daily_failure_notice_${AS_OF_DATE//-/}.json" in workflow
     assert "datetime.now(timezone.utc).astimezone" not in workflow
+
+
+def test_workflow_accepts_authorized_weekend_preflight_status_only_for_bounded_dispatch():
+    workflow = (
+        Path(__file__).resolve().parents[1] / ".github" / "workflows" / "daily_t_close.yml"
+    ).read_text(encoding="utf-8")
+
+    start = workflow.index("          preflight_ready=0")
+    end = workflow.index('            cat "$output"', start)
+    gate = workflow[start:end]
+
+    assert 'if [[ "$status" == "POST_CLOSE_DIAGNOSTIC_READY" ]]; then' in gate
+    assert 'elif [[ "$status" == "AUTHORIZED_WEEKEND_BACKFILL_READY" ]]; then' in gate
+    assert '"$EVENT_NAME" == "workflow_dispatch"' in gate
+    assert '"$RUN_MODE" == "production"' in gate
+    assert '"$DISPATCH_TRIGGER_SOURCE" == "manual"' in gate
+    assert '"$DISPATCH_AS_OF_DATE" == "2026-09-18"' in gate
+    assert '"${DISPATCH_ALLOW_WEEKEND_BACKFILL,,}" == "true"' in gate
+    assert "if (( preflight_ready != 1 )) ||" in gate
