@@ -6,6 +6,30 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-20 — FRIDAY_WEEKEND_BACKFILL_20260918_V1
+
+- classification：`correctness blocker`（时间点、HiThink 日期证据、tracker/shadow 前瞻身份与
+  runtime-state 幂等边界）；不改变 Formal B、冻结策略或研究结论。
+- live reconciliation：`origin/master=b60fac712ab96218b210f017fcea5ec871cd47c6` 已包含 PR #73
+  的单一 HiThink 生产行情源；其 master correctness run=`35484210930` 为 `success`。当前
+  `origin/runtime-state=be8236629684b34dab5672df774918273536a5d9`，没有 2026-09-18 的 dated
+  watchlist、日报、checkpoint 或 delivery receipt；仅有 2026-09-17 failure notice。
+- implementation：独立 branch/worktree 为
+  `codex/friday-weekend-backfill-20260918-v1` /
+  `D:\dev\ashare-watchlist-friday-weekend-backfill-20260918-v1`，PR #74：
+  https://github.com/EFSing/ashare_watchlist/pull/74 。授权只绑定手动 production、manual source、
+  `as_of_date=2026-09-18`、默认关闭的 `allow_weekend_backfill`；preflight 与 acquisition 同时接线。
+- safety：HiThink undated snapshot 必须与同源目标日 OHLCV/前收一致；补跑不写
+  `PROSPECTIVE_CAPTURED` shadow，tracker observations 写入明确的非前瞻 source mode；失败不持久化
+  正式成功。当前 production dispatch=`0`，provider calls=`0`，runtime-state remote mutation=`0`。
+- verification：focused=`188 passed`；full pytest=`644 passed, 2 skipped, 10 warnings`；
+  compileall、`git diff --check` 通过；Final OOS=`SEALED / UNREAD`，
+  `data/validation/continuous_speed_probe/` 未读未触碰。
+- next：以 PR 最终 head 核验 exact-head CI 与 mergeability；不自动 merge、不触发 production。用户
+  合并后才可在仍处于合法窗口时以 `mode=production`、`as_of_date=2026-09-18`、
+  `trigger_source=manual`、`allow_weekend_backfill=true` 手动 dispatch。
+- terminal：等待用户 merge decision；若窗口进入 2026-09-21 或以后，必须停止补跑方案。
+
 ## 2026-09-18 — SINGLE_AUTHORITATIVE_MARKET_DATA_SOURCE_V1
 
 - decision：生产 universe、snapshot、个股/指数 historical K 线只允许 HiThink Financial-API；

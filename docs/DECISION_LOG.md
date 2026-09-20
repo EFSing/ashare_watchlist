@@ -5,6 +5,24 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-20 — FRIDAY_WEEKEND_BACKFILL_20260918_V1
+
+- decision：`ADOPT` 一个只绑定 `2026-09-18` 的窄化补跑入口：只有 workflow 手动
+  `mode=production`、`trigger_source=manual`、精确 `as_of_date=2026-09-18` 且显式勾选授权时，才
+  同时放宽现有 preflight 与 acquisition 的紧邻非交易日窗口；输入默认关闭，schedule、Cloudflare、
+  普通 dispatch、preflight-only 与 delivery-test 语义不变。
+- provider evidence：HiThink universe、snapshot、stock/index historical K 线仍是唯一生产行情源；
+  target historical window 严禁未来 bar。无 snapshot record date 时，只有在同源目标日历史 K 线的
+  OHLCV/可用前收一致、交易状态可判定且无日期冲突时才冻结输入，否则 fail-closed。
+- prospective boundary：授权周日补跑不写 shadow `PROSPECTIVE_CAPTURED`，也不执行 shadow update；
+  tracker 观察字段使用 `AUTHORIZED_WEEKEND_BACKFILL_OBSERVATION_V1` 与
+  `POST_SESSION_BACKFILL_NOT_PROSPECTIVE`，日报显示为非前瞻补跑。现有 checkpoint、latest report、
+  delivery receipt、同日 completion/idempotency 机制继续作为唯一持久化边界。
+- rationale：事后重建的 T 日输入可以作为授权的 dated production artifact，但不能被误标为当时已
+  前瞻捕获；若窗口跨越后续 XSHG session、provider 日期证据不足或状态契约不清，必须停止而非放宽。
+- boundary：不改变 Formal B、冻结 spec、Main Board universe、股票资格/排名、研究结论、Final OOS
+  (`SEALED / UNREAD`) 或 `data/validation/continuous_speed_probe/`；不自动 merge、不自动 dispatch。
+
 ## 2026-09-18 — SINGLE_AUTHORITATIVE_MARKET_DATA_SOURCE_V1
 
 - classification：`ADOPT` as a production correctness and provenance decision; not a strategy,
