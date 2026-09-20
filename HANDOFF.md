@@ -22,9 +22,9 @@
 - safety：HiThink undated snapshot 必须与同源目标日 OHLCV/前收一致；补跑不写
   `PROSPECTIVE_CAPTURED` shadow，tracker observations 写入明确的非前瞻 source mode；失败不持久化
   正式成功。当前 production dispatch=`0`，provider calls=`0`，runtime-state remote mutation=`0`。
-- verification：当前 remote head=`480e2e97c18916b2bdffb128212324c73284c379`；PR #74 为
-  `OPEN / non-Draft / mergeable_state=CLEAN`。该 exact head 的 push correctness run
-  `35485629651` 与 pull_request correctness run `35485631844` 均为 `success`。focused=`188 passed`；
+- verification：代码/测试 head `480e2e97c18916b2bdffb128212324c73284c379` 的 push correctness run
+  `35485629651` 与 pull_request correctness run `35485631844` 均为 `success`；本条 checkpoint 后的
+  文档提交使 branch remote head 前进，恢复时须实时读取其 exact head 与 PR #74 状态。focused=`188 passed`；
   full pytest=`644 passed, 2 skipped, 10 warnings`；compileall、`git diff --check` 通过；Final OOS=
   `SEALED / UNREAD`，`data/validation/continuous_speed_probe/` 未读未触碰。
 - next：不自动 merge、不触发 production。用户
