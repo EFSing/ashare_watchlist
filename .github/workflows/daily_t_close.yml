@@ -256,7 +256,15 @@ jobs:
             echo "ASHARE_SUMMARY_STATUS=$status" >> "$GITHUB_ENV"
             exit 0
           fi
-          if [[ "$status" != "POST_CLOSE_DIAGNOSTIC_READY" || "$credential" != "READY" || "$packages" != "READY" ]]; then
+          preflight_ready=0
+          if [[ "$status" == "POST_CLOSE_DIAGNOSTIC_READY" ]]; then
+            preflight_ready=1
+          elif [[ "$status" == "AUTHORIZED_WEEKEND_BACKFILL_READY" ]]; then
+            if [[ "$EVENT_NAME" == "workflow_dispatch" && "$RUN_MODE" == "production" && "$DISPATCH_TRIGGER_SOURCE" == "manual" && "$DISPATCH_AS_OF_DATE" == "2026-09-18" && "${DISPATCH_ALLOW_WEEKEND_BACKFILL,,}" == "true" ]]; then
+              preflight_ready=1
+            fi
+          fi
+          if (( preflight_ready != 1 )) || [[ "$credential" != "READY" || "$packages" != "READY" ]]; then
             cat "$output"
             exit 1
           fi
