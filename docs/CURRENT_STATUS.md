@@ -6,6 +6,14 @@
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
+## Current task — VOLUME_CARD_VISUALIZATION_AND_CLOUD_DELIVERY_V1 — 2026-09-20
+
+本轮已完成独立股票 K 线量能计算、正常 T-close 持久化、三行量能卡片和 2026-09-18 回顾增强日报。量能只用于报告观察，不改变 Formal B、候选身份、Score、排名、交易参数或生产筛选；renderer 按 `signal_id`/规范化代码读取独立 store，index/shadow 失败不会隐藏有效股票量能。
+
+PR #77 位于 branch `codex/friday-volume-observation-only-backfill-v1`，最终 head `afdab09e270979d794bbedcacb7536af79cd1b20`，状态 `OPEN / CLEAN / MERGEABLE`。最终 head 的 push correctness=`35519184571` 与 pull_request correctness=`35519187151` 均 `SUCCESS`。本地 focused=`89 passed, 1 warning`，compileall/diff check 通过；本机 actionlint 未安装，本地全量运行被既有 `importlib.metadata` 的 `exchange-calendars=None` 环境异常阻断，但 CI regression 已通过。
+
+原正式报告 SHA=`acfbec2a7399c2eb83a5fe62c83ccbbfaf4852b9d9c8013b62de256789178aaa` 保持不变。runtime-state commit=`0a6feb50aa169d9712844d5a3a16deddae596607` 只新增回顾增强报告，文件 SHA=`9a202c79cb628db0feb080b4a39be20240a4a0110abb65d08cb8995b967c4f24`：https://github.com/EFSing/ashare_watchlist/blob/runtime-state/data/reports/addenda/daily_close_20260918_volume_enriched.html。`600929` 第三项为 `样本不足`/`PULLBACK_WINDOW_LT_4`；未触发生产、通知或原正式报告回写。下一步仅是用户合并 PR #77。
+
 ## Current task — FRIDAY_VOLUME_OBSERVATION_ONLY_BACKFILL_V1 — 2026-09-20
 
 本轮是 `RETROSPECTIVE_VOLUME_ENRICHMENT / REPORT_ONLY`：只消费已持久化的 2026-09-18 正式

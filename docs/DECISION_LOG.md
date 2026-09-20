@@ -5,6 +5,12 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-20 — VOLUME_CARD_VISUALIZATION_AND_CLOUD_DELIVERY_V1
+
+- decision：`ADOPT` 将三项量能观察拆为独立、股票 K 线驱动的正常 T-close store；它不依赖 index/shadow 成功，不进入 Formal B 或任何排名条件，缺失保持原始原因。
+- report boundary：正式日报只读取独立观察结果并以三行卡片展示比例条、1.00× 基线、方向和事实总结；历史 2026-09-18 只生成带 `RETROSPECTIVE_VOLUME_ENRICHMENT` 标记的独立增强副本，不覆盖原正式 HTML。
+- delivery boundary：runtime-state 只新增 `data/reports/addenda/daily_close_20260918_volume_enriched.html`；原正式 artifact bytes、candidate identity/order/Score/ranking、Final OOS 与 `data/validation/continuous_speed_probe/` 保持不变。PR #77 合并前不运行生产、不发送通知。
+
 ## 2026-09-20 — RETROSPECTIVE_VOLUME_OBSERVATION_ONLY_BACKFILL_V1
 
 - decision：`ADOPT` 一个只读、事后、候选绑定的量能补充流程。它只接受已持久化的
