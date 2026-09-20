@@ -448,6 +448,27 @@ def test_t_close_reporting_runs_renderer_after_track_failure(monkeypatch, tmp_pa
     assert any("--review-failure" == item for item in calls[2])
     assert "provider failure" in calls[2][-1]
 
+
+def test_t_close_reporting_marks_backfill_tracker_and_skips_shadow_update(monkeypatch, tmp_path):
+    calls: list[list[str]] = []
+
+    def fake_run(command, **kwargs):
+        calls.append(command)
+        return t_close_runner.subprocess.CompletedProcess(command, 0, "{}\n", "")
+
+    monkeypatch.setattr(t_close_runner.subprocess, "run", fake_run)
+    t_close_runner._run_daily_close_reporting(
+        "2026-09-18",
+        tmp_path / "data",
+        skip_shadow_capture=True,
+    )
+
+    assert len(calls) == 2
+    assert any(str(part).endswith("track_perf.py") for part in calls[0])
+    assert "--authorized-weekend-backfill" in calls[0]
+    assert not any(str(part).endswith("b_shadow_monitor.py") for part in calls)
+
+
 @pytest.mark.parametrize('status', ['pending', 'triggered', 'win', 'loss', 'AMBIGUOUS_SAME_BAR', 'expired'])
 def test_complete_previous_session_includes_terminal_states(tmp_path, status):
     old = _write_watchlist(tmp_path, '20260909', [_candidate('600001', 'Yesterday', 60)])

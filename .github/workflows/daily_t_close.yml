@@ -31,6 +31,11 @@ on:
           - manual
           - cloudflare-cron
           - external-scheduler
+      allow_weekend_backfill:
+        description: "Explicitly authorize the bounded 2026-09-18 weekend backfill"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -62,6 +67,7 @@ jobs:
       SCHEDULE_CRON: ${{ github.event.schedule || '' }}
       DISPATCH_AS_OF_DATE: ${{ github.event_name == 'workflow_dispatch' && inputs.as_of_date || '' }}
       DISPATCH_TRIGGER_SOURCE: ${{ github.event_name == 'workflow_dispatch' && inputs.trigger_source || 'manual' }}
+      DISPATCH_ALLOW_WEEKEND_BACKFILL: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_weekend_backfill || false }}
       PRODUCTION_CANONICAL_READY: "0"
       RUNTIME_STATE_PERSISTED: "NO"
       PRODUCTION_FAILURE_STAGE: "NOT_STARTED"
@@ -124,6 +130,12 @@ jobs:
           print(json.loads(open(sys.argv[1], encoding="utf-8").read())["target_date"])
           PY
           )"
+          if [[ "${DISPATCH_ALLOW_WEEKEND_BACKFILL,,}" == "true" ]]; then
+            if [[ "$EVENT_NAME" != "workflow_dispatch" || "$RUN_MODE" != "production" || "$DISPATCH_TRIGGER_SOURCE" != "manual" || "$DISPATCH_AS_OF_DATE" != "2026-09-18" ]]; then
+              echo "::error::Weekend backfill authorization is limited to manual production dispatch for as_of_date=2026-09-18 with trigger_source=manual"
+              exit 1
+            fi
+          fi
           echo "RUN_CONTEXT_RESULT=$output" >> "$GITHUB_ENV"
           echo "RUN_CONTEXT_STATUS=$status" >> "$GITHUB_ENV"
           echo "AS_OF_DATE=$target_date" >> "$GITHUB_ENV"
@@ -186,11 +198,16 @@ jobs:
           set -euo pipefail
           echo "PRODUCTION_FAILURE_STAGE=cloud-preflight" >> "$GITHUB_ENV"
           output="$RUNNER_TEMP/preflight.json"
+          backfill_args=()
+          if [[ "${DISPATCH_ALLOW_WEEKEND_BACKFILL,,}" == "true" ]]; then
+            backfill_args+=(--allow-weekend-backfill)
+          fi
           set +e
           python scripts/t_close_runner.py --preflight \
             --as-of-date "$AS_OF_DATE" \
             --data-root "$ASHARE_DATA_ROOT" \
-            --evidence-root "$ASHARE_EVIDENCE_ROOT" > "$output"
+            --evidence-root "$ASHARE_EVIDENCE_ROOT" \
+            "${backfill_args[@]}" > "$output"
           rc=$?
           set -e
           echo "PREFLIGHT_RESULT=$output" >> "$GITHUB_ENV"
@@ -275,11 +292,16 @@ jobs:
           set -euo pipefail
           echo "PRODUCTION_FAILURE_STAGE=production" >> "$GITHUB_ENV"
           output="$RUNNER_TEMP/production.json"
+          backfill_args=()
+          if [[ "${DISPATCH_ALLOW_WEEKEND_BACKFILL,,}" == "true" ]]; then
+            backfill_args+=(--allow-weekend-backfill)
+          fi
           set +e
           python scripts/t_close_runner.py \
             --as-of-date "$AS_OF_DATE" \
             --data-root "$ASHARE_DATA_ROOT" \
-            --evidence-root "$ASHARE_EVIDENCE_ROOT" > "$output"
+            --evidence-root "$ASHARE_EVIDENCE_ROOT" \
+            "${backfill_args[@]}" > "$output"
           rc=$?
           set -e
           echo "PRODUCTION_RESULT=$output" >> "$GITHUB_ENV"

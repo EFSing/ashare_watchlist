@@ -6,6 +6,29 @@
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
+## Current task — FRIDAY_WEEKEND_BACKFILL_20260918_V1 — 2026-09-20
+
+本轮为 `correctness blocker`（STRICT PATH）：只为 2026-09-18 这一个目标交易日接通显式授权的
+周末补跑，不引入通用历史回填能力，不改变 Formal B、冻结策略、排名/过滤/阈值、Final OOS 或
+其他研究项目。实时 intake 已核对 `origin/master=b60fac712ab96218b210f017fcea5ec871cd47c6`、
+PR #73 已合并且 master correctness run=`35484210930` 为 `success`；
+`origin/runtime-state=be8236629684b34dab5672df774918273536a5d9` 中没有 2026-09-18 的正式产物。
+
+实现位于独立 branch/worktree `codex/friday-weekend-backfill-20260918-v1` /
+`D:\dev\ashare-watchlist-friday-weekend-backfill-20260918-v1`，PR #74：
+https://github.com/EFSing/ashare_watchlist/pull/74。workflow input 默认关闭且只允许 manual
+production/manual source/`as_of_date=2026-09-18`；preflight 和正式 acquisition 都传递同一授权。
+HiThink 补跑时对无日期 snapshot 执行同源目标日 OHLCV/前收一致性校验；shadow 保守跳过捕获和日更，
+tracker 记录 `AUTHORIZED_WEEKEND_BACKFILL_OBSERVATION_V1`，避免伪装成 `PROSPECTIVE_CAPTURED`。
+
+本轮 production dispatch、provider calls、runtime-state remote mutation 均为 `0`；focused=`188
+passed`，full pytest=`644 passed, 2 skipped, 10 warnings`，compileall/diff check 已通过。代码/测试
+head=`480e2e97c18916b2bdffb128212324c73284c379` 的 push correctness run=`35485629651` 与
+pull_request correctness run=`35485631844` 均为 `success`；文档 checkpoint 后的 remote head 与 PR #74
+状态须实时读取，用户合并前不执行真实 production。
+用户合并前不执行真实 production；终点为
+`FRIDAY_WEEKEND_BACKFILL_PR_READY_FOR_USER_MERGE_DECISION`。
+
 ## Current task — SINGLE_AUTHORITATIVE_MARKET_DATA_SOURCE_V1
 
 本轮将生产行情决策收敛为 HiThink Financial-API 单一权威来源：universe、snapshot、个股

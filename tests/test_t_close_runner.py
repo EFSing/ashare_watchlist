@@ -75,6 +75,62 @@ def test_runner_persists_input_package_before_generating_watchlist(monkeypatch, 
     assert events == ["acquire", "persist_package", "generate_watchlist"]
 
 
+def test_authorized_weekend_backfill_is_provenanced_and_does_not_capture_shadow(monkeypatch, tmp_path):
+    package = SimpleNamespace(
+        generation_input_manifest=SimpleNamespace(signal_date="2026-09-18"),
+        display_names={"600519": "测试股份"},
+        market_env={"as_of_date": "2026-09-18"},
+        provenance={
+            "acquisition_timing": runner.AUTHORIZED_WEEKEND_BACKFILL,
+            "target_session": "2026-09-18",
+            "actual_acquisition_date": "2026-09-20",
+            "authorization": "explicit user-authorized weekend backfill",
+        },
+    )
+    persisted = SimpleNamespace(
+        status="PERSISTED",
+        path=tmp_path / "input.json",
+        file_sha256="a" * 64,
+    )
+    candidate = SimpleNamespace(
+        status=runner.RUN_SUCCESS,
+        output_path=tmp_path / "watchlist.json",
+        output_sha256="b" * 64,
+        candidate_count=1,
+        run_manifest_path=tmp_path / "run_manifest.json",
+    )
+
+    monkeypatch.setattr(runner, "acquire_live_generation_inputs", lambda *args, **kwargs: package)
+    monkeypatch.setattr(runner, "persist_live_input_package", lambda value, output_root: persisted)
+
+    class FakeStore:
+        def __init__(self, output_root):
+            assert output_root == tmp_path
+
+        def generate(self, *args, **kwargs):
+            return candidate
+
+    monkeypatch.setattr(runner, "DevelopmentCandidateStore", FakeStore)
+    monkeypatch.setattr(runner, "_git_sha", lambda: "c" * 40)
+
+    result = runner.run(
+        "2026-09-18",
+        tmp_path,
+        tmp_path / "evidence",
+        allow_weekend_backfill=True,
+    )
+
+    assert result["acquisition_timing"] == runner.AUTHORIZED_WEEKEND_BACKFILL
+    assert result["target_session"] == "2026-09-18"
+    assert result["actual_acquisition_date"] == "2026-09-20"
+    assert result["shadow_monitor"] == {
+        "status": "SHADOW_CAPTURE_SKIPPED_AUTHORIZED_BACKFILL",
+        "capture_mode": "NOT_CAPTURED",
+        "reason": "post-session backfill cannot be represented as PROSPECTIVE_CAPTURED",
+        "runtime_state_mutation": "NO",
+    }
+
+
 def test_main_persists_daily_close_bundle_after_successful_tclose_run(monkeypatch, tmp_path, capsys):
     watchlist_path = tmp_path / "watchlist_20260910.json"
     watchlist_path.write_text("{}", encoding="utf-8")
@@ -99,6 +155,37 @@ def test_main_persists_daily_close_bundle_after_successful_tclose_run(monkeypatc
 
     assert result["status"] == runner.T_CLOSE_SUCCESS_STATUS
     assert result["daily_close_bundle"] == bundle
+
+
+def test_main_skips_shadow_update_for_authorized_weekend_backfill(monkeypatch, tmp_path, capsys):
+    watchlist_path = tmp_path / "watchlist_20260918.json"
+    watchlist_path.write_text("{}", encoding="utf-8")
+    calls = []
+
+    monkeypatch.setattr(
+        runner,
+        "run",
+        lambda *args, **kwargs: {
+            "status": runner.T_CLOSE_SUCCESS_STATUS,
+            "acquisition_timing": runner.AUTHORIZED_WEEKEND_BACKFILL,
+            "watchlist": {"path": str(watchlist_path)},
+        },
+    )
+
+    def fake_reporting(as_of_date, data_root, *, skip_shadow_capture=False):
+        calls.append((as_of_date, data_root, skip_shadow_capture))
+        return {"status": "READY"}
+
+    monkeypatch.setattr(runner, "_run_daily_close_reporting", fake_reporting)
+
+    assert runner.main([
+        "--as-of-date", "2026-09-18",
+        "--data-root", str(tmp_path / "data"),
+        "--evidence-root", str(tmp_path / "evidence"),
+    ]) == 0
+    json.loads(capsys.readouterr().out)
+
+    assert calls == [("2026-09-18", (tmp_path / "data").resolve(), True)]
 
 
 def test_main_emits_structured_live_acquisition_diagnostics(monkeypatch, tmp_path, capsys):
@@ -142,17 +229,17 @@ def test_preflight_marks_authorized_weekend_backfill_without_provider_calls(monk
     )
 
     result = runner._preflight(
-        "2026-09-11",
+        "2026-09-18",
         tmp_path / "data",
         tmp_path / "evidence",
         allow_weekend_backfill=True,
-        now_bjt=datetime(2026, 9, 12, 15, 5, tzinfo=timezone.utc).astimezone(runner._BJT),
+        now_bjt=datetime(2026, 9, 20, 15, 5, tzinfo=timezone.utc).astimezone(runner._BJT),
     )
 
     assert result["status"] == "AUTHORIZED_WEEKEND_BACKFILL_READY"
     assert result["acquisition_timing"] == runner.AUTHORIZED_WEEKEND_BACKFILL
-    assert result["target_session"] == "2026-09-11"
-    assert result["actual_acquisition_date"] == "2026-09-12"
+    assert result["target_session"] == "2026-09-18"
+    assert result["actual_acquisition_date"] == "2026-09-20"
     assert result["authorization"] == "explicit user-authorized weekend backfill"
     assert result["provider_calls"] == "NOT_RUN_BEFORE_T_CLOSE"
 

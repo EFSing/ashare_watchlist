@@ -887,6 +887,101 @@ def _optional_hithink_quote_number(value: Any, field_name: str) -> float | None:
     return number
 
 
+def _validate_undated_snapshot_against_target_bar(
+    symbol: str,
+    quote: Mapping[str, Any],
+    bars: Sequence[Mapping[str, Any]],
+    *,
+    target_date: str,
+) -> None:
+    """Require an undated snapshot to agree with the same-source T bar.
+
+    HiThink's snapshot endpoint does not always expose a record date.  The
+    requested date is never evidence by itself: for an authorized weekend
+    backfill, an undated traded snapshot must match the target-day historical
+    OHLCV row (and the preceding close) from the same provider.  A mismatch or
+    missing comparison field is terminal rather than a reason to relabel a
+    current snapshot as T-day data.
+    """
+
+    if not bars or bars[-1].get("date") != target_date:
+        _fail(
+            INPUT_DATE_MISMATCH,
+            f"HiThink undated snapshot for {symbol} lacks a target-day historical bar",
+            {
+                "symbol": symbol,
+                "target_date": target_date,
+                "latest_historical_date": bars[-1].get("date") if bars else None,
+                "provider": "HiThink Financial-API",
+                "quote_date_evidence": "NOT_PROVIDER_VERIFIED",
+            },
+        )
+
+    target_bar = bars[-1]
+    expected_fields = {
+        "price": "close",
+        "open": "open",
+        "high": "high",
+        "low": "low",
+        "volume": "volume",
+    }
+    previous_bar = bars[-2] if len(bars) >= 2 else None
+    if previous_bar is not None:
+        expected_fields["prev_close"] = "close"
+
+    mismatches: list[dict[str, Any]] = []
+    for quote_field, bar_field in expected_fields.items():
+        snapshot_value = quote.get(quote_field)
+        bar_source = previous_bar if quote_field == "prev_close" else target_bar
+        expected_value = bar_source.get(bar_field) if bar_source is not None else None
+        if snapshot_value is None or expected_value is None:
+            mismatches.append(
+                {
+                    "field": quote_field,
+                    "snapshot_value": snapshot_value,
+                    "historical_value": expected_value,
+                    "reason": "MISSING_COMPARISON_VALUE",
+                }
+            )
+            continue
+        try:
+            snapshot_number = float(snapshot_value)
+            historical_number = float(expected_value)
+        except (TypeError, ValueError):
+            mismatches.append(
+                {
+                    "field": quote_field,
+                    "snapshot_value": snapshot_value,
+                    "historical_value": expected_value,
+                    "reason": "NON_NUMERIC_COMPARISON_VALUE",
+                }
+            )
+            continue
+        if not math.isclose(snapshot_number, historical_number, rel_tol=1e-9, abs_tol=1e-8):
+            mismatches.append(
+                {
+                    "field": quote_field,
+                    "snapshot_value": snapshot_number,
+                    "historical_value": historical_number,
+                    "reason": "VALUE_MISMATCH",
+                }
+            )
+
+    if mismatches:
+        _fail(
+            INPUT_CONFLICT,
+            f"HiThink undated snapshot for {symbol} conflicts with the target-day historical bar",
+            {
+                "symbol": symbol,
+                "target_date": target_date,
+                "historical_bar_date": target_bar.get("date"),
+                "provider": "HiThink Financial-API",
+                "quote_date_evidence": "NOT_PROVIDER_VERIFIED",
+                "mismatches": mismatches,
+            },
+        )
+
+
 def _normalize_hithink_snapshots(
     payload: Any,
     *,
@@ -3489,6 +3584,18 @@ def acquire_live_generation_inputs(
                     "retry_count": resolution.get("retry_count", 0),
                 },
             )
+        if (
+            weekend_backfill
+            and quote.get("quote_date_evidence") == "NOT_PROVIDER_VERIFIED"
+            and quote.get("trade_state") == TRADE_STATE_TRADED
+        ):
+            _validate_undated_snapshot_against_target_bar(
+                symbol,
+                quote,
+                bars,
+                target_date=target_date,
+            )
+            quote["trade_state_evidence"] = "HITHINK_HISTORICAL_TARGET_BAR_AND_SNAPSHOT_MATCH"
         stock_resolutions[symbol] = resolution
         stock_klines.append(
             KlineManifest(
@@ -3592,7 +3699,27 @@ def acquire_live_generation_inputs(
         if sina is not None and sector_status == SECTOR_ENRICHMENT_AVAILABLE
         else {"mismatch_count": 0, "mismatches": []}
     )
-    quote_metadata["target_date_evidence"] = "SAME_PROVIDER_HISTORICAL_OR_EXPLICIT_NO_TRADE"
+    undated_snapshot_symbols = sorted(
+        symbol
+        for symbol, quote in quotes.items()
+        if quote.get("quote_date_evidence") == "NOT_PROVIDER_VERIFIED"
+    )
+    quote_metadata["target_date_evidence"] = (
+        (
+            "SAME_PROVIDER_TARGET_BAR_MATCHED_UNDATED_SNAPSHOT"
+            if undated_snapshot_symbols
+            else "SAME_PROVIDER_TARGET_BAR_AND_SNAPSHOT_RECORD_DATE"
+        )
+        if weekend_backfill
+        else "SAME_PROVIDER_HISTORICAL_OR_EXPLICIT_NO_TRADE"
+    )
+    if weekend_backfill:
+        quote_metadata["undated_snapshot_symbols"] = undated_snapshot_symbols
+        quote_metadata["undated_snapshot_validation"] = (
+            "TARGET_BAR_OHLCV_AND_PREVIOUS_CLOSE_MATCHED"
+            if undated_snapshot_symbols
+            else "NOT_REQUIRED_ALL_SNAPSHOT_ROWS_HAD_TARGET_RECORD_DATE"
+        )
     quote_metadata["trade_state_counts"] = {
         state: sum(1 for quote in quotes.values() if quote.get("trade_state") == state)
         for state in (TRADE_STATE_TRADED, TRADE_STATE_NO_TRADE, TRADE_STATE_UNKNOWN)

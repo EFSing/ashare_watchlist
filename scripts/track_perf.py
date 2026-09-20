@@ -23,6 +23,7 @@ from typing import Any, Iterable, Mapping
 import requests
 
 from data_paths import DataPaths
+from generation_contract import AUTHORIZED_WEEKEND_BACKFILL
 from trading_calendar import CalendarUnavailable, TradingCalendar, default_calendar
 from watchlist_schema import (
     WatchlistSchemaError,
@@ -68,6 +69,8 @@ RULE_STATUS_CLOSED = "CLOSED"
 RULE_STATUS_AMBIGUOUS = EXIT_REASON_AMBIGUOUS
 SKIP_LEGACY_OR_OUT_OF_SCOPE_WATCHLIST = "SKIP_LEGACY_OR_OUT_OF_SCOPE_WATCHLIST"
 SOURCE_MODE_LIVE_DAILY_TRACKER_QUOTE = "LIVE_DAILY_TRACKER_QUOTE"
+SOURCE_MODE_AUTHORIZED_WEEKEND_BACKFILL = "AUTHORIZED_WEEKEND_BACKFILL_OBSERVATION_V1"
+AUTHORIZED_WEEKEND_BACKFILL_TARGET_DATE = "2026-09-18"
 SOURCE_MODE_EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1 = (
     "EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1"
 )
@@ -2415,6 +2418,9 @@ def run_daily_review(
     quotes: dict[str, dict[str, Any]] | None = None,
     today: date | datetime | str | None = None,
     calendar: TradingCalendar | None = None,
+    *,
+    source_mode: str = SOURCE_MODE_LIVE_DAILY_TRACKER_QUOTE,
+    provenance: dict[str, Any] | None = None,
 ) -> tuple[int, dict[str, Any]]:
     """Run one update under the fail-soft execution/horizon completeness guard."""
 
@@ -2422,7 +2428,14 @@ def run_daily_review(
     report_date = parse_date(today or datetime.now().date())
     expected = expected_review_set(tracker, report_date, cal)
     try:
-        changed = update(tracker, quotes=quotes, today=report_date, calendar=cal)
+        changed = update(
+            tracker,
+            quotes=quotes,
+            today=report_date,
+            calendar=cal,
+            source_mode=source_mode,
+            provenance=provenance,
+        )
     except Exception as exc:
         _mark_expected_horizon_failures(tracker, expected)
         coverage = verify_review_coverage(
@@ -2445,6 +2458,9 @@ def update(
     quotes: dict[str, dict[str, Any]] | None = None,
     today: date | datetime | str | None = None,
     calendar: TradingCalendar | None = None,
+    *,
+    source_mode: str = SOURCE_MODE_LIVE_DAILY_TRACKER_QUOTE,
+    provenance: dict[str, Any] | None = None,
 ) -> int:
     """Update signals and due XSHG review points with validated quote data."""
 
@@ -2492,8 +2508,22 @@ def update(
     for signal in due_or_active:
         quote = quotes[signal["code"]]
         if signal["status"] in ("pending", "triggered"):
-            changed += _apply_execution_bar(signal, quote, today_date, cal)
-        changed += _capture_review_points(signal, quote, today_date, cal)
+            changed += _apply_execution_bar(
+                signal,
+                quote,
+                today_date,
+                cal,
+                source_mode=source_mode,
+                provenance=provenance,
+            )
+        changed += _capture_review_points(
+            signal,
+            quote,
+            today_date,
+            cal,
+            source_mode=source_mode,
+            provenance=provenance,
+        )
     tracker["updated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     return changed
 
@@ -2673,10 +2703,23 @@ def main(argv: list[str] | None = None) -> int:
         choices=["ingest", "update", "report", "recover", "all"],
     )
     parser.add_argument("--date", default=None, help="report/update date, YYYY-MM-DD or YYYYMMDD")
+    parser.add_argument(
+        "--authorized-weekend-backfill",
+        action="store_true",
+        help="Mark target-date observations as authorized post-session backfill provenance",
+    )
     parser.add_argument("--evidence-root", type=Path, default=None, help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
     tracker: dict[str, Any] | None = None
     try:
+        if args.authorized_weekend_backfill:
+            if args.action not in ("update", "all"):
+                raise ValueError("authorized weekend backfill provenance requires update or all")
+            if not args.date or parse_date(args.date).isoformat() != AUTHORIZED_WEEKEND_BACKFILL_TARGET_DATE:
+                raise ValueError(
+                    "authorized weekend backfill provenance is limited to "
+                    f"{AUTHORIZED_WEEKEND_BACKFILL_TARGET_DATE}"
+                )
         tracker = load_tracker()
         if args.action == "recover":
             resolver = PATHS
@@ -2702,7 +2745,26 @@ def main(argv: list[str] | None = None) -> int:
         if args.action in ("ingest", "all"):
             print(f"[ingest] 新增入库 {ingest(tracker)} 个信号", flush=True)
         if args.action in ("update", "all"):
-            changed, coverage = run_daily_review(tracker, today=args.date)
+            source_mode = (
+                SOURCE_MODE_AUTHORIZED_WEEKEND_BACKFILL
+                if args.authorized_weekend_backfill
+                else SOURCE_MODE_LIVE_DAILY_TRACKER_QUOTE
+            )
+            provenance = (
+                {
+                    "acquisition_timing": AUTHORIZED_WEEKEND_BACKFILL,
+                    "target_session": AUTHORIZED_WEEKEND_BACKFILL_TARGET_DATE,
+                    "observation_status": "POST_SESSION_BACKFILL_NOT_PROSPECTIVE",
+                }
+                if args.authorized_weekend_backfill
+                else None
+            )
+            changed, coverage = run_daily_review(
+                tracker,
+                today=args.date,
+                source_mode=source_mode,
+                provenance=provenance,
+            )
             print(
                 f"[update] 状态变更 {changed} 个；"
                 f"execution={coverage['execution_captured']}/{coverage['execution_expected']}，"

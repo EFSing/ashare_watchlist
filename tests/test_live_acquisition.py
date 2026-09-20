@@ -461,9 +461,9 @@ def test_weekend_backfill_requires_explicit_opt_in_before_provider_calls():
     calls = []
     with pytest.raises(live.LiveAcquisitionError) as caught:
         _acquire(
-            as_of_date="2026-09-11",
-            now_bjt="2026-09-12T15:05:00+08:00",
-            request_get=_request_get(calls=calls, quote_date="2026-09-11"),
+            as_of_date="2026-09-18",
+            now_bjt="2026-09-20T15:05:00+08:00",
+            request_get=_request_get(calls=calls, quote_date="2026-09-18"),
         )
 
     assert caught.value.status == INPUT_DATE_MISMATCH
@@ -472,22 +472,46 @@ def test_weekend_backfill_requires_explicit_opt_in_before_provider_calls():
 
 def test_authorized_weekend_backfill_preserves_t_signal_date_and_actual_retrieval_date():
     package = _acquire(
-        as_of_date="2026-09-11",
-        now_bjt="2026-09-12T15:05:00+08:00",
+        as_of_date="2026-09-18",
+        now_bjt="2026-09-20T15:05:00+08:00",
         allow_weekend_backfill=True,
     )
 
-    assert package.generation_input_manifest.signal_date == "2026-09-11"
-    assert package.generation_input_manifest.quote_snapshot.retrieved_at_bjt.startswith("2026-09-12")
-    assert package.provenance["retrieved_at_bjt"].startswith("2026-09-12")
+    assert package.generation_input_manifest.signal_date == "2026-09-18"
+    assert package.generation_input_manifest.quote_snapshot.retrieved_at_bjt.startswith("2026-09-20")
+    assert package.provenance["retrieved_at_bjt"].startswith("2026-09-20")
     assert package.provenance["actual_retrieved_at_bjt"] == package.provenance["retrieved_at_bjt"]
     assert package.provenance["acquisition_timing"] == live.AUTHORIZED_WEEKEND_BACKFILL
-    assert package.provenance["target_session"] == "2026-09-11"
-    assert package.provenance["actual_acquisition_date"] == "2026-09-12"
+    assert package.provenance["target_session"] == "2026-09-18"
+    assert package.provenance["actual_acquisition_date"] == "2026-09-20"
     assert package.generation_input_manifest.run_context.provider_version_metadata["acquisition_timing"] == (
         live.AUTHORIZED_WEEKEND_BACKFILL
     )
     assert package.generation_input_manifest.quote_snapshot.temporal_semantics == "LIVE_OBSERVED"
+
+
+def test_authorized_weekend_backfill_rejects_undated_snapshot_conflicting_with_target_bar():
+    snapshot = _snapshot_row(last_date="2026-09-18")
+    snapshot["last_price"] = "999.0"
+    hithink = FakeHiThink(
+        bars=_bars(last_date="2026-09-18"),
+        index_bars=_bars(last_date="2026-09-18"),
+        snapshot_rows_by_thscode={"600519.SH": snapshot},
+    )
+
+    with pytest.raises(live.LiveAcquisitionError) as caught:
+        _acquire(
+            as_of_date="2026-09-18",
+            now_bjt="2026-09-20T15:05:00+08:00",
+            allow_weekend_backfill=True,
+            hithink_client=hithink,
+        )
+
+    assert caught.value.status == live.INPUT_CONFLICT
+    assert caught.value.diagnostics["symbol"] == SYMBOL
+    assert caught.value.diagnostics["target_date"] == "2026-09-18"
+    assert caught.value.diagnostics["quote_date_evidence"] == "NOT_PROVIDER_VERIFIED"
+    assert caught.value.diagnostics["mismatches"][0]["field"] == "price"
 
 
 @pytest.mark.parametrize(

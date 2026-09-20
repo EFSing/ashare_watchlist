@@ -101,6 +101,15 @@ def test_workflow_has_explicit_date_binding_and_stale_skip_gate():
 
     assert "as_of_date:" in workflow
     assert "trigger_source:" in workflow
+    assert "allow_weekend_backfill:" in workflow
+    assert "default: false" in workflow
+    assert "DISPATCH_ALLOW_WEEKEND_BACKFILL" in workflow
+    assert "Weekend backfill authorization is limited to manual production dispatch" in workflow
+    assert '"$RUN_MODE" != "production"' in workflow
+    assert '"$DISPATCH_TRIGGER_SOURCE" != "manual"' in workflow
+    assert '"$DISPATCH_AS_OF_DATE" != "2026-09-18"' in workflow
+    assert workflow.count("--allow-weekend-backfill") == 2
+    assert "backfill_args=()" in workflow
     assert "resolve-context" in workflow
     assert "SKIPPED_STALE_SCHEDULE" in workflow
     assert "STALE_SCHEDULE=1" in workflow
