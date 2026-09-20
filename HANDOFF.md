@@ -30,8 +30,8 @@
   `PULLBACK_WINDOW_LT_4`。报告 output SHA-256=`e1c110f64741690ccea2d85dd6762df2eafab2f28abf2753c503fc06e7da5d4e`。
 - verification：local full pytest=`663 passed, 2 skipped, 11 warnings`；实际 provider
   access=`10` 个定向历史 K 线 symbol，universe/snapshot/Formal B/shadow calls=`0`，production
-  dispatch=`0`，remote runtime-state mutation=`0`。PR #77 exact-head CI 尚需在最终文档 head
-  上重读；不自动 merge，终点仍为用户 merge decision。
+  dispatch=`0`，remote runtime-state mutation=`0`。PR #77 的 exact-head CI 是交付门槛，任何
+  后续 push 后都必须实时重读；不自动 merge，终点仍为用户 merge decision。
 
 ## 2026-09-20 — PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1
 

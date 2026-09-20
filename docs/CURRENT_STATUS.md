@@ -16,8 +16,9 @@ prospective shadow/runtime-state。
 实时 reconciliation 已关闭旧入口记录的 `PROJECT_GOVERNANCE_STATE_CONFLICT`：live
 `origin/master=9bc58344beb5ce9bee2fdfebf4d1e1b452cad6c2`，live
 `origin/runtime-state=40cbde2c30da2e2251956b52001b034b75b62ab5`，PR #73/#74/#75/#76 已合并。
-本任务 branch 为 `codex/friday-volume-observation-only-backfill-v1`，PR #77，head
-`4ba2798f620c119046046855950faabb7d0db77e`；exact-head CI 需以推送文档后的最终 head 重读。
+本任务 branch 为 `codex/friday-volume-observation-only-backfill-v1`，PR #77，implementation commit
+为 `4ba2798f620c119046046855950faabb7d0db77e`；exact-head CI 是 live delivery gate，任何
+后续 push 后都必须以最终 head 重读。
 
 独立 addendum `data/reports/daily_close_20260918_volume_addendum.html` 已生成：10/10 输入验证
 通过，9 只三项全有效；`600929` 的第三项因 `PULLBACK_WINDOW_LT_4` 缺失。实际只读取十只
