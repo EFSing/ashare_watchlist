@@ -23,9 +23,11 @@ artifact 仍可读，不被改写。Formal B、universe、tracker 缺失行情�
 周五授权补跑与正常工作日自动生产保持原语义。
 
 实现位于独立 branch/worktree `codex/per-symbol-fail-soft-production-v1` /
-`D:\dev\ashare-watchlist-per-symbol-fail-soft-production-v1`；尚未 push/创建 PR，未触发生产或
-remote runtime-state。当前 focused=`239 passed, 2 warnings`；policy/index 最后收敛后需重跑 full
-pytest、compileall、diff check。下一步是提交、push、创建独立 PR，核验 exact-head CI/mergeability，
+`D:\dev\ashare-watchlist-per-symbol-fail-soft-production-v1`，commit
+`d290c2ee3506fd5eba0b95fb6b0665afcfbdb857`，独立 PR #76：
+https://github.com/EFSing/ashare_watchlist/pull/76；未触发生产或 remote runtime-state。当前
+focused=`239 passed, 2 warnings`；最终 full pytest 为 `658 passed, 2 skipped, 10 warnings`，
+compileall 与 diff check 通过。下一步只核验 PR #76 exact-head CI/mergeability，
 停在用户合并决策节点。
 
 ## Current task — FRIDAY_WEEKEND_BACKFILL_PREFLIGHT_STATE_FIX_V1 — 2026-09-20

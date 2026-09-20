@@ -22,7 +22,9 @@
   不把补跑标为前瞻捕获。
 - boundary：不修改 Formal B/frozen strategy、Main Board scope、Final OOS、历史 immutable
   artifact、任意历史重建授权或 `data/validation/continuous_speed_probe/`；不触发真实生产或远端
-  runtime-state 写入。该决定对应本任务的 `ADOPT`，不是策略升级或研究结论。
+  runtime-state 写入。实现 commit `d290c2ee3506fd5eba0b95fb6b0665afcfbdb857` 已推送到独立
+  branch，PR #76 已创建，exact-head CI/mergeability 仍以 merge decision 时的 live GitHub 为准。
+  该决定对应本任务的 `ADOPT`，不是策略升级或研究结论。
 
 ## 2026-09-20 — FRIDAY_WEEKEND_BACKFILL_20260918_V1
 

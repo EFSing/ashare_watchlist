@@ -17,17 +17,18 @@
   production failure 为 Actions run `35493683084`，canonical T-close step 失败但 failure
   notification/operational notice 成功；run `35492829019` 在 preflight 失败，均未据此触发生产。
 - implementation：独立 worktree `D:\dev\ashare-watchlist-per-symbol-fail-soft-production-v1`、
-  branch `codex/per-symbol-fail-soft-production-v1`。新写入使用
+  branch `codex/per-symbol-fail-soft-production-v1`，commit
+  `d290c2ee3506fd5eba0b95fb6b0665afcfbdb857`，PR #76：
+  https://github.com/EFSing/ashare_watchlist/pull/76。新写入使用
   `PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1`；旧 coverage policy 仍可验证历史 artifact。单股票异常
   写入完整 machine exclusion record，正式输入状态为 `COMPLETE`/`DEGRADED`；没有有效输入时为
   `NO_VALID_INPUT`，只生成 bounded diagnostic report/完整 JSON，绝不生成正式空名单、正常成功
   checkpoint 或 delivery receipt。
-- verification：当前 focused=`239 passed, 2 warnings`；full pytest 已在最近实现状态通过
-  `657 passed, 2 skipped, 10 warnings`（后续 policy/index 收敛后需重跑）；compileall 与
-  `git diff --check` 已通过。provider live calls、production dispatch、remote runtime-state
-  mutation 均为 `0`。
-- next：完成最终 full pytest/compileall/diff check，commit/push 创建独立 PR，重新核验 exact-head
-  CI 与 mergeability；不自动 merge、不触发真实 production，终点为用户 merge decision。
+- verification：focused=`239 passed, 2 warnings`；最终 full pytest=`658 passed, 2 skipped,
+  10 warnings`；compileall 与 `git diff --check` 已通过。provider live calls、production
+  dispatch、remote runtime-state mutation 均为 `0`。
+- next：等待并核验 PR #76 当前 live head 的 exact-head CI 与 mergeability；不自动 merge、不触发
+  真实 production，终点为用户 merge decision。
 
 ## 2026-09-20 — FRIDAY_WEEKEND_BACKFILL_PREFLIGHT_STATE_FIX_V1
 
