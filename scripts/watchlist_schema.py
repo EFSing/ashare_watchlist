@@ -26,11 +26,18 @@ DEFAULT_STRATEGY_VERSION = "watchlist-v1"
 INPUT_COVERAGE_SCHEMA = "INPUT_COVERAGE_V1"
 INPUT_COVERAGE_COMPLETE = "COMPLETE"
 INPUT_COVERAGE_DEGRADED = "DEGRADED"
+INPUT_COVERAGE_NO_VALID_INPUT = "NO_VALID_INPUT"
 PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1 = "PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1"
+PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1 = "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1"
+_SUPPORTED_INPUT_COVERAGE_POLICIES = {
+    PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1,
+    PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1,
+}
 EXCLUDED_PROVIDER_STALE = "EXCLUDED_PROVIDER_STALE"
+EXCLUDED_INPUT_ANOMALY = "EXCLUDED_INPUT_ANOMALY"
 TARGET_DAY_HISTORICAL_STALE = "TARGET_DAY_HISTORICAL_STALE"
 
-_INPUT_COVERAGE_KEYS = {
+_INPUT_COVERAGE_REQUIRED_KEYS = {
     "schema_version",
     "coverage_status",
     "evaluated_symbol_count",
@@ -38,7 +45,14 @@ _INPUT_COVERAGE_KEYS = {
     "excluded_symbols",
     "policy_version",
 }
-_EXCLUDED_SYMBOL_KEYS = {
+_INPUT_COVERAGE_OPTIONAL_KEYS = {
+    "raw_symbol_count",
+    "qualified_symbol_count",
+    "excluded_reason_counts",
+    "formal_result_valid",
+}
+_INPUT_COVERAGE_KEYS = _INPUT_COVERAGE_REQUIRED_KEYS | _INPUT_COVERAGE_OPTIONAL_KEYS
+_EXCLUDED_SYMBOL_REQUIRED_KEYS = {
     "symbol",
     "provider_symbol",
     "target_date",
@@ -50,6 +64,13 @@ _EXCLUDED_SYMBOL_KEYS = {
     "evidence",
     "policy_version",
 }
+_EXCLUDED_SYMBOL_OPTIONAL_KEYS = {
+    "failure_status",
+    "failure_stage",
+    "detail",
+    "display_name",
+}
+_EXCLUDED_SYMBOL_KEYS = _EXCLUDED_SYMBOL_REQUIRED_KEYS | _EXCLUDED_SYMBOL_OPTIONAL_KEYS
 
 TOP_LEVEL_ALLOWED = {
     "date",
@@ -119,12 +140,14 @@ def validate_input_coverage(
     *,
     expected_evaluated_symbol_count: int | None = None,
     expected_target_date: str | None = None,
+    allow_no_valid: bool = False,
 ) -> dict[str, Any]:
-    """Validate the narrow production input-coverage contract.
+    """Validate the production input-coverage contract.
 
-    The field is optional on legacy watchlists, but once present it is strict:
-    a successful production payload may be complete or have exactly one
-    explicitly classified provider-stale exclusion.
+    The field is optional on legacy watchlists.  A formal watchlist may be
+    complete or degraded with any finite number of explicitly classified
+    per-symbol exclusions.  ``NO_VALID_INPUT`` is accepted only by diagnostic
+    callers; it is never a valid formal watchlist coverage value.
     """
 
     if not isinstance(value, Mapping):
@@ -132,15 +155,25 @@ def validate_input_coverage(
     unknown = set(value) - _INPUT_COVERAGE_KEYS
     if unknown:
         raise WatchlistSchemaError(f"input_coverage has unknown keys: {sorted(unknown)}")
-    if not _INPUT_COVERAGE_KEYS.issubset(value):
+    if not _INPUT_COVERAGE_REQUIRED_KEYS.issubset(value):
         raise WatchlistSchemaError("input_coverage is missing required keys")
     if value.get("schema_version") != INPUT_COVERAGE_SCHEMA:
         raise WatchlistSchemaError("input_coverage schema_version is unsupported")
     status = value.get("coverage_status")
-    if status not in {INPUT_COVERAGE_COMPLETE, INPUT_COVERAGE_DEGRADED}:
+    supported_statuses = {INPUT_COVERAGE_COMPLETE, INPUT_COVERAGE_DEGRADED}
+    if allow_no_valid:
+        supported_statuses.add(INPUT_COVERAGE_NO_VALID_INPUT)
+    if status not in supported_statuses:
         raise WatchlistSchemaError("input_coverage coverage_status is unsupported")
     evaluated = value.get("evaluated_symbol_count")
-    if isinstance(evaluated, bool) or not isinstance(evaluated, int) or evaluated <= 0:
+    if isinstance(evaluated, bool) or not isinstance(evaluated, int):
+        raise WatchlistSchemaError("input_coverage evaluated_symbol_count must be an integer")
+    if status == INPUT_COVERAGE_NO_VALID_INPUT:
+        if not allow_no_valid:
+            raise WatchlistSchemaError("NO_VALID_INPUT coverage is diagnostic-only")
+        if evaluated != 0:
+            raise WatchlistSchemaError("NO_VALID_INPUT evaluated_symbol_count must be zero")
+    elif evaluated <= 0:
         raise WatchlistSchemaError("input_coverage evaluated_symbol_count must be a positive integer")
     if expected_evaluated_symbol_count is not None and evaluated != expected_evaluated_symbol_count:
         raise WatchlistSchemaError(
@@ -152,12 +185,29 @@ def validate_input_coverage(
         raise WatchlistSchemaError("input_coverage excluded_symbol_count must be a non-negative integer")
     if not isinstance(excluded, list) or excluded_count != len(excluded):
         raise WatchlistSchemaError("input_coverage excluded symbol count does not match records")
-    if value.get("policy_version") != PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1:
+    if value.get("policy_version") not in _SUPPORTED_INPUT_COVERAGE_POLICIES:
         raise WatchlistSchemaError("input_coverage policy_version is unsupported")
+    for field_name in ("raw_symbol_count", "qualified_symbol_count"):
+        if field_name in value:
+            field_value = value[field_name]
+            if isinstance(field_value, bool) or not isinstance(field_value, int) or field_value < 0:
+                raise WatchlistSchemaError(f"input_coverage {field_name} must be a non-negative integer")
+    if "raw_symbol_count" in value and "qualified_symbol_count" in value:
+        if value["qualified_symbol_count"] > value["raw_symbol_count"]:
+            raise WatchlistSchemaError("input coverage qualified count cannot exceed raw count")
+    if "qualified_symbol_count" in value and value["evaluated_symbol_count"] > value["qualified_symbol_count"]:
+        raise WatchlistSchemaError("input coverage evaluated count cannot exceed qualified count")
+    if "formal_result_valid" in value and not isinstance(value["formal_result_valid"], bool):
+        raise WatchlistSchemaError("input coverage formal_result_valid must be boolean")
+    if status in {INPUT_COVERAGE_COMPLETE, INPUT_COVERAGE_DEGRADED}:
+        if "formal_result_valid" in value and value["formal_result_valid"] is not True:
+            raise WatchlistSchemaError("formal input coverage must mark formal_result_valid=true")
+    elif value.get("formal_result_valid") is not False:
+        raise WatchlistSchemaError("NO_VALID_INPUT coverage must mark formal_result_valid=false")
     if status == INPUT_COVERAGE_COMPLETE and (excluded_count != 0 or excluded):
         raise WatchlistSchemaError("complete input coverage cannot contain exclusions")
-    if status == INPUT_COVERAGE_DEGRADED and excluded_count != 1:
-        raise WatchlistSchemaError("degraded input coverage must contain exactly one exclusion")
+    if status == INPUT_COVERAGE_DEGRADED and excluded_count <= 0:
+        raise WatchlistSchemaError("degraded input coverage must contain at least one exclusion")
 
     normalized_records: list[dict[str, Any]] = []
     seen_symbols: set[str] = set()
@@ -169,7 +219,7 @@ def validate_input_coverage(
             raise WatchlistSchemaError(
                 f"input_coverage excluded_symbols[{index}] has unknown keys: {sorted(unknown_record)}"
             )
-        if not _EXCLUDED_SYMBOL_KEYS.issubset(raw_record):
+        if not _EXCLUDED_SYMBOL_REQUIRED_KEYS.issubset(raw_record):
             raise WatchlistSchemaError(
                 f"input_coverage excluded_symbols[{index}] is missing required keys"
             )
@@ -185,8 +235,13 @@ def validate_input_coverage(
         target_date = _coverage_date(raw_record.get("target_date"), "target_date")
         if expected_target_date is not None and target_date != expected_target_date:
             raise WatchlistSchemaError("input coverage target date does not match the watchlist date")
-        latest_date = _coverage_date(raw_record.get("latest_historical_date"), "latest_historical_date")
-        if latest_date >= target_date:
+        latest_raw = raw_record.get("latest_historical_date")
+        latest_date = None if latest_raw is None else _coverage_date(latest_raw, "latest_historical_date")
+        if (
+            raw_record.get("status") == EXCLUDED_PROVIDER_STALE
+            and latest_date is not None
+            and latest_date >= target_date
+        ):
             raise WatchlistSchemaError("input coverage latest historical date must precede target date")
         for field_name in ("provider", "status", "reason", "quote_trade_state", "policy_version"):
             field_value = raw_record.get(field_name)
@@ -194,13 +249,18 @@ def validate_input_coverage(
                 raise WatchlistSchemaError(
                     f"input coverage excluded record {field_name} must be non-empty"
                 )
-        if raw_record.get("status") != EXCLUDED_PROVIDER_STALE:
+        if raw_record.get("status") not in {EXCLUDED_PROVIDER_STALE, EXCLUDED_INPUT_ANOMALY}:
             raise WatchlistSchemaError("input coverage excluded record status is unsupported")
-        if raw_record.get("reason") != TARGET_DAY_HISTORICAL_STALE:
+        if not re.fullmatch(r"[A-Z0-9_]+", raw_record.get("reason", "")):
             raise WatchlistSchemaError("input coverage excluded record reason is unsupported")
-        if raw_record.get("quote_trade_state") != "TRADED":
-            raise WatchlistSchemaError("input coverage exclusion requires a traded quote state")
-        if raw_record.get("policy_version") != PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1:
+        if raw_record.get("quote_trade_state") not in {
+            "TRADED",
+            "NO_TRADE",
+            "UNKNOWN",
+            "UNAVAILABLE",
+        }:
+            raise WatchlistSchemaError("input coverage excluded record quote_trade_state is unsupported")
+        if raw_record.get("policy_version") not in _SUPPORTED_INPUT_COVERAGE_POLICIES:
             raise WatchlistSchemaError("input coverage excluded record policy_version is unsupported")
         evidence = raw_record.get("evidence")
         if not isinstance(evidence, Mapping):
@@ -215,6 +275,24 @@ def validate_input_coverage(
         raise WatchlistSchemaError("input coverage excluded symbols must be sorted")
     normalized = copy.deepcopy(dict(value))
     normalized["excluded_symbols"] = normalized_records
+    if "excluded_reason_counts" in normalized:
+        reason_counts = normalized["excluded_reason_counts"]
+        if not isinstance(reason_counts, Mapping):
+            raise WatchlistSchemaError("input coverage excluded_reason_counts must be an object")
+        normalized_counts: dict[str, int] = {}
+        for reason, count in reason_counts.items():
+            if not isinstance(reason, str) or not re.fullmatch(r"[A-Z0-9_]+", reason):
+                raise WatchlistSchemaError("input coverage reason count key is unsupported")
+            if isinstance(count, bool) or not isinstance(count, int) or count < 0:
+                raise WatchlistSchemaError("input coverage reason count must be non-negative integer")
+            normalized_counts[reason] = count
+        calculated: dict[str, int] = {}
+        for record in normalized_records:
+            reason = str(record["reason"])
+            calculated[reason] = calculated.get(reason, 0) + 1
+        if normalized_counts != calculated:
+            raise WatchlistSchemaError("input coverage reason counts do not match exclusions")
+        normalized["excluded_reason_counts"] = dict(sorted(normalized_counts.items()))
     return normalized
 
 

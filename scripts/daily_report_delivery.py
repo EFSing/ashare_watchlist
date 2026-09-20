@@ -709,16 +709,33 @@ def build_failure_email_body(
     failure_stage: str,
     error_summary: str,
     run_url: str | None,
+    production_status: str = "FAILED",
+    diagnostic_attached: bool = False,
 ) -> str:
+    is_no_valid = production_status == "NO_VALID_INPUT"
     lines = [
         f"目标交易日：{normalize_date(report_date)}",
         f"失败时间（北京时间）：{_now_bjt(sent_at):%Y-%m-%d %H:%M:%S}",
-        "运行状态：FAILED",
+        f"运行状态：{_safe_label(production_status, 'FAILED')}",
         f"失败阶段：{_safe_label(failure_stage, 'UNKNOWN_STAGE')}",
         f"bounded error summary：{_safe_label(error_summary, 'PRODUCTION_RUNTIME_FAILURE')}",
         f"GitHub Actions run URL：{_run_url(run_url) or 'UNAVAILABLE'}",
-        "本次运行未生成可交付的正式日报 HTML，未附加任何 HTML。",
     ]
+    if is_no_valid:
+        lines.extend(
+            [
+                "正式结果有效性：NO",
+                "数据覆盖：NO_VALID_INPUT",
+                "本次没有任何有效股票输入；未生成正式 B 空名单、正式 checkpoint 或 delivery receipt。",
+                (
+                    "已附加有限异常样本诊断 HTML；完整 exclusion record 保存在机器诊断记录中。"
+                    if diagnostic_attached
+                    else "诊断 HTML 未能附加，请查看 runtime-state/Actions artifact。"
+                ),
+            ]
+        )
+    else:
+        lines.append("本次运行未生成可交付的正式日报 HTML，未附加任何 HTML。")
     return "\n".join(lines) + "\n"
 
 
@@ -1104,6 +1121,8 @@ def _failure_channel_result(
     failure_stage: str,
     error_summary: str,
     result: Mapping[str, Any] | None,
+    production_status: str,
+    diagnostic_report_path: Path | None,
     run_url: str | None,
     env: Mapping[str, str],
     max_attempts: int,
@@ -1115,6 +1134,7 @@ def _failure_channel_result(
         settings = _channel_settings(channel, env)
         bounded = _failure_error_summary(failure_stage, error_summary, result, env=env)
         if channel == "email":
+            diagnostic_attached = diagnostic_report_path is not None
             message = build_email_message(
                 subject=failure_subject(sent_at),
                 body=build_failure_email_body(
@@ -1123,9 +1143,17 @@ def _failure_channel_result(
                     failure_stage=failure_stage,
                     error_summary=bounded,
                     run_url=run_url,
+                    production_status=production_status,
+                    diagnostic_attached=diagnostic_attached,
                 ),
                 recipient=settings.report_email_to,
                 sender=settings.smtp_from,
+                attachment_path=diagnostic_report_path,
+                attachment_filename=(
+                    f"{normalize_date(report_date)}_A股输入诊断.html"
+                    if diagnostic_report_path is not None
+                    else None
+                ),
             )
             operation = lambda: send_email_message(message, settings)
         else:
@@ -1135,8 +1163,13 @@ def _failure_channel_result(
                 body="\n".join(
                     [
                         f"日期 {normalize_date(report_date)}",
-                        "FAILED",
+                        f"{_safe_label(production_status, 'FAILED')}",
                         f"错误分类 {_safe_label(bounded, 'PRODUCTION_RUNTIME_FAILURE', env=env)}",
+                        (
+                            "正式结果无效：NO_VALID_INPUT；诊断报告已落地，未创建正式名单。"
+                            if production_status == "NO_VALID_INPUT"
+                            else ""
+                        ),
                     ]
                 ),
                 run_url=run_url,
@@ -1175,6 +1208,17 @@ def send_failure_notification(
             "failure_notification": 0,
         }
     now = _now_bjt(now_bjt)
+    diagnostic_report_path: Path | None = None
+    if status_text == "NO_VALID_INPUT":
+        candidate_path = result.get("diagnostic_report") if isinstance(result, Mapping) else None
+        if candidate_path:
+            candidate = Path(str(candidate_path)).expanduser()
+            if candidate.is_file() and candidate.stat().st_size > 0:
+                diagnostic_report_path = candidate
+        if diagnostic_report_path is None and data_root is not None:
+            derived = Path(data_root).expanduser().resolve() / "reports" / f"daily_close_{_date_token(normalized_date)}.html"
+            if derived.is_file() and derived.stat().st_size > 0:
+                diagnostic_report_path = derived
     existing = load_failure_notice(data_root, normalized_date) if data_root is not None else None
     if existing is not None and existing["email_status"] == "SUCCESS" and existing["bark_status"] == "SUCCESS":
         return {
@@ -1187,6 +1231,7 @@ def send_failure_notification(
             "receipt_status": "PERSISTED",
             "failure_notice_status": ALREADY_FAILURE_NOTIFIED,
             "failure_notice_path": str(failure_notice_path(data_root, normalized_date)),
+            "diagnostic_report_attached": diagnostic_report_path is not None,
         }
     bounded = _failure_error_summary(failure_stage, error_summary, result, env=environ)
     results: dict[str, dict[str, Any]] = {}
@@ -1201,6 +1246,8 @@ def send_failure_notification(
             failure_stage=failure_stage,
             error_summary=error_summary,
             result=result,
+            production_status=status_text or "FAILED",
+            diagnostic_report_path=diagnostic_report_path,
             run_url=run_url,
             env=environ,
             max_attempts=max_attempts,
@@ -1262,6 +1309,7 @@ def send_failure_notification(
         "receipt_status": receipt_status,
         "failure_notice_status": receipt_status,
         "failure_notice_path": notice_path,
+        "diagnostic_report_attached": diagnostic_report_path is not None,
     }
 
 
@@ -1346,6 +1394,11 @@ def build_delivery_summary(
     bark_status = str(value.get("bark_status") or (receipt or {}).get("bark_status") or "NOT_RUN")
     candidate_count = value.get("candidate_count", (receipt or {}).get("candidate_count", "—"))
     receipt_status = str(value.get("receipt_status") or ("PERSISTED" if receipt else "NOT_CREATED"))
+    input_coverage = value.get("input_coverage") if isinstance(value.get("input_coverage"), Mapping) else {}
+    coverage_status = str(input_coverage.get("coverage_status") or "UNVERIFIED")
+    formal_valid = value.get("formal_result_valid")
+    if formal_valid is None:
+        formal_valid = coverage_status in {"COMPLETE", "DEGRADED"} and watchlist_ready == "READY"
     return "\n".join(
         [
             "## Report delivery",
@@ -1354,6 +1407,8 @@ def build_delivery_summary(
             f"PRODUCTION = {production_status}",
             f"WATCHLIST = {watchlist_ready}",
             f"CANDIDATE_COUNT = {candidate_count}",
+            f"INPUT_COVERAGE = {coverage_status}",
+            f"FORMAL_RESULT_VALID = {'YES' if formal_valid else 'NO'}",
             f"REPORT = {report_ready}",
             f"RUNTIME_STATE = {runtime_state_persisted}",
             f"EMAIL = {email_status}",

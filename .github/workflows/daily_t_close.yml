@@ -313,6 +313,23 @@ jobs:
           rc=$?
           set -e
           echo "PRODUCTION_RESULT=$output" >> "$GITHUB_ENV"
+          status="$(python - "$output" <<'PY'
+          import json
+          import sys
+          lines = open(sys.argv[1], encoding="utf-8").read().strip().splitlines()
+          print(json.loads(lines[-1]).get("status", "PRODUCTION_OUTPUT_MISSING") if lines else "PRODUCTION_OUTPUT_MISSING")
+          PY
+          )"
+          if [[ "$status" == "NO_VALID_INPUT" ]]; then
+            echo "ASHARE_SUMMARY_RESULT=$output" >> "$GITHUB_ENV"
+            echo "ASHARE_SUMMARY_STATUS=NO_VALID_INPUT" >> "$GITHUB_ENV"
+            echo "NO_VALID_INPUT_REPORT_READY=1" >> "$GITHUB_ENV"
+            cat "$output"
+            if (( rc == 0 )); then
+              exit 1
+            fi
+            exit "$rc"
+          fi
           if (( rc != 0 )); then
             cat "$output"
             exit "$rc"
@@ -636,6 +653,59 @@ jobs:
           echo "FAILURE_NOTICE_STATE_PERSISTED=YES" >> "$GITHUB_ENV"
           echo "FAILURE_NOTICE_RUNTIME_STATE_SHA=$state_sha" >> "$GITHUB_ENV"
 
+      - name: Persist NO_VALID_INPUT diagnostic artifacts in clean runtime-state checkout
+        if: always() && env.RUN_MODE == 'production' && env.AS_OF_DATE != '' && env.ASHARE_SKIP_PRODUCTION != '1' && env.PRODUCTION_CANONICAL_READY != '1' && env.NO_VALID_INPUT_REPORT_READY == '1'
+        shell: bash
+        run: |
+          set +e
+          output="$RUNNER_TEMP/input-diagnostic-state.json"
+          python scripts/cloud_runtime_state.py persist-input-diagnostic \
+            --state-root "$GITHUB_WORKSPACE/failure-runtime-state" \
+            --data-root "$ASHARE_DATA_ROOT" \
+            --date "$AS_OF_DATE" > "$output"
+          rc=$?
+          cat "$output"
+          if (( rc != 0 )); then
+            echo "INPUT_DIAGNOSTIC_STATE_PERSISTED=NO" >> "$GITHUB_ENV"
+            echo "input diagnostic was not safely persisted"
+            exit 0
+          fi
+          diagnostic_path="data/diagnostics/daily_input_diagnostic_${AS_OF_DATE//-/}.json"
+          report_path="data/reports/daily_close_${AS_OF_DATE//-/}.html"
+          git -C failure-runtime-state add -- "$diagnostic_path" "$report_path"
+          staged="$(git -C failure-runtime-state diff --cached --name-only)"
+          expected="${diagnostic_path}
+${report_path}"
+          if [[ "$staged" != "$expected" && "$staged" != "${report_path}
+${diagnostic_path}" ]]; then
+            echo "unexpected staged input-diagnostic paths: $staged"
+            echo "INPUT_DIAGNOSTIC_STATE_PERSISTED=NO" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          if ! git -C failure-runtime-state diff --cached --check; then
+            echo "input diagnostic has staged whitespace errors"
+            echo "INPUT_DIAGNOSTIC_STATE_PERSISTED=NO" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          if git -C failure-runtime-state diff --cached --quiet; then
+            state_sha="$(git -C failure-runtime-state rev-parse HEAD)"
+          else
+            git -C failure-runtime-state config user.name "github-actions[bot]"
+            git -C failure-runtime-state config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            if ! git -C failure-runtime-state commit -m "runtime: persist NO_VALID_INPUT diagnostic $AS_OF_DATE"; then
+              echo "INPUT_DIAGNOSTIC_STATE_PERSISTED=NO" >> "$GITHUB_ENV"
+              exit 0
+            fi
+            if ! git -C failure-runtime-state push origin HEAD:runtime-state; then
+              echo "INPUT_DIAGNOSTIC_STATE_PERSISTED=NO" >> "$GITHUB_ENV"
+              echo "input diagnostic push failed"
+              exit 0
+            fi
+            state_sha="$(git -C failure-runtime-state rev-parse HEAD)"
+          fi
+          echo "INPUT_DIAGNOSTIC_STATE_PERSISTED=YES" >> "$GITHUB_ENV"
+          echo "INPUT_DIAGNOSTIC_RUNTIME_STATE_SHA=$state_sha" >> "$GITHUB_ENV"
+
       - name: Write production failure delivery summary
         if: always() && env.RUN_MODE == 'production' && env.AS_OF_DATE != '' && env.ASHARE_SKIP_PRODUCTION != '1' && env.PRODUCTION_CANONICAL_READY != '1'
         shell: bash
@@ -646,3 +716,15 @@ jobs:
             cat "$FAILURE_DELIVERY_RESULT" >> "$GITHUB_STEP_SUMMARY"
           fi
           echo "failure notice runtime-state persisted = ${FAILURE_NOTICE_STATE_PERSISTED:-NO}" >> "$GITHUB_STEP_SUMMARY"
+          echo "input diagnostic runtime-state persisted = ${INPUT_DIAGNOSTIC_STATE_PERSISTED:-NO}" >> "$GITHUB_STEP_SUMMARY"
+          result_file="${PRODUCTION_RESULT:-${PREFLIGHT_RESULT:-}}"
+          result_args=()
+          if [[ -n "$result_file" && -f "$result_file" ]]; then
+            result_args+=(--result-file "$result_file")
+          fi
+          python scripts/cloud_runtime_state.py summary \
+            --data-root "$ASHARE_DATA_ROOT" \
+            --date "$AS_OF_DATE" \
+            --status "${ASHARE_SUMMARY_STATUS:-FAILED}" \
+            --state-commit "$(git -C failure-runtime-state rev-parse HEAD)" \
+            "${result_args[@]}" >> "$GITHUB_STEP_SUMMARY"

@@ -507,11 +507,12 @@ def test_authorized_weekend_backfill_rejects_undated_snapshot_conflicting_with_t
             hithink_client=hithink,
         )
 
-    assert caught.value.status == live.INPUT_CONFLICT
-    assert caught.value.diagnostics["symbol"] == SYMBOL
-    assert caught.value.diagnostics["target_date"] == "2026-09-18"
-    assert caught.value.diagnostics["quote_date_evidence"] == "NOT_PROVIDER_VERIFIED"
-    assert caught.value.diagnostics["mismatches"][0]["field"] == "price"
+    assert caught.value.status == live.NO_VALID_INPUT
+    record = caught.value.diagnostics["exclusions"][0]
+    assert record["symbol"] == SYMBOL
+    assert record["reason"] == live.HISTORICAL_OHLCV_CONFLICT
+    assert record["evidence"]["historical"]["quote_date_evidence"] == "NOT_PROVIDER_VERIFIED"
+    assert record["evidence"]["historical"]["mismatches"][0]["field"] == "price"
 
 
 @pytest.mark.parametrize(
@@ -912,6 +913,26 @@ def test_hithink_malformed_non_null_list_date_fails_closed():
     assert "list_date" in str(caught.value)
 
 
+def test_hithink_malformed_list_date_isolated_when_another_symbol_is_valid():
+    universe, names, quality, exclusions = live._build_universe(
+        FakeFrame(
+            [
+                _listing_date_row("600519", "SH"),
+                _listing_date_row("000001", "SZ", list_date="2026-99-99"),
+            ]
+        ),
+        "2026-09-17",
+        "2026-09-17T15:05:00+08:00",
+        include_exclusions=True,
+    )
+
+    assert universe.symbols == ("600519",)
+    assert names == {"600519": "测试股份"}
+    assert quality["retained_symbols"] == ["600519"]
+    assert exclusions[0]["symbol"] == "000001"
+    assert exclusions[0]["reason"] == live.UNIVERSE_LIST_DATE_INVALID
+
+
 def test_hithink_missing_list_date_column_fails_closed():
     row = _listing_date_row("600519", "SH")
     row.pop("list_date")
@@ -973,7 +994,9 @@ def test_empty_list_date_filtered_universe_fails_closed_before_quote():
             request_get=_request_get(calls=calls),
         )
 
-    assert caught.value.status == INCOMPLETE_COVERAGE
+    assert caught.value.status == live.NO_VALID_INPUT
+    assert caught.value.diagnostics["qualified_symbol_count"] == 0
+    assert caught.value.diagnostics["exclusions"] == []
     assert ak.definition_calls == 0
     assert calls == []
 
@@ -1170,9 +1193,11 @@ def test_hithink_stock_failure_is_fail_closed_without_cross_provider_fallback():
     with pytest.raises(live.LiveAcquisitionError) as caught:
         _acquire(hithink_client=hithink)
 
-    assert caught.value.status == live.PROVIDER_FAILURE
-    assert caught.value.diagnostics["provider"] == "HiThink Financial-API"
-    assert caught.value.diagnostics["symbol"] == SYMBOL
+    assert caught.value.status == live.NO_VALID_INPUT
+    record = caught.value.diagnostics["exclusions"][0]
+    assert record["provider"] == "HiThink Financial-API"
+    assert record["symbol"] == SYMBOL
+    assert record["reason"] == live.HISTORICAL_PROVIDER_FAILURE
 
 
 def test_hithink_explicit_no_trade_snapshot_accepts_stale_non_empty_history():
@@ -1203,22 +1228,20 @@ def test_ambiguous_stale_history_fails_closed_with_same_source_diagnostics():
             ),
         )
 
-    assert caught.value.status == INPUT_DATE_MISMATCH
-    assert caught.value.diagnostics == {
-        "classification": live.TARGET_DAY_HISTORICAL_STALE,
-        "target_date": AS_OF,
-        "latest_historical_date": "2026-08-26",
-        "historical_bar_count": 141,
-        "historical_quality": {
-            "non_empty": True,
-            "structure_valid": True,
-            "future_data": False,
-        },
-        "provider": "HiThink Financial-API",
-        "thscode": "600519.SH",
-        "symbol": SYMBOL,
-        "retry_count": 1,
+    assert caught.value.status == live.NO_VALID_INPUT
+    record = caught.value.diagnostics["exclusions"][0]
+    assert record["symbol"] == SYMBOL
+    assert record["reason"] == live.TARGET_DAY_HISTORICAL_STALE
+    assert record["latest_historical_date"] == "2026-08-26"
+    assert record["evidence"]["historical"]["historical_bar_count"] == 141
+    assert record["evidence"]["historical"]["historical_quality"] == {
+        "non_empty": True,
+        "structure_valid": True,
+        "future_data": False,
     }
+    assert record["evidence"]["historical"]["provider"] == "HiThink Financial-API"
+    assert record["evidence"]["historical"]["thscode"] == "600519.SH"
+    assert record["evidence"]["historical"]["retry_count"] == 1
 
 
 def test_hithink_stale_history_gets_one_bounded_same_source_retry(monkeypatch):
@@ -1245,7 +1268,8 @@ def test_hithink_stock_failure_is_fail_closed_when_fallback_is_disabled():
             allow_tencent_fallback=False,
         )
 
-    assert caught.value.status == live.PROVIDER_FAILURE
+    assert caught.value.status == live.NO_VALID_INPUT
+    assert caught.value.diagnostics["exclusions"][0]["reason"] == live.HISTORICAL_PROVIDER_FAILURE
 
 
 @pytest.mark.parametrize("status_code", [408, 429, 500, 503])
@@ -1643,12 +1667,11 @@ def test_hithink_snapshot_record_date_mismatch_fails_closed():
     with pytest.raises(live.LiveAcquisitionError) as caught:
         _acquire(hithink_client=hithink)
 
-    assert caught.value.status == INPUT_DATE_MISMATCH
-    assert caught.value.diagnostics["symbol"] == SYMBOL
-    assert caught.value.diagnostics["target_date"] == AS_OF
-    assert caught.value.diagnostics["provider_date"] == "2026-08-26"
-    assert caught.value.diagnostics["provider"] == "HiThink Financial-API"
-    assert caught.value.diagnostics["stage"] == "hithink_quote_snapshot"
+    assert caught.value.status == live.NO_VALID_INPUT
+    record = caught.value.diagnostics["exclusions"][0]
+    assert record["symbol"] == SYMBOL
+    assert record["reason"] == live.SNAPSHOT_DATE_CONFLICT
+    assert record["evidence"]["historical"]["provider_date"] == "2026-08-26"
 
 
 def test_hithink_quote_field_failure_is_reported_without_tencent():
@@ -1661,10 +1684,28 @@ def test_hithink_quote_field_failure_is_reported_without_tencent():
     with pytest.raises(live.LiveAcquisitionError) as caught:
         _acquire(hithink_client=hithink)
 
-    assert caught.value.status == live.PROVIDER_FAILURE
-    assert caught.value.diagnostics["provider"] == "HiThink Financial-API"
-    assert caught.value.diagnostics["stage"] == "hithink_quote_snapshot"
-    assert caught.value.diagnostics["exception_type"] == "LiveAcquisitionError"
+    assert caught.value.status == live.NO_VALID_INPUT
+    record = caught.value.diagnostics["exclusions"][0]
+    assert record["provider"] == "HiThink Financial-API"
+    assert record["reason"] == live.SNAPSHOT_MALFORMED
+    assert record["failure_status"] == live.PROVIDER_FAILURE
+    assert record["failure_stage"] == "hithink_snapshot"
+
+
+def test_duplicate_snapshot_cannot_be_recovered_by_a_later_valid_row():
+    malformed = _snapshot_row(chg_pct="not-a-number")
+    valid = _snapshot_row()
+    quotes, _metadata, exclusions = live._normalize_hithink_snapshots(
+        {"items": [malformed, valid], "timestamps": []},
+        target_date=AS_OF,
+        display_names={SYMBOL: "测试股份"},
+        include_exclusions=True,
+    )
+
+    assert quotes == {}
+    assert len(exclusions) == 1
+    assert exclusions[0]["symbol"] == SYMBOL
+    assert exclusions[0]["reason"] == live.SNAPSHOT_MALFORMED
 
 
 def test_missing_hithink_quote_fails_closed():
@@ -1674,7 +1715,8 @@ def test_missing_hithink_quote_fails_closed():
     with pytest.raises(live.LiveAcquisitionError) as caught:
         _acquire(hithink_client=hithink)
 
-    assert caught.value.status == INCOMPLETE_COVERAGE
+    assert caught.value.status == live.NO_VALID_INPUT
+    assert caught.value.diagnostics["exclusions"][0]["reason"] == live.SNAPSHOT_MISSING
 
 
 def test_hithink_quote_validation_failure_does_not_create_tencent_evidence(tmp_path):
@@ -1746,7 +1788,8 @@ def test_tclose_successful_stock_checkpoint_survives_later_index_failure(tmp_pat
             hithink_client=FakeHiThink(failures={"index": [RuntimeError("index blocked")]}),
         )
 
-    assert caught.value.status == live.PROVIDER_FAILURE
+    assert caught.value.status == live.NO_VALID_INPUT
+    assert caught.value.diagnostics["global_failures"][0]["stage"] == "index_kline"
     kline_checkpoints = []
     failure_checkpoints = []
     for metadata_path in tmp_path.rglob("*.json"):
@@ -1764,7 +1807,8 @@ def test_stale_index_kline_fails_closed():
     with pytest.raises(live.LiveAcquisitionError) as caught:
         _acquire(hithink_client=FakeHiThink(index_bars=_bars(last_date="2026-08-26")))
 
-    assert caught.value.status == INPUT_DATE_MISMATCH
+    assert caught.value.status == live.NO_VALID_INPUT
+    assert caught.value.diagnostics["global_failures"][0]["status"] == INPUT_DATE_MISMATCH
 
 
 def test_stale_non_empty_stock_kline_is_accepted_only_for_explicit_no_trade():
@@ -1791,9 +1835,11 @@ def test_stale_non_empty_stock_kline_without_explicit_trade_state_fails_closed()
             ),
         )
 
-    assert caught.value.status == INPUT_DATE_MISMATCH
-    assert caught.value.diagnostics["symbol"] == SYMBOL
-    assert caught.value.diagnostics["retry_count"] == 1
+    assert caught.value.status == live.NO_VALID_INPUT
+    record = caught.value.diagnostics["exclusions"][0]
+    assert record["symbol"] == SYMBOL
+    assert record["reason"] == live.TARGET_DAY_HISTORICAL_STALE
+    assert record["evidence"]["historical"]["retry_count"] == 1
 
 
 def test_null_snapshot_and_stale_history_remain_unknown_and_fail_closed():
@@ -1808,8 +1854,10 @@ def test_null_snapshot_and_stale_history_remain_unknown_and_fail_closed():
             ),
         )
 
-    assert caught.value.status == INPUT_DATE_MISMATCH
-    assert caught.value.diagnostics["symbol"] == SYMBOL
+    assert caught.value.status == live.NO_VALID_INPUT
+    record = caught.value.diagnostics["exclusions"][0]
+    assert record["symbol"] == SYMBOL
+    assert record["reason"] == live.TARGET_DAY_HISTORICAL_STALE
 
 
 def _multi_symbol_acquire(
@@ -1841,23 +1889,89 @@ def _multi_symbol_acquire(
     )
 
 
-def test_first_traded_stale_symbol_fails_closed_without_isolation():
-    with pytest.raises(live.LiveAcquisitionError) as caught:
-        _multi_symbol_acquire(
-            bars_by_code={
-                "605366": _bars(last_date="2026-08-26", count=141),
-                "600519": _bars(last_date=AS_OF, count=141),
+class MissingLastSnapshotHiThink(FakeHiThink):
+    def snapshots(self, thscodes, *, timeout):
+        payload = super().snapshots(thscodes, timeout=timeout)
+        payload["items"] = payload["items"][:-1]
+        return payload
+
+
+def test_missing_snapshot_is_a_symbol_exclusion_and_other_symbol_remains_usable():
+    symbols = ("600519", "600520")
+    bars_by_code = {code: _bars(last_date=AS_OF, count=141) for code in symbols}
+    hithink = MissingLastSnapshotHiThink(
+        universe=[
+            {
+                "thscode": f"{code}.SH",
+                "ticker": code,
+                "name": f"测试股份{code[-2:]}",
+                "exchange": "SH",
+                "asset_type": "a-share",
+                "list_date": "2001-08-23",
             }
-        )
+            for code in symbols
+        ],
+        bars_by_thscode={f"{code}.SH": bars for code, bars in bars_by_code.items()},
+        index_bars=_bars(),
+    )
 
-    assert caught.value.status == INPUT_DATE_MISMATCH
-    assert caught.value.diagnostics["symbol"] == "605366"
-    assert caught.value.diagnostics["provider"] == "HiThink Financial-API"
-    assert caught.value.diagnostics["retry_count"] == 1
+    package = _acquire(
+        hithink_client=hithink,
+        akshare_module=FakeAkShare(),
+        request_get=_request_get(),
+        stock_bar_count=141,
+    )
+
+    coverage = package.provenance["input_coverage"]
+    assert coverage["excluded_symbols"][0]["symbol"] == "600520"
+    assert coverage["excluded_symbols"][0]["reason"] == live.SNAPSHOT_MISSING
+    assert package.generation_input_manifest.universe.symbols == ("600519",)
 
 
-def test_multiple_traded_stale_symbols_do_not_enter_isolation_policy():
-    with pytest.raises(live.LiveAcquisitionError) as caught:
+def test_valid_symbol_evaluation_is_identical_when_another_symbol_is_excluded():
+    full = _multi_symbol_acquire(
+        bars_by_code={
+            "605366": _bars(last_date=AS_OF, count=141),
+            "600519": _bars(last_date=AS_OF, count=141),
+        }
+    )
+    degraded = _multi_symbol_acquire(
+        bars_by_code={
+            "605366": _bars(last_date="2026-08-26", count=141),
+            "600519": _bars(last_date=AS_OF, count=141),
+        }
+    )
+
+    full_eval = evaluate_b_candidate(full.generation_input_manifest, "600519")
+    degraded_eval = evaluate_b_candidate(degraded.generation_input_manifest, "600519")
+    full_semantics = full_eval.to_dict(include_hash=False)
+    degraded_semantics = degraded_eval.to_dict(include_hash=False)
+    for payload in (full_semantics, degraded_semantics):
+        payload.pop("input_fingerprint")
+        payload.pop("provenance")
+    assert degraded_semantics == full_semantics
+
+
+def test_one_stale_traded_symbol_isolated_and_valid_symbol_reaches_formal_input():
+    package = _multi_symbol_acquire(
+        bars_by_code={
+            "605366": _bars(last_date="2026-08-26", count=141),
+            "600519": _bars(last_date=AS_OF, count=141),
+        }
+    )
+
+    coverage = package.provenance["input_coverage"]
+    assert coverage["coverage_status"] == "DEGRADED"
+    assert coverage["evaluated_symbol_count"] == 1
+    assert coverage["excluded_symbol_count"] == 1
+    assert coverage["excluded_symbols"][0]["symbol"] == "605366"
+    assert coverage["excluded_symbols"][0]["reason"] == live.TARGET_DAY_HISTORICAL_STALE
+    assert [item.symbol for item in package.generation_input_manifest.stock_klines] == ["600519"]
+    assert tuple(package.generation_input_manifest.universe.symbols) == ("600519",)
+
+
+def test_multiple_traded_stale_symbols_produce_no_valid_input_without_a_fixed_isolation_cap():
+    with pytest.raises(live.NoValidInputError) as caught:
         _multi_symbol_acquire(
             bars_by_code={
                 "605366": _bars(last_date="2026-08-26", count=141),
@@ -1865,9 +1979,12 @@ def test_multiple_traded_stale_symbols_do_not_enter_isolation_policy():
             }
         )
 
-    assert caught.value.status == INPUT_DATE_MISMATCH
-    assert caught.value.diagnostics["symbol"] == "600519"
-    assert caught.value.diagnostics["retry_count"] == 1
+    assert caught.value.status == live.NO_VALID_INPUT
+    coverage = caught.value.diagnostics["input_coverage"]
+    assert coverage["coverage_status"] == "NO_VALID_INPUT"
+    assert coverage["evaluated_symbol_count"] == 0
+    assert coverage["excluded_symbol_count"] == 2
+    assert [item["symbol"] for item in caught.value.diagnostics["exclusions"]] == ["600519", "605366"]
 
 
 def test_stale_failure_diagnostics_are_deterministic():
@@ -1875,25 +1992,29 @@ def test_stale_failure_diagnostics_are_deterministic():
         "605366": _bars(last_date="2026-08-26", count=141),
         "600519": _bars(last_date=AS_OF, count=141),
     }
-    with pytest.raises(live.LiveAcquisitionError) as first:
-        _multi_symbol_acquire(bars_by_code=bars)
-    with pytest.raises(live.LiveAcquisitionError) as second:
-        _multi_symbol_acquire(bars_by_code=bars)
+    first = _multi_symbol_acquire(bars_by_code=bars)
+    second = _multi_symbol_acquire(bars_by_code=bars)
 
-    assert first.value.status == second.value.status == INPUT_DATE_MISMATCH
-    assert first.value.diagnostics == second.value.diagnostics
+    assert first.provenance["input_coverage"] == second.provenance["input_coverage"]
+    assert first.generation_input_manifest.universe.symbols == second.generation_input_manifest.universe.symbols
 
 
-def test_stale_symbol_is_rejected_before_b_evaluator_input():
-    with pytest.raises(live.LiveAcquisitionError) as caught:
-        _multi_symbol_acquire(
-            bars_by_code={
-                "605366": _bars(last_date="2026-08-26", count=141),
-                "600519": _bars(last_date=AS_OF, count=141),
-            }
-        )
+def test_more_than_the_retired_one_symbol_limit_isolated_without_changing_valid_evaluation():
+    symbols = ("600001", "600002", "600003", "600004")
+    package = _multi_symbol_acquire(
+        symbols=symbols,
+        bars_by_code={
+            "600001": _bars(last_date="2026-08-26", count=141),
+            "600002": _bars(last_date="2026-08-26", count=141),
+            "600003": _bars(last_date="2026-08-26", count=141),
+            "600004": _bars(last_date=AS_OF, count=141),
+        },
+    )
 
-    assert caught.value.status == INPUT_DATE_MISMATCH
+    coverage = package.provenance["input_coverage"]
+    assert coverage["excluded_symbol_count"] == 3
+    assert coverage["evaluated_symbol_count"] == 1
+    assert tuple(package.generation_input_manifest.universe.symbols) == ("600004",)
 
 
 @pytest.mark.parametrize("available_bars", [260, 141, 120])
@@ -1938,7 +2059,8 @@ def test_hithink_duplicate_stock_bar_date_fails_closed():
     with pytest.raises(live.LiveAcquisitionError) as caught:
         _acquire(hithink_client=FakeHiThink(bars=bars))
 
-    assert caught.value.status == live.INPUT_CONFLICT
+    assert caught.value.status == live.NO_VALID_INPUT
+    assert caught.value.diagnostics["exclusions"][0]["reason"] == live.HISTORICAL_OHLCV_CONFLICT
 
 
 @pytest.mark.parametrize("malformed_bar", [None, {"date": "20260827"}])
@@ -1985,7 +2107,23 @@ def test_future_kline_bar_fails_closed():
     with pytest.raises(live.LiveAcquisitionError) as caught:
         _acquire(hithink_client=FakeHiThink(bars=future_bars))
 
-    assert caught.value.status == FUTURE_DATA_DETECTED
+    assert caught.value.status == live.NO_VALID_INPUT
+    assert caught.value.diagnostics["exclusions"][0]["reason"] == live.HISTORICAL_FUTURE_DATE
+
+
+def test_future_stock_kline_isolated_when_index_input_is_valid():
+    future_bars = _bars()
+    future_bars[-1][0] = "2026-08-28"
+
+    with pytest.raises(live.NoValidInputError) as caught:
+        _acquire(
+            hithink_client=FakeHiThink(
+                bars=future_bars,
+                index_bars=_bars(),
+            )
+        )
+
+    assert caught.value.diagnostics["exclusions"][0]["reason"] == live.HISTORICAL_FUTURE_DATE
 
 
 def test_complete_package_has_t_plus_one_market_env_and_provenance():
@@ -2015,7 +2153,11 @@ def test_complete_package_has_t_plus_one_market_env_and_provenance():
         "evaluated_symbol_count": 1,
         "excluded_symbol_count": 0,
         "excluded_symbols": [],
-        "policy_version": "PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1",
+        "excluded_reason_counts": {},
+        "formal_result_valid": True,
+        "raw_symbol_count": 1,
+        "qualified_symbol_count": 1,
+        "policy_version": live.PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1,
     }
     assert package.generation_identity_payload["universe_policy"]["name"] == "ASHARE_MAIN_BOARD_ONLY_V1"
     assert package.generation_input_manifest.index.provider == "HiThink Financial-API"

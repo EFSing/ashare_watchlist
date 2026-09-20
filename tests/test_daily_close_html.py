@@ -175,6 +175,68 @@ def test_report_explicitly_displays_degraded_input_coverage(tmp_path):
     assert "input-coverage-json" in text
 
 
+def test_no_valid_input_diagnostic_is_dated_bounded_and_does_not_touch_latest(tmp_path):
+    paths = _paths(tmp_path)
+    paths.reports_dir().mkdir(parents=True, exist_ok=True)
+    latest = paths.reports_dir() / "latest.html"
+    latest.write_text("previous formal latest", encoding="utf-8")
+    records = [
+        {
+            "symbol": f"600{index:03d}",
+            "provider_symbol": f"600{index:03d}.SH",
+            "target_date": "2026-09-10",
+            "provider": "HiThink Financial-API",
+            "status": "EXCLUDED_INPUT_ANOMALY",
+            "reason": "SNAPSHOT_MISSING",
+            "latest_historical_date": None,
+            "quote_trade_state": "UNAVAILABLE",
+            "evidence": {"quote": {}, "historical": {}},
+            "policy_version": "PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1",
+        }
+        for index in range(25)
+    ]
+    coverage = {
+        "schema_version": "INPUT_COVERAGE_V1",
+        "coverage_status": "NO_VALID_INPUT",
+        "evaluated_symbol_count": 0,
+        "excluded_symbol_count": len(records),
+        "excluded_symbols": records,
+        "excluded_reason_counts": {"SNAPSHOT_MISSING": len(records)},
+        "formal_result_valid": False,
+        "policy_version": "PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1",
+    }
+
+    record_path, report_path = renderer.render_input_diagnostic_report(
+        "20260910",
+        {
+            "target_date": "2026-09-10",
+            "actual_retrieved_at_bjt": "2026-09-10T17:20:00+08:00",
+            "run_type": "SAME_CALENDAR_DATE",
+            "raw_symbol_count": 25,
+            "qualified_symbol_count": 25,
+            "evaluated_symbol_count": 0,
+            "excluded_symbol_count": 25,
+            "excluded_reason_counts": {"SNAPSHOT_MISSING": 25},
+            "input_coverage": coverage,
+            "exclusions": records,
+            "global_failures": [],
+        },
+        paths=paths,
+        generated_at=datetime.fromisoformat("2026-09-10T17:21:00+08:00"),
+    )
+
+    text = report_path.read_text(encoding="utf-8")
+    machine = json.loads(record_path.read_text(encoding="utf-8"))
+    assert report_path.name == "daily_close_20260910.html"
+    assert record_path.name == "daily_input_diagnostic_20260910.json"
+    assert "NO_VALID_INPUT" in text
+    assert "600000" in text
+    assert "600024" not in text
+    assert len(machine["exclusions"]) == 25
+    assert machine["formal_watchlist_created"] is False
+    assert latest.read_text(encoding="utf-8") == "previous formal latest"
+
+
 def test_t_day_new_signal_is_explicitly_waiting_for_t1_not_missing(tmp_path):
     watchlist = _write_watchlist(tmp_path, "20260910", [_candidate("600018", "今日新信号", 70)])
     _write_tracker(tmp_path, watchlist)

@@ -62,6 +62,7 @@ _VALID_TRIGGER_SOURCES = {"manual", "cloudflare-cron", "external-scheduler"}
 _DATE_TOKEN = re.compile(r"^\d{8}$")
 _WATCHLIST_NAME = re.compile(r"^watchlist_\d{8}\.json$")
 _DATED_REPORT_NAME = re.compile(r"^daily_close_\d{8}\.html$")
+_DIAGNOSTIC_NAME = re.compile(r"^daily_input_diagnostic_\d{8}\.json$")
 _CHECKPOINT_NAME = re.compile(r"^daily_checkpoint_\d{8}\.json$")
 _DELIVERY_RECEIPT_NAME = re.compile(r"^daily_delivery_\d{8}\.json$")
 _FAILURE_NOTICE_NAME = re.compile(r"^daily_failure_notice_\d{8}\.json$")
@@ -246,6 +247,8 @@ def _is_allowlisted_data_relative(relative: Path) -> bool:
         return True
     if _DATED_REPORT_NAME.fullmatch(Path(token).name) and token.startswith("reports/"):
         return True
+    if _DIAGNOSTIC_NAME.fullmatch(Path(token).name) and token.startswith("diagnostics/"):
+        return True
     if _CHECKPOINT_NAME.fullmatch(Path(token).name) and token.startswith("checkpoints/"):
         return True
     if re.fullmatch(r"delivery/daily_delivery_\d{8}\.json", token):
@@ -263,6 +266,7 @@ def _data_candidates(root: Path) -> Iterable[Path]:
         "perf_tracker.json",
         "shadow_monitor/b_shadow_monitor.json",
         "reports/daily_close_????????.html",
+        "diagnostics/daily_input_diagnostic_????????.json",
         "reports/latest.html",
         "reports/perf_report.md",
         "checkpoints/daily_checkpoint_????????.json",
@@ -761,6 +765,62 @@ def persist_failure_notice(
     }
 
 
+def persist_input_diagnostic(
+    state_root: str | Path,
+    data_root: str | Path,
+    date_value: str | date | datetime,
+) -> dict[str, Any]:
+    """Persist a NO_VALID_INPUT report and complete machine diagnostic record.
+
+    This path is intentionally independent from ``persist_allowlist``: a
+    diagnostic run must be durable even when it did not create a new formal
+    watchlist, checkpoint, or delivery receipt.
+    """
+
+    state = _resolved(state_root)
+    data = _resolved(data_root)
+    _assert_separate_trees(state, data)
+    _read_marker(state)
+    list_date, token = _date_parts(date_value)
+    diagnostic_source = data / "diagnostics" / f"daily_input_diagnostic_{token}.json"
+    report_source = data / "reports" / f"daily_close_{token}.html"
+    if not diagnostic_source.is_file() or not report_source.is_file():
+        raise RuntimeStateError("NO_VALID_INPUT diagnostic artifacts are missing")
+    try:
+        diagnostic = json.loads(diagnostic_source.read_text(encoding="utf-8"))
+        report_text = report_source.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RuntimeStateError("NO_VALID_INPUT diagnostic artifacts cannot be read") from exc
+    if not isinstance(diagnostic, Mapping):
+        raise RuntimeStateError("NO_VALID_INPUT diagnostic record must be an object")
+    if diagnostic.get("target_date") != list_date or diagnostic.get("coverage_status") != "NO_VALID_INPUT":
+        raise RuntimeStateError("NO_VALID_INPUT diagnostic date/status is invalid")
+    if diagnostic.get("formal_result_valid") is not False:
+        raise RuntimeStateError("NO_VALID_INPUT diagnostic must mark formal_result_valid=false")
+    if "NO_VALID_INPUT" not in report_text or list_date not in report_text:
+        raise RuntimeStateError("NO_VALID_INPUT report marker is missing")
+    diagnostic_relative = Path("diagnostics") / diagnostic_source.name
+    report_relative = Path("reports") / report_source.name
+    if not _is_allowlisted_data_relative(diagnostic_relative) or not _is_allowlisted_data_relative(report_relative):
+        raise RuntimeStateError("NO_VALID_INPUT diagnostic path is not allowlisted")
+    copied: list[str] = []
+    for source, relative in ((diagnostic_source, diagnostic_relative), (report_source, report_relative)):
+        destination = state / "data" / relative
+        if _write_bytes(destination, source.read_bytes(), overwrite=True):
+            copied.append(f"data/{relative.as_posix()}")
+    state_validation = validate_state_tree(state)
+    return {
+        "status": "INPUT_DIAGNOSTIC_READY_TO_COMMIT",
+        "state_root": str(state),
+        "data_root": str(data),
+        "target_date": list_date,
+        "copied": copied,
+        "state_validation": state_validation,
+        "raw_persisted": False,
+        "prospective_inputs_persisted": False,
+    }
+
+
 def bootstrap_allowlist(state_root: str | Path, data_root: str | Path) -> dict[str, Any]:
     """Bootstrap trusted core state and reuse structurally valid checkpoints.
 
@@ -923,6 +983,8 @@ def build_summary(
                 shadow_status = "SHADOW_CAPTURE_INCOMPLETE"
     report_path = paths.reports_dir() / f"daily_close_{token}.html"
     report_status = renderer.get("status") or ("READY" if report_path.is_file() else "—")
+    if isinstance(result, Mapping) and result.get("status") == "NO_VALID_INPUT" and report_path.is_file():
+        report_status = "DIAGNOSTIC_READY"
     policy = watchlist.get("universe_policy") if watchlist else None
     policy_text = str(policy or "ASHARE_MAIN_BOARD_ONLY_V1")
     universe = (
@@ -936,11 +998,15 @@ def build_summary(
     coverage_status = (
         str(input_coverage.get("coverage_status"))
         if isinstance(input_coverage, Mapping)
+        else str(result.get("input_coverage", {}).get("coverage_status"))
+        if isinstance(result, Mapping) and isinstance(result.get("input_coverage"), Mapping)
         else "UNVERIFIED"
     )
     excluded_count = (
         input_coverage.get("excluded_symbol_count", "—")
         if isinstance(input_coverage, Mapping)
+        else result.get("input_coverage", {}).get("excluded_symbol_count", "—")
+        if isinstance(result, Mapping) and isinstance(result.get("input_coverage"), Mapping)
         else "—"
     )
     chinext_count = sum(classify_board(item.get("code")) == BOARD_CHINEXT for item in candidates if isinstance(item, Mapping))
@@ -948,6 +1014,10 @@ def build_summary(
     watchlist_sha = file_sha256(watchlist_path) if watchlist_path.is_file() else "—"
     tracker_sha = file_sha256(paths.perf_tracker_file()) if paths.perf_tracker_file().is_file() else "—"
     resolved_status = status or (str(result.get("status")) if result else "—")
+    formal_result_valid = result.get("formal_result_valid") if isinstance(result, Mapping) else None
+    if formal_result_valid is None:
+        formal_result_valid = bool(watchlist) and coverage_status in {"COMPLETE", "DEGRADED"}
+    diagnostic_report = result.get("diagnostic_report") if isinstance(result, Mapping) else None
     review_status = track.get("status") or review.get("status") or "—"
     shadow_status = shadow_status or "—"
     return "\n".join(
@@ -960,6 +1030,7 @@ def build_summary(
             f"- Candidate count: {candidate_count}",
             f"- Input coverage: {coverage_status}",
             f"- Excluded symbol count: {excluded_count}",
+            f"- Formal result valid: {'YES' if formal_result_valid else 'NO'}",
             f"- ChiNext candidates: {chinext_count if watchlist else '—'}",
             f"- STAR candidates: {star_count if watchlist else '—'}",
             f"- Strategy: {CURRENT_PROSPECTIVE_STRATEGY}",
@@ -970,6 +1041,7 @@ def build_summary(
             f"- Shadow: {shadow_status}",
             f"- Shadow prospective epoch start: {shadow_epoch or '—'}",
             f"- Report: {report_status}",
+            f"- Diagnostic report: {diagnostic_report or '—'}",
             f"- Runtime-state commit: {state_commit or '—'}",
             "- raw persisted: NO",
             "- prospective input persisted: NO",
@@ -1019,6 +1091,11 @@ def _parser() -> argparse.ArgumentParser:
     failure_notice.add_argument("--state-root", type=Path, required=True)
     failure_notice.add_argument("--data-root", type=Path, required=True)
     failure_notice.add_argument("--date", required=True)
+
+    diagnostic = sub.add_parser("persist-input-diagnostic")
+    diagnostic.add_argument("--state-root", type=Path, required=True)
+    diagnostic.add_argument("--data-root", type=Path, required=True)
+    diagnostic.add_argument("--date", required=True)
 
     summary = sub.add_parser("summary")
     summary.add_argument("--data-root", type=Path, required=True)
@@ -1072,6 +1149,10 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.command == "persist-failure-notice":
             result = persist_failure_notice(args.state_root, args.data_root, args.date)
+            print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+            return 0
+        if args.command == "persist-input-diagnostic":
+            result = persist_input_diagnostic(args.state_root, args.data_root, args.date)
             print(json.dumps(result, ensure_ascii=False, sort_keys=True))
             return 0
         if args.command == "summary":

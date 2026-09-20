@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from watchlist_schema import WatchlistSchemaError, validate_watchlist
+from watchlist_schema import WatchlistSchemaError, validate_input_coverage, validate_watchlist
 
 
 def candidate(**overrides):
@@ -68,3 +68,52 @@ def test_legacy_candidate_trig_is_rejected():
     with pytest.raises(WatchlistSchemaError, match="trigger"):
         validate_watchlist(value)
 
+
+def test_degraded_coverage_accepts_multiple_exclusions_without_a_fixed_cap():
+    records = []
+    for index in range(3):
+        symbol = f"60000{index}"
+        records.append(
+            {
+                "symbol": symbol,
+                "provider_symbol": f"{symbol}.SH",
+                "target_date": "2026-08-20",
+                "provider": "HiThink Financial-API",
+                "status": "EXCLUDED_INPUT_ANOMALY",
+                "reason": "SNAPSHOT_MISSING",
+                "latest_historical_date": None,
+                "quote_trade_state": "UNAVAILABLE",
+                "evidence": {"quote": {}, "historical": {}},
+                "policy_version": "PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1",
+            }
+        )
+
+    coverage = validate_input_coverage(
+        {
+            "schema_version": "INPUT_COVERAGE_V1",
+            "coverage_status": "DEGRADED",
+            "evaluated_symbol_count": 2,
+            "excluded_symbol_count": 3,
+            "excluded_symbols": records,
+            "excluded_reason_counts": {"SNAPSHOT_MISSING": 3},
+            "policy_version": "PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1",
+        }
+    )
+
+    assert coverage["excluded_symbol_count"] == 3
+
+
+def test_no_valid_input_coverage_is_diagnostic_only_not_a_formal_watchlist():
+    diagnostic = {
+        "schema_version": "INPUT_COVERAGE_V1",
+        "coverage_status": "NO_VALID_INPUT",
+        "evaluated_symbol_count": 0,
+        "excluded_symbol_count": 0,
+        "excluded_symbols": [],
+        "formal_result_valid": False,
+        "policy_version": "PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1",
+    }
+    validate_input_coverage(diagnostic, allow_no_valid=True)
+
+    with pytest.raises(WatchlistSchemaError, match="unsupported"):
+        validate_watchlist({**payload(candidates=[]), "input_coverage": diagnostic})

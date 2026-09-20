@@ -20,6 +20,7 @@ from cloud_runtime_state import (
     completed_run_status,
     persist_allowlist,
     persist_failure_notice,
+    persist_input_diagnostic,
     restore_allowlist,
     validate_runtime_data,
     validate_state_tree,
@@ -247,6 +248,67 @@ def test_allowlist_contains_only_durable_files_and_excludes_raw_inputs(tmp_path)
     assert all("t_close_evidence" not in item for item in relative)
     assert all("prospective_inputs" not in item for item in relative)
     assert all("development_candidate" not in item for item in relative)
+
+
+def test_no_valid_input_diagnostic_is_allowlisted_and_persisted_without_formal_watchlist(tmp_path):
+    data_root = tmp_path / "diagnostic-data"
+    (data_root / "diagnostics").mkdir(parents=True)
+    (data_root / "reports").mkdir(parents=True)
+    token = DATE.replace("-", "")
+    diagnostic_path = data_root / "diagnostics" / f"daily_input_diagnostic_{token}.json"
+    report_path = data_root / "reports" / f"daily_close_{token}.html"
+    diagnostic_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "DAILY_INPUT_DIAGNOSTIC_V1",
+                "target_date": DATE,
+                "coverage_status": "NO_VALID_INPUT",
+                "formal_result_valid": False,
+                "exclusions": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    report_path.write_text(f"<html>NO_VALID_INPUT {DATE}</html>\n", encoding="utf-8")
+
+    assert _is_allowlisted_data_relative(Path("diagnostics") / diagnostic_path.name)
+    state_root = tmp_path / "diagnostic-runtime-state"
+    _marker(state_root)
+
+    persisted = persist_input_diagnostic(state_root, data_root, DATE)
+
+    assert persisted["status"] == "INPUT_DIAGNOSTIC_READY_TO_COMMIT"
+    assert f"data/diagnostics/daily_input_diagnostic_{token}.json" in persisted["copied"]
+    assert f"data/reports/daily_close_{token}.html" in persisted["copied"]
+    assert validate_state_tree(state_root)["raw_persisted"] is False
+
+
+def test_no_valid_input_actions_summary_marks_diagnostic_not_formal_success(tmp_path):
+    data_root = tmp_path / "summary-data"
+    report_path = data_root / "reports" / f"daily_close_{DATE.replace('-', '')}.html"
+    report_path.parent.mkdir(parents=True)
+    report_path.write_text(f"<html>NO_VALID_INPUT {DATE}</html>\n", encoding="utf-8")
+
+    summary = build_summary(
+        data_root,
+        DATE,
+        status="NO_VALID_INPUT",
+        state_commit="a" * 40,
+        result={
+            "status": "NO_VALID_INPUT",
+            "formal_result_valid": False,
+            "diagnostic_report": str(report_path),
+            "input_coverage": {
+                "coverage_status": "NO_VALID_INPUT",
+                "excluded_symbol_count": 4,
+            },
+        },
+    )
+
+    assert "- Status: NO_VALID_INPUT" in summary
+    assert "- Input coverage: NO_VALID_INPUT" in summary
+    assert "- Formal result valid: NO" in summary
+    assert "- Report: DIAGNOSTIC_READY" in summary
 
 
 def test_historical_checkpoint_survives_legal_tracker_and_latest_report_advance(tmp_path):
