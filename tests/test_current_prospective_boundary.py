@@ -151,6 +151,42 @@ def test_observation_open_is_prospective_and_t_close_is_not_execution(tmp_path):
     assert 'open' not in tracker['signals'][key]['observations'][0]
 
 
+def test_authorized_weekend_backfill_observation_has_distinct_provenance(tmp_path):
+    watchlist = write_list(tmp_path, '20260917')
+    paths = DataPaths(tmp_path / 'data')
+    tracker = perf.new_tracker()
+    perf.ingest(tracker, paths)
+    quote = {
+        '600000': {
+            'code': '600000',
+            'quote_date': '2026-09-18',
+            'open': 10.0,
+            'price': 10.2,
+            'high': 10.4,
+            'low': 9.9,
+            'prev_close': 10.0,
+        }
+    }
+
+    assert perf.update(
+        tracker,
+        quotes=quote,
+        today='2026-09-18',
+        source_mode=perf.SOURCE_MODE_AUTHORIZED_WEEKEND_BACKFILL,
+        provenance={
+            'acquisition_timing': 'AUTHORIZED_WEEKEND_BACKFILL',
+            'target_session': '2026-09-18',
+            'observation_status': 'POST_SESSION_BACKFILL_NOT_PROSPECTIVE',
+        },
+    ) > 0
+
+    signal = next(iter(tracker['signals'].values()))
+    assert signal['observations'][0]['source_mode'] == perf.SOURCE_MODE_AUTHORIZED_WEEKEND_BACKFILL
+    assert signal['observations'][0]['provenance']['observation_status'] == (
+        'POST_SESSION_BACKFILL_NOT_PROSPECTIVE'
+    )
+
+
 def test_exact_local_canonical_continuity_when_available():
     paths = DataPaths(Path(__file__).resolve().parents[1] / 'data')
     expected = {

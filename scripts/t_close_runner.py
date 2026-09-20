@@ -159,7 +159,12 @@ def _daily_shadow_update(as_of_date: str, data_root: Path) -> dict[str, Any]:
     return {"status": "SHADOW_CAPTURE_INCOMPLETE", "detail": detail, "exit_code": completed.returncode}
 
 
-def _run_daily_close_reporting(as_of_date: str, data_root: Path) -> dict[str, Any]:
+def _run_daily_close_reporting(
+    as_of_date: str,
+    data_root: Path,
+    *,
+    skip_shadow_capture: bool = False,
+) -> dict[str, Any]:
     """Run tracker then renderer after a successful canonical watchlist write.
 
     The tracker is intentionally allowed to fail without suppressing the
@@ -179,6 +184,8 @@ def _run_daily_close_reporting(as_of_date: str, data_root: Path) -> dict[str, An
         "--date",
         str(as_of_date),
     ]
+    if skip_shadow_capture:
+        tracker_command.append("--authorized-weekend-backfill")
     try:
         tracker_run = subprocess.run(
             tracker_command,
@@ -209,7 +216,16 @@ def _run_daily_close_reporting(as_of_date: str, data_root: Path) -> dict[str, An
         except (OSError, UnicodeDecodeError, json.JSONDecodeError):
             coverage = None
 
-    shadow_monitor = _daily_shadow_update(as_of_date, data_root)
+    shadow_monitor = (
+        {
+            "status": "SHADOW_CAPTURE_SKIPPED_AUTHORIZED_BACKFILL",
+            "capture_mode": "NOT_CAPTURED",
+            "reason": "post-session backfill cannot be represented as PROSPECTIVE_CAPTURED",
+            "runtime_state_mutation": "NO",
+        }
+        if skip_shadow_capture
+        else _daily_shadow_update(as_of_date, data_root)
+    )
 
     renderer_command = [
         python,
@@ -462,8 +478,16 @@ def run(
     )
     if candidate.status not in RUNNABLE_STATUSES:
         raise RuntimeError(f"development candidate generation failed: {candidate.status}")
+    weekend_backfill = package.provenance.get("acquisition_timing") == AUTHORIZED_WEEKEND_BACKFILL
     shadow_monitor: dict[str, Any]
-    if candidate.output_path is None:
+    if weekend_backfill:
+        shadow_monitor = {
+            "status": "SHADOW_CAPTURE_SKIPPED_AUTHORIZED_BACKFILL",
+            "capture_mode": "NOT_CAPTURED",
+            "reason": "post-session backfill cannot be represented as PROSPECTIVE_CAPTURED",
+            "runtime_state_mutation": "NO",
+        }
+    elif candidate.output_path is None:
         shadow_monitor = {
             "status": "SHADOW_CAPTURE_INCOMPLETE",
             "detail": "canonical watchlist output path is unavailable",
@@ -503,6 +527,16 @@ def run(
         "status": T_CLOSE_SUCCESS_STATUS,
         "as_of_date": package.generation_input_manifest.signal_date,
         "code_git_sha": code_git_sha,
+        "acquisition_timing": package.provenance.get("acquisition_timing", "SAME_CALENDAR_DATE"),
+        "target_session": package.provenance.get(
+            "target_session",
+            package.generation_input_manifest.signal_date,
+        ),
+        "actual_acquisition_date": package.provenance.get(
+            "actual_acquisition_date",
+            package.generation_input_manifest.signal_date,
+        ),
+        "authorization": package.provenance.get("authorization"),
         "evidence_capture": package.provenance.get("evidence_capture"),
         "input_coverage": package.provenance.get("input_coverage"),
         "input_package": {
@@ -559,7 +593,14 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
         if not args.preflight and result.get("status") == T_CLOSE_SUCCESS_STATUS and result.get("watchlist", {}).get("path"):
-            result["daily_close_bundle"] = _run_daily_close_reporting(args.as_of_date, data_root)
+            if result.get("acquisition_timing") == AUTHORIZED_WEEKEND_BACKFILL:
+                result["daily_close_bundle"] = _run_daily_close_reporting(
+                    args.as_of_date,
+                    data_root,
+                    skip_shadow_capture=True,
+                )
+            else:
+                result["daily_close_bundle"] = _run_daily_close_reporting(args.as_of_date, data_root)
     except (LiveAcquisitionError, OSError, RuntimeError, ValueError) as exc:
         diagnostics = getattr(exc, "diagnostics", {})
         if not isinstance(diagnostics, dict):

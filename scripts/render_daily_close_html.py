@@ -48,6 +48,7 @@ from track_perf import (
     is_current_prospective_signal,
     CURRENT_PROSPECTIVE_STRATEGY,
     PATH_UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH,
+    SOURCE_MODE_AUTHORIZED_WEEKEND_BACKFILL,
     SOURCE_MODE_EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1,
 )
 from trading_calendar import TradingCalendar, default_calendar, previous_trading_day
@@ -515,6 +516,8 @@ def _review_rows(
                 snapshot_source = "数据缺失"
             elif source_mode == SOURCE_MODE_EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1:
                 snapshot_source = "已恢复（不可变证据）"
+            elif source_mode == SOURCE_MODE_AUTHORIZED_WEEKEND_BACKFILL:
+                snapshot_source = "授权周末补跑（非前瞻）"
             else:
                 snapshot_source = "已记录"
             if captured and return_value is None:
@@ -606,6 +609,8 @@ def _daily_collections(tracker, report_date, previous_date, paths, failures):
                         and observation['provenance'].get('source_mode') == SOURCE_MODE_EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1
                     )
                 )
+                else '授权周末补跑（非前瞻）'
+                if observation and observation.get('source_mode') == SOURCE_MODE_AUTHORIZED_WEEKEND_BACKFILL
                 else '已记录' if observation else '数据缺失'
             ),
             'close_vs_trigger_pct': (
