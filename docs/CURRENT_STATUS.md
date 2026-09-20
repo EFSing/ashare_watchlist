@@ -1,10 +1,37 @@
 # CURRENT STATUS
 
-更新时间：2026-09-17（Asia/Shanghai）
+更新时间：2026-09-20（Asia/Shanghai）
 
 本文件只记录当前有效状态；历史实现过程与旧 checkpoint 以 Git history / PR / CI 为 provenance，
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
+
+## Current task — PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1 — 2026-09-20
+
+本轮为 `correctness blocker + product blocker`（STRICT PATH）：正式生产对能够明确归属到单只股票
+的数据异常执行无限定数量的单股票隔离；全局行情源、鉴权、批量接口或必需输入无法验证时快速失败
+并进入诊断路径。`COMPLETE` 表示完整有效输入，`DEGRADED` 表示部分 exclusion 后仍有有效股票，
+`NO_VALID_INPUT` 表示没有任何 Formal B 可评估输入；后者不是正常空名单，不创建正式 watchlist、
+checkpoint 或 delivery receipt，但必须尽力生成带目标日/实际获取时间/运行类型/四类计数/原因统计的
+日报、完整机器 exclusion record 与 Email/Bark 通知。
+
+实时 reconciliation 已确认 live `origin/master=40091083a67fed9a5dfb279868820951f38e8f39`，
+PR #73/#74/#75 已合并；`origin/runtime-state=7db58bee3aadde658a01bc9c0bbf371ff444d1dc`。
+旧的“一只 stale 才可隔离” persisted 文案与 live 语义冲突，已在本任务范围内以新 policy version
+`PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1` 替代；旧 `PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1`
+artifact 仍可读，不被改写。Formal B、universe、tracker 缺失行情不伪造 outcome、shadow 前瞻身份、
+周五授权补跑与正常工作日自动生产保持原语义。
+
+实现位于独立 branch/worktree `codex/per-symbol-fail-soft-production-v1` /
+`D:\dev\ashare-watchlist-per-symbol-fail-soft-production-v1`，commit
+`d290c2ee3506fd5eba0b95fb6b0665afcfbdb857`，独立 PR #76：
+https://github.com/EFSing/ashare_watchlist/pull/76；未触发生产或 remote runtime-state。当前
+focused=`235 passed, 2 warnings`；此前实现 full pytest 为 `658 passed, 2 skipped, 10 warnings`，
+compileall 与 diff check 通过。对最终 head `8e119dd...` 的 daily workflow run
+`35497053430` 已确认是 `event=push`、`jobs=0` 的失败 check-suite；actionlint 1.7.12 定位
+NO_VALID_INPUT 持久化 step 的 YAML 解析错误，当前已在 PR 分支做最小 `$'\n'` 拼接修复。修复后
+全部 workflow actionlint=`0 errors`，修复已提交并 push 到 PR #76 分支。下一步是重新核验
+最终 head 的 exact-head CI/mergeability，停在用户合并决策节点。
 
 ## Current task — FRIDAY_WEEKEND_BACKFILL_PREFLIGHT_STATE_FIX_V1 — 2026-09-20
 

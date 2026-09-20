@@ -56,6 +56,8 @@ from universe_policy import policy_display_label
 from watchlist_schema import (
     INPUT_COVERAGE_COMPLETE,
     INPUT_COVERAGE_DEGRADED,
+    INPUT_COVERAGE_NO_VALID_INPUT,
+    PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1,
     WatchlistSchemaError,
     load_watchlist,
     validate_input_coverage,
@@ -292,10 +294,19 @@ def _input_coverage_metadata(value: Any) -> dict[str, Any]:
             "excluded_reason": "—",
             "excluded_latest_provider_date": "—",
             "excluded_target_date": "—",
+            "excluded_reason_counts": {},
+            "excluded_sample_truncated": False,
             "input_coverage_policy_version": "—",
         }
     coverage = validate_input_coverage(value)
-    records = coverage["excluded_symbols"]
+    all_records = coverage["excluded_symbols"]
+    records = all_records[:20]
+    reason_counts = coverage.get("excluded_reason_counts")
+    if not isinstance(reason_counts, Mapping):
+        reason_counts = {}
+        for item in all_records:
+            reason = str(item.get("reason") or "UNKNOWN")
+            reason_counts[reason] = reason_counts.get(reason, 0) + 1
     return {
         "input_coverage": copy.deepcopy(coverage),
         "input_coverage_status": coverage["coverage_status"],
@@ -307,6 +318,8 @@ def _input_coverage_metadata(value: Any) -> dict[str, Any]:
             str(item.get("latest_historical_date")) for item in records
         ) or "—",
         "excluded_target_date": ", ".join(str(item.get("target_date")) for item in records) or "—",
+        "excluded_reason_counts": dict(sorted(reason_counts.items())),
+        "excluded_sample_truncated": len(all_records) > len(records),
         "input_coverage_policy_version": coverage["policy_version"],
     }
 
@@ -315,22 +328,39 @@ def _input_coverage_html(metadata: Mapping[str, Any]) -> str:
     status = str(metadata.get("input_coverage_status") or _UNVERIFIED)
     coverage = metadata.get("input_coverage")
     if status == INPUT_COVERAGE_DEGRADED and isinstance(coverage, Mapping):
+        counts = (
+            f'raw_symbol_count = {_esc(coverage.get("raw_symbol_count", "—"))}；'
+            f'qualified_symbol_count = {_esc(coverage.get("qualified_symbol_count", "—"))}；'
+            f'evaluated_symbol_count = {_esc(coverage.get("evaluated_symbol_count", "—"))}；'
+            f'excluded_symbol_count = {_esc(coverage.get("excluded_symbol_count", "—"))}'
+        )
+        sample_note = (
+            '<p>正文仅展示前 20 条典型异常；完整 exclusion record 保存在机器 coverage metadata 中。</p>'
+            if metadata.get("excluded_sample_truncated")
+            else ""
+        )
         return (
             '<div class="review-callout warning"><strong>INPUT COVERAGE = DEGRADED</strong>'
-            f'<p>evaluated_symbol_count = {_esc(metadata.get("evaluated_symbol_count"))}；'
-            f'excluded_symbol_count = {_esc(metadata.get("excluded_symbol_count"))}</p>'
+            f'<p>{counts}</p>'
             f'<p>excluded symbol = {_esc(metadata.get("excluded_symbol"))}；'
             f'reason = {_esc(metadata.get("excluded_reason"))}；'
             f'latest provider date = {_esc(metadata.get("excluded_latest_provider_date"))}；'
             f'target date = {_esc(metadata.get("excluded_target_date"))}；'
+            f'按原因统计 = {_esc(metadata.get("excluded_reason_counts"))}；'
             f'policy version = {_esc(metadata.get("input_coverage_policy_version"))}</p>'
+            f'{sample_note}'
             '<p>本次候选名单未包含该数据异常股票。</p></div>'
         )
     if status == INPUT_COVERAGE_COMPLETE and isinstance(coverage, Mapping):
+        counts = (
+            f'raw_symbol_count = {_esc(coverage.get("raw_symbol_count", "—"))}；'
+            f'qualified_symbol_count = {_esc(coverage.get("qualified_symbol_count", "—"))}；'
+            f'evaluated_symbol_count = {_esc(coverage.get("evaluated_symbol_count", "—"))}；'
+            f'excluded_symbol_count = {_esc(coverage.get("excluded_symbol_count", "—"))}'
+        )
         return (
             '<div class="review-callout"><strong>INPUT COVERAGE = COMPLETE</strong>'
-            f'<p>evaluated_symbol_count = {_esc(metadata.get("evaluated_symbol_count"))}；'
-            f'excluded_symbol_count = {_esc(metadata.get("excluded_symbol_count"))}；'
+            f'<p>{counts}；'
             f'policy version = {_esc(metadata.get("input_coverage_policy_version"))}</p></div>'
         )
     return (
@@ -2296,6 +2326,134 @@ def atomic_write_text(path: str | Path, content: str) -> None:
             except FileNotFoundError:
                 pass
         raise
+
+
+def input_diagnostic_paths(
+    report_date: date | datetime | str,
+    *,
+    paths: DataPaths | None = None,
+) -> tuple[Path, Path]:
+    """Return the dated machine record and limited human diagnostic report."""
+
+    resolver = paths or DataPaths.from_env()
+    normalized = _normalize_date(report_date)
+    token = _date_token(normalized)
+    return (
+        resolver.root / "diagnostics" / f"daily_input_diagnostic_{token}.json",
+        resolver.reports_dir() / f"daily_close_{token}.html",
+    )
+
+
+def render_input_diagnostic_report(
+    report_date: date | datetime | str,
+    diagnostic: Mapping[str, Any],
+    *,
+    paths: DataPaths | None = None,
+    generated_at: datetime | None = None,
+    sample_limit: int = 20,
+) -> tuple[Path, Path]:
+    """Persist a bounded human report plus the complete exclusion machine record.
+
+    This path deliberately never writes ``reports/latest.html`` and never
+    creates a formal watchlist, checkpoint, or delivery receipt.
+    """
+
+    resolver = paths or DataPaths.from_env()
+    normalized_date = _normalize_date(report_date)
+    now = (generated_at or datetime.now(_BJT)).astimezone(_BJT)
+    raw = copy.deepcopy(dict(diagnostic))
+    raw["schema_version"] = str(raw.get("schema_version") or "DAILY_INPUT_DIAGNOSTIC_V1")
+    raw["target_date"] = normalized_date
+    raw.setdefault("actual_retrieved_at_bjt", now.isoformat())
+    raw.setdefault("run_type", "SAME_CALENDAR_DATE")
+    raw["coverage_status"] = INPUT_COVERAGE_NO_VALID_INPUT
+    raw["formal_result_valid"] = False
+    raw.setdefault("candidate_count", 0)
+    coverage = raw.get("input_coverage")
+    if isinstance(coverage, Mapping):
+        coverage = validate_input_coverage(coverage, allow_no_valid=True)
+    else:
+        exclusions = raw.get("exclusions") if isinstance(raw.get("exclusions"), list) else []
+        coverage = validate_input_coverage(
+            {
+                "schema_version": "INPUT_COVERAGE_V1",
+                "coverage_status": INPUT_COVERAGE_NO_VALID_INPUT,
+                "evaluated_symbol_count": int(raw.get("evaluated_symbol_count") or 0),
+                "excluded_symbol_count": len(exclusions),
+                "excluded_symbols": exclusions,
+                "policy_version": PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1,
+                "formal_result_valid": False,
+            },
+            allow_no_valid=True,
+        )
+    raw["input_coverage"] = coverage
+    raw["raw_symbol_count"] = int(raw.get("raw_symbol_count", coverage.get("raw_symbol_count", 0)) or 0)
+    raw["qualified_symbol_count"] = int(
+        raw.get("qualified_symbol_count", coverage.get("qualified_symbol_count", 0)) or 0
+    )
+    raw["evaluated_symbol_count"] = coverage["evaluated_symbol_count"]
+    raw["excluded_symbol_count"] = coverage["excluded_symbol_count"]
+    raw["excluded_reason_counts"] = dict(coverage.get("excluded_reason_counts") or {})
+    raw["exclusions"] = copy.deepcopy(coverage["excluded_symbols"])
+    raw["report_generated_at_bjt"] = now.isoformat()
+    raw["formal_watchlist_created"] = False
+    raw["checkpoint_created"] = False
+    raw["delivery_receipt_created"] = False
+
+    record_path, report_path = input_diagnostic_paths(normalized_date, paths=resolver)
+    atomic_write_text(
+        record_path,
+        json.dumps(raw, ensure_ascii=False, allow_nan=False, sort_keys=True, indent=2) + "\n",
+    )
+    sample = raw["exclusions"][: max(0, int(sample_limit))]
+    sample_rows = "".join(
+        "<tr>"
+        f"<td>{html.escape(str(item.get('symbol', '—')))}</td>"
+        f"<td>{html.escape(str(item.get('reason', '—')))}</td>"
+        f"<td>{html.escape(str(item.get('failure_status', '—')))}</td>"
+        f"<td>{html.escape(str(item.get('detail', '—')))}</td>"
+        "</tr>"
+        for item in sample
+        if isinstance(item, Mapping)
+    )
+    if not sample_rows:
+        sample_rows = '<tr><td colspan="4">无可归属的单股票异常记录；请查看 global_failures。</td></tr>'
+    global_rows = "".join(
+        f"<li>{html.escape(str(item))}</li>"
+        for item in raw.get("global_failures", [])
+    ) or "<li>无</li>"
+    report_html = f"""<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>A股输入诊断 {html.escape(normalized_date)}</title>
+<style>body{{font-family:system-ui,-apple-system,Segoe UI,sans-serif;margin:2rem;color:#202124}}
+.warning{{border-left:4px solid #b42318;background:#fff3f2;padding:1rem}}
+table{{border-collapse:collapse;width:100%;margin-top:1rem}}th,td{{border:1px solid #d0d5dd;padding:.45rem;text-align:left;vertical-align:top}}
+th{{background:#f2f4f7}}code{{white-space:pre-wrap}}</style></head>
+<body><h1>A股每日收盘输入诊断</h1>
+<div class="warning"><strong>NO_VALID_INPUT：本次没有任何可供 Formal B 评估的有效股票输入。</strong>
+<p>不得将本页解释为正式空名单；本次未生成正式 watchlist、checkpoint 或 delivery receipt。最近一次正式成功结果仍保持权威。</p></div>
+<h2>运行摘要</h2><table>
+<tr><th>目标交易日</th><td>{html.escape(normalized_date)}</td></tr>
+<tr><th>实际获取时间</th><td>{html.escape(str(raw.get('actual_retrieved_at_bjt')))}</td></tr>
+<tr><th>运行类型</th><td>{html.escape(str(raw.get('run_type')))}</td></tr>
+<tr><th>原始股票数</th><td>{raw['raw_symbol_count']}</td></tr>
+<tr><th>通过资格检查数</th><td>{raw['qualified_symbol_count']}</td></tr>
+<tr><th>有效评估数</th><td>{raw['evaluated_symbol_count']}</td></tr>
+<tr><th>隔离数</th><td>{raw['excluded_symbol_count']}</td></tr>
+<tr><th>候选数</th><td>0</td></tr>
+<tr><th>数据覆盖</th><td>NO_VALID_INPUT</td></tr>
+<tr><th>正式结果有效</th><td>NO</td></tr>
+<tr><th>按原因统计</th><td><code>{html.escape(json.dumps(raw['excluded_reason_counts'], ensure_ascii=False, sort_keys=True))}</code></td></tr>
+</table>
+<h2>全局故障</h2><ul>{global_rows}</ul>
+<h2>典型单股票异常（最多 {max(0, int(sample_limit))} 条）</h2>
+<table><thead><tr><th>股票</th><th>原因</th><th>原始状态</th><th>详情</th></tr></thead><tbody>{sample_rows}</tbody></table>
+<p>完整 exclusion record：<code>{html.escape(str(record_path))}</code></p>
+<p>报告生成时间（北京时间）：{html.escape(now.isoformat())}</p>
+</body></html>
+"""
+    atomic_write_text(report_path, report_html)
+    return record_path, report_path
 
 
 def render_daily_close(

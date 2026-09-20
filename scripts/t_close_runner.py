@@ -29,13 +29,22 @@ from development_candidate import (
 )
 from live_acquisition import (
     AUTHORIZED_WEEKEND_BACKFILL,
+    FUTURE_DATA_DETECTED,
     HITHINK_API_KEY_ENV,
+    INCOMPLETE_COVERAGE,
+    INPUT_CONFLICT,
     LiveAcquisitionError,
+    NO_VALID_INPUT,
+    NoValidInputError,
+    PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1,
+    PROVIDER_FAILURE,
+    PROVIDER_UNAVAILABLE,
     _validate_close_window,
     acquire_live_generation_inputs,
     persist_live_input_package,
 )
 from trading_calendar import CalendarUnavailable, default_calendar
+from render_daily_close_html import render_input_diagnostic_report
 from upload_daily_checkpoint import (
     CLOUD_CHECKPOINT_FAILED,
     CheckpointError,
@@ -47,6 +56,14 @@ from upload_daily_checkpoint import (
 _BJT = timezone(timedelta(hours=8))
 RUNNABLE_STATUSES = {RUN_SUCCESS, RUN_ALREADY_CURRENT, RUN_NO_CANDIDATES}
 T_CLOSE_SUCCESS_STATUS = "T_CLOSE_EVIDENCE_PACKAGE_AND_WATCHLIST_PERSISTED"
+T_CLOSE_NO_VALID_INPUT_STATUS = NO_VALID_INPUT
+_NO_VALID_GLOBAL_FAILURE_STATUSES = {
+    FUTURE_DATA_DETECTED,
+    INCOMPLETE_COVERAGE,
+    INPUT_CONFLICT,
+    PROVIDER_FAILURE,
+    PROVIDER_UNAVAILABLE,
+}
 
 # The desktop app can inject its authenticated Drive adapter here. The
 # standalone runner deliberately has no credentials or second Drive SDK.
@@ -461,13 +478,112 @@ def run(
     allow_weekend_backfill: bool = False,
 ) -> dict[str, Any]:
     code_git_sha = _git_sha()
-    package = acquire_live_generation_inputs(
-        as_of_date,
-        now_bjt=now_bjt,
-        allow_weekend_backfill=allow_weekend_backfill,
-        evidence_root=evidence_root,
-        code_git_sha=code_git_sha,
-    )
+
+    def diagnostic_result(diagnostic: dict[str, Any]) -> dict[str, Any]:
+        exclusions = diagnostic.get("exclusions") if isinstance(diagnostic.get("exclusions"), list) else []
+        reason_counts = dict(diagnostic.get("excluded_reason_counts") or {})
+        if not reason_counts:
+            for record in exclusions:
+                if isinstance(record, dict):
+                    reason = str(record.get("reason") or "UNKNOWN")
+                    reason_counts[reason] = reason_counts.get(reason, 0) + 1
+        coverage = diagnostic.get("input_coverage")
+        if isinstance(coverage, dict):
+            coverage = dict(coverage)
+            coverage.setdefault("schema_version", "INPUT_COVERAGE_V1")
+            coverage.setdefault("coverage_status", "NO_VALID_INPUT")
+            coverage.setdefault("evaluated_symbol_count", int(diagnostic.get("evaluated_symbol_count") or 0))
+            coverage.setdefault("excluded_symbol_count", len(exclusions))
+            coverage.setdefault("excluded_symbols", exclusions)
+            coverage.setdefault("excluded_reason_counts", reason_counts)
+            coverage["formal_result_valid"] = False
+            coverage.setdefault("policy_version", PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1)
+        else:
+            coverage = {
+                "schema_version": "INPUT_COVERAGE_V1",
+                "coverage_status": "NO_VALID_INPUT",
+                "evaluated_symbol_count": int(diagnostic.get("evaluated_symbol_count") or 0),
+                "excluded_symbol_count": len(exclusions),
+                "excluded_symbols": exclusions,
+                "excluded_reason_counts": reason_counts,
+                "formal_result_valid": False,
+                "policy_version": PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1,
+            }
+        diagnostic["input_coverage"] = coverage
+        if isinstance(now_bjt, datetime):
+            report_time = now_bjt
+        elif now_bjt:
+            report_time = datetime.fromisoformat(now_bjt.replace("Z", "+00:00"))
+        else:
+            report_time = datetime.now(_BJT)
+        record_path, report_path = render_input_diagnostic_report(
+            as_of_date,
+            diagnostic,
+            paths=DataPaths(data_root),
+            generated_at=report_time,
+        )
+        return {
+            "status": T_CLOSE_NO_VALID_INPUT_STATUS,
+            "as_of_date": as_of_date,
+            "code_git_sha": code_git_sha,
+            "acquisition_timing": diagnostic.get("run_type", "SAME_CALENDAR_DATE"),
+            "actual_acquisition_date": diagnostic.get("actual_retrieved_at_bjt"),
+            "input_coverage": diagnostic.get("input_coverage"),
+            "formal_result_valid": False,
+            "candidate_count": 0,
+            "diagnostic_record": str(record_path),
+            "diagnostic_report": str(report_path),
+            "diagnostics": diagnostic,
+            "formal_outputs_created": False,
+            "checkpoint_created": False,
+            "delivery_receipt_created": False,
+        }
+
+    try:
+        package = acquire_live_generation_inputs(
+            as_of_date,
+            now_bjt=now_bjt,
+            allow_weekend_backfill=allow_weekend_backfill,
+            evidence_root=evidence_root,
+            code_git_sha=code_git_sha,
+        )
+    except NoValidInputError as exc:
+        diagnostic = dict(exc.diagnostics)
+        return diagnostic_result(diagnostic)
+    except LiveAcquisitionError as exc:
+        if exc.status not in _NO_VALID_GLOBAL_FAILURE_STATUSES:
+            raise
+        retrieved = now_bjt or datetime.now(_BJT).isoformat()
+        if isinstance(retrieved, str):
+            retrieved_text = retrieved
+        else:
+            retrieved_text = retrieved.isoformat()
+        diagnostic = {
+            "schema_version": "DAILY_INPUT_DIAGNOSTIC_V1",
+            "target_date": as_of_date,
+            "actual_retrieved_at_bjt": retrieved_text,
+            "run_type": (
+                AUTHORIZED_WEEKEND_BACKFILL if allow_weekend_backfill else "SAME_CALENDAR_DATE"
+            ),
+            "coverage_status": "NO_VALID_INPUT",
+            "formal_result_valid": False,
+            "raw_symbol_count": 0,
+            "qualified_symbol_count": 0,
+            "evaluated_symbol_count": 0,
+            "excluded_symbol_count": 0,
+            "excluded_reason_counts": {},
+            "candidate_count": 0,
+            "exclusions": [],
+            "global_failures": [
+                {
+                    "status": exc.status,
+                    "stage": str(exc.diagnostics.get("stage") or "acquisition"),
+                    "detail": str(exc)[:1000],
+                    **dict(exc.diagnostics),
+                }
+            ],
+        }
+        return diagnostic_result(diagnostic)
     persisted = persist_live_input_package(package, data_root)
     candidate = DevelopmentCandidateStore(data_root).generate(
         package.generation_input_manifest,
@@ -620,6 +736,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+    if result.get("status") == T_CLOSE_NO_VALID_INPUT_STATUS:
+        return 1
     bundle = result.get("daily_close_bundle")
     if isinstance(bundle, dict) and bundle.get("status") == "REPORT_FAILED":
         return 1

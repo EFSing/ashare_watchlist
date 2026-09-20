@@ -218,6 +218,55 @@ def test_failure_email_has_no_attachment_even_when_stale_reports_exist(tmp_path,
     assert (root / "reports" / "latest.html").is_file()
 
 
+def test_no_valid_input_failure_notifies_with_diagnostic_attachment_and_no_success_receipt(tmp_path, monkeypatch):
+    root = _data_root(tmp_path)
+    diagnostic_path = root / "reports" / f"daily_close_{DATE.replace('-', '')}.html"
+    diagnostic_path.write_text("<html>NO_VALID_INPUT diagnostic</html>\n", encoding="utf-8")
+    counts, messages, bark = _capture_transports(monkeypatch)
+
+    result = delivery.send_failure_notification(
+        DATE,
+        failure_stage="production",
+        error_summary="NO_VALID_INPUT",
+        run_url=None,
+        result={
+            "status": "NO_VALID_INPUT",
+            "formal_result_valid": False,
+            "diagnostic_report": str(diagnostic_path),
+            "input_coverage": {"coverage_status": "NO_VALID_INPUT", "excluded_symbol_count": 2},
+        },
+        data_root=root,
+        production_status="NO_VALID_INPUT",
+        env=_env(),
+        now_bjt=NOW,
+        sleep_fn=lambda _seconds: None,
+    )
+
+    assert result["status"] == "FAILURE_NOTIFICATION_SENT"
+    assert result["diagnostic_report_attached"] is True
+    assert counts == {"email": 1, "bark": 1}
+    attachments = [part for part in messages[0].walk() if part.get_content_disposition() == "attachment"]
+    assert len(attachments) == 1
+    assert attachments[0].get_filename() == "2026-09-14_A股输入诊断.html"
+    assert "正式结果有效性：NO" in messages[0].get_body(preferencelist=("plain",)).get_content()
+    assert "NO_VALID_INPUT" in bark[0][1]
+    assert not (root / "delivery" / f"daily_delivery_{DATE.replace('-', '')}.json").exists()
+
+    repeated = delivery.send_failure_notification(
+        DATE,
+        failure_stage="production",
+        error_summary="NO_VALID_INPUT",
+        result={"status": "NO_VALID_INPUT", "formal_result_valid": False},
+        data_root=root,
+        production_status="NO_VALID_INPUT",
+        env=_env(),
+        now_bjt=NOW,
+        sleep_fn=lambda _seconds: None,
+    )
+    assert repeated["status"] == delivery.ALREADY_FAILURE_NOTIFIED
+    assert counts == {"email": 1, "bark": 1}
+
+
 def test_failure_subject_and_bark_title_are_bjt_and_secret_free(monkeypatch):
     counts, messages, bark = _capture_transports(monkeypatch)
     result = delivery.send_failure_notification(

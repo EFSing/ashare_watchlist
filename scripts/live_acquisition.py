@@ -78,9 +78,11 @@ from universe_policy import (
     validate_board_policy_audit,
 )
 from watchlist_schema import (
+    EXCLUDED_INPUT_ANOMALY,
     INPUT_COVERAGE_COMPLETE,
     INPUT_COVERAGE_DEGRADED,
     INPUT_COVERAGE_SCHEMA,
+    PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1,
     PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1,
     TARGET_DAY_HISTORICAL_STALE,
     validate_input_coverage,
@@ -106,9 +108,21 @@ INPUT_CONFLICT = "INPUT_CONFLICT"
 MISSING_DISPLAY_NAME = "MISSING_DISPLAY_NAME"
 PERSISTENCE_CONFLICT = "PERSISTENCE_CONFLICT"
 PERSISTENCE_FAILURE = "PERSISTENCE_FAILURE"
-TARGET_DAY_HISTORICAL_STALE_LIMIT_EXCEEDED = "TARGET_DAY_HISTORICAL_STALE_LIMIT_EXCEEDED"
+NO_VALID_INPUT = "NO_VALID_INPUT"
 HITHINK_SINGLE_SOURCE_TRADE_STATE_DECISION_REQUIRED = "HITHINK_SINGLE_SOURCE_TRADE_STATE_DECISION_REQUIRED"
 SINGLE_AUTHORITATIVE_MARKET_DATA_SOURCE_V1 = "SINGLE_AUTHORITATIVE_MARKET_DATA_SOURCE_V1"
+
+SNAPSHOT_MISSING = "SNAPSHOT_MISSING"
+SNAPSHOT_MALFORMED = "SNAPSHOT_MALFORMED"
+SNAPSHOT_DATE_CONFLICT = "SNAPSHOT_DATE_CONFLICT"
+SNAPSHOT_IDENTITY_CONFLICT = "SNAPSHOT_IDENTITY_CONFLICT"
+HISTORICAL_PROVIDER_FAILURE = "HISTORICAL_PROVIDER_FAILURE"
+HISTORICAL_INCOMPLETE = "HISTORICAL_INCOMPLETE"
+HISTORICAL_DATE_CONFLICT = "HISTORICAL_DATE_CONFLICT"
+HISTORICAL_OHLCV_CONFLICT = "HISTORICAL_OHLCV_CONFLICT"
+HISTORICAL_FUTURE_DATE = "HISTORICAL_FUTURE_DATE"
+TRADE_STATE_CONFLICT = "TRADE_STATE_CONFLICT"
+UNIVERSE_LIST_DATE_INVALID = "UNIVERSE_LIST_DATE_INVALID"
 
 HITHINK_BASE_URL = "https://fuyao.aicubes.cn"
 HITHINK_API_KEY_ENV = "HITHINK_FINANCE_API_KEY"
@@ -209,6 +223,13 @@ class LiveAcquisitionError(GenerationContractError):
     ) -> None:
         self.diagnostics = copy.deepcopy(dict(diagnostics or {}))
         super().__init__(status, message)
+
+
+class NoValidInputError(LiveAcquisitionError):
+    """The run can be diagnosed, but no formal B input can be evaluated."""
+
+    def __init__(self, message: str, diagnostics: Mapping[str, Any] | None = None) -> None:
+        super().__init__(NO_VALID_INPUT, message, diagnostics)
 
 
 class _AkShareReadFailure(RuntimeError):
@@ -982,13 +1003,91 @@ def _validate_undated_snapshot_against_target_bar(
         )
 
 
+def _exclusion_reason(stage: str, status: str, diagnostics: Mapping[str, Any]) -> str:
+    classification = str(diagnostics.get("classification") or "")
+    if stage == "hithink_snapshot":
+        if status == INPUT_DATE_MISMATCH:
+            return SNAPSHOT_DATE_CONFLICT
+        if status == INPUT_CONFLICT:
+            return SNAPSHOT_IDENTITY_CONFLICT
+        return SNAPSHOT_MALFORMED
+    if classification == TARGET_DAY_HISTORICAL_STALE:
+        return TARGET_DAY_HISTORICAL_STALE
+    if status == INPUT_DATE_MISMATCH:
+        return HISTORICAL_DATE_CONFLICT
+    if status == FUTURE_DATA_DETECTED:
+        return HISTORICAL_FUTURE_DATE
+    if status == INPUT_CONFLICT:
+        return HISTORICAL_OHLCV_CONFLICT
+    if status == INCOMPLETE_COVERAGE:
+        return HISTORICAL_INCOMPLETE
+    if status == HITHINK_SINGLE_SOURCE_TRADE_STATE_DECISION_REQUIRED:
+        return TRADE_STATE_CONFLICT
+    return HISTORICAL_PROVIDER_FAILURE
+
+
+def _symbol_exclusion_record(
+    symbol: str,
+    *,
+    target_date: str,
+    display_name: str | None,
+    stage: str,
+    status: str,
+    reason: str,
+    diagnostics: Mapping[str, Any] | None = None,
+    quote: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    detail = dict(diagnostics or {})
+    latest_date = detail.get("latest_historical_date")
+    if latest_date is not None:
+        try:
+            latest_date = _canonical_date(latest_date)
+        except (TypeError, ValueError, OverflowError):
+            latest_date = None
+    quote_state = "UNAVAILABLE"
+    if isinstance(quote, Mapping):
+        quote_state = str(classify_trade_state(quote) or "UNKNOWN")
+    historical_evidence = {
+        key: copy.deepcopy(value)
+        for key, value in detail.items()
+        if key not in {"raw_payload", "bars", "response_body"}
+    }
+    return {
+        "symbol": symbol,
+        "provider_symbol": _hithink_thscode(symbol),
+        "target_date": target_date,
+        "provider": "HiThink Financial-API",
+        "status": EXCLUDED_INPUT_ANOMALY,
+        "reason": reason,
+        "latest_historical_date": latest_date,
+        "quote_trade_state": quote_state,
+        "evidence": {
+            "quote": copy.deepcopy(dict(quote)) if isinstance(quote, Mapping) else {},
+            "historical": historical_evidence,
+        },
+        "policy_version": PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1,
+        "failure_status": status,
+        "failure_stage": stage,
+        "detail": str(detail.get("detail") or "").strip()[:500],
+        "display_name": display_name,
+    }
+
+
 def _normalize_hithink_snapshots(
     payload: Any,
     *,
     target_date: str,
     display_names: Mapping[str, str],
-) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
-    """Normalize HiThink's minimal snapshot rows without importing its schema downstream."""
+    include_exclusions: bool = False,
+) -> tuple[dict[str, dict[str, Any]], dict[str, Any]] | tuple[
+    dict[str, dict[str, Any]], dict[str, Any], list[dict[str, Any]]
+]:
+    """Normalize snapshots and isolate only rows with an identifiable symbol.
+
+    A malformed batch envelope or an unidentifiable row remains a global
+    provider failure.  Once a requested symbol is known, its bad row is an
+    auditable exclusion and does not poison other symbols in the batch.
+    """
 
     if isinstance(payload, Mapping):
         rows = payload.get("items", payload.get("item"))
@@ -999,6 +1098,9 @@ def _normalize_hithink_snapshots(
     if not isinstance(rows, Sequence) or isinstance(rows, (str, bytes)):
         _fail(PROVIDER_FAILURE, "HiThink snapshot rows are not a sequence")
     normalized: dict[str, dict[str, Any]] = {}
+    exclusions: list[dict[str, Any]] = []
+    seen_requested: set[str] = set()
+    invalid_requested: set[str] = set()
     explicit_record_dates = 0
     for index, raw_row in enumerate(rows):
         if not isinstance(raw_row, Mapping):
@@ -1010,97 +1112,127 @@ def _normalize_hithink_snapshots(
         code = _code(raw_ticker, f"hithink_snapshot[{index}].ticker")
         if code not in display_names:
             # The endpoint may return an extra row if a provider ignores an
-            # optional batch filter.  Ignore extras only after validating the
-            # requested rows; they are not part of the package contract.
+            # optional batch filter.  Extras are outside this package.
             continue
-        thscode = str(raw_thscode or "").strip().upper()
-        if thscode and thscode != _hithink_thscode(code):
-            _fail(INPUT_CONFLICT, f"HiThink snapshot thscode mismatch for {code}")
-        if code in normalized:
-            _fail(INPUT_CONFLICT, f"duplicate HiThink snapshot row for {code}")
-        raw_date = next(
-            (raw_row.get(name) for name in ("quote_date", "trade_date", "date") if name in raw_row),
-            None,
-        )
-        if not _missing(raw_date):
-            try:
-                canonical_date = _canonical_date(raw_date)
-            except (TypeError, ValueError, OverflowError) as exc:
-                _fail(PROVIDER_FAILURE, f"HiThink snapshot date is malformed for {code}")
-                raise AssertionError from exc
-            if canonical_date != target_date:
-                _fail(
-                    INPUT_DATE_MISMATCH,
-                    f"HiThink snapshot date for {code} is {canonical_date} != {target_date}",
-                    {"symbol": code, "target_date": target_date, "provider_date": canonical_date},
-                )
-            explicit_record_dates += 1
-            date_evidence = "HITHINK_SNAPSHOT_RECORD_DATE"
-        else:
-            # QuoteSnapshotManifest needs a canonical requested date, but the
-            # provider did not supply one.  This is not claimed as trade-date
-            # proof; same-provider historical validation below must establish
-            # the target-day evidence before the package is frozen.
-            date_evidence = "NOT_PROVIDER_VERIFIED"
+        seen_requested.add(code)
+        if code in invalid_requested:
+            continue
+        try:
+            thscode = str(raw_thscode or "").strip().upper()
+            if thscode and thscode != _hithink_thscode(code):
+                _fail(INPUT_CONFLICT, f"HiThink snapshot thscode mismatch for {code}")
+            if code in normalized:
+                _fail(INPUT_CONFLICT, f"duplicate HiThink snapshot row for {code}")
+            raw_date = next(
+                (raw_row.get(name) for name in ("quote_date", "trade_date", "date") if name in raw_row),
+                None,
+            )
+            if not _missing(raw_date):
+                try:
+                    canonical_date = _canonical_date(raw_date)
+                except (TypeError, ValueError, OverflowError) as exc:
+                    _fail(PROVIDER_FAILURE, f"HiThink snapshot date is malformed for {code}")
+                    raise AssertionError from exc
+                if canonical_date != target_date:
+                    _fail(
+                        INPUT_DATE_MISMATCH,
+                        f"HiThink snapshot date for {code} is {canonical_date} != {target_date}",
+                        {"symbol": code, "target_date": target_date, "provider_date": canonical_date},
+                    )
+                explicit_record_dates += 1
+                date_evidence = "HITHINK_SNAPSHOT_RECORD_DATE"
+            else:
+                date_evidence = "NOT_PROVIDER_VERIFIED"
 
-        price = _optional_hithink_quote_number(
-            raw_row.get("last_price"), f"hithink_snapshot[{index}].last_price"
+            price = _optional_hithink_quote_number(
+                raw_row.get("last_price"), f"hithink_snapshot[{index}].last_price"
+            )
+            prev_close = _optional_hithink_quote_number(
+                raw_row.get("prev_price"), f"hithink_snapshot[{index}].prev_price"
+            )
+            opening = _optional_hithink_quote_number(
+                raw_row.get("open_price"), f"hithink_snapshot[{index}].open_price"
+            )
+            high = _optional_hithink_quote_number(
+                raw_row.get("high_price"), f"hithink_snapshot[{index}].high_price"
+            )
+            low = _optional_hithink_quote_number(
+                raw_row.get("low_price"), f"hithink_snapshot[{index}].low_price"
+            )
+            volume = _optional_hithink_quote_number(
+                raw_row.get("volume"), f"hithink_snapshot[{index}].volume"
+            )
+            chg_pct = _optional_hithink_quote_number(
+                raw_row.get("price_change_ratio_pct"),
+                f"hithink_snapshot[{index}].price_change_ratio_pct",
+            )
+            turnover_amount = _optional_hithink_quote_number(
+                raw_row.get("turnover"), f"hithink_snapshot[{index}].turnover"
+            )
+            quote = {
+                "code": code,
+                "symbol": code,
+                "name": display_names[code],
+                "quote_date": target_date,
+                "timestamp": raw_row.get("timestamp"),
+                "price": price,
+                "prev_close": prev_close,
+                "open": opening,
+                "high": high,
+                "low": low,
+                "volume": volume,
+                "chg_pct": chg_pct,
+                "turnover_amount": turnover_amount,
+                "quote_date_evidence": date_evidence,
+            }
+            quote["trade_state"] = classify_trade_state(quote)
+            normalized[code] = quote
+        except LiveAcquisitionError as exc:
+            invalid_requested.add(code)
+            normalized.pop(code, None)
+            diagnostics = dict(exc.diagnostics)
+            diagnostics.setdefault("symbol", code)
+            exclusions.append(
+                _symbol_exclusion_record(
+                    code,
+                    target_date=target_date,
+                    display_name=display_names.get(code),
+                    stage="hithink_snapshot",
+                    status=exc.status,
+                    reason=_exclusion_reason("hithink_snapshot", exc.status, diagnostics),
+                    diagnostics=diagnostics,
+                )
+            )
+
+    for code in sorted(set(display_names) - seen_requested):
+        exclusions.append(
+            _symbol_exclusion_record(
+                code,
+                target_date=target_date,
+                display_name=display_names.get(code),
+                stage="hithink_snapshot",
+                status=INCOMPLETE_COVERAGE,
+                reason=SNAPSHOT_MISSING,
+                diagnostics={"symbol": code, "target_date": target_date},
+            )
         )
-        prev_close = _optional_hithink_quote_number(
-            raw_row.get("prev_price"), f"hithink_snapshot[{index}].prev_price"
-        )
-        opening = _optional_hithink_quote_number(
-            raw_row.get("open_price"), f"hithink_snapshot[{index}].open_price"
-        )
-        high = _optional_hithink_quote_number(
-            raw_row.get("high_price"), f"hithink_snapshot[{index}].high_price"
-        )
-        low = _optional_hithink_quote_number(
-            raw_row.get("low_price"), f"hithink_snapshot[{index}].low_price"
-        )
-        volume = _optional_hithink_quote_number(
-            raw_row.get("volume"), f"hithink_snapshot[{index}].volume"
-        )
-        chg_pct = _optional_hithink_quote_number(
-            raw_row.get("price_change_ratio_pct"),
-            f"hithink_snapshot[{index}].price_change_ratio_pct",
-        )
-        turnover_amount = _optional_hithink_quote_number(
-            raw_row.get("turnover"), f"hithink_snapshot[{index}].turnover"
-        )
-        quote = {
-            "code": code,
-            "symbol": code,
-            "name": display_names[code],
-            "quote_date": target_date,
-            "timestamp": raw_row.get("timestamp"),
-            "price": price,
-            "prev_close": prev_close,
-            "open": opening,
-            "high": high,
-            "low": low,
-            "volume": volume,
-            "chg_pct": chg_pct,
-            # HiThink calls this field turnover, but it is traded amount.  A
-            # different name prevents it from masquerading as turnover rate.
-            "turnover_amount": turnover_amount,
-            "quote_date_evidence": date_evidence,
-        }
-        quote["trade_state"] = classify_trade_state(quote)
-        normalized[code] = quote
     metadata = {
         "provider": "HiThink Financial-API",
         "api": HITHINK_QUOTE_API,
         "response_timestamps": list(timestamps) if isinstance(timestamps, Sequence) else [],
         "record_count": len(normalized),
         "explicit_record_date_count": explicit_record_dates,
+        "excluded_symbol_count": len(exclusions),
         "target_date_evidence": (
             "PROVIDER_RECORD_DATE"
             if explicit_record_dates == len(normalized) and normalized
             else "REQUIRES_SAME_PROVIDER_HISTORICAL_CONFIRMATION"
         ),
     }
-    return dict(sorted(normalized.items())), metadata
+    result = (dict(sorted(normalized.items())), metadata)
+    if include_exclusions:
+        return result[0], result[1], sorted(exclusions, key=lambda item: item["symbol"])
+    return result
 
 
 def _response_bytes(response: Any) -> tuple[bytes, str]:
@@ -1857,7 +1989,11 @@ def _build_universe(
     frame: Any,
     as_of_date: str,
     retrieved_at_bjt: str,
-) -> tuple[UniverseManifest, dict[str, str], dict[str, Any]]:
+    *,
+    include_exclusions: bool = False,
+) -> tuple[UniverseManifest, dict[str, str], dict[str, Any]] | tuple[
+    UniverseManifest, dict[str, str], dict[str, Any], list[dict[str, Any]]
+]:
     rows = _records(
         frame,
         HITHINK_UNIVERSE_API,
@@ -1874,6 +2010,7 @@ def _build_universe(
     scoped_list_dates: dict[str, str | None] = {}
     seen_symbols: set[str] = set()
     canonical_rows: list[dict[str, Any]] = []
+    exclusions: list[dict[str, Any]] = []
     for index, row in enumerate(rows):
         asset_type = _text(_field(row, ("asset_type",), f"universe[{index}].asset_type"), "universe asset_type")
         if asset_type.lower() != "a-share":
@@ -1889,10 +2026,33 @@ def _build_universe(
             _field(row, ("name",), f"universe[{index}].name"),
             f"universe[{index}].name",
         )
-        list_date = _hithink_list_date(
-            _field(row, ("list_date",), f"universe[{index}].list_date"),
-            f"universe[{index}].list_date",
-        )
+        list_date_invalid = False
+        try:
+            list_date = _hithink_list_date(
+                _field(row, ("list_date",), f"universe[{index}].list_date"),
+                f"universe[{index}].list_date",
+            )
+        except LiveAcquisitionError as exc:
+            if not include_exclusions or exchange not in {"SH", "SZ"}:
+                raise
+            list_date = None
+            list_date_invalid = True
+            exclusions.append(
+                _symbol_exclusion_record(
+                    symbol,
+                    target_date=as_of_date,
+                    display_name=name,
+                    stage="universe_list_date",
+                    status=exc.status,
+                    reason=UNIVERSE_LIST_DATE_INVALID,
+                    diagnostics={
+                        "symbol": symbol,
+                        "provider": "HiThink Financial-API",
+                        "thscode": thscode,
+                        "detail": str(exc),
+                    },
+                )
+            )
         if symbol in seen_symbols:
             _fail(INPUT_CONFLICT, f"duplicate universe symbol: {symbol}")
         seen_symbols.add(symbol)
@@ -1909,10 +2069,10 @@ def _build_universe(
         # BJ and other exchanges remain outside the explicit SH/SZ product
         # scope.  Board admission itself is delegated to the existing policy
         # helper below; no provider roster is involved.
-        if exchange in {"SH", "SZ"}:
+        if exchange in {"SH", "SZ"} and not list_date_invalid:
             scoped_names[symbol] = name
             scoped_list_dates[symbol] = list_date
-    if not scoped_names:
+    if not scoped_names and not (include_exclusions and exclusions):
         _fail(INCOMPLETE_COVERAGE, "universe has no symbols")
     hithink_symbols = set(scoped_names)
     board_policy_audit = build_board_policy_audit(hithink_symbols)
@@ -1997,8 +2157,22 @@ def _build_universe(
         ),
     }
     if not retained_names:
+        if include_exclusions:
+            _raise_no_valid_input(
+                target_date=as_of_date,
+                retrieved_at_bjt=retrieved_at_bjt,
+                run_type=(
+                    AUTHORIZED_WEEKEND_BACKFILL
+                    if retrieved_at_bjt[:10] != as_of_date
+                    else "SAME_CALENDAR_DATE"
+                ),
+                raw_symbol_count=len(canonical_rows),
+                qualified_symbol_count=0,
+                exclusions=exclusions,
+                detail="HiThink universe has no eligible Main Board symbols",
+            )
         _fail(INCOMPLETE_COVERAGE, "HiThink universe has no eligible Main Board symbols")
-    return (
+    result = (
         UniverseManifest(
             as_of_date=as_of_date,
             retrieved_at_bjt=retrieved_at_bjt,
@@ -2011,6 +2185,9 @@ def _build_universe(
         dict(sorted(retained_names.items())),
         universe_quality,
     )
+    if include_exclusions:
+        return (*result, sorted(exclusions, key=lambda item: item["symbol"]))
+    return result
 
 
 def _build_sector(
@@ -2631,23 +2808,84 @@ def _load_captured_market_bars(
 def _build_input_coverage(
     evaluated_symbol_count: int,
     excluded_symbols: Sequence[Mapping[str, Any]],
+    *,
+    raw_symbol_count: int | None = None,
+    qualified_symbol_count: int | None = None,
+    formal_result_valid: bool | None = None,
 ) -> dict[str, Any]:
     value = {
         "schema_version": INPUT_COVERAGE_SCHEMA,
-        "coverage_status": INPUT_COVERAGE_DEGRADED if excluded_symbols else INPUT_COVERAGE_COMPLETE,
+        "coverage_status": (
+            "NO_VALID_INPUT"
+            if evaluated_symbol_count == 0
+            else INPUT_COVERAGE_DEGRADED if excluded_symbols else INPUT_COVERAGE_COMPLETE
+        ),
         "evaluated_symbol_count": evaluated_symbol_count,
         "excluded_symbol_count": len(excluded_symbols),
-        "excluded_symbols": [copy.deepcopy(dict(item)) for item in excluded_symbols],
-        "policy_version": PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1,
+        "excluded_symbols": sorted(
+            [copy.deepcopy(dict(item)) for item in excluded_symbols],
+            key=lambda item: str(item.get("symbol", "")),
+        ),
+        "policy_version": PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1,
+        "excluded_reason_counts": {},
     }
+    if raw_symbol_count is not None:
+        value["raw_symbol_count"] = raw_symbol_count
+    if qualified_symbol_count is not None:
+        value["qualified_symbol_count"] = qualified_symbol_count
+    if formal_result_valid is not None:
+        value["formal_result_valid"] = formal_result_valid
+    for record in value["excluded_symbols"]:
+        reason = str(record.get("reason") or "UNKNOWN")
+        value["excluded_reason_counts"][reason] = value["excluded_reason_counts"].get(reason, 0) + 1
     try:
         return validate_input_coverage(
             value,
             expected_evaluated_symbol_count=evaluated_symbol_count,
+            allow_no_valid=True,
         )
     except ValueError as exc:
         _fail(PROVIDER_FAILURE, f"input coverage metadata is invalid: {exc}")
         raise AssertionError from exc
+
+
+def _raise_no_valid_input(
+    *,
+    target_date: str,
+    retrieved_at_bjt: str,
+    run_type: str,
+    raw_symbol_count: int,
+    qualified_symbol_count: int,
+    exclusions: Sequence[Mapping[str, Any]],
+    global_failures: Sequence[Mapping[str, Any]] = (),
+    detail: str = "no valid stock input remained for Formal B",
+) -> NoReturn:
+    coverage = _build_input_coverage(
+        0,
+        exclusions,
+        raw_symbol_count=raw_symbol_count,
+        qualified_symbol_count=qualified_symbol_count,
+        formal_result_valid=False,
+    )
+    diagnostics = {
+        "schema_version": "DAILY_INPUT_DIAGNOSTIC_V1",
+        "target_date": target_date,
+        "actual_retrieved_at_bjt": retrieved_at_bjt,
+        "run_type": run_type,
+        "coverage_status": "NO_VALID_INPUT",
+        "formal_result_valid": False,
+        "raw_symbol_count": raw_symbol_count,
+        "qualified_symbol_count": qualified_symbol_count,
+        "evaluated_symbol_count": 0,
+        "excluded_symbol_count": len(exclusions),
+        "excluded_reason_counts": coverage.get("excluded_reason_counts", {}),
+        "candidate_count": 0,
+        "input_coverage": coverage,
+        "exclusions": [copy.deepcopy(dict(item)) for item in sorted(exclusions, key=lambda item: str(item.get("symbol", "")))],
+        "global_failures": [copy.deepcopy(dict(item)) for item in global_failures],
+        "detail": detail[:1000],
+    }
+    raise NoValidInputError(detail, diagnostics)
 
 
 def _capture_market_bars(
@@ -3311,6 +3549,7 @@ def acquire_live_generation_inputs(
         request_get=hithink_request_get,
         capture_store=evidence_store,
     )
+    retrieved_at_bjt = _timestamp_text(observed_at)
     if not all(
         callable(getattr(hithink, name, None))
         for name in ("universe", "snapshots", "historical_bars", "capability_report")
@@ -3323,7 +3562,6 @@ def acquire_live_generation_inputs(
     sector_status = SECTOR_ENRICHMENT_UNAVAILABLE_DEFAULTED
     sector_failure: Exception | None = None
     acquisition_started = time.monotonic()
-    retrieved_at_bjt = _timestamp_text(observed_at)
     try:
         universe_frame = (
             evidence_store.load_records("hithink_universe", "hithink_universe")
@@ -3366,15 +3604,27 @@ def acquire_live_generation_inputs(
             ),
         )
     try:
-        universe, display_names, universe_quality = _build_universe(
+        universe, display_names, universe_quality, universe_exclusions = _build_universe(
             universe_frame,
             target_date,
             retrieved_at_bjt,
+            include_exclusions=True,
         )
     except LiveAcquisitionError:
         raise
     except Exception as exc:
         _fail(PROVIDER_FAILURE, f"HiThink universe validation failed: {type(exc).__name__}")
+    exclusions: list[dict[str, Any]] = list(universe_exclusions)
+    if not universe.symbols:
+        _raise_no_valid_input(
+            target_date=target_date,
+            retrieved_at_bjt=retrieved_at_bjt,
+            run_type=AUTHORIZED_WEEKEND_BACKFILL if weekend_backfill else "SAME_CALENDAR_DATE",
+            raw_symbol_count=int(universe_quality.get("source_row_count", 0)),
+            qualified_symbol_count=0,
+            exclusions=exclusions,
+            detail="universe qualification left no valid Main Board symbol input",
+        )
     try:
         sina = SinaSectorClient(
             sina_module if sina_module is not None else akshare_module,
@@ -3408,10 +3658,11 @@ def acquire_live_generation_inputs(
     requested_thscodes = [_hithink_thscode(symbol) for symbol in universe.symbols]
     try:
         snapshot_payload = hithink.snapshots(requested_thscodes, timeout=quote_timeout)
-        quotes, quote_metadata = _normalize_hithink_snapshots(
+        quotes, quote_metadata, quote_exclusions = _normalize_hithink_snapshots(
             snapshot_payload,
             target_date=target_date,
             display_names=display_names,
+            include_exclusions=True,
         )
     except LiveAcquisitionError as exc:
         if evidence_store is not None:
@@ -3459,21 +3710,19 @@ def acquire_live_generation_inputs(
                 "exception_type": type(exc).__name__,
             },
         )
-    expected_symbols = set(universe.symbols)
-    actual_symbols = set(quotes)
-    if actual_symbols != expected_symbols:
-        missing = sorted(expected_symbols - actual_symbols)
-        extra = sorted(actual_symbols - expected_symbols)
-        _fail(
-            INCOMPLETE_COVERAGE if missing else INPUT_CONFLICT,
-            f"HiThink quote identity mismatch; missing={missing}, extra={extra}",
-            {
-                "provider": "HiThink Financial-API",
-                "target_date": target_date,
-                "missing_symbols": missing,
-                "extra_symbols": extra,
-            },
-        )
+    exclusions.extend(quote_exclusions)
+    if evidence_store is not None:
+        for exclusion in quote_exclusions:
+            evidence_store.record_failure(
+                "hithink_quote",
+                provider="HiThink Financial-API",
+                source_identity=HITHINK_QUOTE_API,
+                provider_version=hithink_quote_provider_version,
+                error_type=str(exclusion.get("failure_status") or "SYMBOL_INPUT_INVALID"),
+                error_detail=str(exclusion.get("detail") or exclusion.get("reason") or "symbol input invalid"),
+                request_identity=f"{exclusion.get('symbol')}:{HITHINK_QUOTE_API}",
+                response_component="hithink_response",
+            )
     def record_kline_failure(
         component: str,
         symbol: str,
@@ -3495,7 +3744,9 @@ def acquire_live_generation_inputs(
 
     stock_klines: list[KlineManifest] = []
     stock_resolutions: dict[str, dict[str, Any]] = {}
-    for symbol in universe.symbols:
+    valid_quotes: dict[str, dict[str, Any]] = {}
+    repeated_system_failures: dict[tuple[str, str], int] = {}
+    for symbol in sorted(quotes):
         logical_identity, thscode, _, _ = _history_capture_spec(
             symbol,
             requested_count=stock_bar_count,
@@ -3541,62 +3792,179 @@ def acquire_live_generation_inputs(
                 bars, resolution = cached
         except LiveAcquisitionError as exc:
             record_kline_failure("stock_kline", symbol, logical_identity, exc)
-            raise
+            diagnostics = dict(exc.diagnostics)
+            diagnostics.setdefault("symbol", symbol)
+            diagnostics.setdefault("detail", str(exc))
+            exclusions.append(
+                _symbol_exclusion_record(
+                    symbol,
+                    target_date=target_date,
+                    display_name=display_names.get(symbol),
+                    stage="stock_kline",
+                    status=exc.status,
+                    reason=_exclusion_reason("stock_kline", exc.status, diagnostics),
+                    diagnostics=diagnostics,
+                    quote=quotes.get(symbol),
+                )
+            )
+            if exc.status in {PROVIDER_FAILURE, PROVIDER_UNAVAILABLE}:
+                signature = (exc.status, str(diagnostics.get("exception_type") or type(exc).__name__))
+                repeated_system_failures[signature] = repeated_system_failures.get(signature, 0) + 1
+                if repeated_system_failures[signature] >= HITHINK_MAX_ATTEMPTS:
+                    _raise_no_valid_input(
+                        target_date=target_date,
+                        retrieved_at_bjt=retrieved_at_bjt,
+                        run_type=AUTHORIZED_WEEKEND_BACKFILL if weekend_backfill else "SAME_CALENDAR_DATE",
+                        raw_symbol_count=int(universe_quality.get("source_row_count", 0)),
+                        qualified_symbol_count=len(universe.symbols),
+                        exclusions=exclusions,
+                        global_failures=[
+                            {
+                                "status": exc.status,
+                                "stage": "stock_kline",
+                                "provider": "HiThink Financial-API",
+                                "reason": "REPEATED_SYSTEM_FAILURE_FAST_FAIL",
+                                "symbols_seen": sorted(quotes)[:HITHINK_MAX_ATTEMPTS],
+                                "detail": "the same provider failure repeated; remaining stock requests were not attempted",
+                            }
+                        ],
+                        detail="HiThink stock history source repeatedly failed; acquisition stopped early",
+                    )
+            continue
         except Exception as exc:
             record_kline_failure("stock_kline", symbol, logical_identity, exc)
-            _fail(PROVIDER_FAILURE, f"Kline acquisition failed for {symbol}: {type(exc).__name__}")
-        quote = quotes[symbol]
-        quote_state = classify_trade_state(quote)
-        latest_bar = bars[-1]
-        latest_bar_date = latest_bar.get("date")
-        latest_volume = float(latest_bar.get("volume", 0.0))
-        if latest_bar_date == target_date:
-            if quote_state == TRADE_STATE_NO_TRADE and latest_volume > 0:
-                _fail(
-                    INPUT_CONFLICT,
-                    f"HiThink quote and target-day historical bar disagree on trade state for {symbol}",
-                    {
-                        "symbol": symbol,
-                        "target_date": target_date,
-                        "provider": "HiThink Financial-API",
-                        "quote_trade_state": quote_state,
-                        "historical_volume": latest_volume,
-                    },
-                )
-            if latest_volume > 0:
-                quote["trade_state"] = TRADE_STATE_TRADED
-                quote["trade_state_evidence"] = "HITHINK_HISTORICAL_TARGET_BAR"
-            elif quote_state == TRADE_STATE_UNKNOWN:
-                quote["trade_state"] = TRADE_STATE_NO_TRADE
-                quote["trade_state_evidence"] = "HITHINK_HISTORICAL_TARGET_BAR_ZERO_VOLUME"
-        elif quote_state not in {TRADE_STATE_NO_TRADE}:
-            # _resolve_market_bars is strict for UNKNOWN/TRADED snapshots;
-            # this branch is a defensive guard for custom adapters.
-            _fail(
-                HITHINK_SINGLE_SOURCE_TRADE_STATE_DECISION_REQUIRED,
-                f"HiThink cannot establish target-day trade state for {symbol}",
+            exc = LiveAcquisitionError(
+                PROVIDER_FAILURE,
+                f"Kline acquisition failed for {symbol}: {type(exc).__name__}",
                 {
                     "symbol": symbol,
                     "target_date": target_date,
-                    "latest_historical_date": latest_bar_date,
                     "provider": "HiThink Financial-API",
-                    "quote_trade_state": quote_state,
-                    "retry_count": resolution.get("retry_count", 0),
+                    "exception_type": type(exc).__name__,
+                    "detail": str(exc),
                 },
             )
-        if (
-            weekend_backfill
-            and quote.get("quote_date_evidence") == "NOT_PROVIDER_VERIFIED"
-            and quote.get("trade_state") == TRADE_STATE_TRADED
-        ):
-            _validate_undated_snapshot_against_target_bar(
-                symbol,
-                quote,
-                bars,
-                target_date=target_date,
+            exclusions.append(
+                _symbol_exclusion_record(
+                    symbol,
+                    target_date=target_date,
+                    display_name=display_names.get(symbol),
+                    stage="stock_kline",
+                    status=exc.status,
+                    reason=HISTORICAL_PROVIDER_FAILURE,
+                    diagnostics=exc.diagnostics,
+                    quote=quotes.get(symbol),
+                )
             )
-            quote["trade_state_evidence"] = "HITHINK_HISTORICAL_TARGET_BAR_AND_SNAPSHOT_MATCH"
+            signature = (exc.status, str(exc.diagnostics.get("exception_type") or type(exc).__name__))
+            repeated_system_failures[signature] = repeated_system_failures.get(signature, 0) + 1
+            if repeated_system_failures[signature] >= HITHINK_MAX_ATTEMPTS:
+                _raise_no_valid_input(
+                    target_date=target_date,
+                    retrieved_at_bjt=retrieved_at_bjt,
+                    run_type=AUTHORIZED_WEEKEND_BACKFILL if weekend_backfill else "SAME_CALENDAR_DATE",
+                    raw_symbol_count=int(universe_quality.get("source_row_count", 0)),
+                    qualified_symbol_count=len(universe.symbols),
+                    exclusions=exclusions,
+                    global_failures=[
+                        {
+                            "status": PROVIDER_FAILURE,
+                            "stage": "stock_kline",
+                            "reason": "REPEATED_SYSTEM_FAILURE_FAST_FAIL",
+                            "detail": "the same provider failure repeated; remaining stock requests were not attempted",
+                        }
+                    ],
+                    detail="HiThink stock history source repeatedly failed; acquisition stopped early",
+                )
+            continue
+        quote = quotes[symbol]
+        try:
+            quote_state = classify_trade_state(quote)
+            latest_bar = bars[-1]
+            latest_bar_date = latest_bar.get("date")
+            latest_volume = float(latest_bar.get("volume", 0.0))
+            if latest_bar_date == target_date:
+                if quote_state == TRADE_STATE_NO_TRADE and latest_volume > 0:
+                    _fail(
+                        INPUT_CONFLICT,
+                        f"HiThink quote and target-day historical bar disagree on trade state for {symbol}",
+                        {
+                            "symbol": symbol,
+                            "target_date": target_date,
+                            "provider": "HiThink Financial-API",
+                            "quote_trade_state": quote_state,
+                            "historical_volume": latest_volume,
+                        },
+                    )
+                if latest_volume > 0:
+                    quote["trade_state"] = TRADE_STATE_TRADED
+                    quote["trade_state_evidence"] = "HITHINK_HISTORICAL_TARGET_BAR"
+                elif quote_state == TRADE_STATE_UNKNOWN:
+                    quote["trade_state"] = TRADE_STATE_NO_TRADE
+                    quote["trade_state_evidence"] = "HITHINK_HISTORICAL_TARGET_BAR_ZERO_VOLUME"
+            elif quote_state not in {TRADE_STATE_NO_TRADE}:
+                _fail(
+                    HITHINK_SINGLE_SOURCE_TRADE_STATE_DECISION_REQUIRED,
+                    f"HiThink cannot establish target-day trade state for {symbol}",
+                    {
+                        "symbol": symbol,
+                        "target_date": target_date,
+                        "latest_historical_date": latest_bar_date,
+                        "provider": "HiThink Financial-API",
+                        "quote_trade_state": quote_state,
+                        "retry_count": resolution.get("retry_count", 0),
+                    },
+                )
+            if (
+                weekend_backfill
+                and quote.get("quote_date_evidence") == "NOT_PROVIDER_VERIFIED"
+                and quote.get("trade_state") == TRADE_STATE_TRADED
+            ):
+                _validate_undated_snapshot_against_target_bar(
+                    symbol,
+                    quote,
+                    bars,
+                    target_date=target_date,
+                )
+                quote["trade_state_evidence"] = "HITHINK_HISTORICAL_TARGET_BAR_AND_SNAPSHOT_MATCH"
+        except LiveAcquisitionError as exc:
+            diagnostics = dict(exc.diagnostics)
+            diagnostics.setdefault("symbol", symbol)
+            diagnostics.setdefault("detail", str(exc))
+            exclusions.append(
+                _symbol_exclusion_record(
+                    symbol,
+                    target_date=target_date,
+                    display_name=display_names.get(symbol),
+                    stage="trade_state_reconciliation",
+                    status=exc.status,
+                    reason=_exclusion_reason("trade_state_reconciliation", exc.status, diagnostics),
+                    diagnostics=diagnostics,
+                    quote=quote,
+                )
+            )
+            continue
+        except Exception as exc:
+            exclusions.append(
+                _symbol_exclusion_record(
+                    symbol,
+                    target_date=target_date,
+                    display_name=display_names.get(symbol),
+                    stage="trade_state_reconciliation",
+                    status=INPUT_CONFLICT,
+                    reason=TRADE_STATE_CONFLICT,
+                    diagnostics={
+                        "symbol": symbol,
+                        "target_date": target_date,
+                        "exception_type": type(exc).__name__,
+                        "detail": str(exc),
+                    },
+                    quote=quote,
+                )
+            )
+            continue
         stock_resolutions[symbol] = resolution
+        valid_quotes[symbol] = quote
         stock_klines.append(
             KlineManifest(
                 symbol=symbol,
@@ -3608,6 +3976,16 @@ def acquire_live_generation_inputs(
                 source=resolution["source"],
                 temporal_semantics=LIVE_OBSERVED,
             )
+        )
+    if not valid_quotes:
+        _raise_no_valid_input(
+            target_date=target_date,
+            retrieved_at_bjt=retrieved_at_bjt,
+            run_type=AUTHORIZED_WEEKEND_BACKFILL if weekend_backfill else "SAME_CALENDAR_DATE",
+            raw_symbol_count=int(universe_quality.get("source_row_count", 0)),
+            qualified_symbol_count=len(universe.symbols),
+            exclusions=exclusions,
+            detail="all qualified stock inputs were excluded before Formal B evaluation",
         )
     index_logical_identity, index_thscode, _, _ = _history_capture_spec(
         INDEX_SYMBOL,
@@ -3653,10 +4031,61 @@ def acquire_live_generation_inputs(
             index_bars, index_resolution = cached_index
     except LiveAcquisitionError as exc:
         record_kline_failure("index_kline", INDEX_SYMBOL, index_logical_identity, exc)
-        raise
+        _raise_no_valid_input(
+            target_date=target_date,
+            retrieved_at_bjt=retrieved_at_bjt,
+            run_type=AUTHORIZED_WEEKEND_BACKFILL if weekend_backfill else "SAME_CALENDAR_DATE",
+            raw_symbol_count=int(universe_quality.get("source_row_count", 0)),
+            qualified_symbol_count=len(universe.symbols),
+            exclusions=exclusions,
+            global_failures=[
+                {
+                    "status": exc.status,
+                    "stage": "index_kline",
+                    "symbol": INDEX_SYMBOL,
+                    "provider": "HiThink Financial-API",
+                    "detail": str(exc)[:1000],
+                    **dict(exc.diagnostics),
+                }
+            ],
+            detail="required index input could not be verified for Formal B",
+        )
     except Exception as exc:
         record_kline_failure("index_kline", INDEX_SYMBOL, index_logical_identity, exc)
-        _fail(PROVIDER_FAILURE, f"Index Kline acquisition failed: {type(exc).__name__}")
+        _raise_no_valid_input(
+            target_date=target_date,
+            retrieved_at_bjt=retrieved_at_bjt,
+            run_type=AUTHORIZED_WEEKEND_BACKFILL if weekend_backfill else "SAME_CALENDAR_DATE",
+            raw_symbol_count=int(universe_quality.get("source_row_count", 0)),
+            qualified_symbol_count=len(universe.symbols),
+            exclusions=exclusions,
+            global_failures=[
+                {
+                    "status": PROVIDER_FAILURE,
+                    "stage": "index_kline",
+                    "symbol": INDEX_SYMBOL,
+                    "provider": "HiThink Financial-API",
+                    "exception_type": type(exc).__name__,
+                    "detail": str(exc)[:1000],
+                }
+            ],
+            detail="required index input could not be verified for Formal B",
+        )
+
+    valid_symbols = tuple(sorted(valid_quotes))
+    universe = UniverseManifest(
+        as_of_date=universe.as_of_date,
+        retrieved_at_bjt=universe.retrieved_at_bjt,
+        source=universe.source,
+        symbols=valid_symbols,
+        temporal_semantics=universe.temporal_semantics,
+        universe_scope=universe.universe_scope,
+        universe_scope_version=universe.universe_scope_version,
+    )
+    display_names = {symbol: display_names[symbol] for symbol in valid_symbols}
+    universe_quality["valid_evaluation_count"] = len(valid_symbols)
+    universe_quality["excluded_symbol_count"] = len(exclusions)
+    universe_quality["excluded_symbols"] = [item["symbol"] for item in sorted(exclusions, key=lambda item: item["symbol"])]
     index = IndexManifest(
         symbol=INDEX_SYMBOL,
         as_of_date=target_date,
@@ -3672,10 +4101,16 @@ def acquire_live_generation_inputs(
         retrieved_at_bjt=retrieved_at_bjt,
         source=HITHINK_QUOTE_API,
         provider="HiThink Financial-API",
-        quotes=quotes,
+        quotes=valid_quotes,
         temporal_semantics=LIVE_OBSERVED,
     )
-    input_coverage = _build_input_coverage(len(universe.symbols), [])
+    input_coverage = _build_input_coverage(
+        len(universe.symbols),
+        exclusions,
+        raw_symbol_count=int(universe_quality.get("source_row_count", len(universe.symbols))),
+        qualified_symbol_count=int(universe_quality.get("retained_count", len(universe.symbols))),
+        formal_result_valid=True,
+    )
     market_env = _market_env(index)
     sector_enrichment = _sector_enrichment_metadata(
         sina,
@@ -3701,7 +4136,7 @@ def acquire_live_generation_inputs(
     )
     undated_snapshot_symbols = sorted(
         symbol
-        for symbol, quote in quotes.items()
+        for symbol, quote in valid_quotes.items()
         if quote.get("quote_date_evidence") == "NOT_PROVIDER_VERIFIED"
     )
     quote_metadata["target_date_evidence"] = (
@@ -3721,22 +4156,66 @@ def acquire_live_generation_inputs(
             else "NOT_REQUIRED_ALL_SNAPSHOT_ROWS_HAD_TARGET_RECORD_DATE"
         )
     quote_metadata["trade_state_counts"] = {
-        state: sum(1 for quote in quotes.values() if quote.get("trade_state") == state)
+        state: sum(1 for quote in valid_quotes.values() if quote.get("trade_state") == state)
         for state in (TRADE_STATE_TRADED, TRADE_STATE_NO_TRADE, TRADE_STATE_UNKNOWN)
     }
-    if quote_metadata["trade_state_counts"][TRADE_STATE_UNKNOWN] > 0:
-        _fail(
-            HITHINK_SINGLE_SOURCE_TRADE_STATE_DECISION_REQUIRED,
-            "HiThink trade state remains UNKNOWN after same-provider validation",
-            {
-                "target_date": target_date,
-                "provider": "HiThink Financial-API",
-                "symbols": sorted(
-                    symbol for symbol, quote in quotes.items()
-                    if quote.get("trade_state") == TRADE_STATE_UNKNOWN
-                ),
-            },
+    unknown_symbols = sorted(
+        symbol for symbol, quote in valid_quotes.items()
+        if quote.get("trade_state") == TRADE_STATE_UNKNOWN
+    )
+    if unknown_symbols:
+        for symbol in unknown_symbols:
+            exclusions.append(
+                _symbol_exclusion_record(
+                    symbol,
+                    target_date=target_date,
+                    display_name=display_names.get(symbol),
+                    stage="trade_state_reconciliation",
+                    status=HITHINK_SINGLE_SOURCE_TRADE_STATE_DECISION_REQUIRED,
+                    reason=TRADE_STATE_CONFLICT,
+                    diagnostics={
+                        "symbol": symbol,
+                        "target_date": target_date,
+                        "provider": "HiThink Financial-API",
+                        "detail": "a valid Formal B input still has unresolved trade state",
+                    },
+                    quote=valid_quotes.get(symbol),
+                )
+            )
+            valid_quotes.pop(symbol, None)
+            stock_resolutions.pop(symbol, None)
+        unknown_set = set(unknown_symbols)
+        stock_klines = [item for item in stock_klines if item.symbol not in unknown_set]
+        valid_symbols = tuple(sorted(valid_quotes))
+        universe = UniverseManifest(
+            as_of_date=universe.as_of_date,
+            retrieved_at_bjt=universe.retrieved_at_bjt,
+            source=universe.source,
+            symbols=valid_symbols,
+            temporal_semantics=universe.temporal_semantics,
+            universe_scope=universe.universe_scope,
+            universe_scope_version=universe.universe_scope_version,
         )
+        display_names = {symbol: display_names[symbol] for symbol in valid_symbols}
+        universe_quality["valid_evaluation_count"] = len(valid_symbols)
+        universe_quality["excluded_symbol_count"] = len(exclusions)
+        universe_quality["excluded_symbols"] = [
+            item["symbol"] for item in sorted(exclusions, key=lambda item: item["symbol"])
+        ]
+        quote_metadata["trade_state_counts"] = {
+            state: sum(1 for quote in valid_quotes.values() if quote.get("trade_state") == state)
+            for state in (TRADE_STATE_TRADED, TRADE_STATE_NO_TRADE, TRADE_STATE_UNKNOWN)
+        }
+        if not valid_quotes:
+            _raise_no_valid_input(
+                target_date=target_date,
+                retrieved_at_bjt=retrieved_at_bjt,
+                run_type=AUTHORIZED_WEEKEND_BACKFILL if weekend_backfill else "SAME_CALENDAR_DATE",
+                raw_symbol_count=int(universe_quality.get("source_row_count", 0)),
+                qualified_symbol_count=len(universe.symbols),
+                exclusions=exclusions,
+                detail="all qualified stock inputs were excluded during trade-state reconciliation",
+            )
     market_data_source = {
         "policy_version": SINGLE_AUTHORITATIVE_MARKET_DATA_SOURCE_V1,
         "authoritative_provider": "HiThink Financial-API",
@@ -4000,6 +4479,17 @@ __all__ = [
     "HITHINK_UNIVERSE_SELECTION_RULE",
     "HITHINK_UNIVERSE_API",
     "HITHINK_SINGLE_SOURCE_TRADE_STATE_DECISION_REQUIRED",
+    "HISTORICAL_DATE_CONFLICT",
+    "HISTORICAL_FUTURE_DATE",
+    "HISTORICAL_INCOMPLETE",
+    "HISTORICAL_OHLCV_CONFLICT",
+    "HISTORICAL_PROVIDER_FAILURE",
+    "NO_VALID_INPUT",
+    "NoValidInputError",
+    "SNAPSHOT_DATE_CONFLICT",
+    "SNAPSHOT_IDENTITY_CONFLICT",
+    "SNAPSHOT_MALFORMED",
+    "SNAPSHOT_MISSING",
     "SINGLE_AUTHORITATIVE_MARKET_DATA_SOURCE_V1",
     "HiThinkClient",
     "INPUT_CONFLICT",
@@ -4010,6 +4500,7 @@ __all__ = [
     "PersistedInputPackage",
     "PERSISTENCE_CONFLICT",
     "PERSISTENCE_FAILURE",
+    "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
     "PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1",
     "PROVIDER_FAILURE",
     "PROVIDER_UNAVAILABLE",
@@ -4027,7 +4518,8 @@ __all__ = [
     "SinaSectorClient",
     "TCloseEvidenceStore",
     "TARGET_DAY_HISTORICAL_STALE",
-    "TARGET_DAY_HISTORICAL_STALE_LIMIT_EXCEEDED",
+    "TRADE_STATE_CONFLICT",
+    "UNIVERSE_LIST_DATE_INVALID",
     "TRADABLE_UNIVERSE_SCOPE_V1",
     "TRADABLE_UNIVERSE_SCOPE_VERSION",
     "UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1",

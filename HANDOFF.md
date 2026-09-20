@@ -6,6 +6,36 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-20 — PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1
+
+- classification：`correctness blocker + product blocker`（STRICT PATH）。目标是让正式生产
+  对可归属到单只股票的数据异常 fail-soft；不改变 Formal B、Main Board 范围、Final OOS 或历史
+  immutable artifact，也未读取或触碰 `data/validation/continuous_speed_probe/`。
+- `PROJECT_GOVERNANCE_STATE_CONFLICT`：旧 handoff 仍停留在 PR #75 前后的 persisted snapshot；
+  live fetch 已核对 `origin/master=40091083a67fed9a5dfb279868820951f38e8f39`，PR #73/#74/#75
+  均已真实合并；live `origin/runtime-state=7db58bee3aadde658a01bc9c0bbf371ff444d1dc`。最近
+  production failure 为 Actions run `35493683084`，canonical T-close step 失败但 failure
+  notification/operational notice 成功；run `35492829019` 在 preflight 失败，均未据此触发生产。
+- implementation：独立 worktree `D:\dev\ashare-watchlist-per-symbol-fail-soft-production-v1`、
+  branch `codex/per-symbol-fail-soft-production-v1`，commit
+  `d290c2ee3506fd5eba0b95fb6b0665afcfbdb857`，PR #76：
+  https://github.com/EFSing/ashare_watchlist/pull/76。新写入使用
+  `PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1`；旧 coverage policy 仍可验证历史 artifact。单股票异常
+  写入完整 machine exclusion record，正式输入状态为 `COMPLETE`/`DEGRADED`；没有有效输入时为
+  `NO_VALID_INPUT`，只生成 bounded diagnostic report/完整 JSON，绝不生成正式空名单、正常成功
+  checkpoint 或 delivery receipt。
+- workflow verification：head `8e119dd637d8b0097a977acf0a6b015111c297e7` 的 run
+  `35497053430` 为 `event=push`、check-suite `failure`、`jobs=0`；官方 actionlint 1.7.12
+  定位 `.github/workflows/daily_t_close.yml:678` 的 NO_VALID_INPUT 路径 YAML 解析错误。该错误
+  已以 Bash `$'\n'` 拼接方式最小修复，并已推送到 PR #76 分支；未执行 production job、
+  provider live call 或 runtime-state 写入。
+- verification：focused=`235 passed, 2 warnings`；此前代码实现 full pytest=`658 passed,
+  2 skipped, 10 warnings`；修复后 actionlint（`ci.yml` + `daily_t_close.yml`）=`0 errors`，
+  compileall 与 `git diff --check` 已通过。provider live calls、production dispatch、remote
+  runtime-state mutation 均为 `0`。
+- next：核验 PR #76 当前 live head 的 exact-head CI 与 mergeability；不自动 merge、不触发
+  真实 production，终点为用户 merge decision。
+
 ## 2026-09-20 — FRIDAY_WEEKEND_BACKFILL_PREFLIGHT_STATE_FIX_V1
 
 - classification：`correctness blocker`（STRICT PATH）。本轮只修复 PR #74 合并后暴露的

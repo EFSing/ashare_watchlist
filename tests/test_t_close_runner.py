@@ -75,6 +75,89 @@ def test_runner_persists_input_package_before_generating_watchlist(monkeypatch, 
     assert events == ["acquire", "persist_package", "generate_watchlist"]
 
 
+def test_no_valid_input_writes_diagnostic_only_and_preserves_latest_formal_state(monkeypatch, tmp_path):
+    data_root = tmp_path / "data"
+    (data_root / "reports").mkdir(parents=True)
+    latest = data_root / "reports" / "latest.html"
+    latest.write_text("previous formal report", encoding="utf-8")
+    diagnostic = {
+        "schema_version": "DAILY_INPUT_DIAGNOSTIC_V1",
+        "target_date": "2026-08-27",
+        "actual_retrieved_at_bjt": "2026-08-27T15:05:00+08:00",
+        "run_type": "SAME_CALENDAR_DATE",
+        "coverage_status": "NO_VALID_INPUT",
+        "formal_result_valid": False,
+        "raw_symbol_count": 1,
+        "qualified_symbol_count": 1,
+        "evaluated_symbol_count": 0,
+        "excluded_symbol_count": 1,
+        "excluded_reason_counts": {"HISTORICAL_PROVIDER_FAILURE": 1},
+        "candidate_count": 0,
+        "exclusions": [
+            {
+                "symbol": "600519",
+                "provider_symbol": "600519.SH",
+                "target_date": "2026-08-27",
+                "provider": "HiThink Financial-API",
+                "status": "EXCLUDED_INPUT_ANOMALY",
+                "reason": "HISTORICAL_PROVIDER_FAILURE",
+                "latest_historical_date": None,
+                "quote_trade_state": "TRADED",
+                "evidence": {"quote": {}, "historical": {}},
+                "policy_version": "PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1",
+            }
+        ],
+        "global_failures": [],
+    }
+
+    monkeypatch.setattr(
+        runner,
+        "acquire_live_generation_inputs",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            runner.NoValidInputError("all stock inputs invalid", diagnostic)
+        ),
+    )
+    monkeypatch.setattr(runner, "_git_sha", lambda: "c" * 40)
+
+    result = runner.run("2026-08-27", data_root, tmp_path / "evidence", now_bjt="2026-08-27T15:05:00+08:00")
+
+    assert result["status"] == runner.T_CLOSE_NO_VALID_INPUT_STATUS
+    assert result["formal_result_valid"] is False
+    assert result["checkpoint_created"] is False
+    assert not (data_root / "watchlist_20260827.json").exists()
+    assert latest.read_text(encoding="utf-8") == "previous formal report"
+    assert Path(result["diagnostic_record"]).is_file()
+    report = Path(result["diagnostic_report"])
+    assert report.is_file()
+    report_text = report.read_text(encoding="utf-8")
+    assert "NO_VALID_INPUT" in report_text
+    assert "600519" in report_text
+    assert "delivery receipt" in report_text
+
+
+def test_main_returns_failure_for_no_valid_input_without_running_reporting(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr(
+        runner,
+        "run",
+        lambda *args, **kwargs: {
+            "status": runner.T_CLOSE_NO_VALID_INPUT_STATUS,
+            "formal_result_valid": False,
+            "diagnostic_report": str(tmp_path / "diagnostic.html"),
+        },
+    )
+    calls = []
+    monkeypatch.setattr(runner, "_run_daily_close_reporting", lambda *args, **kwargs: calls.append(True))
+
+    assert runner.main([
+        "--as-of-date", "2026-08-27",
+        "--data-root", str(tmp_path / "data"),
+        "--evidence-root", str(tmp_path / "evidence"),
+    ]) == 1
+    result = json.loads(capsys.readouterr().out)
+    assert result["status"] == "NO_VALID_INPUT"
+    assert calls == []
+
+
 def test_authorized_weekend_backfill_is_provenanced_and_does_not_capture_shadow(monkeypatch, tmp_path):
     package = SimpleNamespace(
         generation_input_manifest=SimpleNamespace(signal_date="2026-09-18"),

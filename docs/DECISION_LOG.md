@@ -5,6 +5,27 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-20 — PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1
+
+- decision：`ADOPT` 新的正式生产输入容错契约。可明确归属到单只股票的 snapshot、历史 K 线、
+  日期、OHLCV、交易状态或上市日期异常统一写为带原因的 `EXCLUDED_INPUT_ANOMALY` record；不再
+  维持旧的“最多一只隔离”上限，也不引入新的任意数量上限。只有无法归属的批量、鉴权、全局行情
+  源或必需输入故障才进入有界重试后的全局失败路径。
+- result contract：`COMPLETE` 使用全部有效输入；`DEGRADED` 使用有效股票继续 Formal B，并在
+  machine coverage/report 中说明 raw、qualified、evaluated、excluded 计数与按原因统计；
+  `NO_VALID_INPUT` 只产生诊断 JSON、限制异常样本的日报和通知，不产生伪造的正式 B 空名单、
+  正常成功 checkpoint 或 delivery receipt。完整 exclusions 不塞入邮件正文。
+- identity/compatibility：新写入使用 `PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1`，历史
+  `PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1` coverage 仍可验证；正常/部分覆盖继续绑定现有
+  canonical identity、checkpoint 与幂等边界。有效股票的 Formal B qualification、score、ranking、
+  trigger/stop/target/RR 及交易语义不变；tracker 对缺少合法行情的 outcome 保持待更新，shadow
+  不把补跑标为前瞻捕获。
+- boundary：不修改 Formal B/frozen strategy、Main Board scope、Final OOS、历史 immutable
+  artifact、任意历史重建授权或 `data/validation/continuous_speed_probe/`；不触发真实生产或远端
+  runtime-state 写入。实现 commit `d290c2ee3506fd5eba0b95fb6b0665afcfbdb857` 已推送到独立
+  branch，PR #76 已创建，exact-head CI/mergeability 仍以 merge decision 时的 live GitHub 为准。
+  该决定对应本任务的 `ADOPT`，不是策略升级或研究结论。
+
 ## 2026-09-20 — FRIDAY_WEEKEND_BACKFILL_20260918_V1
 
 - decision：`ADOPT` 一个只绑定 `2026-09-18` 的窄化补跑入口：只有 workflow 手动
