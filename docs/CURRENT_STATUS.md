@@ -22,8 +22,11 @@ HiThink 补跑时对无日期 snapshot 执行同源目标日 OHLCV/前收一致�
 tracker 记录 `AUTHORIZED_WEEKEND_BACKFILL_OBSERVATION_V1`，避免伪装成 `PROSPECTIVE_CAPTURED`。
 
 本轮 production dispatch、provider calls、runtime-state remote mutation 均为 `0`；focused=`188
-passed`，full pytest=`644 passed, 2 skipped, 10 warnings`，compileall/diff check 已通过。当前等待
-最终 head 的 exact-head CI 与 mergeability，用户合并前不执行真实 production。
+passed`，full pytest=`644 passed, 2 skipped, 10 warnings`，compileall/diff check 已通过。当前 remote
+head=`480e2e97c18916b2bdffb128212324c73284c379` 的 push correctness run=`35485629651` 与
+pull_request correctness run=`35485631844` 均为 `success`，PR #74 为 `OPEN / non-Draft / mergeable_state=CLEAN`。
+用户合并前不执行真实 production；终点为
+`FRIDAY_WEEKEND_BACKFILL_PR_READY_FOR_USER_MERGE_DECISION`。
 
 ## Current task — SINGLE_AUTHORITATIVE_MARKET_DATA_SOURCE_V1
 

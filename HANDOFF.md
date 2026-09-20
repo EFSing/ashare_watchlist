@@ -22,13 +22,16 @@
 - safety：HiThink undated snapshot 必须与同源目标日 OHLCV/前收一致；补跑不写
   `PROSPECTIVE_CAPTURED` shadow，tracker observations 写入明确的非前瞻 source mode；失败不持久化
   正式成功。当前 production dispatch=`0`，provider calls=`0`，runtime-state remote mutation=`0`。
-- verification：focused=`188 passed`；full pytest=`644 passed, 2 skipped, 10 warnings`；
-  compileall、`git diff --check` 通过；Final OOS=`SEALED / UNREAD`，
-  `data/validation/continuous_speed_probe/` 未读未触碰。
-- next：以 PR 最终 head 核验 exact-head CI 与 mergeability；不自动 merge、不触发 production。用户
+- verification：当前 remote head=`480e2e97c18916b2bdffb128212324c73284c379`；PR #74 为
+  `OPEN / non-Draft / mergeable_state=CLEAN`。该 exact head 的 push correctness run
+  `35485629651` 与 pull_request correctness run `35485631844` 均为 `success`。focused=`188 passed`；
+  full pytest=`644 passed, 2 skipped, 10 warnings`；compileall、`git diff --check` 通过；Final OOS=
+  `SEALED / UNREAD`，`data/validation/continuous_speed_probe/` 未读未触碰。
+- next：不自动 merge、不触发 production。用户
   合并后才可在仍处于合法窗口时以 `mode=production`、`as_of_date=2026-09-18`、
   `trigger_source=manual`、`allow_weekend_backfill=true` 手动 dispatch。
-- terminal：等待用户 merge decision；若窗口进入 2026-09-21 或以后，必须停止补跑方案。
+- terminal：`FRIDAY_WEEKEND_BACKFILL_PR_READY_FOR_USER_MERGE_DECISION`；若窗口进入 2026-09-21 或以后，
+  必须停止补跑方案。
 
 ## 2026-09-18 — SINGLE_AUTHORITATIVE_MARKET_DATA_SOURCE_V1
 
