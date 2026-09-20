@@ -6,6 +6,30 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-20 — FRIDAY_WEEKEND_BACKFILL_PREFLIGHT_STATE_FIX_V1
+
+- classification：`correctness blocker`（STRICT PATH）。本轮只修复 PR #74 合并后暴露的
+  workflow preflight 状态分支遗漏，不改变补跑日期、授权、凭证、HiThink 证据或任何生产语义。
+- `PROJECT_GOVERNANCE_STATE_CONFLICT`：旧的当前入口仍将 PR #74 记为待合并；实时状态已确认
+  PR #74 合并为 `bb061be8e5e81e6584878e578c097972a1ecc428`，workflow run `35492829019`
+  在 preflight 返回 `AUTHORIZED_WEEKEND_BACKFILL_READY` 后因 workflow 只接受
+  `POST_CLOSE_DIAGNOSTIC_READY` 而失败。
+- runtime-state：live HEAD=`7db58bee3aadde658a01bc9c0bbf371ff444d1dc`，只有
+  `daily_failure_notice_20260918.json`；没有 2026-09-18 的 watchlist、日报、checkpoint 或
+  delivery success。该 failure notice 是 operational-only，不代表 canonical completion。
+- implementation：独立 branch/worktree 为
+  `codex/friday-weekend-backfill-preflight-state-fix-20260920` /
+  `D:\dev\ashare-watchlist-friday-weekend-backfill-preflight-fix`，PR #75：
+  https://github.com/EFSing/ashare_watchlist/pull/75 。仅在既有精确手动 production 授权条件下
+  额外接受 `AUTHORIZED_WEEKEND_BACKFILL_READY`；普通生产仍只接受
+  `POST_CLOSE_DIAGNOSTIC_READY`，并继续要求凭证与运行包 READY。
+- verification：local relevant=`47 passed`；full pytest=`645 passed, 2 skipped, 10 warnings`；
+  compileall 与 `git diff --check` 通过。未触发 production、未调用 provider、未修改 remote
+  `runtime-state`；Final OOS=`SEALED / UNREAD`，`data/validation/continuous_speed_probe/`
+  未读未触碰。
+- next：重新核对 PR #75 最终 head 的 exact-head CI 与 mergeability；不自动合并、不触发
+  production。终点为 `FRIDAY_WEEKEND_BACKFILL_PREFLIGHT_STATE_FIX_PR_READY_FOR_USER_MERGE_DECISION`。
+
 ## 2026-09-20 — FRIDAY_WEEKEND_BACKFILL_20260918_V1
 
 - classification：`correctness blocker`（时间点、HiThink 日期证据、tracker/shadow 前瞻身份与
