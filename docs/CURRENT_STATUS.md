@@ -26,8 +26,11 @@ artifact 仍可读，不被改写。Formal B、universe、tracker 缺失行情�
 `D:\dev\ashare-watchlist-per-symbol-fail-soft-production-v1`，commit
 `d290c2ee3506fd5eba0b95fb6b0665afcfbdb857`，独立 PR #76：
 https://github.com/EFSing/ashare_watchlist/pull/76；未触发生产或 remote runtime-state。当前
-focused=`239 passed, 2 warnings`；最终 full pytest 为 `658 passed, 2 skipped, 10 warnings`，
-compileall 与 diff check 通过。下一步只核验 PR #76 exact-head CI/mergeability，
+focused=`235 passed, 2 warnings`；此前实现 full pytest 为 `658 passed, 2 skipped, 10 warnings`，
+compileall 与 diff check 通过。对最终 head `8e119dd...` 的 daily workflow run
+`35497053430` 已确认是 `event=push`、`jobs=0` 的失败 check-suite；actionlint 1.7.12 定位
+NO_VALID_INPUT 持久化 step 的 YAML 解析错误，当前已在 PR 分支做最小 `$'\n'` 拼接修复。修复后
+全部 workflow actionlint=`0 errors`。下一步是提交/push 修复并重新核验 exact-head CI/mergeability，
 停在用户合并决策节点。
 
 ## Current task — FRIDAY_WEEKEND_BACKFILL_PREFLIGHT_STATE_FIX_V1 — 2026-09-20

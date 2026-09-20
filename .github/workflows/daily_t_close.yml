@@ -674,10 +674,8 @@ jobs:
           report_path="data/reports/daily_close_${AS_OF_DATE//-/}.html"
           git -C failure-runtime-state add -- "$diagnostic_path" "$report_path"
           staged="$(git -C failure-runtime-state diff --cached --name-only)"
-          expected="${diagnostic_path}
-${report_path}"
-          if [[ "$staged" != "$expected" && "$staged" != "${report_path}
-${diagnostic_path}" ]]; then
+          expected="${diagnostic_path}"$'\n'"${report_path}"
+          if [[ "$staged" != "$expected" && "$staged" != "${report_path}"$'\n'"${diagnostic_path}" ]]; then
             echo "unexpected staged input-diagnostic paths: $staged"
             echo "INPUT_DIAGNOSTIC_STATE_PERSISTED=NO" >> "$GITHUB_ENV"
             exit 0
