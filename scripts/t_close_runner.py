@@ -9,6 +9,7 @@ external service.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.metadata
 import json
 import os
@@ -45,6 +46,8 @@ from live_acquisition import (
 )
 from trading_calendar import CalendarUnavailable, default_calendar
 from render_daily_close_html import render_input_diagnostic_report
+from volume_observation import build_volume_observation_store, write_volume_observation_store
+from watchlist_schema import load_watchlist
 from upload_daily_checkpoint import (
     CLOUD_CHECKPOINT_FAILED,
     CheckpointError,
@@ -174,6 +177,54 @@ def _daily_shadow_update(as_of_date: str, data_root: Path) -> dict[str, Any]:
             parsed = {"status": "SHADOW_CAPTURE_INCOMPLETE", "detail": detail}
         return parsed if isinstance(parsed, dict) else {"status": "SHADOW_CAPTURE_INCOMPLETE", "detail": detail}
     return {"status": "SHADOW_CAPTURE_INCOMPLETE", "detail": detail, "exit_code": completed.returncode}
+
+
+def _capture_volume_observations(
+    package: Any,
+    candidate: Any,
+    data_root: Path,
+    *,
+    weekend_backfill: bool,
+) -> dict[str, Any]:
+    """Persist independent stock-only volume observations for a normal T-close."""
+
+    if weekend_backfill:
+        return {
+            "status": "NOT_CAPTURED_AUTHORIZED_WEEKEND_BACKFILL",
+            "capture_mode": "NOT_CAPTURED",
+            "reason": "post-session backfill is not a prospective T-close observation",
+        }
+    if candidate.output_path is None:
+        return {
+            "status": "VOLUME_OBSERVATION_INCOMPLETE",
+            "detail": "canonical watchlist output path is unavailable",
+        }
+    try:
+        watchlist = load_watchlist(candidate.output_path)
+        manifest = package.generation_input_manifest.to_dict()
+        store = build_volume_observation_store(
+            watchlist.get("candidates", []),
+            manifest,
+            manifest.get("signal_date"),
+        )
+        output_path = DataPaths(data_root).volume_observation_file(manifest["signal_date"])
+        write_volume_observation_store(output_path, store)
+        digest = hashlib.sha256(output_path.read_bytes()).hexdigest()
+        return {
+            "status": store["status"],
+            "path": str(output_path),
+            "file_sha256": digest,
+            "candidate_count": store["candidate_count"],
+            "complete_count": store["complete_count"],
+            "source_mode": store["source_mode"],
+            "observational_only": True,
+        }
+    except Exception as exc:
+        return {
+            "status": "VOLUME_OBSERVATION_INCOMPLETE",
+            "detail": f"{type(exc).__name__}: {exc}",
+            "observational_only": True,
+        }
 
 
 def _run_daily_close_reporting(
@@ -595,6 +646,12 @@ def run(
     if candidate.status not in RUNNABLE_STATUSES:
         raise RuntimeError(f"development candidate generation failed: {candidate.status}")
     weekend_backfill = package.provenance.get("acquisition_timing") == AUTHORIZED_WEEKEND_BACKFILL
+    volume_observations = _capture_volume_observations(
+        package,
+        candidate,
+        data_root,
+        weekend_backfill=weekend_backfill,
+    )
     shadow_monitor: dict[str, Any]
     if weekend_backfill:
         shadow_monitor = {
@@ -667,6 +724,7 @@ def run(
             "candidate_count": candidate.candidate_count,
             "run_manifest_path": str(candidate.run_manifest_path),
         },
+        "volume_observations": volume_observations,
         "shadow_monitor": shadow_monitor,
         "postprocess": "NOT_CONFIGURED_EXTERNAL_UPLOAD",
     }

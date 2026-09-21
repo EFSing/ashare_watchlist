@@ -6,6 +6,61 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-21 — DAILY_REPORT_INPUT_COVERAGE_PRESENTATION_FIX_V1
+
+- classification：`deferred improvement`（日报可用性/展示维护）；不改变输入 coverage 状态与计数、
+  Formal B、筛选、Score、排序、交易参数、tracker、shadow 或量能计算。
+- implementation：在 PR #77 branch `codex/friday-volume-observation-only-backfill-v1` 的 commit
+  `676e69d` 中，`DEGRADED` 正文改为“数据质量：部分覆盖”及动态有效评估/异常股票计数；
+  `COMPLETE` 原展示与 `NO_VALID_INPUT` 诊断语义保持不变。完整 exclusion records、错误、日期、
+  policy 与 coverage JSON 仍保存在既有机器记录/metadata。
+- runtime-state：独立增强日报原 SHA=`9a202c79cb628db0feb080b4a39be20240a4a0110abb65d08cb8995b967c4f24`，
+  仅更新 `data/reports/addenda/daily_close_20260918_volume_enriched.html`，新 SHA=
+  `be2df29f4324bc6729fbfab051d712da4820b2bd05f49e71a3bf74acbabd2c6e`；commit=`15d8da215e27aee898fb63729832233d9a7210fd`。
+  原正式报告=`acfbec2a7399c2eb83a5fe62c83ccbbfaf4852b9d9c8013b62de256789178aaa`、watchlist、checkpoint、
+  delivery receipt 均未改写；runtime-state 只更新该独立增强展示产物。
+- verification：focused=`5 passed`；full pytest=`668 passed, 2 skipped, 10 warnings`（短路径
+  basetemp；长路径初次失败为既有测试的 Windows 临时路径长度错误，短路径复跑通过）；compileall 与
+  `git diff --check` 通过。无 provider/production dispatch；Final OOS=`SEALED / UNREAD`，禁读目录未触碰。
+- terminal：PR #77 已推送并完成最终 head 的 live exact-head CI 与 mergeability 核验；等待用户决定并合并，
+  不自动 merge、不触发正式生产。
+
+## 2026-09-20 — VOLUME_CARD_VISUALIZATION_AND_CLOUD_DELIVERY_V1
+
+- terminal：`VOLUME_CARD_CLOUD_DELIVERED_AND_PRODUCTION_FIX_PR_READY`。本轮完成独立股票 K 线量能计算与正常 T-close 接线、三行紧凑量能卡片、2026-09-18 独立回顾增强日报；量能仍是 report-only，不进入 Formal B、筛选、Score、排序或交易参数。
+- implementation：branch/worktree=`codex/friday-volume-observation-only-backfill-v1` / `C:\awv`，量能功能实现 head=`7d269e3e0ff4019e0310ddafe86be6ff3efde714`；PR #77 后续仅追加交付记录，当前保持 OPEN/CLEAN/MERGEABLE。正常路径写入 `data/volume_observations/volume_observations_YYYYMMDD.json`；renderer 优先按 signal_id/代码读取，index/shadow 缺失不会遮蔽有效股票量能。
+- retrospective report：只由既有 addendum 计算结果与原正式 HTML 重渲染，不重新取数；原正式报告 SHA=`acfbec2a7399c2eb83a5fe62c83ccbbfaf4852b9d9c8013b62de256789178aaa` 未变。`600929` 第三项仍为 `PULLBACK_WINDOW_LT_4` / `样本不足`；候选排名按原正式报告保留。
+- cloud delivery：runtime-state commit=`0a6feb50aa169d9712844d5a3a16deddae596607`，只新增 `data/reports/addenda/daily_close_20260918_volume_enriched.html`，SHA=`9a202c79cb628db0feb080b4a39be20240a4a0110abb65d08cb8995b967c4f24`。URL：https://github.com/EFSing/ashare_watchlist/blob/runtime-state/data/reports/addenda/daily_close_20260918_volume_enriched.html
+- verification：focused/local=`89 passed, 1 warning`；compileall、diff check 通过；最终 head 的 push correctness run=`35519184571`、pull_request correctness run=`35519187151` 均 SUCCESS。本机 actionlint 未安装；本地全量 pytest 受既有 `importlib.metadata` 将 `exchange-calendars` 解析为 `None` 的环境问题阻断，但 CI 全量 regression 已通过。未运行生产、未触碰 Final OOS 或 `data/validation/continuous_speed_probe/`。浏览器 `file://` 视觉检查被安全策略拦截，未绕过；静态桌面/窄屏 CSS 检查已完成。
+- next：用户决定并合并 PR #77；合并前不启动 `daily-t-close`，不发送邮件/Bark，不再改写原正式报告。
+
+## 2026-09-20 — FRIDAY_VOLUME_OBSERVATION_ONLY_BACKFILL_V1
+
+- classification：`RETROSPECTIVE_VOLUME_ENRICHMENT / REPORT_ONLY`。本轮只为已持久化的
+  2026-09-18 Formal B 十只候选生成独立量能补充，不重扫 universe、不重跑 Formal B、不改写
+  canonical watchlist/checkpoint/report/delivery/tracker/shadow/runtime-state，也不启动
+  `daily-t-close`。
+- `PROJECT_GOVERNANCE_STATE_CONFLICT`：旧入口仍停留在 PR #76 合并前的
+  `origin/master=4009108...` / `origin/runtime-state=7db58b...`；实时 fetch 已核对
+  `origin/master=9bc58344beb5ce9bee2fdfebf4d1e1b452cad6c2`、PR #73/#74/#75/#76 已合并，
+  `origin/runtime-state=40cbde2c30da2e2251956b52001b034b75b62ab5`。本条只做最小入口修正。
+- locked identity：原 watchlist SHA-256=`5c16a0e7d57bc78249b05ea067aa798ace2c1e79bac78c1e40532a6b279573ea`；
+  checkpoint=`64224f29ef102a283b5e83100705484ae55371a33c4e424a8bcffefc331ee376`；formal
+  report=`acfbec2a7399c2eb83a5fe62c83ccbbfaf4852b9d9c8013b62de256789178aaa`；delivery
+  receipt=`d37bf69a170f474faa0bd8fdf35a45820cb7c6767055e67b6d6fdd1e283c3751`。顺序固定为
+  `000701,000807,001217,001222,600689,600929,601599,603096,603628,605003`。
+- implementation：独立 branch/worktree 为 `codex/friday-volume-observation-only-backfill-v1` /
+  `C:\awv`，PR #77，head=`4ba2798f620c119046046855950faabb7d0db77e`。工具只读取可信缓存或
+  对上述十只调用 HiThink historical K-line，复用既有三项纯计算；未来日期、身份/OHLCV
+  不兼容逐票 fail-soft，绝不写 prospective shadow。
+- result：独立 addendum 为 `data/reports/daily_close_20260918_volume_addendum.html`，实际
+  10/10 输入验证通过，9 只三项全有效；`600929` 的后半/前半均量比为
+  `PULLBACK_WINDOW_LT_4`。报告 output SHA-256=`e1c110f64741690ccea2d85dd6762df2eafab2f28abf2753c503fc06e7da5d4e`。
+- verification：local full pytest=`663 passed, 2 skipped, 11 warnings`；实际 provider
+  access=`10` 个定向历史 K 线 symbol，universe/snapshot/Formal B/shadow calls=`0`，production
+  dispatch=`0`，remote runtime-state mutation=`0`。PR #77 的 exact-head CI 是交付门槛，任何
+  后续 push 后都必须实时重读；不自动 merge，终点仍为用户 merge decision。
+
 ## 2026-09-20 — PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1
 
 - classification：`correctness blocker + product blocker`（STRICT PATH）。目标是让正式生产

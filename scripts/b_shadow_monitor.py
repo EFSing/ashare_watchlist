@@ -26,6 +26,13 @@ from b_breakout_retest_v1_1 import STRATEGY_SPEC_SHA256, STRATEGY_VERSION
 from b_phase_volume_path_diagnostic import _board, _first_breakout_trace
 from data_paths import DataPaths
 from trading_calendar import TradingCalendar, default_calendar
+from volume_observation import (
+    VOLUME_OBSERVATION_FIELDS,
+    VOLUME_OBSERVATION_PROTOCOL_COMMIT_SHA as _VOLUME_OBSERVATION_PROTOCOL_COMMIT_SHA,
+    VOLUME_OBSERVATION_VERSION as _VOLUME_OBSERVATION_VERSION,
+    _empty_volume_observation as _pure_empty_volume_observation,
+    calculate_pullback_volume_observation,
+)
 from watchlist_schema import load_watchlist
 
 
@@ -52,8 +59,8 @@ OUTCOME_AMBIGUOUS = "AMBIGUOUS"
 
 REGIME_DEFINITION_VERSION = "B_SHADOW_MARKET_REGIME_DEFINITION_V1"
 VOLUME_DEFINITION_VERSION = "B_SHADOW_REACTIVATION_VOLUME_PATH_V1"
-VOLUME_OBSERVATION_VERSION = "B_VOLUME_PROSPECTIVE_REPORT_OBSERVATION_V1"
-VOLUME_OBSERVATION_PROTOCOL_COMMIT_SHA = "cebda9ec8d8c085424e4b674a3353204e90bd7a0"
+VOLUME_OBSERVATION_VERSION = _VOLUME_OBSERVATION_VERSION
+VOLUME_OBSERVATION_PROTOCOL_COMMIT_SHA = _VOLUME_OBSERVATION_PROTOCOL_COMMIT_SHA
 FAST_STOP_DEFINITION = "STOP on first or second sellable XSHG session (D+1 or D+2)"
 RECOVERY_HORIZONS = (3, 5, 10)
 VOL_LOW_MAX_DAILY_STD_PCT = 1.0
@@ -83,11 +90,7 @@ _REACTIVATION_FIELDS = (
     "reactivation_vs_retest_ratio",
     "reactivation_vs_breakout_ratio",
 )
-_VOLUME_OBSERVATION_FIELDS = (
-    "down_volume_share",
-    "up_down_volume_ratio",
-    "pullback_volume_decay_ratio",
-)
+_VOLUME_OBSERVATION_FIELDS = VOLUME_OBSERVATION_FIELDS
 
 
 class ShadowMonitorError(ValueError):
@@ -384,13 +387,7 @@ def _market_snapshot(index_manifest: Mapping[str, Any], signal_date: str) -> dic
 
 
 def _empty_volume_observation(reason: str, *, window_days: int | None = None) -> dict[str, Any]:
-    return {
-        "observation_version": VOLUME_OBSERVATION_VERSION,
-        "protocol_commit_sha": VOLUME_OBSERVATION_PROTOCOL_COMMIT_SHA,
-        "window_days": window_days,
-        **{field: None for field in _VOLUME_OBSERVATION_FIELDS},
-        "missing_reason": {field: reason for field in _VOLUME_OBSERVATION_FIELDS},
-    }
+    return _pure_empty_volume_observation(reason, window_days=window_days)
 
 
 def _safe_volume_ratio(numerator: float, denominator: float) -> tuple[float | None, str | None]:
@@ -416,66 +413,9 @@ def _pullback_volume_observation(
     volume: np.ndarray,
     trace: Mapping[str, Any],
 ) -> dict[str, Any]:
-    """Calculate the frozen report-only volume observables for ``R=i+1:T-1``."""
+    """Compatibility wrapper for the pure report-only calculation."""
 
-    breakout_index = int(trace["breakout_index"])
-    signal_index = len(close) - 1
-    pullback_close = np.asarray(close[breakout_index + 1:signal_index], dtype=float)
-    pullback_volume = np.asarray(volume[breakout_index + 1:signal_index], dtype=float)
-    result: dict[str, Any] = {
-        "observation_version": VOLUME_OBSERVATION_VERSION,
-        "protocol_commit_sha": VOLUME_OBSERVATION_PROTOCOL_COMMIT_SHA,
-        "window_days": int(len(pullback_volume)),
-        **{field: None for field in _VOLUME_OBSERVATION_FIELDS},
-        "missing_reason": {},
-    }
-
-    if len(pullback_close) == 0:
-        result["missing_reason"] = {
-            field: "NO_PULLBACK_WINDOW" for field in _VOLUME_OBSERVATION_FIELDS
-        }
-        return result
-
-    previous_close = np.asarray(close[breakout_index:signal_index], dtype=float)[:len(pullback_close)]
-    up = pullback_close > previous_close
-    down = pullback_close < previous_close
-
-    total_volume = float(np.sum(pullback_volume)) if np.all(np.isfinite(pullback_volume)) else math.nan
-    if not math.isfinite(total_volume) or total_volume <= 0:
-        result["missing_reason"]["down_volume_share"] = "INVALID_PULLBACK_VOLUME_SUM"
-    else:
-        value, reason = _safe_volume_ratio(float(np.sum(pullback_volume[down])), total_volume)
-        result["down_volume_share"] = value
-        if reason:
-            result["missing_reason"]["down_volume_share"] = reason
-
-    if not np.any(up) or not np.any(down):
-        result["missing_reason"]["up_down_volume_ratio"] = "NO_UP_OR_DOWN_DAY"
-    else:
-        up_mean = _finite_volume_mean(pullback_volume[up])
-        down_mean = _finite_volume_mean(pullback_volume[down])
-        if up_mean is None or down_mean is None or down_mean <= 0:
-            result["missing_reason"]["up_down_volume_ratio"] = "INVALID_UP_OR_DOWN_VOLUME"
-        else:
-            value, reason = _safe_volume_ratio(up_mean, down_mean)
-            result["up_down_volume_ratio"] = value
-            if reason:
-                result["missing_reason"]["up_down_volume_ratio"] = reason
-
-    if len(pullback_volume) < 4:
-        result["missing_reason"]["pullback_volume_decay_ratio"] = "PULLBACK_WINDOW_LT_4"
-    else:
-        split = len(pullback_volume) // 2
-        first_mean = _finite_volume_mean(pullback_volume[:split])
-        second_mean = _finite_volume_mean(pullback_volume[split:])
-        if first_mean is None or second_mean is None or first_mean <= 0:
-            result["missing_reason"]["pullback_volume_decay_ratio"] = "INVALID_PULLBACK_HALF_VOLUME"
-        else:
-            value, reason = _safe_volume_ratio(second_mean, first_mean)
-            result["pullback_volume_decay_ratio"] = value
-            if reason:
-                result["missing_reason"]["pullback_volume_decay_ratio"] = reason
-    return result
+    return calculate_pullback_volume_observation(close, volume, int(trace["breakout_index"]))
 
 
 def _stock_snapshot(
@@ -890,7 +830,10 @@ def capture_t_close_signals(
     index_manifest = generation_input_manifest.get("index")
     stock_klines = generation_input_manifest.get("stock_klines")
     if not isinstance(index_manifest, Mapping):
-        raise ShadowMonitorError("SHADOW_FEATURE_UNAVAILABLE", "generation input index is missing")
+        # Market-regime context is optional for this observational path.  Keep
+        # processing stock K-lines so an index-side gap cannot hide valid
+        # report-only volume observations.
+        index_manifest = {}
 
     actions = {"added": 0, "idempotent": 0, "complete": 0, "incomplete": 0, "expected": len(watchlist["candidates"])}
     for candidate in watchlist["candidates"]:

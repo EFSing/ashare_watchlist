@@ -5,6 +5,28 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-20 — VOLUME_CARD_VISUALIZATION_AND_CLOUD_DELIVERY_V1
+
+- decision：`ADOPT` 将三项量能观察拆为独立、股票 K 线驱动的正常 T-close store；它不依赖 index/shadow 成功，不进入 Formal B 或任何排名条件，缺失保持原始原因。
+- report boundary：正式日报只读取独立观察结果并以三行卡片展示比例条、1.00× 基线、方向和事实总结；历史 2026-09-18 只生成带 `RETROSPECTIVE_VOLUME_ENRICHMENT` 标记的独立增强副本，不覆盖原正式 HTML。
+- delivery boundary：runtime-state 只新增 `data/reports/addenda/daily_close_20260918_volume_enriched.html`；原正式 artifact bytes、candidate identity/order/Score/ranking、Final OOS 与 `data/validation/continuous_speed_probe/` 保持不变。PR #77 合并前不运行生产、不发送通知。
+
+## 2026-09-20 — RETROSPECTIVE_VOLUME_OBSERVATION_ONLY_BACKFILL_V1
+
+- decision：`ADOPT` 一个只读、事后、候选绑定的量能补充流程。它只接受已持久化的
+  2026-09-18 正式十只候选及其原顺序，复用既有 `B_VOLUME_PROSPECTIVE_REPORT_OBSERVATION_V1`
+  的三个纯计算，不得成为 Formal B 输入或排名条件。
+- input boundary：优先使用有目标日期、身份、HiThink provider 与 forward/QFQ provenance 的
+  定向缓存；没有可信缓存时只获取十只候选的历史 K 线。所有 bar 必须 `date <= 2026-09-18`，
+  目标日 OHLCV/代码必须与原名单兼容；数据不能证明口径时保留逐票 missing reason，不推测填充。
+- report boundary：只生成独立的 `daily_close_20260918_volume_addendum.html`，明确
+  `RETROSPECTIVE_VOLUME_ENRICHMENT`，不覆盖原日报，不创建 `PROSPECTIVE_CAPTURED`，不写
+  shadow、tracker、checkpoint、delivery 或 remote runtime-state；不启动 `daily-t-close`。
+- result：本轮十只输入均通过日期/身份/OHLCV 验证；9 只三项全有效，`600929` 的
+  `pullback_volume_decay_ratio` 缺失原因是 `PULLBACK_WINDOW_LT_4`。该事后请求数据不被声称为
+  9 月 18 日当时已冻结的完整生产输入。Formal B、candidate identity、order、Score 与历史
+  canonical artifact bytes unchanged。
+
 ## 2026-09-20 — PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1
 
 - decision：`ADOPT` 新的正式生产输入容错契约。可明确归属到单只股票的 snapshot、历史 K 线、

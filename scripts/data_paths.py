@@ -74,3 +74,7 @@ class DataPaths:
 
     def reports_dir(self) -> Path:
         return self.root / "reports"
+
+    def volume_observation_file(self, date_value: str) -> Path:
+        date_text = str(date_value).replace("-", "")
+        return self.root / "volume_observations" / f"volume_observations_{date_text}.json"

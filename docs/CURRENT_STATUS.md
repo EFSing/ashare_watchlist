@@ -1,10 +1,60 @@
 # CURRENT STATUS
 
-更新时间：2026-09-20（Asia/Shanghai）
+更新时间：2026-09-21（Asia/Shanghai）
 
 本文件只记录当前有效状态；历史实现过程与旧 checkpoint 以 Git history / PR / CI 为 provenance，
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
+
+## Current task — DAILY_REPORT_INPUT_COVERAGE_PRESENTATION_FIX_V1 — 2026-09-21
+
+本轮分类为 `deferred improvement`（日报可用性/展示维护），不改变 production input coverage 的
+状态与计数语义，也不改变 Formal B、筛选、Score、排序、交易参数、tracker、shadow 或量能计算。
+
+PR #77 branch `codex/friday-volume-observation-only-backfill-v1` 当前实现 commit=`676e69d`：
+`DEGRADED` 正文改为“数据质量：部分覆盖”并动态显示有效评估数与异常股票数；`COMPLETE` 原有
+简洁展示和 `NO_VALID_INPUT` 明确诊断保持不变。完整 exclusion records、错误枚举、日期、policy
+version 与 coverage JSON 继续保存在既有 machine records/metadata。历史增强日报复用锁定候选与
+原始 artifact 身份校验，只刷新独立 addendum 的 coverage 展示，不重取行情、不重跑 Formal B。
+
+原正式报告 SHA=`acfbec2a7399c2eb83a5fe62c83ccbbfaf4852b9d9c8013b62de256789178aaa` 未变；watchlist
+SHA=`5c16a0e7d57bc78249b05ea067aa798ace2c1e79bac78c1e40532a6b279573ea`、checkpoint SHA=
+`64224f29ef102a283b5e83100705484ae55371a33c4e424a8bcffefc331ee376`、delivery receipt SHA=
+`d37bf69a170f474faa0bd8fdf35a45820cb7c6767055e67b6d6fdd1e283c3751` 均未变。runtime-state 独立
+addendum 从 `9a202c79cb628db0feb080b4a39be20240a4a0110abb65d08cb8995b967c4f24` 更新为
+`be2df29f4324bc6729fbfab051d712da4820b2bd05f49e71a3bf74acbabd2c6e`，commit=`15d8da215e27aee898fb63729832233d9a7210fd`。
+
+验证：focused=`5 passed`；短路径 full pytest=`668 passed, 2 skipped, 10 warnings`；compileall 与
+`git diff --check` 通过。无 provider/production dispatch，Final OOS=`SEALED / UNREAD`，
+`data/validation/continuous_speed_probe/` 未读未触碰。PR #77 已推送并完成最终 head 的 live
+exact-head CI 与 mergeability 核验；停在用户合并决策，不自动 merge/production。
+
+## Current task — VOLUME_CARD_VISUALIZATION_AND_CLOUD_DELIVERY_V1 — 2026-09-20
+
+本轮已完成独立股票 K 线量能计算、正常 T-close 持久化、三行量能卡片和 2026-09-18 回顾增强日报。量能只用于报告观察，不改变 Formal B、候选身份、Score、排名、交易参数或生产筛选；renderer 按 `signal_id`/规范化代码读取独立 store，index/shadow 失败不会隐藏有效股票量能。
+
+PR #77 位于 branch `codex/friday-volume-observation-only-backfill-v1`，量能功能实现 head `7d269e3e0ff4019e0310ddafe86be6ff3efde714`；其后仅追加交付记录，当前状态 `OPEN / CLEAN / MERGEABLE`。功能实现 head 的 push correctness=`35519535943` 与 pull_request correctness=`35519538698` 均 `SUCCESS`。本地 focused=`89 passed, 1 warning`，compileall/diff check 通过；本机 actionlint 未安装，本地全量运行被既有 `importlib.metadata` 的 `exchange-calendars=None` 环境异常阻断，但 CI regression 已通过。
+
+原正式报告 SHA=`acfbec2a7399c2eb83a5fe62c83ccbbfaf4852b9d9c8013b62de256789178aaa` 保持不变。runtime-state commit=`0a6feb50aa169d9712844d5a3a16deddae596607` 只新增回顾增强报告，文件 SHA=`9a202c79cb628db0feb080b4a39be20240a4a0110abb65d08cb8995b967c4f24`：https://github.com/EFSing/ashare_watchlist/blob/runtime-state/data/reports/addenda/daily_close_20260918_volume_enriched.html。`600929` 第三项为 `样本不足`/`PULLBACK_WINDOW_LT_4`；未触发生产、通知或原正式报告回写。下一步仅是用户合并 PR #77。
+
+## Current task — FRIDAY_VOLUME_OBSERVATION_ONLY_BACKFILL_V1 — 2026-09-20
+
+本轮是 `RETROSPECTIVE_VOLUME_ENRICHMENT / REPORT_ONLY`：只消费已持久化的 2026-09-18 正式
+十只 B 候选，补充下跌日成交量占比、上涨/下跌日均量比、回踩后半/前半均量比。候选身份、原有
+顺序、Score 与 Formal B 语义冻结；不重扫、不重筛、不重排、不运行 `daily-t-close`，不读取或写入
+prospective shadow/runtime-state。
+
+实时 reconciliation 已关闭旧入口记录的 `PROJECT_GOVERNANCE_STATE_CONFLICT`：live
+`origin/master=9bc58344beb5ce9bee2fdfebf4d1e1b452cad6c2`，live
+`origin/runtime-state=40cbde2c30da2e2251956b52001b034b75b62ab5`，PR #73/#74/#75/#76 已合并。
+本任务 branch 为 `codex/friday-volume-observation-only-backfill-v1`，PR #77，implementation commit
+为 `4ba2798f620c119046046855950faabb7d0db77e`；exact-head CI 是 live delivery gate，任何
+后续 push 后都必须以最终 head 重读。
+
+独立 addendum `data/reports/daily_close_20260918_volume_addendum.html` 已生成：10/10 输入验证
+通过，9 只三项全有效；`600929` 的第三项因 `PULLBACK_WINDOW_LT_4` 缺失。实际只读取十只
+股票的 HiThink 历史 K 线，未调用 universe/snapshot/Formal B/shadow/production；本地 full pytest
+为 `663 passed, 2 skipped, 11 warnings`。原 canonical artifact SHA 与报告中记录的身份绑定保持不变。
 
 ## Current task — PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1 — 2026-09-20
 
