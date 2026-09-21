@@ -4,6 +4,7 @@ from datetime import date, timedelta
 import hashlib
 import json
 from pathlib import Path
+import re
 
 import numpy as np
 import pytest
@@ -227,6 +228,71 @@ def test_validated_cache_is_reused_repeat_is_byte_stable_and_formal_files_unchan
     assert first["output_sha256"] == second["output_sha256"]
     for path, digest in canonical_files:
         assert hashlib.sha256(path.read_bytes()).hexdigest() == digest
+
+
+def test_existing_addendum_coverage_refresh_preserves_volume_observations(tmp_path):
+    watchlist = _watchlist(tmp_path)
+    payload = json.loads(watchlist.read_text(encoding="utf-8"))
+    payload["input_coverage"] = {
+        "schema_version": "INPUT_COVERAGE_V1",
+        "coverage_status": "DEGRADED",
+        "evaluated_symbol_count": 3092,
+        "excluded_symbol_count": 1,
+        "excluded_symbols": [{
+            "symbol": "605366",
+            "provider_symbol": "605366.SH",
+            "target_date": "2026-09-18",
+            "provider": "HiThink Financial-API",
+            "status": "EXCLUDED_PROVIDER_STALE",
+            "reason": "TARGET_DAY_HISTORICAL_STALE",
+            "latest_historical_date": "2026-09-17",
+            "quote_trade_state": "TRADED",
+            "evidence": {"quote": {}, "historical": {}},
+            "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+        }],
+        "formal_result_valid": True,
+        "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+    }
+    watchlist.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8", newline="\n")
+    output = tmp_path / "daily_close_20260918_volume_enriched.html"
+    backfill.generate_volume_addendum(
+        watchlist,
+        output,
+        fetch_historical=lambda code: (_bars(), _metadata(code)),
+        original_artifacts={"watchlist_sha256": hashlib.sha256(watchlist.read_bytes()).hexdigest()},
+        retrieved_at_bjt=FIXED_TIME,
+        generated_at_bjt=FIXED_TIME,
+    )
+    old_block = (
+        '<div class="review-callout warning"><strong>INPUT COVERAGE = DEGRADED</strong>'
+        '<p>excluded symbol = 605366；reason = TARGET_DAY_HISTORICAL_STALE；'
+        'latest provider date = 2026-09-17；policy version = PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1</p></div>'
+    )
+    before = output.read_text(encoding="utf-8")
+    output.write_text(before.replace("</main>", old_block + "</main>", 1), encoding="utf-8", newline="\n")
+    before_refresh = output.read_text(encoding="utf-8")
+
+    result = backfill.refresh_existing_volume_enriched_report_coverage(
+        output,
+        output,
+        watchlist,
+        original_artifacts={"watchlist_sha256": hashlib.sha256(watchlist.read_bytes()).hexdigest()},
+    )
+    after = output.read_text(encoding="utf-8")
+
+    new_block = re.search(
+        r'<div class="review-callout warning"><strong>数据质量：部分覆盖</strong>.*?</div>',
+        after,
+        re.S,
+    )
+    assert new_block is not None
+    assert "本次有效评估 3092 只股票，1 只因行情数据异常未参与筛选。下方候选名单不包含这些股票。" in new_block.group(0)
+    assert "605366" not in new_block.group(0)
+    assert "TARGET_DAY_HISTORICAL_STALE" not in new_block.group(0)
+    assert result["evaluated_symbol_count"] == 3092
+    assert result["excluded_symbol_count"] == 1
+    assert result["candidate_count"] == 10
+    assert after.replace(new_block.group(0), "") == before_refresh.replace(old_block, "")
 
 
 def test_canonical_report_path_is_protected(tmp_path):

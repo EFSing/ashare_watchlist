@@ -165,14 +165,53 @@ def test_report_explicitly_displays_degraded_input_coverage(tmp_path):
     assert model.metadata["input_coverage_status"] == "DEGRADED"
     assert model.metadata["evaluated_symbol_count"] == 2
     assert model.metadata["excluded_symbol_count"] == 1
-    assert "INPUT COVERAGE = DEGRADED" in text
-    assert "evaluated_symbol_count = 2" in text
-    assert "excluded symbol = 605366" in text
-    assert "latest provider date = 2026-09-09" in text
-    assert "target date = 2026-09-10" in text
-    assert "policy version = PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1" in text
-    assert "本次候选名单未包含该数据异常股票。" in text
+    coverage_block = re.search(
+        r'<div class="review-callout warning"><strong>数据质量：部分覆盖</strong>.*?</div>',
+        text,
+        re.S,
+    )
+    assert coverage_block is not None
+    assert "本次有效评估 2 只股票，1 只因行情数据异常未参与筛选。下方候选名单不包含这些股票。" in coverage_block.group(0)
+    for machine_detail in (
+        "605366",
+        "TARGET_DAY_HISTORICAL_STALE",
+        "2026-09-09",
+        "2026-09-10",
+        "PER_SYMBOL_PROVIDER_FAILURE_ISOLATION_V1",
+        "excluded_reason_counts",
+    ):
+        assert machine_detail not in coverage_block.group(0)
+    assert model.metadata["input_coverage"]["excluded_symbols"][0]["symbol"] == "605366"
     assert "input-coverage-json" in text
+    assert "&quot;symbol&quot;:&quot;605366&quot;" in text
+
+
+def test_report_keeps_complete_input_coverage_presentation(tmp_path):
+    coverage = {
+        "schema_version": "INPUT_COVERAGE_V1",
+        "coverage_status": "COMPLETE",
+        "evaluated_symbol_count": 2,
+        "excluded_symbol_count": 0,
+        "excluded_symbols": [],
+        "raw_symbol_count": 2,
+        "qualified_symbol_count": 2,
+        "formal_result_valid": True,
+        "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+    }
+    watchlist = _write_watchlist(
+        tmp_path,
+        "20260910",
+        [_candidate("600018", "完整输入", 70)],
+        input_coverage=coverage,
+    )
+    _write_tracker(tmp_path, watchlist)
+
+    model = renderer.build_report_model("20260910", paths=_paths(tmp_path), calendar=CALENDAR)
+    text = renderer.render_html(model)
+
+    assert "INPUT COVERAGE = COMPLETE" in text
+    assert "raw_symbol_count = 2" in text
+    assert "policy version = PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1" in text
 
 
 def test_no_valid_input_diagnostic_is_dated_bounded_and_does_not_touch_latest(tmp_path):

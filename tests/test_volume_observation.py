@@ -98,9 +98,36 @@ def test_compact_card_has_baseline_direction_and_sample_short_reason():
 
 def test_enriched_report_maps_by_code_preserves_formal_order_and_scrubs_private_path(tmp_path):
     candidates = [_candidate(code, score=40 + index) for index, code in enumerate(backfill.LOCKED_CODES)]
-    watchlist_payload = {"date": "2026-09-18", "mode": "close", "strategy_version": backfill.EXPECTED_STRATEGY, "candidates": candidates}
+    coverage = {
+        "schema_version": "INPUT_COVERAGE_V1",
+        "coverage_status": "DEGRADED",
+        "evaluated_symbol_count": 3092,
+        "excluded_symbol_count": 1,
+        "excluded_symbols": [{
+            "symbol": "605366",
+            "provider_symbol": "605366.SH",
+            "target_date": "2026-09-18",
+            "provider": "HiThink Financial-API",
+            "status": "EXCLUDED_PROVIDER_STALE",
+            "reason": "TARGET_DAY_HISTORICAL_STALE",
+            "latest_historical_date": "2026-09-17",
+            "quote_trade_state": "TRADED",
+            "evidence": {"quote": {}, "historical": {}},
+            "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+        }],
+        "formal_result_valid": True,
+        "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+    }
+    watchlist_payload = {
+        "date": "2026-09-18",
+        "mode": "close",
+        "strategy_version": backfill.EXPECTED_STRATEGY,
+        "candidates": candidates,
+        "input_coverage": coverage,
+    }
     watchlist_path = tmp_path / "watchlist.json"
     watchlist_path.write_text(json.dumps(watchlist_payload, ensure_ascii=False), encoding="utf-8")
+    watchlist_sha = hashlib.sha256(watchlist_path.read_bytes()).hexdigest()
     observations = []
     for index, candidate in enumerate(candidates):
         observations.append({
@@ -132,23 +159,51 @@ def test_enriched_report_maps_by_code_preserves_formal_order_and_scrubs_private_
         )
     formal = (
         '<!doctype html><html><head><meta name="input-coverage-json" content="C:\\Users\\soush\\private\\input.json">'
-        '<title>Formal</title></head><body><main>' + ''.join(articles) + '</main></body></html>'
+        '<title>Formal</title></head><body><main>'
+        '<div class="review-callout warning"><strong>INPUT COVERAGE = DEGRADED</strong>'
+        '<p>excluded symbol = 605366；reason = TARGET_DAY_HISTORICAL_STALE；policy version = PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1</p></div>'
+        + ''.join(articles) + '</main></body></html>'
     )
     formal_path = tmp_path / "formal.html"
     formal_path.write_text(formal, encoding="utf-8")
     output = tmp_path / "daily_close_20260918_volume_enriched.html"
+    formal_sha = hashlib.sha256(formal.encode("utf-8")).hexdigest()
     result = backfill.render_volume_enriched_report(
         formal_path,
         output,
         summary,
-        expected_formal_report_sha256=hashlib.sha256(formal.encode("utf-8")).hexdigest(),
+        expected_formal_report_sha256=formal_sha,
+    )
+    before_refresh = output.read_text(encoding="utf-8")
+    refreshed = backfill.refresh_existing_volume_enriched_report_coverage(
+        output,
+        output,
+        watchlist_path,
+        original_artifacts={"watchlist_sha256": watchlist_sha, "formal_report_sha256": formal_sha},
     )
     text = output.read_text(encoding="utf-8")
     ranked = re.findall(r'<article class="watch-row".*?<span class="watch-rank">(\d+)</span>.*?<strong>(\d{6})</strong>', text, re.S)
     assert result["candidate_count"] == 10
+    assert refreshed["candidate_count"] == 10
+    assert refreshed["evaluated_symbol_count"] == 3092
+    assert refreshed["excluded_symbol_count"] == 1
     assert "RETROSPECTIVE_VOLUME_ENRICHMENT" in text
     assert text.count('class="volume-observations"') == 10
     assert "C:\\Users" not in text
     assert "样本不足" in text
     assert "down_volume_share" not in text
     assert "605003" in text
+    assert "数据质量：部分覆盖" in text
+    assert "本次有效评估 3092 只股票，1 只因行情数据异常未参与筛选。下方候选名单不包含这些股票。" in text
+    assert "excluded symbol = 605366" not in text
+    assert before_refresh.replace(
+        '<div class="review-callout warning"><strong>INPUT COVERAGE = DEGRADED</strong>'
+        '<p>excluded symbol = 605366；reason = TARGET_DAY_HISTORICAL_STALE；policy version = PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1</p></div>',
+        "",
+    ) == re.sub(
+        r'<div class="review-callout warning"><strong>数据质量：部分覆盖</strong>.*?</div>',
+        "",
+        text,
+        flags=re.S,
+        count=1,
+    )

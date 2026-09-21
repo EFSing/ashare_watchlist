@@ -332,28 +332,11 @@ def _input_coverage_html(metadata: Mapping[str, Any]) -> str:
     status = str(metadata.get("input_coverage_status") or _UNVERIFIED)
     coverage = metadata.get("input_coverage")
     if status == INPUT_COVERAGE_DEGRADED and isinstance(coverage, Mapping):
-        counts = (
-            f'raw_symbol_count = {_esc(coverage.get("raw_symbol_count", "—"))}；'
-            f'qualified_symbol_count = {_esc(coverage.get("qualified_symbol_count", "—"))}；'
-            f'evaluated_symbol_count = {_esc(coverage.get("evaluated_symbol_count", "—"))}；'
-            f'excluded_symbol_count = {_esc(coverage.get("excluded_symbol_count", "—"))}'
-        )
-        sample_note = (
-            '<p>正文仅展示前 20 条典型异常；完整 exclusion record 保存在机器 coverage metadata 中。</p>'
-            if metadata.get("excluded_sample_truncated")
-            else ""
-        )
         return (
-            '<div class="review-callout warning"><strong>INPUT COVERAGE = DEGRADED</strong>'
-            f'<p>{counts}</p>'
-            f'<p>excluded symbol = {_esc(metadata.get("excluded_symbol"))}；'
-            f'reason = {_esc(metadata.get("excluded_reason"))}；'
-            f'latest provider date = {_esc(metadata.get("excluded_latest_provider_date"))}；'
-            f'target date = {_esc(metadata.get("excluded_target_date"))}；'
-            f'按原因统计 = {_esc(metadata.get("excluded_reason_counts"))}；'
-            f'policy version = {_esc(metadata.get("input_coverage_policy_version"))}</p>'
-            f'{sample_note}'
-            '<p>本次候选名单未包含该数据异常股票。</p></div>'
+            '<div class="review-callout warning"><strong>数据质量：部分覆盖</strong>'
+            f'<p>本次有效评估 {_esc(coverage.get("evaluated_symbol_count", "—"))} 只股票，'
+            f'{_esc(coverage.get("excluded_symbol_count", "—"))} 只因行情数据异常未参与筛选。'
+            '下方候选名单不包含这些股票。</p></div>'
         )
     if status == INPUT_COVERAGE_COMPLETE and isinstance(coverage, Mapping):
         counts = (

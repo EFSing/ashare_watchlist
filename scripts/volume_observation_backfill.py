@@ -774,6 +774,103 @@ def render_volume_enriched_report(
     }
 
 
+def refresh_existing_volume_enriched_report_coverage(
+    addendum_source: str | Path,
+    output_path: str | Path,
+    watchlist_source: str | Path,
+    *,
+    original_artifacts: Mapping[str, str],
+) -> dict[str, Any]:
+    """Refresh only the input-coverage presentation of an existing addendum.
+
+    The locked candidate table and already-computed volume observations are
+    parsed before the replacement.  No provider, Formal B evaluator, or
+    volume calculation is invoked; the trusted watchlist supplies the
+    current coverage counts and machine metadata remains in that source.
+    """
+
+    output = Path(output_path)
+    if output.name in _FORMAL_REPORT_NAMES or not output.name.endswith("_volume_enriched.html"):
+        raise VolumeAddendumError("enriched output must be a new *_volume_enriched.html artifact")
+    source_bytes, source_label = _read_source_bytes(addendum_source)
+    text = source_bytes.decode("utf-8")
+    if RETROSPECTIVE_VOLUME_ENRICHMENT not in text:
+        raise VolumeAddendumError("existing addendum is not RETROSPECTIVE_VOLUME_ENRICHMENT")
+    for key, expected in original_artifacts.items():
+        if expected and str(expected) not in text:
+            raise VolumeAddendumError(f"existing addendum is missing original artifact {key}")
+    watchlist, _candidates, _watchlist_label, watchlist_sha256 = _load_locked_watchlist(watchlist_source)
+    expected_watchlist_sha = str(original_artifacts.get("watchlist_sha256") or "")
+    if expected_watchlist_sha and watchlist_sha256 != expected_watchlist_sha:
+        raise VolumeAddendumError("watchlist SHA conflicts with existing addendum provenance")
+
+    article_pattern = re.compile(
+        r'<article\b[^>]*class="[^"]*\bwatch-row\b[^"]*"[^>]*>.*?</article>',
+        re.I | re.S,
+    )
+    volume_pattern = re.compile(
+        r'<div\b[^>]*class="[^"]*\bvolume-observations\b[^"]*"[^>]*>',
+        re.I,
+    )
+    articles = list(article_pattern.finditer(text))
+    if articles:
+        seen_codes: list[str] = []
+        for article_match in articles:
+            article = article_match.group(0)
+            code_match = re.search(
+                r'<div\b[^>]*class="[^"]*\bsecurity\b[^"]*"[^>]*>.*?<strong>(\d{6})</strong>',
+                article,
+                re.I | re.S,
+            )
+            if not code_match or len(volume_pattern.findall(article)) != 1:
+                raise VolumeAddendumError("existing addendum candidate/volume identity is invalid")
+            seen_codes.append(code_match.group(1))
+        if len(seen_codes) != len(LOCKED_CODES) or set(seen_codes) != set(LOCKED_CODES):
+            raise VolumeAddendumError("existing addendum candidate code set is not exactly locked")
+        existing = {
+            "candidate_count": len(seen_codes),
+            "original_artifacts": dict(original_artifacts),
+        }
+    else:
+        existing = load_existing_volume_addendum_summary(
+            addendum_source,
+            watchlist_source,
+            original_artifacts=original_artifacts,
+        )
+    coverage = watchlist.get("input_coverage")
+    if not isinstance(coverage, Mapping):
+        raise VolumeAddendumError("watchlist input coverage metadata is missing")
+    from render_daily_close_html import _input_coverage_html, _input_coverage_metadata
+
+    coverage_metadata = _input_coverage_metadata(coverage)
+    coverage_status = coverage_metadata.get("input_coverage_status")
+    if coverage_status not in {"COMPLETE", "DEGRADED"}:
+        raise VolumeAddendumError("existing addendum coverage must be COMPLETE or DEGRADED")
+
+    block_pattern = re.compile(
+        r'<div class="review-callout(?: warning)?"><strong>'
+        r'(?:INPUT COVERAGE = (?:DEGRADED|COMPLETE)|数据质量：部分覆盖)</strong>.*?</div>',
+        re.S,
+    )
+    matches = list(block_pattern.finditer(text))
+    if len(matches) != 1:
+        raise VolumeAddendumError("existing addendum input coverage block is missing or ambiguous")
+    match = matches[0]
+    html_text = text[:match.start()] + _input_coverage_html(coverage_metadata) + text[match.end():]
+    _write_report(output, html_text, watchlist_sha256=watchlist_sha256)
+    return {
+        "report_kind": RETROSPECTIVE_VOLUME_ENRICHMENT,
+        "source_addendum": source_label,
+        "output_path": str(output),
+        "output_sha256": _sha256_bytes(html_text.encode("utf-8")),
+        "coverage_status": coverage_status,
+        "evaluated_symbol_count": coverage_metadata["evaluated_symbol_count"],
+        "excluded_symbol_count": coverage_metadata["excluded_symbol_count"],
+        "candidate_count": existing["candidate_count"],
+        "original_artifacts": dict(existing["original_artifacts"]),
+    }
+
+
 def generate_volume_addendum(
     watchlist_source: str | Path,
     output_path: str | Path,
