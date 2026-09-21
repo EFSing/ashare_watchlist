@@ -1,10 +1,33 @@
 # CURRENT STATUS
 
-更新时间：2026-09-20（Asia/Shanghai）
+更新时间：2026-09-21（Asia/Shanghai）
 
 本文件只记录当前有效状态；历史实现过程与旧 checkpoint 以 Git history / PR / CI 为 provenance，
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
+
+## Current task — DAILY_REPORT_INPUT_COVERAGE_PRESENTATION_FIX_V1 — 2026-09-21
+
+本轮分类为 `deferred improvement`（日报可用性/展示维护），不改变 production input coverage 的
+状态与计数语义，也不改变 Formal B、筛选、Score、排序、交易参数、tracker、shadow 或量能计算。
+
+PR #77 branch `codex/friday-volume-observation-only-backfill-v1` 当前实现 commit=`676e69d`：
+`DEGRADED` 正文改为“数据质量：部分覆盖”并动态显示有效评估数与异常股票数；`COMPLETE` 原有
+简洁展示和 `NO_VALID_INPUT` 明确诊断保持不变。完整 exclusion records、错误枚举、日期、policy
+version 与 coverage JSON 继续保存在既有 machine records/metadata。历史增强日报复用锁定候选与
+原始 artifact 身份校验，只刷新独立 addendum 的 coverage 展示，不重取行情、不重跑 Formal B。
+
+原正式报告 SHA=`acfbec2a7399c2eb83a5fe62c83ccbbfaf4852b9d9c8013b62de256789178aaa` 未变；watchlist
+SHA=`5c16a0e7d57bc78249b05ea067aa798ace2c1e79bac78c1e40532a6b279573ea`、checkpoint SHA=
+`64224f29ef102a283b5e83100705484ae55371a33c4e424a8bcffefc331ee376`、delivery receipt SHA=
+`d37bf69a170f474faa0bd8fdf35a45820cb7c6767055e67b6d6fdd1e283c3751` 均未变。runtime-state 独立
+addendum 从 `9a202c79cb628db0feb080b4a39be20240a4a0110abb65d08cb8995b967c4f24` 更新为
+`be2df29f4324bc6729fbfab051d712da4820b2bd05f49e71a3bf74acbabd2c6e`，commit=`15d8da215e27aee898fb63729832233d9a7210fd`。
+
+验证：focused=`5 passed`；短路径 full pytest=`668 passed, 2 skipped, 10 warnings`；compileall 与
+`git diff --check` 通过。无 provider/production dispatch，Final OOS=`SEALED / UNREAD`，
+`data/validation/continuous_speed_probe/` 未读未触碰。下一步 push 后重新核验 PR #77 最终 head 的
+exact-head CI 与 mergeability，停在用户合并决策，不自动 merge/production。
 
 ## Current task — VOLUME_CARD_VISUALIZATION_AND_CLOUD_DELIVERY_V1 — 2026-09-20
 

@@ -6,6 +6,25 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-21 — DAILY_REPORT_INPUT_COVERAGE_PRESENTATION_FIX_V1
+
+- classification：`deferred improvement`（日报可用性/展示维护）；不改变输入 coverage 状态与计数、
+  Formal B、筛选、Score、排序、交易参数、tracker、shadow 或量能计算。
+- implementation：在 PR #77 branch `codex/friday-volume-observation-only-backfill-v1` 的 commit
+  `676e69d` 中，`DEGRADED` 正文改为“数据质量：部分覆盖”及动态有效评估/异常股票计数；
+  `COMPLETE` 原展示与 `NO_VALID_INPUT` 诊断语义保持不变。完整 exclusion records、错误、日期、
+  policy 与 coverage JSON 仍保存在既有机器记录/metadata。
+- runtime-state：独立增强日报原 SHA=`9a202c79cb628db0feb080b4a39be20240a4a0110abb65d08cb8995b967c4f24`，
+  仅更新 `data/reports/addenda/daily_close_20260918_volume_enriched.html`，新 SHA=
+  `be2df29f4324bc6729fbfab051d712da4820b2bd05f49e71a3bf74acbabd2c6e`；commit=`15d8da215e27aee898fb63729832233d9a7210fd`。
+  原正式报告=`acfbec2a7399c2eb83a5fe62c83ccbbfaf4852b9d9c8013b62de256789178aaa`、watchlist、checkpoint、
+  delivery receipt 均未改写；runtime-state 只更新该独立增强展示产物。
+- verification：focused=`5 passed`；full pytest=`668 passed, 2 skipped, 10 warnings`（短路径
+  basetemp；长路径初次失败为既有测试的 Windows 临时路径长度错误，短路径复跑通过）；compileall 与
+  `git diff --check` 通过。无 provider/production dispatch；Final OOS=`SEALED / UNREAD`，禁读目录未触碰。
+- next：push PR #77 后实时核验最终 head exact-head CI 与 mergeability；用户决定并合并 PR #77，
+  不自动 merge、不触发正式生产。
+
 ## 2026-09-20 — VOLUME_CARD_VISUALIZATION_AND_CLOUD_DELIVERY_V1
 
 - terminal：`VOLUME_CARD_CLOUD_DELIVERED_AND_PRODUCTION_FIX_PR_READY`。本轮完成独立股票 K 线量能计算与正常 T-close 接线、三行紧凑量能卡片、2026-09-18 独立回顾增强日报；量能仍是 report-only，不进入 Formal B、筛选、Score、排序或交易参数。
