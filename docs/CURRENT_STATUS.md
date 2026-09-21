@@ -26,8 +26,8 @@ addendum 从 `9a202c79cb628db0feb080b4a39be20240a4a0110abb65d08cb8995b967c4f24` 
 
 验证：focused=`5 passed`；短路径 full pytest=`668 passed, 2 skipped, 10 warnings`；compileall 与
 `git diff --check` 通过。无 provider/production dispatch，Final OOS=`SEALED / UNREAD`，
-`data/validation/continuous_speed_probe/` 未读未触碰。下一步 push 后重新核验 PR #77 最终 head 的
-exact-head CI 与 mergeability，停在用户合并决策，不自动 merge/production。
+`data/validation/continuous_speed_probe/` 未读未触碰。PR #77 已推送并完成最终 head 的 live
+exact-head CI 与 mergeability 核验；停在用户合并决策，不自动 merge/production。
 
 ## Current task — VOLUME_CARD_VISUALIZATION_AND_CLOUD_DELIVERY_V1 — 2026-09-20
 

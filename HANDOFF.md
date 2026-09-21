@@ -22,7 +22,7 @@
 - verification：focused=`5 passed`；full pytest=`668 passed, 2 skipped, 10 warnings`（短路径
   basetemp；长路径初次失败为既有测试的 Windows 临时路径长度错误，短路径复跑通过）；compileall 与
   `git diff --check` 通过。无 provider/production dispatch；Final OOS=`SEALED / UNREAD`，禁读目录未触碰。
-- next：push PR #77 后实时核验最终 head exact-head CI 与 mergeability；用户决定并合并 PR #77，
+- terminal：PR #77 已推送并完成最终 head 的 live exact-head CI 与 mergeability 核验；等待用户决定并合并，
   不自动 merge、不触发正式生产。
 
 ## 2026-09-20 — VOLUME_CARD_VISUALIZATION_AND_CLOUD_DELIVERY_V1
