@@ -6,6 +6,32 @@
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
+## Current task — B_PROSPECTIVE_MONITOR_RECOVERY_V1 — 2026-09-22
+
+本轮分类为 `product blocker + correctness/data-integrity risk`：只恢复 Formal B 旁路的真实
+前瞻 Shadow capture，不改变 Formal B、Main Board universe、评分/排序/触发/止损/目标/RR/T+1、
+收益跟踪口径、Final OOS 或历史正式产物。
+
+`PROJECT_GOVERNANCE_STATE_CONFLICT` 已按实时证据完成最小 reconciliation：当前
+`origin/master=30d3cab3b8c54a028ac57055e083c1ceb4610556`，`origin/runtime-state=
+aaebe2d362c0cf467d06662f2792c117c889d0d7`；实时 PR #60=`OPEN / DIRTY / not mergeable`，
+PR #68=`OPEN / DRAFT / CLEAN`，PR #77/#78 已进入 master。本任务在独立 branch/worktree
+`codex/b-prospective-monitor-recovery-v1` 上进行，未修改这些 PR 或远端 runtime-state。
+
+真实故障不是 HiThink 未获取指数，而是 canonical input 的 transport 类型不一致：
+`GenerationInputManifest` 将 `bars` 规范化为 tuple，正常 t-close runner 直接传递
+`to_dict()`；Shadow validator 只接受 list，于是将已获取的指数错误判为
+`SHADOW_FEATURE_UNAVAILABLE: index.bars is unavailable`。独立量能观察仅消费股票 K 线序列，
+因此能在同一输入上继续生成观察。
+
+最小修复位于 `scripts/b_shadow_monitor.py`：既有 bar validator 接受 list/tuple，继续拒绝未来
+K 线和非法结构；指数输入缺失仍 fail-closed，保留明确错误，不构造市场环境或填充 0。新增回归
+覆盖正常 canonical tuple capture、指数缺失不生成完整捕获、Formal B 候选不变及量能观察与
+Shadow 解耦。focused=`34 passed`；full pytest=`670 passed, 2 skipped, 10 warnings`；
+compileall 与 diff check PASS。终态：
+`B_PROSPECTIVE_MONITOR_RECOVERY_PR_READY_FOR_USER_MERGE_DECISION`，待创建非 Draft PR 后由用户
+决定合并。
+
 ## Current task — DAILY_REPORT_INPUT_COVERAGE_PRESENTATION_FIX_V1 — 2026-09-21
 
 本轮分类为 `deferred improvement`（日报可用性/展示维护），不改变 production input coverage 的

@@ -86,8 +86,13 @@ def _stock_bars() -> list[dict[str, object]]:
     ]
 
 
-def _captured_report_fixture(tmp_path):
+def _captured_report_fixture(tmp_path, *, canonical_manifest_transport: bool = False):
     paths, watchlist = _write_report_inputs(tmp_path, [_report_candidate("002394", 70)])
+    index_bars = _index_bars()
+    stock_bars = _stock_bars()
+    if canonical_manifest_transport:
+        index_bars = tuple(index_bars)
+        stock_bars = tuple(stock_bars)
     capture = shadow.capture_t_close_signals(
         watchlist_path=paths.watchlist_file("2026-09-10"),
         run_manifest_path=None,
@@ -95,8 +100,8 @@ def _captured_report_fixture(tmp_path):
             "status": "READY_FOR_STRATEGY_EVALUATION",
             "signal_date": "2026-09-10",
             "input_fingerprint": "a" * 64,
-            "index": {"bars": _index_bars()},
-            "stock_klines": [{"symbol": "002394", "bars": _stock_bars()}],
+            "index": {"bars": index_bars},
+            "stock_klines": [{"symbol": "002394", "bars": stock_bars}],
         },
         market_env={},
         input_package_sha256="b" * 64,
@@ -189,6 +194,17 @@ def test_t_close_capture_persists_machine_readable_observation_and_renderer_uses
     assert "pullback_volume_decay_ratio" not in text
     assert "市场" not in text
     assert "再启动量能" not in text
+
+
+def test_t_close_capture_accepts_canonical_manifest_tuple_bars(tmp_path):
+    _paths, _watchlist, capture = _captured_report_fixture(
+        tmp_path,
+        canonical_manifest_transport=True,
+    )
+
+    assert capture["status"] == shadow.CAPTURE_COMPLETE
+    assert capture["complete"] == 1
+    assert capture["incomplete"] == 0
 
 
 def test_report_volume_explanations_and_missing_display_are_neutral():

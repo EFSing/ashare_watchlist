@@ -6,6 +6,33 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-22 — B_PROSPECTIVE_MONITOR_RECOVERY_V1 ready for user merge decision
+
+- Classification: `product blocker + correctness/data-integrity risk`; Formal B、正式收益口径、
+  `runtime-state`、Final OOS 与历史正式产物均未改变。
+- `PROJECT_GOVERNANCE_STATE_CONFLICT` reconciliation：实时 source 为
+  `origin/master=30d3cab3b8c54a028ac57055e083c1ceb4610556`，实时
+  `origin/runtime-state=aaebe2d362c0cf467d06662f2792c117c889d0d7`。实时 PR #60 为
+  `OPEN / DIRTY / not mergeable`，PR #68 为 `OPEN / DRAFT / CLEAN`；PR #77/#78 已关闭并已
+  进入当前 master。它们均未被本任务修改。
+- Root cause：HiThink 指数 K 线已在 `GenerationInputManifest` 中正常获取、校验并保存；其
+  `to_dict()` 在正常 runner 的内存传递中保留 tuple-backed `bars`，而
+  `b_shadow_monitor._validated_bars()` 只接受 `list`，因此把可用指数错误记录为
+  `SHADOW_FEATURE_UNAVAILABLE: index.bars is unavailable`。独立量能观察消费股票 K 线序列，
+  所以不受该类型映射错误影响。
+- Minimal fix：`scripts/b_shadow_monitor.py` 让既有 validator 接受 canonical `list/tuple`
+  transport；不新增 provider、调度器、状态机或第二套存储。缺失指数仍 fail-closed，不构造市场
+  环境、不填 0，且不落盘虚假完整捕获。新增回归覆盖 canonical tuple capture、missing-index
+  failure、candidate immutability 与 independent volume path。
+- Verification：focused `34 passed`；full pytest `670 passed, 2 skipped, 10 warnings`；
+  compileall、`git diff --check` PASS；provider calls、production dispatch、runtime-state
+  mutation 均为 `0`。`Final OOS=SEALED / UNREAD`，`data/validation/continuous_speed_probe/`
+  未读取或触碰。
+- Branch/worktree：`codex/b-prospective-monitor-recovery-v1` /
+  `D:\dev\ashare-watchlist-b-prospective-monitor-recovery-v1`，基于实时 `origin/master`。
+  Terminal：`B_PROSPECTIVE_MONITOR_RECOVERY_PR_READY_FOR_USER_MERGE_DECISION`；下一步为推送
+  最终 head、创建非 Draft PR 并等待用户 merge decision，不自动合并、不触发生产或正式通知。
+
 ## 2026-09-22 — MOBILE_VOLUME_OBSERVATION_CARD_LAYOUT_FIX_V1
 
 - Classification: display-layer bugfix; no correctness, strategy, signal, score, watchlist,
