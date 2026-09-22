@@ -29,8 +29,11 @@ K 线和非法结构；指数输入缺失仍 fail-closed，保留明确错误，
 覆盖正常 canonical tuple capture、指数缺失不生成完整捕获、Formal B 候选不变及量能观察与
 Shadow 解耦。focused=`34 passed`；full pytest=`670 passed, 2 skipped, 10 warnings`；
 compileall 与 diff check PASS。终态：
-`B_PROSPECTIVE_MONITOR_RECOVERY_PR_READY_FOR_USER_MERGE_DECISION`，待创建非 Draft PR 后由用户
-决定合并。
+`B_PROSPECTIVE_MONITOR_RECOVERY_PR_READY_FOR_USER_MERGE_DECISION`。PR #80
+(https://github.com/EFSing/ashare_watchlist/pull/80) 已为非 Draft `OPEN / CLEAN / mergeable`；
+final head=`25987fb4b85881c1ddf2541d7001bb2b5867ca28`，push correctness
+`35694717548=success`、pull_request correctness `35694781177=success`，均 exact-head。等待用户
+决定合并，不自动 merge；合并前需重新核对最新 master 与实际代码冲突。
 
 ## Current task — DAILY_REPORT_INPUT_COVERAGE_PRESENTATION_FIX_V1 — 2026-09-21
 

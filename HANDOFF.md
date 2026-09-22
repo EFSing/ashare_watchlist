@@ -30,8 +30,12 @@
   未读取或触碰。
 - Branch/worktree：`codex/b-prospective-monitor-recovery-v1` /
   `D:\dev\ashare-watchlist-b-prospective-monitor-recovery-v1`，基于实时 `origin/master`。
-  Terminal：`B_PROSPECTIVE_MONITOR_RECOVERY_PR_READY_FOR_USER_MERGE_DECISION`；下一步为推送
-  最终 head、创建非 Draft PR 并等待用户 merge decision，不自动合并、不触发生产或正式通知。
+- Delivery：PR #80 https://github.com/EFSing/ashare_watchlist/pull/80 已创建为非 Draft，
+  final head=`25987fb4b85881c1ddf2541d7001bb2b5867ca28`；push correctness run=`35694717548`
+  与 pull_request correctness run=`35694781177` 均为 `success` 且 head exact，PR live 状态为
+  `OPEN / CLEAN / mergeable`。不自动合并、不触发生产或正式通知。
+- Terminal：`B_PROSPECTIVE_MONITOR_RECOVERY_PR_READY_FOR_USER_MERGE_DECISION`，等待用户 merge
+  decision；合并前需重新核对最新 master 与实际代码冲突。
 
 ## 2026-09-22 — MOBILE_VOLUME_OBSERVATION_CARD_LAYOUT_FIX_V1
 
