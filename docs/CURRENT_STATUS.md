@@ -11,11 +11,12 @@
 - Classification: `research question + correctness/provenance gate`; no product promotion, Formal B
   change, parameter selection or merge.
 - Live Git/GitHub: branch/worktree=`codex/c-pre-outcome-design-ready-for-sol-audit` /
-  `D:\dev\ashare-watchlist-c-pre-outcome-design`; head and upstream exact
-  `352d29f875e8db3db9afe02ab1648c80cbbc3a84`; `origin/master`=`4633b37ee6eb99bee527d8907e4e51768fd3f82a`.
-  PR #81 is `OPEN / DRAFT / CLEAN / mergeable`; its head exactly matches the local/remote head.
-  Push correctness run `35708564194` and pull-request correctness run `35708568172` both are
-  `completed / success` with this exact head.
+  `D:\dev\ashare-watchlist-c-pre-outcome-design`; `origin/master`=`4633b37ee6eb99bee527d8907e4e51768fd3f82a`.
+  The immediately preceding content checkpoint head was
+  `f35a4c0877dc0c3d619516eacb1d820bb09cbfbd`; its push run `35712987048` and pull-request run
+  `35712992003` were `completed / success` and exact. PR #81 remains `OPEN / DRAFT / CLEAN /
+  mergeable`; after this governance-only update, final branch/PR head and exact-head CI are live
+  values and must be re-read with Git/GitHub rather than inferred from this persisted snapshot.
 - Artifact metadata SHA: source manifest actual SHA-256
   `008643a64e0070433f3d63dca8243f8dad294b049a7accb5d49af3597aae17b0` matches its frozen identity;
   current metadata-only dependency record actual SHA-256 is

@@ -39,10 +39,12 @@
 - Classification: `research question + correctness/provenance gate`; no parameter selection,
   promotion, Formal B change or merge.
 - Live recovery identity: branch/worktree=`codex/c-pre-outcome-design-ready-for-sol-audit` /
-  `D:\dev\ashare-watchlist-c-pre-outcome-design`; local, upstream and PR #81 head are all
-  `352d29f875e8db3db9afe02ab1648c80cbbc3a84`; `origin/master`=`4633b37ee6eb99bee527d8907e4e51768fd3f82a`.
-  PR #81 is `OPEN / DRAFT / CLEAN / mergeable`; exact-head push run `35708564194` and
-  pull-request run `35708568172` are both `success`.
+  `D:\dev\ashare-watchlist-c-pre-outcome-design`; `origin/master`=`4633b37ee6eb99bee527d8907e4e51768fd3f82a`.
+  The immediately preceding content checkpoint head was
+  `f35a4c0877dc0c3d619516eacb1d820bb09cbfbd`; exact-head push run `35712987048` and
+  pull-request run `35712992003` were both `success`. PR #81 remains `OPEN / DRAFT / CLEAN /
+  mergeable`; after this governance-only update, re-read the final branch/PR head and exact-head
+  CI live before resuming, rather than treating the persisted checkpoint SHA as invariant.
 - Authorized read-only daily-K verification: external existing path
   `D:\dev\ashare-watchlist\data\validation\core_signal_validation\raw\daily_k.parquet` has
   size `180203424` bytes and SHA-256
