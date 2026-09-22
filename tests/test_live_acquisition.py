@@ -997,8 +997,71 @@ def test_empty_list_date_filtered_universe_fails_closed_before_quote():
     assert caught.value.status == live.NO_VALID_INPUT
     assert caught.value.diagnostics["qualified_symbol_count"] == 0
     assert caught.value.diagnostics["exclusions"] == []
+    qualification = caught.value.diagnostics["universe_qualification"]
+    assert qualification["source_row_count"] == 1
+    assert qualification["main_board_count"] == 1
+    assert qualification["eligible_count"] == 0
+    assert qualification["reason_counts"] == {live.UNIVERSE_LIST_DATE_MISSING: 1}
+    assert qualification["reason_samples"] == {live.UNIVERSE_LIST_DATE_MISSING: ["001246"]}
     assert ak.definition_calls == 0
     assert calls == []
+
+
+def test_no_valid_universe_diagnostic_separates_board_scope_and_date_eligibility():
+    with pytest.raises(live.NoValidInputError) as caught:
+        live._build_universe(
+            FakeFrame(
+                [
+                    _listing_date_row("300001", "SZ", list_date="2010-08-20"),
+                    _listing_date_row("688001", "SH", list_date="2020-07-22"),
+                    _listing_date_row("600519", "SH", list_date="2026-09-18"),
+                    _listing_date_row("000001", "SZ", list_date=None),
+                    _listing_date_row("430047", "BJ", list_date="2020-07-27"),
+                ]
+            ),
+            "2026-09-17",
+            "2026-09-17T15:05:00+08:00",
+            include_exclusions=True,
+        )
+
+    assert caught.value.status == live.NO_VALID_INPUT
+    diagnostic = caught.value.diagnostics
+    assert diagnostic["excluded_symbol_count"] == 0
+    assert diagnostic["excluded_reason_counts"] == {}
+    assert diagnostic["global_failures"] == []
+    qualification = diagnostic["universe_qualification"]
+    assert qualification["source_row_count"] == 5
+    assert qualification["sh_sz_scope_count"] == 4
+    assert qualification["main_board_count"] == 2
+    assert qualification["eligible_count"] == 0
+    assert qualification["reason_counts"] == {
+        live.UNIVERSE_LIST_DATE_FUTURE: 1,
+        live.UNIVERSE_LIST_DATE_MISSING: 1,
+        live.UNIVERSE_NON_MAIN_BOARD: 2,
+        live.UNIVERSE_OUT_OF_SCOPE_EXCHANGE: 1,
+    }
+    assert qualification["reason_samples"][live.UNIVERSE_NON_MAIN_BOARD] == ["300001", "688001"]
+
+
+def test_no_valid_universe_diagnostic_reports_malformed_list_dates_as_input_anomalies():
+    with pytest.raises(live.NoValidInputError) as caught:
+        live._build_universe(
+            FakeFrame(
+                [
+                    _listing_date_row("600519", "SH", list_date="not-a-date"),
+                    _listing_date_row("000001", "SZ", list_date="2026-99-99"),
+                ]
+            ),
+            "2026-09-17",
+            "2026-09-17T15:05:00+08:00",
+            include_exclusions=True,
+        )
+
+    diagnostic = caught.value.diagnostics
+    assert diagnostic["excluded_reason_counts"] == {live.UNIVERSE_LIST_DATE_INVALID: 2}
+    assert diagnostic["universe_qualification"]["reason_counts"] == {
+        live.UNIVERSE_LIST_DATE_INVALID: 2
+    }
 
 
 def test_listed_suspended_st_symbol_is_retained_before_final_user_eligibility():

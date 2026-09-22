@@ -2593,6 +2593,42 @@ def render_input_diagnostic_report(
     raw["checkpoint_created"] = False
     raw["delivery_receipt_created"] = False
 
+    qualification = raw.get("universe_qualification")
+    if isinstance(qualification, Mapping):
+        qualification_reason_counts = qualification.get("reason_counts")
+        if not isinstance(qualification_reason_counts, Mapping):
+            qualification_reason_counts = {}
+        qualification_reason_samples = qualification.get("reason_samples")
+        if not isinstance(qualification_reason_samples, Mapping):
+            qualification_reason_samples = {}
+        qualification_sample_rows = "".join(
+            "<tr>"
+            f"<td>{html.escape(str(reason))}</td>"
+            f"<td>{int(count) if isinstance(count, int) and not isinstance(count, bool) else html.escape(str(count))}</td>"
+            f"<td>{html.escape(', '.join(str(symbol) for symbol in samples))}</td>"
+            "</tr>"
+            for reason, count in sorted(qualification_reason_counts.items())
+            for samples in [
+                qualification_reason_samples.get(reason, [])
+                if isinstance(qualification_reason_samples.get(reason, []), list)
+                else []
+            ]
+        )
+        if not qualification_sample_rows:
+            qualification_sample_rows = '<tr><td colspan="3">无资格过滤分类。</td></tr>'
+        qualification_section = f"""
+<h2>股票池资格过滤诊断</h2><table>
+<tr><th>HiThink 原始记录</th><td>{html.escape(str(qualification.get('source_row_count', '—')))}</td></tr>
+<tr><th>沪深范围记录</th><td>{html.escape(str(qualification.get('sh_sz_scope_count', '—')))}</td></tr>
+<tr><th>主板记录</th><td>{html.escape(str(qualification.get('main_board_count', '—')))}</td></tr>
+<tr><th>通过上市日期与主板资格</th><td>{html.escape(str(qualification.get('eligible_count', '—')))}</td></tr>
+</table>
+<table><thead><tr><th>资格分类</th><th>数量</th><th>样例股票（最多 20 条）</th></tr></thead>
+<tbody>{qualification_sample_rows}</tbody></table>
+"""
+    else:
+        qualification_section = ""
+
     record_path, report_path = input_diagnostic_paths(normalized_date, paths=resolver)
     atomic_write_text(
         record_path,
@@ -2636,8 +2672,9 @@ th{{background:#f2f4f7}}code{{white-space:pre-wrap}}</style></head>
 <tr><th>候选数</th><td>0</td></tr>
 <tr><th>数据覆盖</th><td>NO_VALID_INPUT</td></tr>
 <tr><th>正式结果有效</th><td>NO</td></tr>
-<tr><th>按原因统计</th><td><code>{html.escape(json.dumps(raw['excluded_reason_counts'], ensure_ascii=False, sort_keys=True))}</code></td></tr>
+<tr><th>单股票异常按原因统计</th><td><code>{html.escape(json.dumps(raw['excluded_reason_counts'], ensure_ascii=False, sort_keys=True))}</code></td></tr>
 </table>
+{qualification_section}
 <h2>全局故障</h2><ul>{global_rows}</ul>
 <h2>典型单股票异常（最多 {max(0, int(sample_limit))} 条）</h2>
 <table><thead><tr><th>股票</th><th>原因</th><th>原始状态</th><th>详情</th></tr></thead><tbody>{sample_rows}</tbody></table>

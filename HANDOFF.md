@@ -6,6 +6,34 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-22 — NO_VALID_INPUT root-cause investigation — `UNRESOLVED`
+
+- Classification: `correctness blocker + product blocker`，未改变。2026-09-22 正式 B 因 HiThink
+  universe 资格结果为空而 fail-closed，未生成 watchlist、checkpoint 或 delivery receipt。
+- Incident root cause: `NOT_REPRODUCIBLE_WITH_CURRENT_DATA / INSUFFICIENT_DATA`。首次生产 run
+  `35710352302` 使用 `master@4633b37ee6eb99bee527d8907e4e51768fd3f82a`，持久化结果只有
+  `raw=5576`、`qualified=0`；当次原始 HiThink payload 位于 runner 临时 evidence 目录，未上传
+  artifact、未写入 runtime-state，现存证据没有 exchange、board 或 `list_date` 的逐层分布，
+  因而不能把故障归因于程序或行情源。
+- Verified divergence: 使用首次生产 exact source SHA、同一 `HiThinkClient.universe()`、同一
+  `/api/meta/tickers/list?exchange=SH%2CSZ&asset_type=a-share&limit=10000&offset=0` 请求以及同一
+  `_build_universe(..., as_of_date="2026-09-22", include_exclusions=True)` 路径，对当前可信输入得到
+  `5576 raw -> 5226 SH/SZ -> 3197 Main Board -> 3196 eligible`；manifest 实际含 `3196` 个 symbol。
+  输入为 `5576` 个 dict；ticker/thscode/exchange/asset_type 均为 string，`list_date` 为 `5568`
+  个 string 与 `8` 个 null；唯一主板缺失上市日为 `001246.SZ`，future list_date 为 `0`。
+- Code decision: 未发现会把当前可信输入从 3196 变为 0 的生产筛选错误，不修改资格、主板范围、
+  Formal B 或生产调用。PR #82 https://github.com/EFSing/ashare_watchlist/pull/82 仍只补充下一次
+  NO_VALID_INPUT 的逐层资格诊断；它不是本次故障修复，也不能证明首次故障根因。
+- Recovery readiness at `2026-09-22T18:10:48+08:00`: local production preflight 为
+  `POST_CLOSE_DIAGNOSTIC_READY`，credential/runtime packages READY，XSHG session 与收盘 gate 通过；
+  live `origin/runtime-state=65429e0c45c8dce572d7e9fd6eb9bff00ee7f734` 仍只有 diagnostic report、
+  failure notice 和 NO_VALID_INPUT HTML，没有 2026-09-22 canonical watchlist/checkpoint/delivery。
+- Next: 在用户明确授权前不 merge、不 dispatch。若仍在 2026-09-22 BJT 且最终 recheck 保持上述
+  条件，精确恢复操作为手动 dispatch `daily_t_close.yml`：`mode=production`,
+  `as_of_date=2026-09-22`, `trigger_source=manual`, `allow_weekend_backfill=false`。#82 可先单独作为
+  诊断增强合并，但不得表述为修复根因；本调查未写 runtime-state、未触发生产，Formal B、Final OOS
+  与历史证据均未改写。
+
 ## 2026-09-22 — B_PROSPECTIVE_MONITOR_RECOVERY_V1 ready for user merge decision
 
 - Classification: `product blocker + correctness/data-integrity risk`; Formal B、正式收益口径、
