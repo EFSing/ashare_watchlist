@@ -36,7 +36,10 @@
   `C_PRE_OUTCOME_CORRECTNESS_FIX_READY_FOR_SOL_REAUDIT`. Draft PR
   [#81](https://github.com/EFSing/ashare_watchlist/pull/81) remains open against `master`; this
   repair starts from Sol-audited head `edd3039a1d9815eb3bdf4301699cb1fdc90dc815`, and final head/
-  exact-head CI remain live GitHub state to verify after push. No automatic merge or C outcome access.
+  exact-head CI remain live GitHub state to verify after the final governance checkpoint push. The
+  implementation head `ad6ec63ebc9f47ed1d5822460063cb13234b2cd2` already has exact-head push
+  correctness `35706143436=success` and pull-request correctness `35706147202=success`. No automatic
+  merge or C outcome access.
 
 ## Historical checkpoint — B_PROSPECTIVE_MONITOR_RECOVERY_V1 — 2026-09-22
 

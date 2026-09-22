@@ -57,7 +57,9 @@
   pre-existing large exact-date fixture absence.
 - Draft PR: [#81](https://github.com/EFSing/ashare_watchlist/pull/81) remains open as Draft against
   `master`; this repair starts from Sol-audited head `edd3039a1d9815eb3bdf4301699cb1fdc90dc815`.
-  Verify the final pushed head and its exact-head CI live.
+  Implementation head `ad6ec63ebc9f47ed1d5822460063cb13234b2cd2` is pushed and its exact-head
+  push correctness run `35706143436` and pull-request correctness run `35706147202` are both
+  `success`; this governance checkpoint is the final branch update and must be checked live again.
 - Decision: `NEEDS_MORE_EVIDENCE`; terminal marker
   `C_PRE_OUTCOME_CORRECTNESS_FIX_READY_FOR_SOL_REAUDIT`. Next: push the repair, verify exact-head CI
   on the final remote head, then stop for Sol re-audit. Do not merge, run provider acquisition, or
