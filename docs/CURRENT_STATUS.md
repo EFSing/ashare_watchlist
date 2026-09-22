@@ -6,6 +6,26 @@
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
+## 2026-09-22 — C_PRE_OUTCOME_EXIT_VOLUME_FIX_V1 ready for Sol audit
+
+- Classification: `research question + correctness/provenance gate`; no product promotion and no
+  Formal B change.
+- This C-only repair splits early defense into `PRICE_ONLY_EARLY_DEFENSE` and
+  `PRICE_VOLUME_EARLY_DEFENSE` on the same position and price events. Positive upper shadow alone
+  is no longer a weakness or volume gate. Repeated rejection without the selected exit condition
+  is reported as `REPEATED_RESISTANCE_REJECTION_RISK`; first warning, early candidate and support
+  break remain separate.
+- No shared production code, Formal B, runtime-state, canonical watchlist, provider acquisition,
+  C future outcome, Final OOS or forbidden directory was read or changed. T-known historical ST
+  status and per-bar known-at/vintage evidence remain unresolved. Existing daily-K recovery
+  locations and declared SHA were listed read-only; no file was downloaded or copied.
+- Verification: C `19 passed`; B isolation regression `40 passed`; full pytest `690 passed,
+  2 skipped, 10 warnings`; compileall and diff check pass.
+- Decision: `NEEDS_MORE_EVIDENCE`; terminal
+  `C_PRE_OUTCOME_EXIT_VOLUME_FIX_READY_FOR_SOL_AUDIT`. Draft PR [#81](https://github.com/EFSing/ashare_watchlist/pull/81)
+  remains open as Draft against `master`; final head and exact-head CI are live values to verify
+  after push. Do not merge or start C outcome research.
+
 ## 2026-09-22 — C_PRE_OUTCOME_CORRECTNESS_FIX_V1 ready for Sol re-audit
 
 - Classification: `research question + correctness/provenance gate`; not a product blocker for

@@ -9,6 +9,9 @@ from trading_calendar import default_calendar
 from c_pre_outcome_design import (
     C_ENTRY_SCHEMA,
     C_EXIT_SCHEMA,
+    EARLY_DEFENSE_VERSIONS,
+    PRICE_ONLY_EARLY_DEFENSE,
+    PRICE_VOLUME_EARLY_DEFENSE,
     RULE_CANDIDATES,
     build_data_dependency_check,
     build_entry_observation,
@@ -214,16 +217,20 @@ def test_high_volume_stall_is_observable_only():
 
 def test_exit_blocks_same_day_sell_and_separates_profit_from_risk():
     bars = _synthetic_entry_bars()
-    same_day = classify_exit_observation(
-        bars,
-        entry_index=len(bars) - 1,
-        entry_price=133.0,
-        stage_prior_high=135.0,
-        support_floor=123.0,
-        rule_id="BALANCED_A",
-    )
-    assert same_day["schema_version"] == C_EXIT_SCHEMA
-    assert same_day["exit_state"] == "ENTRY_SESSION_NOT_SELLABLE"
+    for version in EARLY_DEFENSE_VERSIONS:
+        same_day = classify_exit_observation(
+            bars,
+            entry_index=len(bars) - 1,
+            entry_price=133.0,
+            stage_prior_high=135.0,
+            support_floor=123.0,
+            rule_id="BALANCED_A",
+            early_defense_version=version,
+        )
+        assert same_day["schema_version"] == C_EXIT_SCHEMA
+        assert same_day["early_defense_version"] == version
+        assert same_day["exit_state"] == "ENTRY_SESSION_NOT_SELLABLE"
+        assert same_day["early_profit_taking_candidate"] is False
     bars.append(_bar(73, 122.0, opening=124.0, high=125.0, low=121.0, volume=150.0))
     support_break = classify_exit_observation(
         bars,
@@ -242,7 +249,8 @@ def test_exit_blocks_same_day_sell_and_separates_profit_from_risk():
 
 def test_exit_events_use_only_post_entry_near_resistance_observations():
     bars = _synthetic_entry_bars()
-    # Two failures before the position exists must not count toward early exit.
+    # Several failures before the position exists must not count toward early exit.
+    bars[-4] = _bar(69, 130.0, opening=134.0, high=135.0, low=126.0, volume=105.0)
     bars[-3] = _bar(70, 130.0, opening=134.0, high=135.0, low=126.0, volume=110.0)
     bars[-2] = _bar(71, 130.0, opening=134.0, high=135.0, low=126.0, volume=115.0)
     entry_index = len(bars) - 1
@@ -254,6 +262,7 @@ def test_exit_events_use_only_post_entry_near_resistance_observations():
         stage_prior_high=135.0,
         support_floor=123.0,
         rule_id="BALANCED_A",
+        early_defense_version=PRICE_VOLUME_EARLY_DEFENSE,
     )
     assert far_from_resistance["failed_push_features"]["failed_push_count"] == 0
     assert far_from_resistance["current_resistance_rejection"] is False
@@ -296,6 +305,106 @@ def test_exit_events_use_only_post_entry_near_resistance_observations():
     assert repeated["high_volume_low_progress_near_resistance"] is True
     assert repeated["early_profit_taking_confirmed"] is True
     assert repeated["exit_state"] == "EARLY_PROFIT_TAKING_CANDIDATE"
+
+
+def test_early_defense_versions_split_normal_volume_repeated_rejection_from_risk():
+    bars = _synthetic_entry_bars() + [
+        _bar(73, 130.0, opening=131.0, high=135.0, low=126.0, volume=100.0),
+        # Positive upper shadows are present, but they are not a separate
+        # weakness gate and cannot act as volume confirmation.
+        _bar(74, 130.0, opening=130.0, high=135.0, low=126.0, volume=100.0),
+    ]
+    price_only = classify_exit_observation(
+        bars,
+        entry_index=len(_synthetic_entry_bars()) - 1,
+        entry_price=120.0,
+        stage_prior_high=135.0,
+        support_floor=123.0,
+        rule_id="BALANCED_A",
+        early_defense_version=PRICE_ONLY_EARLY_DEFENSE,
+    )
+    price_volume = classify_exit_observation(
+        bars,
+        entry_index=len(_synthetic_entry_bars()) - 1,
+        entry_price=120.0,
+        stage_prior_high=135.0,
+        support_floor=123.0,
+        rule_id="BALANCED_A",
+        early_defense_version=PRICE_VOLUME_EARLY_DEFENSE,
+    )
+
+    assert price_only["early_defense_version"] == PRICE_ONLY_EARLY_DEFENSE
+    assert price_only["price_only_early_defense_candidate"] is True
+    assert price_only["price_volume_early_defense_candidate"] is False
+    assert price_only["early_profit_taking_candidate"] is True
+    assert price_only["exit_state"] == "EARLY_PROFIT_TAKING_CANDIDATE"
+    assert price_only["volume_confirmation_required"] is False
+
+    assert price_volume["early_defense_version"] == PRICE_VOLUME_EARLY_DEFENSE
+    assert price_volume["repeated_resistance_rejection"] is True
+    assert price_volume["repeated_resistance_rejection_risk"] is True
+    assert price_volume["price_only_early_defense_candidate"] is True
+    assert price_volume["price_volume_early_defense_candidate"] is False
+    assert price_volume["early_profit_taking_candidate"] is False
+    assert price_volume["exit_state"] == "REPEATED_RESISTANCE_REJECTION_RISK"
+    assert price_volume["volume_confirmation_required"] is True
+    assert price_volume["volume_confirmation"]["status"] == "NOT_QUALIFIED"
+    assert "post_entry_bearish_rejection_count" not in price_volume
+
+
+def test_price_volume_early_defense_requires_same_price_event_and_candidate_anomaly():
+    bars = _synthetic_entry_bars() + [
+        _bar(73, 130.0, opening=131.0, high=135.0, low=126.0, volume=100.0),
+        _bar(74, 130.0, opening=130.0, high=135.0, low=126.0, volume=250.0),
+    ]
+    price_only = classify_exit_observation(
+        bars,
+        entry_index=len(_synthetic_entry_bars()) - 1,
+        entry_price=120.0,
+        stage_prior_high=135.0,
+        support_floor=123.0,
+        rule_id="BALANCED_A",
+        early_defense_version=PRICE_ONLY_EARLY_DEFENSE,
+    )
+    price_volume = classify_exit_observation(
+        bars,
+        entry_index=len(_synthetic_entry_bars()) - 1,
+        entry_price=120.0,
+        stage_prior_high=135.0,
+        support_floor=123.0,
+        rule_id="BALANCED_A",
+        early_defense_version=PRICE_VOLUME_EARLY_DEFENSE,
+    )
+
+    assert price_only["early_profit_taking_candidate"] is True
+    assert price_volume["high_volume_low_progress"]["high_volume_low_price_progress"] is True
+    assert price_volume["high_volume_low_progress_near_resistance"] is True
+    assert price_volume["price_volume_early_defense_candidate"] is True
+    assert price_volume["early_profit_taking_candidate"] is True
+    assert price_volume["exit_state"] == "EARLY_PROFIT_TAKING_CANDIDATE"
+    assert price_volume["volume_confirmation"]["threshold_status"] == "PRE_REGISTERED_CANDIDATE_NOT_OUTCOME_SELECTED"
+
+
+def test_high_volume_far_from_prior_high_is_diagnostic_only_for_both_versions():
+    bars = _synthetic_entry_bars() + [
+        _bar(73, 130.0, opening=130.0, high=131.0, low=129.0, volume=250.0),
+    ]
+    for version in EARLY_DEFENSE_VERSIONS:
+        result = classify_exit_observation(
+            bars,
+            entry_index=len(_synthetic_entry_bars()) - 1,
+            entry_price=120.0,
+            stage_prior_high=135.0,
+            support_floor=123.0,
+            rule_id="BALANCED_A",
+            early_defense_version=version,
+        )
+        assert result["high_volume_low_progress"]["high_volume_low_price_progress"] is True
+        assert result["current_resistance_rejection"] is False
+        assert result["high_volume_low_progress_near_resistance"] is False
+        assert result["price_only_early_defense_candidate"] is False
+        assert result["price_volume_early_defense_candidate"] is False
+        assert result["exit_state"] == "HOLD_OR_REOBSERVE"
 
 
 def test_ohlcv_date_validation_rejects_illegal_and_duplicate_dates():

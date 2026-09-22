@@ -5,6 +5,23 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-22 — C early defense must keep price and volume observations separate
+
+- classification：`research question + correctness/provenance gate`。本决定只约束新版 C 的
+  提前防守 observable，不改变 Formal B、生产路径或任何收益结论。
+- 语义边界：`PRICE_ONLY_EARLY_DEFENSE` 是价格基线；`PRICE_VOLUME_EARLY_DEFENSE` 必须在同一
+  持仓、同一价格受阻事件上再满足事前固定的当前日 H 附近放量滞涨候选。价格基线不得称为
+  “量价确认退出”。`upper_shadow_fraction > 0` 仅保留为描述字段，不是显著转弱或成交量
+  确认。重复受阻但未达所选版本条件时必须输出
+  `REPEATED_RESISTANCE_REJECTION_RISK`，不能静默变成普通持有；首次预警、提前候选和支撑
+  失效继续独立。
+- 成交量 ratio/robust-z 阈值仍是 `PRE_REGISTERED_CANDIDATE_NOT_OUTCOME_SELECTED`，不从
+  收益选择，也不新增第三套退出方案。没有读取 C future returns、Final OOS 或 forbidden
+  directory；历史 T-known ST 与逐 bar known-at evidence 仍未解决。
+- decision：`NEEDS_MORE_EVIDENCE`，terminal
+  `C_PRE_OUTCOME_EXIT_VOLUME_FIX_READY_FOR_SOL_AUDIT`。后续只等待 Sol 审计；不得自动进入
+  C outcome research。
+
 ## 2026-09-22 — New C pre-outcome design requires Sol audit
 
 - classification：`research question + correctness/provenance gate`。Materiality 是把用户确定

@@ -45,6 +45,11 @@ EXECUTION_UNCERTAIN = "EXECUTION_UNCERTAIN"
 UNAVAILABLE = "UNAVAILABLE"
 MIN_DIRECTIONAL_VOLUME_DAYS = 2
 SUPPORT_TOLERANCE_ROLE = "DISPLAY_ONLY"
+PRICE_ONLY_EARLY_DEFENSE = "PRICE_ONLY_EARLY_DEFENSE"
+PRICE_VOLUME_EARLY_DEFENSE = "PRICE_VOLUME_EARLY_DEFENSE"
+EARLY_DEFENSE_VERSIONS = (PRICE_ONLY_EARLY_DEFENSE, PRICE_VOLUME_EARLY_DEFENSE)
+DEFAULT_EARLY_DEFENSE_VERSION = PRICE_ONLY_EARLY_DEFENSE
+VOLUME_THRESHOLD_STATUS = "PRE_REGISTERED_CANDIDATE_NOT_OUTCOME_SELECTED"
 
 REQUIRED_OHLCV_FIELDS = ("open", "high", "low", "close", "volume")
 _ST_PREFIX = re.compile(r"^\*?ST(?:$|[^A-Z0-9])", re.IGNORECASE)
@@ -556,10 +561,12 @@ def high_volume_low_progress(
     return {
         "status": volume.get("status"),
         "relative_volume": ratio,
+        "ratio_threshold_candidate": ratio_threshold,
         "body_return": geometry["body_return"],
         "close_location": close_location,
         "upper_shadow_fraction": geometry["upper_shadow_fraction"],
         "high_volume_low_price_progress": qualifies,
+        "threshold_status": VOLUME_THRESHOLD_STATUS,
         "mechanism_claim": "UNKNOWN; no distribution inference",
     }
 
@@ -817,12 +824,15 @@ def classify_exit_observation(
     stage_prior_high: float,
     support_floor: float,
     rule_id: str,
+    early_defense_version: str = DEFAULT_EARLY_DEFENSE_VERSION,
 ) -> dict[str, Any]:
-    """Classify a close-observed exit state; never claims an actual fill."""
+    """Classify one explicit early-defense observation version; never claims a fill."""
 
     config = RULE_CANDIDATES.get(rule_id)
     if config is None:
         raise ValueError(f"unknown C rule candidate: {rule_id}")
+    if early_defense_version not in EARLY_DEFENSE_VERSIONS:
+        raise ValueError(f"unknown early defense version: {early_defense_version}")
     normalized = validate_ohlcv_bars(bars)
     t_index = len(normalized) - 1
     if entry_index < 0 or entry_index >= len(normalized):
@@ -838,6 +848,11 @@ def classify_exit_observation(
             "exit_state": "ENTRY_SESSION_NOT_SELLABLE",
             "exit_action": "NONE",
             "same_day_sell": SAME_DAY_SELL_POLICY,
+            "early_defense_version": early_defense_version,
+            "price_only_early_defense_candidate": False,
+            "price_volume_early_defense_candidate": False,
+            "early_profit_taking_candidate": False,
+            "early_profit_taking_confirmed": False,
             "future_data_used": False,
         }
     current = normalized[t_index]
@@ -859,16 +874,6 @@ def classify_exit_observation(
         baseline_window=config.volume_baseline_window,
         ratio_threshold=config.anomaly_ratio_candidate,
     )
-    post_entry_bearish_rejections = 0
-    for row_index, failed_push in zip(failed["observed_indices"], failed["failed_pushes"]):
-        if not failed_push:
-            continue
-        row_geometry = _bar_geometry(normalized[row_index], None)
-        if (
-            float(normalized[row_index]["close"]) < float(normalized[row_index]["open"])
-            or float(row_geometry["upper_shadow_fraction"]) > 0.0
-        ):
-            post_entry_bearish_rejections += 1
     current_failed_push = bool(current_resistance_rejection)
     post_entry_prior_failed_push_count = int(failed["failed_push_count"]) - int(current_failed_push)
     first_resistance_rejection_warning = current_failed_push and post_entry_prior_failed_push_count == 0
@@ -878,15 +883,18 @@ def classify_exit_observation(
     )
     support_intraday_puncture_recovered = float(current["low"]) < floor and float(current["close"]) >= floor
     support_break = float(current["close"]) < floor
-    early_profit = (
+    price_only_early_defense = (
         float(current["close"]) > entry
         and repeated_resistance_rejection
         and int(failed["failed_push_count"]) >= config.failed_push_count_candidate
-        and (
-            high_volume_low_progress_near_resistance
-            or post_entry_bearish_rejections >= 2
-        )
     )
+    price_volume_early_defense = price_only_early_defense and high_volume_low_progress_near_resistance
+    early_profit = (
+        price_only_early_defense
+        if early_defense_version == PRICE_ONLY_EARLY_DEFENSE
+        else price_volume_early_defense
+    )
+    repeated_resistance_rejection_risk = repeated_resistance_rejection and not early_profit
     if support_break:
         exit_state = "KEY_SUPPORT_BREAK"
         exit_class = "PROFIT_PROTECTION" if float(current["close"]) > entry else "ENTRY_RISK"
@@ -897,6 +905,10 @@ def classify_exit_observation(
         action = "NEXT_SESSION_REFERENCE_EXIT"
     elif first_resistance_rejection_warning:
         exit_state = "FIRST_RESISTANCE_REJECTION_WARNING"
+        exit_class = "WARNING_ONLY"
+        action = "NONE"
+    elif repeated_resistance_rejection_risk:
+        exit_state = "REPEATED_RESISTANCE_REJECTION_RISK"
         exit_class = "WARNING_ONLY"
         action = "NONE"
     else:
@@ -910,20 +922,33 @@ def classify_exit_observation(
         "as_of_index": t_index,
         "as_of_date": current["date"],
         "entry_index": entry_index,
+        "early_defense_version": early_defense_version,
         "exit_state": exit_state,
         "exit_class": exit_class,
         "exit_action": action,
         "warning": first_resistance_rejection_warning,
         "current_resistance_rejection": current_resistance_rejection,
+        "current_resistance_geometry": geometry,
         "first_resistance_rejection_warning": first_resistance_rejection_warning,
         "repeated_resistance_rejection": repeated_resistance_rejection,
+        "repeated_resistance_rejection_risk": repeated_resistance_rejection_risk,
         "post_entry_prior_failed_push_count": post_entry_prior_failed_push_count,
-        "post_entry_bearish_rejection_count": post_entry_bearish_rejections,
+        "price_only_early_defense_candidate": price_only_early_defense,
+        "price_volume_early_defense_candidate": price_volume_early_defense,
         "early_profit_taking_candidate": early_profit,
         "early_profit_taking_confirmed": early_profit,
         "failed_push_features": failed,
         "high_volume_low_progress": stall,
         "high_volume_low_progress_near_resistance": high_volume_low_progress_near_resistance,
+        "volume_confirmation_required": early_defense_version == PRICE_VOLUME_EARLY_DEFENSE,
+        "volume_confirmation": {
+            "status": "QUALIFIED" if high_volume_low_progress_near_resistance else "NOT_QUALIFIED",
+            "observable": "HIGH_VOLUME_LOW_PRICE_PROGRESS_AT_STAGE_RESISTANCE",
+            "ratio_threshold_candidate": config.anomaly_ratio_candidate,
+            "robust_z_threshold_candidate": config.anomaly_robust_z_candidate,
+            "threshold_status": VOLUME_THRESHOLD_STATUS,
+            "used_for_selected_version": early_defense_version == PRICE_VOLUME_EARLY_DEFENSE,
+        },
         "support_intraday_puncture_recovered": support_intraday_puncture_recovered,
         "support_break": support_break,
         "entry_price": entry,
@@ -1117,7 +1142,11 @@ __all__ = [
     "C_SIGNAL_OUTPUT_ROOT",
     "C_EXIT_OUTPUT_ROOT",
     "C_STRATEGY_VERSION",
+    "DEFAULT_EARLY_DEFENSE_VERSION",
+    "EARLY_DEFENSE_VERSIONS",
     "EARLIEST_EXECUTION",
+    "PRICE_ONLY_EARLY_DEFENSE",
+    "PRICE_VOLUME_EARLY_DEFENSE",
     "RULE_CANDIDATES",
     "RuleCandidate",
     "build_data_dependency_check",

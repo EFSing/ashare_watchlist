@@ -1,12 +1,16 @@
 # 新版 C：研究前规则设计、数据可行性与确定性验证 V1
 
-状态：`C_PRE_OUTCOME_DESIGN_READY_FOR_SOL_AUDIT`
+状态：`C_PRE_OUTCOME_EXIT_VOLUME_FIX_READY_FOR_SOL_AUDIT`
 
 研究身份：`C_PRE_OUTCOME_DESIGN_V1`  /  `C_MAIN_TREND_RETEST_RESEARCH_V1`
 
 本文件是新版 C 的研究前设计，不是收益结论、Final OOS 结论、production 规则或 Sol
 审计通过证明。当前没有读取 C 的 forward outcome、没有执行正式历史收益研究、没有读取
 Final OOS，也没有接入 C 正式每日名单。
+
+本轮只修复提前防守的量价语义：同一持仓和同一价格事件现在明确输出
+`PRICE_ONLY_EARLY_DEFENSE` 与 `PRICE_VOLUME_EARLY_DEFENSE` 两个研究观察版本。价格基线不
+再被称为量价确认退出；具体异常量阈值仍是预注册候选，未由收益选择。
 
 ## 1. 研究问题、materiality 与停止条件
 
@@ -325,8 +329,10 @@ T 日 confirmation 为全部条件同时满足：
 - 是否 close 仍低于 stage resistance。
 
 候选 observable flag：`RV >= 2.0`、`abs(body_return) <= 0.5%`、`close_location <= 0.60` 同时
-成立，命名为 `HIGH_VOLUME_LOW_PRICE_PROGRESS`。它本身不包含前高距离；出场提前兑现候选
-只有在当前日也满足 H 附近受阻时才可消费它。它不是“派筹已证明”；机制解释保持
+成立，命名为 `HIGH_VOLUME_LOW_PRICE_PROGRESS`。当前实现把 `RV >= 2.0`（以及保留记录的
+robust-z 候选 `>=3.0`）标为 `PRE_REGISTERED_CANDIDATE_NOT_OUTCOME_SELECTED`；这些阈值不是
+收益选择结果。该 flag 本身不包含前高距离；只有 `PRICE_VOLUME_EARLY_DEFENSE` 在当前日
+也满足 H 附近受阻时才可消费它。它不是“派筹已证明”；机制解释保持
 `UNKNOWN / HYPOTHESIS`，可替代解释包括新闻/市场波动、涨停规则、拥挤交易和价格离散化。
 
 ### 5.6 K 线实体、影线、连续冲高失败和炸板
@@ -343,7 +349,8 @@ lower=\frac{min(open,close)-low}{high-low}
 前高失败 push 定义为：在最近 A=5、B=5 个 session 中，`high >= H(1-tolerance)`、
 `close < H`、`CLV <=0.60`；入场后出场观察只从持仓建立后的 `entry_index+1` 开始记录。记录
 失败次数和从当前观察日向后连续失败次数。连续失败不是自动派筹，只是重复未有效推进的
-observable。
+observable。`upper_shadow_fraction` 仍可作为 K 线描述字段，但正上影线只要大于零不构成
+显著转弱条件，也不构成成交量确认；它不再参与提前防守候选判定。
 
 “炸板”只在输入含有合法、T-known 的 `limit_up_price` 与 `tick_size` 时计算：
 
@@ -364,12 +371,17 @@ T close 观察，最早下一可卖 session 执行参考。
 | 层级 | observable 定义 | 默认动作语义 |
 | --- | --- | --- |
 | 首次预警 | 持仓建立后当前日首次接近 H，high 触及 tolerance、close 低于 H、CLV <=0.60；没有更早的 post-entry failed push | `FIRST_RESISTANCE_REJECTION_WARNING`，只预警，不卖出 |
-| 提前兑现候选 | 当前日确实在 H 附近再次受阻；持仓建立后窗口内至少 2 次 failed push，且当前日满足 `HIGH_VOLUME_LOW_PRICE_PROGRESS`（同时在 H 附近）或窗口内至少 2 根 H 附近的阴线/上影拒绝；当前 close 高于 entry reference | `EARLY_PROFIT_TAKING_CANDIDATE`，确认的获利退出候选 |
+| 重复受阻风险 | 当前日再次在 H 附近受阻，且已有至少 1 个更早的 post-entry failed push，但所选提前防守版本尚未满足 | `REPEATED_RESISTANCE_REJECTION_RISK`，明确记录风险，不伪装成普通持有 |
+| `PRICE_ONLY_EARLY_DEFENSE` | 同一持仓、当前日再次在 H 附近受阻；post-entry 窗口内至少 2 次 failed push；当前 close 高于 entry reference | `EARLY_PROFIT_TAKING_CANDIDATE`，价格基线候选；不称为量价确认退出 |
+| `PRICE_VOLUME_EARLY_DEFENSE` | 完全相同的持仓与价格事件，且当前日同时满足 H 附近的 `HIGH_VOLUME_LOW_PRICE_PROGRESS`；放量条件使用事前记录的候选阈值 | `EARLY_PROFIT_TAKING_CANDIDATE`，量价版本候选 |
 | 晚期支撑破坏 | `close_t < support_floor`；T 日盘中刺破后收回不计作收盘破坏 | `KEY_SUPPORT_BREAK`，若仍盈利是保护利润，若不盈利是入场后风险退出 |
 
-一次首次预警不能自动升级为出场；同一日多个 flags 保留，优先级为支撑破坏 > 提前兑现 >
-首次预警。异常量若远离 H，只能保留为 observable，不能直接和历史失败次数组合成提前退出。
-真正的 sell 只能从 entry session 的下一个 XSHG session 开始。
+一次首次预警不能自动升级为出场；同一日多个 flags 保留，优先级为支撑破坏 > 所选提前防守
+版本 > 重复受阻风险 > 首次预警。`classify_exit_observation()` 的
+`early_defense_version`、`price_only_early_defense_candidate`、
+`price_volume_early_defense_candidate` 和 `volume_confirmation` 必须一起解释；价格基线的
+触发不含成交量确认。异常量若远离 H，只能保留为 observable，不能直接和历史失败次数组合
+成提前退出。真正的 sell 只能从 entry session 的下一个 XSHG session 开始。
 
 ### 6.2 获利退出与入场后风险退出
 
@@ -379,8 +391,9 @@ T close 观察，最早下一可卖 session 执行参考。
 - `WARNING_ONLY`：不产生卖出指令；
 - `EXECUTION_UNCERTAIN`：停牌、NO_TRADE、limit-state、缺开盘或无法证明 fill 时不假设成交。
 
-当前实现只返回 `C_EXIT_OBSERVATION_DESIGN_V1`，不写 trade tracker，不改 B 的收益跟踪，也
-不声称已经发生卖出。
+当前实现只返回 `C_EXIT_OBSERVATION_DESIGN_V1`，并要求两个显式观察版本之一；它不写 trade
+tracker，不改 B 的收益跟踪，也不声称已经发生卖出。量价版本的异常量阈值仍是候选，待
+Sol/未来 protocol 决定，不能读取收益后再挑选。
 
 ### 6.3 假警报、卖飞和重新观察的预注册评价
 
@@ -440,10 +453,12 @@ T close 观察，最早下一可卖 session 执行参考。
 固定同一模拟持仓、entry cohort、T+1 reference execution、费用/滑点模型和 sellability：
 
 - `CONTINUE_HOLDING`：不使用 C 的提前防守候选，直到统一固定 horizon 或关键支撑规则；
-- `EARLY_DEFENSE`：使用首次预警（仅记录）和连续受阻/量价转弱候选；不把首次预警直接
-  当卖点。
+- `PRICE_ONLY_EARLY_DEFENSE`：使用价格基线的重复受阻候选；不消费 volume confirmation；
+- `PRICE_VOLUME_EARLY_DEFENSE`：在完全相同的持仓和价格事件上，额外要求事前固定的当前日
+  H 附近放量滞涨 observable；首次预警仍只记录，重复受阻未达条件仍保留风险状态。
 
-两种版本报告相同 horizon 的 return、MFE、MAE、执行不确定比例和成本后结果。没有合法
+两个提前防守版本各自与继续持有报告相同 horizon 的 return、MFE、MAE、执行不确定比例和
+成本后结果。没有合法
    intraday data 时，不能用 close-after-volume 伪造当日卖出。
 
 ### 8.3 固定评价维度与否定条件

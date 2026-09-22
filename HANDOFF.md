@@ -33,7 +33,33 @@
   `as_of_date=2026-09-22`, `trigger_source=manual`, `allow_weekend_backfill=false`。#82 可先单独作为
   诊断增强合并，但不得表述为修复根因；本调查未写 runtime-state、未触发生产，Formal B、Final OOS
   与历史证据均未改写。
+## 2026-09-22 — C_PRE_OUTCOME_EXIT_VOLUME_FIX_V1 ready for Sol audit
 
+- Classification: `research question + correctness/provenance gate`; no product promotion and no
+  Formal B change. This repair is limited to the early-defense price/volume observation semantics
+  requested after Sol's second audit.
+- Scope: `classify_exit_observation()` now exposes the explicit
+  `PRICE_ONLY_EARLY_DEFENSE` price baseline and `PRICE_VOLUME_EARLY_DEFENSE` same-position,
+  same-price-event version. `upper_shadow_fraction > 0` is descriptive only; it is not a weakness
+  gate or volume confirmation. Repeated rejection without the selected exit condition returns
+  `REPEATED_RESISTANCE_REJECTION_RISK`, while first warning, early candidate, and support break
+  remain independent.
+- Boundary: C-only script/tests/docs changed. Formal B, shared production code, runtime-state,
+  canonical watchlist, daily report, provider acquisition, C future returns, Final OOS and
+  `data/validation/continuous_speed_probe/` were not read or changed.
+- Data recovery intake was read-only: the C worktree lacks daily-K; an existing copy is present
+  only in another worktree at the canonical path with declared SHA
+  `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426`, and governance metadata
+  points to the existing private Drive recovery location. No download, copy, overwrite or hash
+  replacement was performed. Historical T-known ST and per-bar known-at evidence remain unresolved.
+- Verification before delivery: C `19 passed`; B isolation regression `40 passed`; full pytest
+  `690 passed, 2 skipped, 10 warnings`; compileall and diff check pass.
+- Draft PR: [#81](https://github.com/EFSing/ashare_watchlist/pull/81) remains open as Draft against
+  `master`. Work started from Sol-audited head `11a47fdb80d7887c97a0cc4c378b8c935bc44121`;
+  final remote head and exact-head CI must be checked live after the delivery commit.
+- Decision: `NEEDS_MORE_EVIDENCE`; terminal marker
+  `C_PRE_OUTCOME_EXIT_VOLUME_FIX_READY_FOR_SOL_AUDIT`. Do not merge, read future returns, or
+  start C outcome research.
 ## 2026-09-22 — C_PRE_OUTCOME_CORRECTNESS_FIX_V1 ready for Sol re-audit
 
 - Classification: research question + correctness/provenance gate; no product promotion and no

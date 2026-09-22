@@ -6,6 +6,10 @@
 文件存在性。没有抓取 provider、没有恢复缺失的 daily-K、没有读取 C outcome、没有读取
 Final OOS，也没有重写任何正式历史 artifact。
 
+本轮退出语义修复只影响 C 研究观察：实现与测试已区分
+`PRICE_ONLY_EARLY_DEFENSE` 和 `PRICE_VOLUME_EARLY_DEFENSE`；异常量阈值仍是
+`PRE_REGISTERED_CANDIDATE_NOT_OUTCOME_SELECTED`，不代表已完成收益选择或正式研究。
+
 ## 检查身份
 
 | 项目 | 值 |
@@ -26,6 +30,23 @@ Final OOS，也没有重写任何正式历史 artifact。
 
 机器可读版本：[data_dependency_check.json](../../data/research/c_pre_outcome_design_v1/data_dependency_check.json)，文件 SHA-256：
 `cbf954a4a2f62dcdc98eafd39d94485a7235c2ae8d477926614e75b0d66190`。
+
+## 只读 daily-K 恢复线索
+
+以下仅列出现有项目元数据声明的可能位置，不下载、解压、覆盖或复制任何文件；声明的
+raw daily-K SHA-256 均为
+`61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426`：
+
+| 线索 | 角色 | 当前含义 |
+| --- | --- | --- |
+| `data/validation/core_signal_validation/raw/daily_k.parquet` | canonical logical path | 本 C worktree 缺失；若恢复，必须重新计算并匹配声明 SHA |
+| `D:\dev\ashare-watchlist\data\validation\core_signal_validation\raw\daily_k.parquet` | existing local copy in another worktree | 只读路径检查显示存在、声明大小 `180,203,424` bytes；未读取或计算实际 hash，不得直接当作 C 输入或复制到正式目录 |
+| `data/governance/frozen_artifacts.json` → `phase2e.raw.daily_k` | frozen artifact / recovery registry | 声明来源为 HiThink daily-K dump + private recovery archive，指向 Google Drive 私有恢复位置；本轮未读取原始 bytes |
+| `data/governance/workstation_durability_manifest.json` → 同一 logical path | workstation durability metadata | 声明 Drive readback 已按同一 SHA 校验；它是恢复线索，不是本地 raw 文件 |
+| `data/validation/*` 中的 core/phase2e manifest、checkpoint 引用 | provenance only | 反复声明同一 canonical path/SHA，不构成替代 raw 数据副本 |
+
+因此当前结论仍是 `LOCAL_C_REPLAY_READY=NO`、`FORMAL_C_OUTCOME_RESEARCH=NOT_AUTHORIZED /
+NOT_RUN`。历史 T-known ST 状态和逐 bar known-at/vintage 证据保持未解决。
 
 ## 字段、覆盖与复权
 
