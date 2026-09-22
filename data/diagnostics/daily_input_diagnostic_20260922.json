@@ -1,0 +1,33 @@
+{
+  "actual_retrieved_at_bjt": "2026-09-22T17:26:40.466340+08:00",
+  "candidate_count": 0,
+  "checkpoint_created": false,
+  "coverage_status": "NO_VALID_INPUT",
+  "delivery_receipt_created": false,
+  "detail": "HiThink universe has no eligible Main Board symbols",
+  "evaluated_symbol_count": 0,
+  "excluded_reason_counts": {},
+  "excluded_symbol_count": 0,
+  "exclusions": [],
+  "formal_result_valid": false,
+  "formal_watchlist_created": false,
+  "global_failures": [],
+  "input_coverage": {
+    "coverage_status": "NO_VALID_INPUT",
+    "evaluated_symbol_count": 0,
+    "excluded_reason_counts": {},
+    "excluded_symbol_count": 0,
+    "excluded_symbols": [],
+    "formal_result_valid": false,
+    "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+    "qualified_symbol_count": 0,
+    "raw_symbol_count": 5576,
+    "schema_version": "INPUT_COVERAGE_V1"
+  },
+  "qualified_symbol_count": 0,
+  "raw_symbol_count": 5576,
+  "report_generated_at_bjt": "2026-09-22T17:26:43.488889+08:00",
+  "run_type": "SAME_CALENDAR_DATE",
+  "schema_version": "DAILY_INPUT_DIAGNOSTIC_V1",
+  "target_date": "2026-09-22"
+}
