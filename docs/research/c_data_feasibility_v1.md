@@ -43,7 +43,7 @@ raw daily-K SHA-256 均为
 | `D:\dev\ashare-watchlist\data\validation\core_signal_validation\raw\daily_k.parquet` | existing local copy in another worktree | 只读路径检查显示存在、声明大小 `180,203,424` bytes；未读取或计算实际 hash，不得直接当作 C 输入或复制到正式目录 |
 | `data/governance/frozen_artifacts.json` → `phase2e.raw.daily_k` | frozen artifact / recovery registry | 声明来源为 HiThink daily-K dump + private recovery archive，指向 Google Drive 私有恢复位置；本轮未读取原始 bytes |
 | `data/governance/workstation_durability_manifest.json` → 同一 logical path | workstation durability metadata | 声明 Drive readback 已按同一 SHA 校验；它是恢复线索，不是本地 raw 文件 |
-| `data/validation/*` 中的 core/phase2e manifest、checkpoint 引用 | provenance only | 反复声明同一 canonical path/SHA，不构成替代 raw 数据副本 |
+| `data/validation/core_signal_validation_continuous_parts/core_signal_validation_manifest.json` 与 `data/validation/phase2e_source_audit.json` | provenance only | 反复声明同一 canonical path/SHA，不构成替代 raw 数据副本 |
 
 因此当前结论仍是 `LOCAL_C_REPLAY_READY=NO`、`FORMAL_C_OUTCOME_RESEARCH=NOT_AUTHORIZED /
 NOT_RUN`。历史 T-known ST 状态和逐 bar known-at/vintage 证据保持未解决。
