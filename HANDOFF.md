@@ -6,6 +6,25 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-22 — MOBILE_VOLUME_OBSERVATION_CARD_LAYOUT_FIX_V1
+
+- Classification: display-layer bugfix; no correctness, strategy, signal, score, watchlist,
+  checkpoint, delivery receipt, production artifact, or research-conclusion change.
+- Implementation branch: `codex/mobile-volume-card-layout-fix`; PR #78
+  https://github.com/EFSing/ashare_watchlist/pull/78; current head and exact-head CI must be
+  re-read live before any merge decision. No automatic merge.
+- Change: `scripts/render_daily_close_html.py` uses a bounded two-row mobile grid for the
+  `回踩量能 · 量能衰减` card while preserving the desktop three-column layout and all metric
+  values, calculations, explanations, colors, and observation-only semantics. The focused
+  layout regression is in `tests/test_b_volume_prospective_report_observation.py`.
+- Verification: focused tests `10 passed`; full pytest `668 passed, 2 skipped, 10 warnings`;
+  compileall and `git diff --check` passed; browser preview covered desktop plus 320, 375, 390,
+  and 430 CSS px nested mobile viewports. The 2026-09-21 report/latest artifact remains
+  unchanged at SHA-256 `d383fbd485b72c810d8e5fbf7149304098678d01988df99ac1228b3c31fdac90`.
+- Next: wait for the final PR head's exact-head CI and the user's merge decision; do not merge
+  automatically. `Final OOS=SEALED / UNREAD` and the forbidden validation directory remain
+  untouched.
+
 ## 2026-09-21 — DAILY_REPORT_INPUT_COVERAGE_PRESENTATION_FIX_V1
 
 - classification：`deferred improvement`（日报可用性/展示维护）；不改变输入 coverage 状态与计数、
