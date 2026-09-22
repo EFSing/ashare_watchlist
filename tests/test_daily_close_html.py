@@ -457,6 +457,53 @@ def test_path_result_stays_separate_from_later_horizon_snapshot(tmp_path):
     assert "+12.50%" in renderer.render_html(model)
 
 
+def test_fixed_node_separates_unverified_path_from_true_untriggered(tmp_path):
+    watchlist = _write_watchlist(
+        tmp_path,
+        "20260903",
+        [_candidate("600018", "路径待核验", 60), _candidate("600019", "真实未触发", 59)],
+    )
+    tracker = _write_tracker(tmp_path, watchlist)
+    _write_watchlist(tmp_path, "20260909", [_candidate("600020", "今日信号", 70)])
+    signals = list(tracker["signals"].values())
+    for signal, execution_status in zip(
+        signals,
+        [renderer.UNVERIFIED_MISSING_EXECUTION_OBSERVATION, "VERIFIED"],
+    ):
+        signal["execution_verification_status"] = execution_status
+        point = signal["review_points"]["T+3"]
+        point.update(
+            {
+                "status": "CAPTURED",
+                "quote_date": "2026-09-09",
+                "open": 10.0,
+                "price": 10.1,
+                "high": 10.2,
+                "low": 9.9,
+                "return_pct": None,
+                "path_status": "pending",
+                "signal_status": "pending",
+                "reason": "confirmed entry unavailable; return is unverified",
+            }
+        )
+    (tmp_path / "data" / "perf_tracker.json").write_text(json.dumps(tracker), encoding="utf-8")
+
+    model = renderer.build_report_model("20260909", paths=_paths(tmp_path), calendar=CALENDAR)
+    rows = model.review_sections["T+3"]
+    text = renderer.render_html(model)
+
+    by_code = {row["code"]: row for row in rows}
+    assert by_code["600018"]["path_status_code"] == renderer.PATH_UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH
+    assert by_code["600018"]["path_status"] == "UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH"
+    assert by_code["600019"]["path_status_code"] == "pending"
+    assert by_code["600019"]["path_status"] == "PENDING"
+    assert text.count("<span>可计算</span><strong>0</strong>") >= 1
+    assert text.count("<span>未触发</span><strong>1</strong>") >= 1
+    assert text.count("<span>路径待核验</span><strong>1</strong>") >= 1
+    assert "路径未完整验证" in text
+    assert "未触发" in text
+
+
 def test_same_bar_and_missing_observation_are_explicit(tmp_path):
     watchlist = _write_watchlist(tmp_path, "20260903", [_candidate("600018", "歧义信号", 60)])
     tracker = _write_tracker(tmp_path, watchlist)
