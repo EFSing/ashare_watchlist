@@ -5,6 +5,35 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-22 — C data evidence and preregistration protocol ready for Sol decision
+
+- classification：`research question + correctness/provenance gate`。本决定只推进新版 C 的
+  研究前证据和协议，不做参数选择、Formal B 变更、promotion、freeze 或 merge。
+- daily-K identity：在授权的只读外部现存路径
+  `D:\dev\ashare-watchlist\data\validation\core_signal_validation\raw\daily_k.parquet`
+  实际读取文件大小 `180203424` bytes 和 SHA-256
+  `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426`，与
+  `phase2e.raw.daily_k` 冻结声明一致。证据记录
+  `data/research/c_pre_outcome_design_v1/daily_k_integrity_check.json` 的 SHA-256 为
+  `2a0496e3414b4bd43969f66f7cf93c2b7a1e4a698266abdc74243f662799f939`。该核验只解决 artifact
+  identity；C worktree 本地 daily-K 仍缺，未复制、覆盖或作为 C replay 输入。
+- evidence decision：daily-K 字节 identity=`VERIFIED`；字段/复权语义=`DECLARED_ONLY`；
+  calendar mapping=`VERIFIED`（metadata/helper scope）；历史 T-known ST/*ST=`UNRESOLVED`；
+  per-bar known-at/vintage=`UNRESOLVED`；limit/tick、盘中 sequence 和实际 T+1 fill=`MISSING`。
+  acquisition date 不得冒充历史可见时间，当前名称不得回填历史状态。
+- protocol decision：新增独立草案
+  `docs/research/c_pre_outcome_preregistration_protocol_v1.md`，SHA-256 为
+  `c74447608490fdd7068ea4a018dc3be31358198d3570ead878e5095cc09befd3`。草案保留
+  `BALANCED_A`/`CONSERVATIVE_B`，提出前者主定义、后者敏感性；比较简单趋势/动量、价格结构、
+  价格结构＋成交量；把出场 `RV>=2.0` 固定为事前量能假设，`robust-z>=3.0` 仅观察；固定最近
+  5 日至少 2 次且当前失败的重复受阻定义、独立状态、T-close→T+1、无法成交、MFE/MAE 和
+  假警报/卖飞口径。该“主/敏感性”安排和量能假设均待 Sol/用户采纳，不由收益选择。
+- boundary：本轮没有读取 C future outcome、Final OOS 或 forbidden directory；没有正式 C
+  backtest、provider acquisition、替代数据下载或 B/shared/runtime-state/production 修改。
+- decision：`NEEDS_MORE_EVIDENCE`。缺失证据仍由上述 ST/PIT/执行项构成；没有这些证据时，
+  Formal B 和现有产品路径可继续，但新版 C 不得进入 outcome 研究。terminal：
+  `C_DATA_EVIDENCE_AND_PROTOCOL_READY_FOR_SOL_DECISION`。
+
 ## 2026-09-22 — C early defense must keep price and volume observations separate
 
 - classification：`research question + correctness/provenance gate`。本决定只约束新版 C 的
@@ -15,12 +44,13 @@
   确认。重复受阻但未达所选版本条件时必须输出
   `REPEATED_RESISTANCE_REJECTION_RISK`，不能静默变成普通持有；首次预警、提前候选和支撑
   失效继续独立。
-- 成交量 ratio/robust-z 阈值仍是 `PRE_REGISTERED_CANDIDATE_NOT_OUTCOME_SELECTED`，不从
-  收益选择，也不新增第三套退出方案。没有读取 C future returns、Final OOS 或 forbidden
-  directory；历史 T-known ST 与逐 bar known-at evidence 仍未解决。
-- decision：`NEEDS_MORE_EVIDENCE`，terminal
-  `C_PRE_OUTCOME_EXIT_VOLUME_FIX_READY_FOR_SOL_AUDIT`。后续只等待 Sol 审计；不得自动进入
-  C outcome research。
+- 历史 checkpoint 当时将 ratio/robust-z 记为
+  `PRE_REGISTERED_CANDIDATE_NOT_OUTCOME_SELECTED`，不从收益选择，也不新增第三套退出方案。
+  没有读取 C future returns、Final OOS 或 forbidden directory；历史 T-known ST 与逐 bar
+  known-at evidence 仍未解决。当前协议口径以上方新决策为准：`RV>=2.0` 作为量价版本主假设，
+  robust-z 仅作观察。
+- decision：`NEEDS_MORE_EVIDENCE`；这是提前防守语义修复完成后的历史 checkpoint，当前交付
+  已由上方的数据证据与协议决策 supersede；不得自动进入 C outcome research。
 
 ## 2026-09-22 — New C pre-outcome design requires Sol audit
 

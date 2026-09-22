@@ -1,6 +1,6 @@
 # 新版 C：研究前规则设计、数据可行性与确定性验证 V1
 
-状态：`C_PRE_OUTCOME_EXIT_VOLUME_FIX_READY_FOR_SOL_AUDIT`
+状态：`C_DATA_EVIDENCE_AND_PROTOCOL_READY_FOR_SOL_DECISION`
 
 研究身份：`C_PRE_OUTCOME_DESIGN_V1`  /  `C_MAIN_TREND_RETEST_RESEARCH_V1`
 
@@ -8,9 +8,11 @@
 审计通过证明。当前没有读取 C 的 forward outcome、没有执行正式历史收益研究、没有读取
 Final OOS，也没有接入 C 正式每日名单。
 
-本轮只修复提前防守的量价语义：同一持仓和同一价格事件现在明确输出
+本轮已完成提前防守量价语义修复后的数据证据核验和独立协议草案：同一持仓和同一价格事件现在明确输出
 `PRICE_ONLY_EARLY_DEFENSE` 与 `PRICE_VOLUME_EARLY_DEFENSE` 两个研究观察版本。价格基线不
-再被称为量价确认退出；具体异常量阈值仍是预注册候选，未由收益选择。
+再被称为量价确认退出；出场版本实际使用 `RV >= 2.0`，`robust-z >= 3.0` 只作观察，
+均未由收益选择。协议草案见 `c_pre_outcome_preregistration_protocol_v1.md`；尚未采纳、
+尚未授权 outcome 研究。
 
 ## 1. 研究问题、materiality 与停止条件
 
@@ -36,7 +38,7 @@ Materiality：该问题直接决定新版 C 是否有一套可在 T close → T+
 - 数据依赖检查只读 manifest/字段/覆盖/复权/known-at/可重放性，不抓取或重写正式历史数据；
 - 所有仍需审计的项标为 `PENDING_SOL_AUDIT`、`PARTIAL_UNVERIFIED`、`UNKNOWN` 或
   `EXECUTION_UNCERTAIN`；
-- 停在本文件开头的 terminal marker，等待 Sol 审计，不宣称内部自查通过。
+- 停在本文件开头的 terminal marker，等待 Sol/用户审计，不宣称内部自查通过。
 
 未来正式研究开始前，必须有独立的 pre-outcome protocol commit；本文件和纯函数不会自行
 开启 outcome 读取、参数搜索、Phase 2F、promotion、freeze 或生产调度。
@@ -269,9 +271,9 @@ T 日 confirmation 为全部条件同时满足：
   z_i=\frac{volume_i-median(V)}{1.4826\times MAD(V)}
 \]
 
-当前只有两个候选 anomaly flag：`RV >= 2.0` 或 `z >= 3.0`。它们是并列候选，不允许在
-结果出来后挑选更有效的一个。median/MAD 对极端成交量更稳健；mean/std 是可审计的备选，
-但本轮不再新增第三种异常定义。
+当前出场协议草案固定 `RV >= 2.0` 为量价版本的实际异常量条件；`robust-z >= 3.0` 保留为
+观察字段，不作为 hard gate。median/MAD 仍用于记录 robust-z；mean/std 不是本轮定义，也不
+新增第三种异常定义。该安排是 outcome 前的预注册候选，尚未由收益选择或升级为生产规则。
 
 ### 5.2 回踩期间的量能路径
 
@@ -309,11 +311,12 @@ T 日 confirmation 为全部条件同时满足：
 日 volume median、反弹 volume median 相对回踩基准 ratio 尚未实现；它们只是未来比较设计，
 本轮没有将 volume 写成入场 hard gate。
 
-建议只比较两个清晰版本：
+协议草案只比较两个清晰版本：
 
 - `PRICE_STRUCTURE_ONLY`：入场只使用第 4 节价格结构，volume 全部为诊断字段；
-- `PRICE_STRUCTURE_PLUS_VOLUME`：在同一价格结构样本上，用 outcome 前锁定的单一 volume
-  gate（`RV` 候选、回踩 path label、反弹 UD 三者中最多选一个主 gate，其余只作描述）。
+- `PRICE_STRUCTURE_PLUS_VOLUME`：在同一价格结构样本上，固定使用
+  `RV_T >= 2.0`（前 20 个完成交易日的自身中位量为基准）作为唯一主 gate；回踩 path、UD
+  和 robust-z 只作描述，不能在结果出来后替换或叠加。
 
 这样可区分“成交量是否增加可预测信息”和“加入多个 volume 条件后样本被重新选择”。
 
@@ -329,10 +332,10 @@ T 日 confirmation 为全部条件同时满足：
 - 是否 close 仍低于 stage resistance。
 
 候选 observable flag：`RV >= 2.0`、`abs(body_return) <= 0.5%`、`close_location <= 0.60` 同时
-成立，命名为 `HIGH_VOLUME_LOW_PRICE_PROGRESS`。当前实现把 `RV >= 2.0`（以及保留记录的
-robust-z 候选 `>=3.0`）标为 `PRE_REGISTERED_CANDIDATE_NOT_OUTCOME_SELECTED`；这些阈值不是
-收益选择结果。该 flag 本身不包含前高距离；只有 `PRICE_VOLUME_EARLY_DEFENSE` 在当前日
-也满足 H 附近受阻时才可消费它。它不是“派筹已证明”；机制解释保持
+成立，命名为 `HIGH_VOLUME_LOW_PRICE_PROGRESS`。实现使用 `RV >= 2.0` 作为量价版本的实际
+确认条件；robust-z `>=3.0` 只保留为观察字段，二者都不是收益选择结果。该 flag 本身不
+包含前高距离；只有 `PRICE_VOLUME_EARLY_DEFENSE` 在当前日也满足 H 附近受阻时才可消费它。
+它不是“派筹已证明”；机制解释保持
 `UNKNOWN / HYPOTHESIS`，可替代解释包括新闻/市场波动、涨停规则、拥挤交易和价格离散化。
 
 ### 5.6 K 线实体、影线、连续冲高失败和炸板
@@ -346,11 +349,12 @@ upper=\frac{high-max(open,close)}{high-low},\quad
 lower=\frac{min(open,close)-low}{high-low}
 \]
 
-前高失败 push 定义为：在最近 A=5、B=5 个 session 中，`high >= H(1-tolerance)`、
-`close < H`、`CLV <=0.60`；入场后出场观察只从持仓建立后的 `entry_index+1` 开始记录。记录
-失败次数和从当前观察日向后连续失败次数。连续失败不是自动派筹，只是重复未有效推进的
-observable。`upper_shadow_fraction` 仍可作为 K 线描述字段，但正上影线只要大于零不构成
-显著转弱条件，也不构成成交量确认；它不再参与提前防守候选判定。
+前高失败 push 定义为：对入场后的观察日，在最近 5 个交易日（含当前日）内统计同时满足
+`high >= H(1-tolerance)`、`close < H`、`CLV <=0.60` 的失败；重复受阻的主定义是最近 5
+个交易日内至少 2 次且当前日失败，不是严格相邻两天。入场后出场观察只从持仓建立后的
+`entry_index+1` 开始记录。记录失败次数和从当前观察日向后连续失败次数，但严格相邻只作
+描述字段，不自动升级交易规则。`upper_shadow_fraction` 仍可作为 K 线描述字段，但正上影
+线只要大于零不构成显著转弱条件，也不构成成交量确认；它不参与提前防守候选判定。
 
 “炸板”只在输入含有合法、T-known 的 `limit_up_price` 与 `tick_size` 时计算：
 
@@ -371,9 +375,9 @@ T close 观察，最早下一可卖 session 执行参考。
 | 层级 | observable 定义 | 默认动作语义 |
 | --- | --- | --- |
 | 首次预警 | 持仓建立后当前日首次接近 H，high 触及 tolerance、close 低于 H、CLV <=0.60；没有更早的 post-entry failed push | `FIRST_RESISTANCE_REJECTION_WARNING`，只预警，不卖出 |
-| 重复受阻风险 | 当前日再次在 H 附近受阻，且已有至少 1 个更早的 post-entry failed push，但所选提前防守版本尚未满足 | `REPEATED_RESISTANCE_REJECTION_RISK`，明确记录风险，不伪装成普通持有 |
-| `PRICE_ONLY_EARLY_DEFENSE` | 同一持仓、当前日再次在 H 附近受阻；post-entry 窗口内至少 2 次 failed push；当前 close 高于 entry reference | `EARLY_PROFIT_TAKING_CANDIDATE`，价格基线候选；不称为量价确认退出 |
-| `PRICE_VOLUME_EARLY_DEFENSE` | 完全相同的持仓与价格事件，且当前日同时满足 H 附近的 `HIGH_VOLUME_LOW_PRICE_PROGRESS`；放量条件使用事前记录的候选阈值 | `EARLY_PROFIT_TAKING_CANDIDATE`，量价版本候选 |
+| 重复受阻风险 | 当前日再次在 H 附近受阻，且最近 5 个交易日已有至少 1 个更早的 failed push，但所选提前防守版本尚未满足 | `REPEATED_RESISTANCE_REJECTION_RISK`，明确记录风险，不伪装成普通持有 |
+| `PRICE_ONLY_EARLY_DEFENSE` | 同一持仓、当前日再次在 H 附近受阻；最近 5 个交易日内至少 2 次 failed push（含当前）；当前 close 高于 entry reference | `EARLY_PROFIT_TAKING_CANDIDATE`，价格基线候选；不称为量价确认退出 |
+| `PRICE_VOLUME_EARLY_DEFENSE` | 完全相同的持仓与价格事件，且当前日满足 H 附近的 `HIGH_VOLUME_LOW_PRICE_PROGRESS`；实际量价确认使用 `RV >= 2.0`、实体绝对涨跌幅 `<=0.5%`、`CLV <=0.60` | `EARLY_PROFIT_TAKING_CANDIDATE`，量价版本候选 |
 | 晚期支撑破坏 | `close_t < support_floor`；T 日盘中刺破后收回不计作收盘破坏 | `KEY_SUPPORT_BREAK`，若仍盈利是保护利润，若不盈利是入场后风险退出 |
 
 一次首次预警不能自动升级为出场；同一日多个 flags 保留，优先级为支撑破坏 > 所选提前防守
@@ -392,8 +396,9 @@ T close 观察，最早下一可卖 session 执行参考。
 - `EXECUTION_UNCERTAIN`：停牌、NO_TRADE、limit-state、缺开盘或无法证明 fill 时不假设成交。
 
 当前实现只返回 `C_EXIT_OBSERVATION_DESIGN_V1`，并要求两个显式观察版本之一；它不写 trade
-tracker，不改 B 的收益跟踪，也不声称已经发生卖出。量价版本的异常量阈值仍是候选，待
-Sol/未来 protocol 决定，不能读取收益后再挑选。
+tracker，不改 B 的收益跟踪，也不声称已经发生卖出。量价版本的 `RV >= 2.0` 是当前协议
+草案的事前固定候选，`robust-z >= 3.0` 仅作观察；二者不能读取收益后再挑选。若价格版本
+达到候选而量价版本未达到，对量价版本必须输出重复受阻风险，不得悄悄归为毫无异常的普通持有。
 
 ### 6.3 假警报、卖飞和重新观察的预注册评价
 
@@ -419,7 +424,8 @@ Sol/未来 protocol 决定，不能读取收益后再挑选。
 
 | 能力 | 当前结论 | 对正式 C 研究的影响 |
 | --- | --- | --- |
-| 日线 OHLCV | manifest 声明 `open/high/low/close/volume`，volume 为 raw unadjusted | 价格结构、volume ratio 公式可设计；本 C worktree 的 `daily_k.parquet` 缺失，不能在本轮 replay；不推断全项目无数据 |
+| daily-K 字节身份 | 外部现存 worktree 只读实际大小 `180203424` bytes、SHA-256 与 frozen 声明完全匹配；证据见 `data/research/c_pre_outcome_design_v1/daily_k_integrity_check.json` | `VERIFIED` 仅限 artifact identity；本 C worktree 仍缺文件，未作为本轮 replay 输入 |
+| 日线 OHLCV schema | manifest 声明 `open/high/low/close/volume`，volume 为 raw unadjusted | 价格结构、volume ratio 公式可设计；字段语义仍以 manifest 声明为主 |
 | 交易日历 | 769 个连续 XSHG session，Asia/Shanghai，现有 calendar helper | T-close/T+1 窗口可确定 |
 | 复权 | T-anchor 价格公式和 raw volume 已声明；corporate-action event filter 为 `date < ex_date <= T` | 可定义信号 basis；逐 bar vintage proof 仍缺失 |
 | known-at / PIT | `known_at_vintage_proof=false` | retrospective outcome 研究 `PARTIAL_UNVERIFIED`，不得直接宣称严格 PIT |
@@ -428,9 +434,9 @@ Sol/未来 protocol 决定，不能读取收益后再挑选。
 | 日成交量 | 可算 relative volume、path、UD、stall proxy | 可研究 observable；不能证明吸筹/派筹 |
 | 盘中/成交 | 当前没有合法盘中序列、order book 或 actual fill | 炸板时间/卖出成交标 `UNKNOWN/EXECUTION_UNCERTAIN`，不得模拟 T 日盘中卖出 |
 | 涨停/停牌/NO_TRADE | quote trade-state helper 可识别部分显式状态；日线本身不够推断 fill | entry/exit 必须保留 `NO_TRADE`、limit-state、missing-open 和 uncertain 分类 |
-| 可重放性 | manifest 有 source/hash/determinism 元数据；核心 K 在本 C worktree 缺失且没有可验证本地 SHA | metadata 可复核，实际 C replay 需另行授权恢复合法输入；文件存在也不能替代 SHA 校验 |
+| 可重放性 | manifest 有 source/hash/determinism 元数据；外部文件 identity 已验证，但核心 K 在本 C worktree 缺失 | artifact identity 可复核；实际 C replay 仍未授权且未运行，外部路径不能冒充本地输入 |
 
-因此：新版 C 的**研究前设计和纯函数验证可继续**；正式历史收益研究当前不 ready，至少
+因此：新版 C 的**研究前设计、数据证据记录和预注册协议草案可交付 Sol 决策**；正式历史收益研究当前不 ready，至少
 等待合法可恢复的 daily-K 与 T-known ST 状态证据，且需要解决或明确限定逐 bar known-at
 缺口。本轮没有抓取、重写或替代这些输入。
 
@@ -438,13 +444,14 @@ Sol/未来 protocol 决定，不能读取收益后再挑选。
 
 ### 8.1 入场比较
 
-至少比较同一 universe、同一 T+1 执行模型和同一成本下的三层：
+协议草案建议以 `BALANCED_A` 为主定义、`CONSERVATIVE_B` 为敏感性定义；理由和“待采纳”
+状态见独立协议文件。至少比较同一 universe、同一 T+1 执行模型和同一成本下的三层：
 
 1. `SIMPLE_TREND_MOMENTUM_BASELINE`：只用预先固定的上升趋势/ trailing momentum；不使用
    C 的双低点、rebound、stage resistance 或 volume；
 2. `PRICE_STRUCTURE_ONLY`：加入本文件第 4 节价格结构，不使用 volume 作为 hard gate；
-3. `PRICE_STRUCTURE_PLUS_VOLUME`：在完全相同的价格结构样本上加入一个 outcome 前固定的
-   volume gate；其余 volume 指标只作描述。
+3. `PRICE_STRUCTURE_PLUS_VOLUME`：在完全相同的价格结构样本上加入 outcome 前固定的
+   `RV_T >= 2.0` gate；robust-z `>=3.0`、path 和 UD 只作描述。
 
 不比较旧 C 与新版 C 的事后收益优劣；旧 C 只做 provenance 说明，不是 baseline。
 
@@ -516,10 +523,20 @@ flow）必须列为限制，不得用当前数据回填。
   pre-T pivot、出场时序、量能最小样本、日期和 T/T+1 边界；
 - `data/research/c_pre_outcome_design_v1/data_dependency_check.json`：只读 manifest/本地
   存在性检查，包含 `c_outcome_accessed=false` 等边界字段；
+- `data/research/c_pre_outcome_design_v1/daily_k_integrity_check.json`：授权范围内对外部现存
+  daily-K 的只读大小/SHA-256 核验（文件 SHA-256：
+  `2a0496e3414b4bd43969f66f7cf93c2b7a1e4a698266abdc74243f662799f939`）；仅证明 artifact
+  identity，不把文件作为本 C replay 输入；
+- `docs/research/c_pre_outcome_preregistration_protocol_v1.md`：独立的 outcome 前协议草案，
+  固定比较、窗口、事件去重、执行和否定条件（文件 SHA-256：
+  `c74447608490fdd7068ea4a018dc3be31358198d3570ead878e5095cc09befd3`），但尚未由 Sol/用户采纳；
 - 本文件与 `c_data_feasibility_v1.md`：规则、数据、比较方法和审计问题。
 
 本轮不创建 C 正式 signal membership、outcome detail、收益表或 canonical watchlist。若未来
 要创建这些文件，路径必须继续位于 `data/research/c_pre_outcome_design_v1/` 下，并使用新的
 明确 protocol/spec identity。
 
-终态：`C_PRE_OUTCOME_CORRECTNESS_FIX_READY_FOR_SOL_REAUDIT`。
+历史旧终态（已不代表当前交付）：`C_PRE_OUTCOME_CORRECTNESS_FIX_READY_FOR_SOL_REAUDIT`。
+
+当前交付终态：`C_DATA_EVIDENCE_AND_PROTOCOL_READY_FOR_SOL_DECISION`。本文件不宣称 Sol
+审计通过，也不授权读取 C future outcome。

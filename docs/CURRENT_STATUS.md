@@ -6,7 +6,50 @@
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
-## 2026-09-22 — C_PRE_OUTCOME_EXIT_VOLUME_FIX_V1 ready for Sol audit
+## 2026-09-22 — C_DATA_EVIDENCE_AND_PROTOCOL_READY_FOR_SOL_DECISION
+
+- Classification: `research question + correctness/provenance gate`; no product promotion, Formal B
+  change, parameter selection or merge.
+- Live Git/GitHub: branch/worktree=`codex/c-pre-outcome-design-ready-for-sol-audit` /
+  `D:\dev\ashare-watchlist-c-pre-outcome-design`; head and upstream exact
+  `352d29f875e8db3db9afe02ab1648c80cbbc3a84`; `origin/master`=`4633b37ee6eb99bee527d8907e4e51768fd3f82a`.
+  PR #81 is `OPEN / DRAFT / CLEAN / mergeable`; its head exactly matches the local/remote head.
+  Push correctness run `35708564194` and pull-request correctness run `35708568172` both are
+  `completed / success` with this exact head.
+- Artifact metadata SHA: source manifest actual SHA-256
+  `008643a64e0070433f3d63dca8243f8dad294b049a7accb5d49af3597aae17b0` matches its frozen identity;
+  current metadata-only dependency record actual SHA-256 is
+  `89901be61dfe01872f54da2b031527c721f6d639016b20806ed918a999a3977d`.
+- Daily-K evidence: the authorized read-only external path
+  `D:\dev\ashare-watchlist\data\validation\core_signal_validation\raw\daily_k.parquet` is
+  `180203424` bytes and SHA-256
+  `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426`, exactly matching the
+  frozen declaration. The C worktree canonical path remains missing; the external file was not
+  copied, overwritten or used as a C replay input. Evidence record
+  `data/research/c_pre_outcome_design_v1/daily_k_integrity_check.json` has SHA-256
+  `2a0496e3414b4bd43969f66f7cf93c2b7a1e4a698266abdc74243f662799f939`.
+- Evidence boundary: daily-K artifact identity=`VERIFIED` only; OHLCV/adjustment semantics are
+  `DECLARED_ONLY`; trading-calendar metadata/helper=`VERIFIED` for deterministic session mapping;
+  historical T-known ST/*ST=`UNRESOLVED`; per-bar known-at/vintage=`UNRESOLVED`; valid limit/tick,
+  intraday sequence and actual T+1 fill=`MISSING`. The acquisition date is not treated as a
+  historical visible-time proof.
+- Protocol: independent draft
+  `docs/research/c_pre_outcome_preregistration_protocol_v1.md`, SHA-256
+  `c74447608490fdd7068ea4a018dc3be31358198d3570ead878e5095cc09befd3`. It proposes
+  `BALANCED_A` as main and `CONSERVATIVE_B` as sensitivity without outcome selection; compares
+  simple trend/momentum, price structure and price structure plus fixed `RV>=2.0` volume gate;
+  `robust-z>=3.0` remains observation-only. It fixes the five-session repeated-failure definition,
+  independent warning/risk/candidate/support states, MFE/MAE, false-alarm/sell-away/uncertain-fill
+  metrics and PIT/evidence-limited/prospective boundaries. It is not adopted or an outcome-study
+  authorization.
+- Boundary: this checkpoint changed only C research docs, the C data evidence record and necessary
+  governance text. No C future outcome, Final OOS, forbidden directory, Formal B, shared production
+  code, runtime-state, formal artifact or scheduler was read or changed. No formal C backtest ran.
+- Decision: `NEEDS_MORE_EVIDENCE`; terminal
+  `C_DATA_EVIDENCE_AND_PROTOCOL_READY_FOR_SOL_DECISION`. Wait for Sol/user decision; do not merge,
+  select parameters or enter outcome research.
+
+## Historical checkpoint — 2026-09-22 — C_PRE_OUTCOME_EXIT_VOLUME_FIX_V1 ready for Sol audit
 
 - Classification: `research question + correctness/provenance gate`; no product promotion and no
   Formal B change.
@@ -28,7 +71,7 @@
   `52c6f1d7ce71292fd73582d6390b5d24ac68489d` has exact-head push run `35707980389` and
   pull-request run `35707984877`, both `success`. Do not merge or start C outcome research.
 
-## 2026-09-22 — C_PRE_OUTCOME_CORRECTNESS_FIX_V1 ready for Sol re-audit
+## Historical checkpoint — 2026-09-22 — C_PRE_OUTCOME_CORRECTNESS_FIX_V1 ready for Sol re-audit
 
 - Classification: `research question + correctness/provenance gate`; not a product blocker for
   existing Formal B and not a promotion/freeze decision.

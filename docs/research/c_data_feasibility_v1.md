@@ -1,6 +1,6 @@
 # 新版 C 数据依赖与执行可行性检查 V1
 
-结论：`DESIGN_SUPPORTED / FORMAL_OUTCOME_RESEARCH_NOT_READY`
+结论：`DESIGN_SUPPORTED / DAILY_K_INTEGRITY_VERIFIED_EXTERNALLY / FORMAL_OUTCOME_RESEARCH_NOT_READY`
 
 本报告只检查当前项目已有 manifest、字段语义、覆盖元数据、复权定义、known-at 声明和本地
 文件存在性。没有抓取 provider、没有恢复缺失的 daily-K、没有读取 C outcome、没有读取
@@ -8,7 +8,8 @@ Final OOS，也没有重写任何正式历史 artifact。
 
 本轮退出语义修复只影响 C 研究观察：实现与测试已区分
 `PRICE_ONLY_EARLY_DEFENSE` 和 `PRICE_VOLUME_EARLY_DEFENSE`；异常量阈值仍是
-`PRE_REGISTERED_CANDIDATE_NOT_OUTCOME_SELECTED`，不代表已完成收益选择或正式研究。
+出场实际使用 `RV >= 2.0`，`robust-z >= 3.0` 只作观察，不代表已完成收益选择或正式研究。
+独立协议草案为 `docs/research/c_pre_outcome_preregistration_protocol_v1.md`。
 
 ## 检查身份
 
@@ -29,24 +30,47 @@ Final OOS，也没有重写任何正式历史 artifact。
 | declared C-visible sessions | `769` continuous XSHG sessions, 2023-06-30 through 2026-08-28 |
 
 机器可读版本：[data_dependency_check.json](../../data/research/c_pre_outcome_design_v1/data_dependency_check.json)，文件 SHA-256：
-`cbf954a4a2f62dcdc98eafd39d94485a7235c2ae8d477926614e75b0d66190`。
+`89901be61dfe01872f54da2b031527c721f6d639016b20806ed918a999a3977d`。
 
 ## 只读 daily-K 恢复线索
 
-以下仅列出现有项目元数据声明的可能位置，不下载、解压、覆盖或复制任何文件；声明的
-raw daily-K SHA-256 均为
+以下仅列出现有项目元数据声明的可能位置，并记录本轮授权的只读完整性核验；不下载、解压、
+覆盖或复制任何文件；声明的 raw daily-K SHA-256 均为
 `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426`：
 
 | 线索 | 角色 | 当前含义 |
 | --- | --- | --- |
-| `data/validation/core_signal_validation/raw/daily_k.parquet` | canonical logical path | 本 C worktree 缺失；若恢复，必须重新计算并匹配声明 SHA |
-| `D:\dev\ashare-watchlist\data\validation\core_signal_validation\raw\daily_k.parquet` | existing local copy in another worktree | 只读路径检查显示存在、声明大小 `180,203,424` bytes；未读取或计算实际 hash，不得直接当作 C 输入或复制到正式目录 |
-| `data/governance/frozen_artifacts.json` → `phase2e.raw.daily_k` | frozen artifact / recovery registry | 声明来源为 HiThink daily-K dump + private recovery archive，指向 Google Drive 私有恢复位置；本轮未读取原始 bytes |
+| `data/validation/core_signal_validation/raw/daily_k.parquet` | canonical logical path | 本 C worktree `MISSING`；若恢复到 C 输入路径，仍必须重新计算并匹配声明 SHA |
+| `D:\dev\ashare-watchlist\data\validation\core_signal_validation\raw\daily_k.parquet` | existing local copy in another worktree | `VERIFIED`：授权只读实际大小 `180,203,424` bytes，实际 SHA-256 与声明完全匹配；未作为 C 输入，未复制或覆盖 |
+| `data/governance/frozen_artifacts.json` → `phase2e.raw.daily_k` | frozen artifact / recovery registry | 声明来源为 HiThink daily-K dump + private recovery archive，指向 Google Drive 私有恢复位置；本轮未读取该 archive bytes |
 | `data/governance/workstation_durability_manifest.json` → 同一 logical path | workstation durability metadata | 声明 Drive readback 已按同一 SHA 校验；它是恢复线索，不是本地 raw 文件 |
 | `data/validation/core_signal_validation_continuous_parts/core_signal_validation_manifest.json` 与 `data/validation/phase2e_source_audit.json` | provenance only | 反复声明同一 canonical path/SHA，不构成替代 raw 数据副本 |
 
-因此当前结论仍是 `LOCAL_C_REPLAY_READY=NO`、`FORMAL_C_OUTCOME_RESEARCH=NOT_AUTHORIZED /
-NOT_RUN`。历史 T-known ST 状态和逐 bar known-at/vintage 证据保持未解决。
+只读核验记录见 [`daily_k_integrity_check.json`](../../data/research/c_pre_outcome_design_v1/daily_k_integrity_check.json)。
+该记录 SHA-256 为 `2a0496e3414b4bd43969f66f7cf93c2b7a1e4a698266abdc74243f662799f939`；独立协议草案
+[`c_pre_outcome_preregistration_protocol_v1.md`](c_pre_outcome_preregistration_protocol_v1.md)
+SHA-256 为 `c74447608490fdd7068ea4a018dc3be31358198d3570ead878e5095cc09befd3`。
+因此当前结论是：外部 artifact identity `VERIFIED`，但 `LOCAL_C_REPLAY_READY=NO`、
+`FORMAL_C_OUTCOME_RESEARCH=NOT_AUTHORIZED / NOT_RUN`。历史 T-known ST 状态和逐 bar
+known-at/vintage 证据保持未解决。
+
+## 证据状态盘点
+
+以下状态只描述证据强度，不把 manifest 声明、采集日期或当前名称升级为历史可见性证明：
+
+| 证据项 | 状态 | 证据路径/说明 |
+| --- | --- | --- |
+| daily-K 外部字节大小/SHA | `VERIFIED` | `daily_k_integrity_check.json`；实际 `180203424` bytes，SHA 与 `phase2e.raw.daily_k` 声明一致；仅证明 artifact identity |
+| C worktree canonical daily-K | `MISSING` | `data/research/c_pre_outcome_design_v1/data_dependency_check.json`：`daily_k_local_present=false`；未运行本地 C replay |
+| OHLCV 字段与 raw volume 语义 | `DECLARED_ONLY` | `core_signal_validation_manifest.json`；字段/语义有 manifest 声明，但本轮未把外部文件接入 C |
+| 复权与 T-anchor event filter | `DECLARED_ONLY` | 同一 manifest 的 `date < ex_date <= T` 声明；未来 event 排除规则可写入 protocol，但逐 bar vintage 仍缺 |
+| 交易日历与 session mapping | `VERIFIED` | C metadata check 的 769 个连续 XSHG sessions、Asia/Shanghai 和现有 helper；这不是 PIT 证明 |
+| 历史 T-known ST/*ST | `UNRESOLVED` | manifest 没有逐 T status/name history；不得用当前名称回填 |
+| per-bar known-at/vintage | `UNRESOLVED` | manifest 明确 `known_at_vintage_proof=false`；采集日期不等于历史可见时间 |
+| 涨跌停 price/tick 与逐 bar 触及顺序 | `MISSING` | 日线文件/当前 C metadata 没有合法 T-known limit price/tick/intraday sequence；炸板保持 `UNAVAILABLE` |
+| T+1 执行政策 | `VERIFIED` | C 规则固定 T-close signal、最早 T+1 reference、new-position no-same-day-sell |
+| T+1 实际 fill/可成交数量 | `MISSING` | 无合法盘中/order-book/actual-fill 证据；只能记录 `EXECUTION_UNCERTAIN` 分类 |
+| 调整因子本地身份 | `VERIFIED` | 现有 `data_dependency_check.json` 的 declared/local SHA `MATCH`；这不补足历史 PIT 证据 |
 
 ## 字段、覆盖与复权
 
@@ -142,5 +166,6 @@ close location、阶段前高附近的 daily stall proxy 和重复失败 push。
 6. 若研究炸板，valid T-known limit price/tick 和其 round/首日规则；否则此特征维持
    `UNAVAILABLE`。
 
-当前结论：数据接口和定义方向支持继续做 Sol audit；数据证据还不足以启动新版 C 的正式
-历史收益研究。
+当前结论：数据接口、daily-K artifact identity 和定义方向支持继续做 Sol audit；数据证据
+仍不足以启动新版 C 的正式历史收益研究。协议草案当前只到
+`C_DATA_EVIDENCE_AND_PROTOCOL_READY_FOR_SOL_DECISION`，不等同于参数采纳或 outcome 授权。

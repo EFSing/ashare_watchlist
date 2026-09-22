@@ -33,7 +33,42 @@
   `as_of_date=2026-09-22`, `trigger_source=manual`, `allow_weekend_backfill=false`。#82 可先单独作为
   诊断增强合并，但不得表述为修复根因；本调查未写 runtime-state、未触发生产，Formal B、Final OOS
   与历史证据均未改写。
-## 2026-09-22 — C_PRE_OUTCOME_EXIT_VOLUME_FIX_V1 ready for Sol audit
+
+## 2026-09-22 — C_DATA_EVIDENCE_AND_PROTOCOL_READY_FOR_SOL_DECISION
+
+- Classification: `research question + correctness/provenance gate`; no parameter selection,
+  promotion, Formal B change or merge.
+- Live recovery identity: branch/worktree=`codex/c-pre-outcome-design-ready-for-sol-audit` /
+  `D:\dev\ashare-watchlist-c-pre-outcome-design`; local, upstream and PR #81 head are all
+  `352d29f875e8db3db9afe02ab1648c80cbbc3a84`; `origin/master`=`4633b37ee6eb99bee527d8907e4e51768fd3f82a`.
+  PR #81 is `OPEN / DRAFT / CLEAN / mergeable`; exact-head push run `35708564194` and
+  pull-request run `35708568172` are both `success`.
+- Authorized read-only daily-K verification: external existing path
+  `D:\dev\ashare-watchlist\data\validation\core_signal_validation\raw\daily_k.parquet` has
+  size `180203424` bytes and SHA-256
+  `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426`, matching the frozen
+  declaration. C worktree canonical daily-K remains absent; no download, copy or overwrite was
+  performed and the external bytes were not used as C input. Evidence record:
+  `data/research/c_pre_outcome_design_v1/daily_k_integrity_check.json`, SHA-256
+  `2a0496e3414b4bd43969f66f7cf93c2b7a1e4a698266abdc74243f662799f939`.
+- Evidence status: daily-K identity=`VERIFIED`; manifest field/adjustment semantics=`DECLARED_ONLY`;
+  calendar mapping=`VERIFIED` for deterministic metadata/helper; historical T-known ST/*ST and
+  per-bar known-at/vintage=`UNRESOLVED`; limit/tick/intraday/actual fill=`MISSING`.
+- Independent protocol draft:
+  `docs/research/c_pre_outcome_preregistration_protocol_v1.md`, SHA-256
+  `c74447608490fdd7068ea4a018dc3be31358198d3570ead878e5095cc09befd3`. It keeps
+  `BALANCED_A`/`CONSERVATIVE_B`, proposes the former as main and latter as sensitivity without
+  outcome selection, fixes `RV>=2.0` as the price-plus-volume hypothesis and keeps robust-z only
+  observational, with explicit five-session repeated-failure, T-close/T+1, MFE/MAE and execution
+  boundaries. Draft only; Sol/user decision remains required.
+- Boundary: only C research docs, C data evidence and necessary governance text changed. No C future
+  outcome, Final OOS, forbidden directory, Formal B, shared production code, runtime-state, formal
+  artifact or scheduler was read or changed; no formal C backtest ran.
+- Decision/terminal: `NEEDS_MORE_EVIDENCE` /
+  `C_DATA_EVIDENCE_AND_PROTOCOL_READY_FOR_SOL_DECISION`. Next action is Sol/user audit; do not
+  merge, select parameters or start outcome research.
+
+## Historical snapshot — 2026-09-22 — C_PRE_OUTCOME_EXIT_VOLUME_FIX_V1 ready for Sol audit
 
 - Classification: `research question + correctness/provenance gate`; no product promotion and no
   Formal B change. This repair is limited to the early-defense price/volume observation semantics
@@ -62,7 +97,8 @@
 - Decision: `NEEDS_MORE_EVIDENCE`; terminal marker
   `C_PRE_OUTCOME_EXIT_VOLUME_FIX_READY_FOR_SOL_AUDIT`. Do not merge, read future returns, or
   start C outcome research.
-## 2026-09-22 — C_PRE_OUTCOME_CORRECTNESS_FIX_V1 ready for Sol re-audit
+
+## Historical snapshot — 2026-09-22 — C_PRE_OUTCOME_CORRECTNESS_FIX_V1 ready for Sol re-audit
 
 - Classification: research question + correctness/provenance gate; no product promotion and no
   Formal B change. User selected the new C direction; old C V0 is provenance only, old A stopped,
