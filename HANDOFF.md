@@ -54,9 +54,12 @@
 - Verification: C tests `9 passed`; relevant B/shared regression `92 passed`; full pytest
   `680 passed, 2 skipped, 10 warnings`; compileall and diff check pass. The two skips are the
   pre-existing large exact-date fixture absence.
+- Draft PR: [#81](https://github.com/EFSing/ashare_watchlist/pull/81) is open as Draft against
+  `master`, created at head `157d80133a35c9b797e2440151ccb98f3e038044`. This checkpoint changes
+  governance provenance only; verify the final pushed head and its exact-head CI live.
 - Decision: `NEEDS_MORE_EVIDENCE`; terminal marker
-  `C_PRE_OUTCOME_DESIGN_READY_FOR_SOL_AUDIT`. Next: commit/push this worktree, create a Draft PR,
-  verify exact-head CI, then stop for Sol audit. Do not merge, run provider acquisition, or start
+  `C_PRE_OUTCOME_DESIGN_READY_FOR_SOL_AUDIT`. Next: push this checkpoint, verify exact-head CI on
+  the final remote head, then stop for Sol audit. Do not merge, run provider acquisition, or start
   C formal returns research.
 
 ## 2026-09-22 — B_PROSPECTIVE_MONITOR_RECOVERY_V1 ready for user merge decision

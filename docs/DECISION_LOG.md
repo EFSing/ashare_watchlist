@@ -32,6 +32,11 @@
   自动启动 C outcome、参数选择、promotion 或 freeze。
 - verification：C tests `9 passed`；relevant B/shared regression `92 passed`；full pytest
   `680 passed, 2 skipped, 10 warnings`；compileall/diff check pass。内部验证不称为 Sol 审计通过。
+- delivery checkpoint：已创建 target=`master` 的 Draft PR
+  [#81](https://github.com/EFSing/ashare_watchlist/pull/81)，创建时 head 为
+  `157d80133a35c9b797e2440151ccb98f3e038044`。本 checkpoint 只更新治理 provenance；最终
+  remote head 与 exact-head CI 必须以 live GitHub 状态核对，不代表 Sol 审计通过或允许进入
+  C outcome 研究。
 
 ## 2026-09-20 — VOLUME_CARD_VISUALIZATION_AND_CLOUD_DELIVERY_V1
 

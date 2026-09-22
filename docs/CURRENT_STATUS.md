@@ -1,6 +1,6 @@
 # CURRENT STATUS
 
-更新时间：2026-09-21（Asia/Shanghai）
+更新时间：2026-09-22（Asia/Shanghai）
 
 本文件只记录当前有效状态；历史实现过程与旧 checkpoint 以 Git history / PR / CI 为 provenance，
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
@@ -32,8 +32,10 @@
 - Verification: C `9 passed`; relevant B/shared regression `92 passed`; full `680 passed,
   2 skipped, 10 warnings`; compileall and diff check pass.
 - Decision: `NEEDS_MORE_EVIDENCE`; terminal
-  `C_PRE_OUTCOME_DESIGN_READY_FOR_SOL_AUDIT`. Draft PR and exact-head CI are the next bounded
-  delivery steps; no automatic merge or C outcome access.
+  `C_PRE_OUTCOME_DESIGN_READY_FOR_SOL_AUDIT`. Draft PR
+  [#81](https://github.com/EFSing/ashare_watchlist/pull/81) is open against `master`, created at
+  head `157d80133a35c9b797e2440151ccb98f3e038044`; final head and exact-head CI remain live
+  GitHub state to verify after this checkpoint push. No automatic merge or C outcome access.
 
 ## Current task — B_PROSPECTIVE_MONITOR_RECOVERY_V1 — 2026-09-22
 
