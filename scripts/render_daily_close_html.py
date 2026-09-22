@@ -576,7 +576,17 @@ def _review_rows(
                 continue
             captured = status == REVIEW_POINT_CAPTURED
             return_value = point.get("return_pct") if captured else None
-            path_status = point.get("path_status") if captured else None
+            path_status_code = point.get("path_status") if captured else None
+            if (
+                captured
+                and return_value is None
+                and signal.get("execution_verification_status") == UNVERIFIED_MISSING_EXECUTION_OBSERVATION
+            ):
+                # A captured fixed-point quote is not evidence that the prior
+                # execution path was complete.  Keep true pending/untriggered
+                # rows separate from a path that failed closed at a missing
+                # required execution session.
+                path_status_code = PATH_UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH
             snapshot_status = _status_text(status) if captured else _MISSING
             source_mode = point.get("source_mode")
             if source_mode is None and isinstance(point.get("provenance"), Mapping):
@@ -602,7 +612,8 @@ def _review_rows(
                     "review_date": scheduled,
                     "horizon_return": _percent(return_value, signed=True) if return_value is not None else _UNVERIFIED,
                     "horizon_return_value": return_value,
-                    "path_status": _status_text(path_status),
+                    "path_status_code": path_status_code,
+                    "path_status": _status_text(path_status_code),
                     "snapshot_status": snapshot_status,
                     "node_open": point.get("open"),
                     "node_high": point.get("high"),
@@ -1877,8 +1888,37 @@ def _average_horizon_return(rows: list[Mapping[str, Any]]) -> str:
     return _percent(sum(values) / len(values), signed=True) if values else '—'
 
 
+def _horizon_return_is_calculable(row: Mapping[str, Any]) -> bool:
+    value = row.get('horizon_return_value')
+    if value is None:
+        rendered = str(row.get('horizon_return') or '')
+        if rendered.endswith('%'):
+            rendered = rendered[:-1]
+        try:
+            value = float(rendered)
+        except (TypeError, ValueError):
+            value = None
+    return isinstance(value, (int, float))
+
+
+def _review_path_code(row: Mapping[str, Any]) -> Any:
+    return row.get('path_status_code') or row.get('path_status')
+
+
 def _research_panel(horizon: str, title: str, rows: list[Mapping[str, Any]]) -> str:
     captured = sum(row.get('snapshot_status') == 'CAPTURED' for row in rows)
+    calculable = sum(_horizon_return_is_calculable(row) for row in rows)
+    untriggered = sum(
+        str(_review_path_code(row) or '').upper()
+        in {'PENDING', 'UNTRIGGERED_ACTIVE', 'EXPIRED_UNTRIGGERED'}
+        for row in rows
+    )
+    path_unverified = sum(
+        _review_path_code(row)
+        in {PATH_UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH, UNVERIFIED_MISSING_EXECUTION_OBSERVATION}
+        for row in rows
+    )
+    average_return = _average_horizon_return(rows)
     detail = _review_table(rows) if rows else '<p class="empty-state">今日无该节点到期信号。</p>'
     return (
         f'<article class="research-panel"><div class="research-panel-head">'
@@ -1886,7 +1926,10 @@ def _research_panel(horizon: str, title: str, rows: list[Mapping[str, Any]]) -> 
         f'<span class="badge {"positive" if captured else "neutral"}">{_esc(_integer(captured, "0"))} 已采集</span></div>'
         f'<div class="research-stats"><div><span>到期</span><strong>{_esc(_integer(len(rows), "0"))}</strong></div>'
         f'<div><span>已采集</span><strong>{_esc(_integer(captured, "0"))}</strong></div>'
-        f'<div><span>平均收益</span><strong class="{_numeric_tone(_average_horizon_return(rows))}">{_esc(_average_horizon_return(rows))}</strong></div></div>'
+        f'<div><span>可计算</span><strong>{_esc(_integer(calculable, "0"))}</strong></div>'
+        f'<div><span>未触发</span><strong>{_esc(_integer(untriggered, "0"))}</strong></div>'
+        f'<div><span>路径待核验</span><strong>{_esc(_integer(path_unverified, "0"))}</strong></div>'
+        f'<div><span>平均收益</span><strong class="{_numeric_tone(average_return)}">{_esc(average_return)}</strong></div></div>'
         f'<details class="research-detail"><summary>查看 { _esc(horizon) } 明细</summary>{detail}</details>'
         '</article>'
     )
