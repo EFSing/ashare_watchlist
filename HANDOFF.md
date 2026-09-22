@@ -21,6 +21,10 @@
   compileall and `git diff --check` passed; browser preview covered desktop plus 320, 375, 390,
   and 430 CSS px nested mobile viewports. The 2026-09-21 report/latest artifact remains
   unchanged at SHA-256 `d383fbd485b72c810d8e5fbf7149304098678d01988df99ac1228b3c31fdac90`.
+- Intake reconciliation: the older 2026-09-21 PR #77 awaiting-merge note was stale relative to
+  live GitHub; it is recorded as `PROJECT_GOVERNANCE_STATE_CONFLICT` and superseded by merged
+  PR #77 / live `origin/master=fd33b8b…`. No task-dependent strategy, artifact, or research-state
+  conflict remained before this UI fix.
 - Next: wait for the final PR head's exact-head CI and the user's merge decision; do not merge
   automatically. `Final OOS=SEALED / UNREAD` and the forbidden validation directory remain
   untouched.
