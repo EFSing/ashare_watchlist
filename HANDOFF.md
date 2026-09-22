@@ -34,14 +34,15 @@
   诊断增强合并，但不得表述为修复根因；本调查未写 runtime-state、未触发生产，Formal B、Final OOS
   与历史证据均未改写。
 
-## 2026-09-22 — C_PRE_OUTCOME_DESIGN_V1 ready for Sol audit
+## 2026-09-22 — C_PRE_OUTCOME_CORRECTNESS_FIX_V1 ready for Sol re-audit
 
 - Classification: research question + correctness/provenance gate; no product promotion and no
   Formal B change. User selected the new C direction; old C V0 is provenance only, old A stopped,
   old D excluded, RS/VCB conclusions retained.
 - Live intake: `origin/master=4633b37ee6eb99bee527d8907e4e51768fd3f82a`; PR #77/#78/#79/#80 are
-  merged, and master `test` CI for #80 merge head is `success`. Governance files did not contain
-  a stale #80-pending statement, so no unrelated reconciliation edit was needed.
+  merged, and master `test` CI for #80 merge head is `success`. The older #80 open/awaiting-merge
+  wording below is retained as a historical snapshot only; no unrelated governance history is
+  being cleaned.
 - Independent branch/worktree: `codex/c-pre-outcome-design-ready-for-sol-audit` /
   `D:\dev\ashare-watchlist-c-pre-outcome-design`; C-only module, CLI, tests and output namespace.
 - Delivered design: `docs/research/c_pre_outcome_design_v1.md` and
@@ -51,16 +52,16 @@
 - Data status: OHLCV/calendar/T-anchor metadata supports design; local `daily_k.parquet` is absent,
   historical per-bar vintage proof is false, and T-known historical ST/*ST status is unresolved.
   Formal C outcome research is not ready.
-- Verification: C tests `9 passed`; relevant B/shared regression `92 passed`; full pytest
-  `680 passed, 2 skipped, 10 warnings`; compileall and diff check pass. The two skips are the
+- Verification: C tests `16 passed`; B isolation regression `41 passed`; full pytest
+  `687 passed, 2 skipped, 10 warnings`; compileall and diff check pass. The two skips are the
   pre-existing large exact-date fixture absence.
-- Draft PR: [#81](https://github.com/EFSing/ashare_watchlist/pull/81) is open as Draft against
-  `master`, created at head `157d80133a35c9b797e2440151ccb98f3e038044`. This checkpoint changes
-  governance provenance only; verify the final pushed head and its exact-head CI live.
+- Draft PR: [#81](https://github.com/EFSing/ashare_watchlist/pull/81) remains open as Draft against
+  `master`; this repair starts from Sol-audited head `edd3039a1d9815eb3bdf4301699cb1fdc90dc815`.
+  Verify the final pushed head and its exact-head CI live.
 - Decision: `NEEDS_MORE_EVIDENCE`; terminal marker
-  `C_PRE_OUTCOME_DESIGN_READY_FOR_SOL_AUDIT`. Next: push this checkpoint, verify exact-head CI on
-  the final remote head, then stop for Sol audit. Do not merge, run provider acquisition, or start
-  C formal returns research.
+  `C_PRE_OUTCOME_CORRECTNESS_FIX_READY_FOR_SOL_REAUDIT`. Next: push the repair, verify exact-head CI
+  on the final remote head, then stop for Sol re-audit. Do not merge, run provider acquisition, or
+  start C formal returns research.
 
 ## 2026-09-22 — B_PROSPECTIVE_MONITOR_RECOVERY_V1 ready for user merge decision
 
@@ -86,7 +87,8 @@
   未读取或触碰。
 - Branch/worktree：`codex/b-prospective-monitor-recovery-v1` /
   `D:\dev\ashare-watchlist-b-prospective-monitor-recovery-v1`，基于实时 `origin/master`。
-- Delivery：PR #80 https://github.com/EFSing/ashare_watchlist/pull/80 已创建为非 Draft，
+- Historical snapshot (superseded by the live merge above)：Delivery：PR #80
+  https://github.com/EFSing/ashare_watchlist/pull/80 已创建为非 Draft，
   final head=`25987fb4b85881c1ddf2541d7001bb2b5867ca28`；push correctness run=`35694717548`
   与 pull_request correctness run=`35694781177` 均为 `success` 且 head exact，PR live 状态为
   `OPEN / CLEAN / mergeable`。不自动合并、不触发生产或正式通知。

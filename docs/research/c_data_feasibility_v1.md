@@ -32,7 +32,7 @@ Final OOS，也没有重写任何正式历史 artifact。
 | 依赖 | 观察结果 | 状态 |
 | --- | --- | --- |
 | OHLCV | manifest adjustment semantics 指明 `open/high/low/close` 价格字段和 `raw unadjusted volume` | `DECLARED_IN_FROZEN_MANIFEST` |
-| daily history | universe 语义为 T 有 raw daily-K row 且截至 T 至少 120 bars | `SCHEMA_SUPPORTED`；本 worktree 的 `daily_k.parquet` 缺失 |
+| daily history | universe 语义为 T 有 raw daily-K row 且截至 T 至少 120 bars | `SCHEMA_SUPPORTED`；本 C worktree 的 `daily_k.parquet` 缺失；不推断其他 worktree 或全项目无数据 |
 | index/calendar | `continuous_xshg_sessions_within_frozen_validation_interval`，Asia/Shanghai | `PASS_METADATA` |
 | price adjustment | event filter `date < ex_date <= T`，按 ex_date ascending，T-anchor formula | `SIGNAL_PRICE_DEFINITION_AVAILABLE` |
 | future events | manifest 记录数据截止后仍有 42 个 corporate-action rows | `MUST_EXCLUDE_FROM_T_SIGNAL` |
@@ -54,9 +54,11 @@ observation dates and acquisition hash, but no per-bar historical vintage timest
 - 正式 outcome 研究需取得逐 bar vintage evidence，或在 protocol 中明确把结论限制为
   `PARTIAL_UNVERIFIED`，并得到 Sol/用户对研究范围的明确接受。
 
-manifest 的确定性元数据存在，但本地工作树没有声明的 `daily_k.parquet`（只读检查结果为
-`daily_k_local_present=false`）。本轮不从 provider 或 Drive 补取，也不以已有 B 的 replay
-输出替代 C 输入。于是当前状态为：
+manifest 的确定性元数据存在，但本 C worktree 没有声明的 `daily_k.parquet`（只读检查结果为
+`daily_k_local_present=false`、`daily_k_local_sha256_status=NOT_VERIFIABLE_MISSING`）。该状态
+只描述本 worktree 的可恢复性，不推断其他机器、其他 worktree 或全项目无数据；若文件未来出现，
+仍必须单独以声明 SHA 实际计算后才能标记 `MATCH`，不能仅凭文件存在证明身份。本轮不从 provider
+或 Drive 补取，也不以已有 B 的 replay 输出替代 C 输入。于是当前状态为：
 
 `METADATA_REPLAY_CONTRACT=PASS`，`LOCAL_C_REPLAY_READY=NO`，
 `FORMAL_C_OUTCOME_RESEARCH=NOT_AUTHORIZED / NOT_RUN`。

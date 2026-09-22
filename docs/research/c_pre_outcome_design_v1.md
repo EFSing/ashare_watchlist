@@ -71,7 +71,8 @@ RS/VCB 的既有研究结论保持原样；旧 A 已停止推进，旧 D 排除�
 
 一根 bar 的必需字段为 `date, open, high, low, close, volume`。所有窗口都按完成的
 XSHG trading session 计数，不按自然日计数。价格必须有限且为正，`high >= open/close`，
-`low <= open/close`，volume 非负，日期严格递增。
+`low <= open/close`，volume 非负，日期必须是可解析的真实日历日期且严格递增；日期字符串
+本身不能用自然日占位符替代交易日序列。
 
 本轮建议的信号 basis 是 T 时可获得的 raw/unadjusted volume 与 T-anchor 价格序列。调整
 因子只可按 T 已知的事件构造 T-anchor 价格；不能把数据截止日之后才出现的 corporate action
@@ -142,13 +143,16 @@ manifest 没有历史逐日 ST 状态，因此该项目前是 `UNRESOLVED_FOR_HI
 
 ### 4.2 事先可确定的支撑
 
-先在 T 前缀中寻找已确认的 pivot low：半径 `r` 的低点 `j` 满足
+先在严格的 T 前缀 `bars[:T]` 中寻找已确认的 pivot low：半径 `r` 的低点 `j` 满足
 
 \[
   low_j \le min(low_{j-r:j})\quad and\quad low_j \le min(low_{j+1:j+r+1})
 \]
 
-右侧 `r` 根也必须已经出现在 T 之前，所以不会用 T 之后的数据确认历史支撑。
+右侧 `r` 根也必须已经出现在 T 之前，且代码只在 `bars[:T]` 上计算 pivot；因此右侧窗口
+最多结束于 T-1，不使用 T 或 T 之后的数据。输出身份固定为
+`pivot_confirmation_timing=T_MINUS_ONE_CLOSE`、`pivot_uses_t_bar=false`。近期反弹高点 `R`
+和 stage peak 使用同一时间点定义。
 
 选定回踩的两个低点 `L1, L2` 后，支撑是预先存在的 zone，而不是用 T 日低点倒推：
 
@@ -156,8 +160,22 @@ manifest 没有历史逐日 ST 状态，因此该项目前是 `UNRESOLVED_FOR_HI
 S_{floor}=min(L1,L2),\quad S_{ceiling}=max(L1,L2)
 \]
 
-可选展示 buffer 为 `support_tolerance × S_floor`，当前候选是 1.0%（A）或 1.5%（B）。
-buffer 只影响“接近支撑/跌破支撑”的边界展示；不得在看到结果后扩大 zone。
+候选容差 `support_tolerance × S_floor`（A=1.0%，B=1.5%）当前仅是展示字段，代码输出
+`support_tolerance_role=DISPLAY_ONLY`；它不改变支撑 floor、entry candidate 或 exit event，
+也不能在看到结果后扩大 zone。
+
+支撑事件严格分开记录：
+
+- `T_INTRADAY_PUNCTURE_RECOVERED`：`low_T < S_floor` 且 `close_T >= S_floor`；这是 T 日盘中
+  刺破后收回的日线 proxy，不等同收盘跌破；
+- `T_CLOSE_BREAK`：`close_T < S_floor`；这是 T 日收盘跌破；
+- `PULLBACK_SUPPORT_DESTROYED`：在完整的 pre-T 回踩区间 `P+1:T-1` 内至少一根 bar 的
+  `close < S_floor`；T 日事件不混入此字段；
+- 回踩期间只有 low 下破但当日收回时，单独计入
+  `PULLBACK_INTRADAY_PUNCTURE_RECOVERED`，不填作收盘破坏。
+
+`entry_candidate` 要求没有 pre-T `PULLBACK_SUPPORT_DESTROYED` 且 T 日没有 `T_CLOSE_BREAK`；
+T 日的 `T_INTRADAY_PUNCTURE_RECOVERED` 仍保留为显式诊断，不因展示容差静默改变候选。
 
 ### 4.3 浅回踩
 
@@ -212,6 +230,8 @@ T 日 confirmation 为全部条件同时满足：
 4. 收盘位置
    `CLV_T=(close_T-low_T)/(high_T-low_T)` 至少为 0.60（零波幅 bar 使用显式边界规则）；
 5. `support_floor`、`R`、stage resistance 来自 T 之前已确认的结构。
+6. pre-T 回踩没有支撑收盘破坏，且 T 日没有收盘跌破；若 T 日只是盘中刺破后收回，保留
+   独立状态，不与收盘跌破混称。
 
 这不是要求突破阶段前高，也不是近期 60 日新高条件。T 只产生 `entry_candidate`；
 实际能否在 T+1 成交要另分执行状态。
@@ -225,13 +245,9 @@ T 日 confirmation 为全部条件同时满足：
   resistance\_distance=\frac{stage\_prior\_high-close_T}{close_T}
 \]
 
-“靠近前高”是观察字段，不默认成为 entry hard gate。当前 A/B 的 near-resistance 容差分别
-为 1.0%/1.5%；Sol 需要决定它是：
-
-- 仅作为入场后出场/拥挤度描述；或
-- 作为入场排除条件，要求保留事前固定的 headroom。
-
-如果采用 headroom，必须在 outcome access 前锁定公式和阈值；不得在看到卖飞后取消该 gate。
+“靠近前高”是观察字段，不成为 entry hard gate。当前 A/B 的 near-resistance 容差分别为
+1.0%/1.5%，只用于展示前高距离和前高附近事件；不得因为历史结果优化该容差或把它静默
+改成入场排除条件。
 
 ## 5. 成交量、K 线和“炸板”的独立定义
 
@@ -265,6 +281,10 @@ T 日 confirmation 为全部条件同时满足：
 
 “CONTRACTED_OBSERVABLE”只说明成交量下降；不能写成吸筹、卖方耗尽或资金流入已经被证明。
 
+当前代码已实现：回踩/参考区间中位量、回踩相对参考中位量比、三档 path label，以及上涨日/
+下跌日计数和量能中位数。代码未实现每日 ratio 序列或末段 ratio；它们仍是未来研究设计，
+不能在输出中被当作已实现指标。
+
 ### 5.3 上涨日与下跌日量能关系
 
 在同一回踩区间内，按 `close_i > close_{i-1}`、`close_i < close_{i-1}`、相等分别分类，
@@ -274,14 +294,16 @@ T 日 confirmation 为全部条件同时满足：
   UD=\frac{median(volume_{up})}{median(volume_{down})}
 \]
 
-若任一方向少于 2 日，`UD=INSUFFICIENT_DIRECTIONAL_DAYS`。同时保留 up/down 日数，避免
-用一个极少数上涨日制造量能不对称故事。
+若任一方向少于 2 个有效日，`UD` 数值保持缺失并输出
+`up_down_ratio_status=INSUFFICIENT_DIRECTIONAL_DAYS`；若下跌日中位量为零则输出
+`ZERO_DOWN_DIRECTIONAL_VOLUME`，也不填中性值。同时保留 up/down 日数，避免用一个极少数
+上涨日制造量能不对称故事。
 
 ### 5.4 反弹量价配合
 
-从 L2+1 到 R/T 记录：反弹收益、正收盘日比例、正收盘日 volume median、反弹 volume
-median 相对回踩基准的 ratio，以及 T 日 `RV/z/CLV/body`。未来比较可以把这些字段合成为
-一个事前固定的 volume-confirmation gate，但本轮不把它写成已选硬条件。
+当前代码实现 T 日 `RV/z/CLV/body` 和回踩 path/UD 观察。反弹收益、正收盘日比例、正收盘
+日 volume median、反弹 volume median 相对回踩基准 ratio 尚未实现；它们只是未来比较设计，
+本轮没有将 volume 写成入场 hard gate。
 
 建议只比较两个清晰版本：
 
@@ -303,7 +325,8 @@ median 相对回踩基准的 ratio，以及 T 日 `RV/z/CLV/body`。未来比较
 - 是否 close 仍低于 stage resistance。
 
 候选 observable flag：`RV >= 2.0`、`abs(body_return) <= 0.5%`、`close_location <= 0.60` 同时
-成立，命名为 `HIGH_VOLUME_LOW_PRICE_PROGRESS`。这不是“派筹已证明”；机制解释保持
+成立，命名为 `HIGH_VOLUME_LOW_PRICE_PROGRESS`。它本身不包含前高距离；出场提前兑现候选
+只有在当前日也满足 H 附近受阻时才可消费它。它不是“派筹已证明”；机制解释保持
 `UNKNOWN / HYPOTHESIS`，可替代解释包括新闻/市场波动、涨停规则、拥挤交易和价格离散化。
 
 ### 5.6 K 线实体、影线、连续冲高失败和炸板
@@ -318,8 +341,9 @@ lower=\frac{min(open,close)-low}{high-low}
 \]
 
 前高失败 push 定义为：在最近 A=5、B=5 个 session 中，`high >= H(1-tolerance)`、
-`close < H`、`CLV <=0.60`；记录失败次数和从 T 向后连续失败次数。连续失败不是自动派筹，
-只是重复未有效推进的 observable。
+`close < H`、`CLV <=0.60`；入场后出场观察只从持仓建立后的 `entry_index+1` 开始记录。记录
+失败次数和从当前观察日向后连续失败次数。连续失败不是自动派筹，只是重复未有效推进的
+observable。
 
 “炸板”只在输入含有合法、T-known 的 `limit_up_price` 与 `tick_size` 时计算：
 
@@ -339,12 +363,13 @@ T close 观察，最早下一可卖 session 执行参考。
 
 | 层级 | observable 定义 | 默认动作语义 |
 | --- | --- | --- |
-| 首次预警 | 首次接近 H，high 触及 tolerance、close 低于 H、CLV <=0.60；尚无重复失败或明显转弱 | `FIRST_RESISTANCE_REJECTION_WARNING`，只预警，不卖出 |
-| 提前兑现候选 | 最近窗口内至少 2 次失败 push，且出现 `HIGH_VOLUME_LOW_PRICE_PROGRESS` 或至少 2 根阴线/上影拒绝；当前 close 高于 entry reference | `EARLY_PROFIT_TAKING_CANDIDATE`，获利退出候选 |
-| 晚期支撑破坏 | `close_t < support_floor`；当前 primary candidate 为一根收盘破坏，two-close confirmation 作为待审 sensitivity | `KEY_SUPPORT_BREAK`，若仍盈利是保护利润，若不盈利是入场后风险退出 |
+| 首次预警 | 持仓建立后当前日首次接近 H，high 触及 tolerance、close 低于 H、CLV <=0.60；没有更早的 post-entry failed push | `FIRST_RESISTANCE_REJECTION_WARNING`，只预警，不卖出 |
+| 提前兑现候选 | 当前日确实在 H 附近再次受阻；持仓建立后窗口内至少 2 次 failed push，且当前日满足 `HIGH_VOLUME_LOW_PRICE_PROGRESS`（同时在 H 附近）或窗口内至少 2 根 H 附近的阴线/上影拒绝；当前 close 高于 entry reference | `EARLY_PROFIT_TAKING_CANDIDATE`，确认的获利退出候选 |
+| 晚期支撑破坏 | `close_t < support_floor`；T 日盘中刺破后收回不计作收盘破坏 | `KEY_SUPPORT_BREAK`，若仍盈利是保护利润，若不盈利是入场后风险退出 |
 
 一次首次预警不能自动升级为出场；同一日多个 flags 保留，优先级为支撑破坏 > 提前兑现 >
-首次预警。真正的 sell 只能从 entry session 的下一个 XSHG session 开始。
+首次预警。异常量若远离 H，只能保留为 observable，不能直接和历史失败次数组合成提前退出。
+真正的 sell 只能从 entry session 的下一个 XSHG session 开始。
 
 ### 6.2 获利退出与入场后风险退出
 
@@ -381,7 +406,7 @@ T close 观察，最早下一可卖 session 执行参考。
 
 | 能力 | 当前结论 | 对正式 C 研究的影响 |
 | --- | --- | --- |
-| 日线 OHLCV | manifest 声明 `open/high/low/close/volume`，volume 为 raw unadjusted | 价格结构、volume ratio 公式可设计；本地 `daily_k.parquet` 缺失，不能在本轮 replay |
+| 日线 OHLCV | manifest 声明 `open/high/low/close/volume`，volume 为 raw unadjusted | 价格结构、volume ratio 公式可设计；本 C worktree 的 `daily_k.parquet` 缺失，不能在本轮 replay；不推断全项目无数据 |
 | 交易日历 | 769 个连续 XSHG session，Asia/Shanghai，现有 calendar helper | T-close/T+1 窗口可确定 |
 | 复权 | T-anchor 价格公式和 raw volume 已声明；corporate-action event filter 为 `date < ex_date <= T` | 可定义信号 basis；逐 bar vintage proof 仍缺失 |
 | known-at / PIT | `known_at_vintage_proof=false` | retrospective outcome 研究 `PARTIAL_UNVERIFIED`，不得直接宣称严格 PIT |
@@ -390,7 +415,7 @@ T close 观察，最早下一可卖 session 执行参考。
 | 日成交量 | 可算 relative volume、path、UD、stall proxy | 可研究 observable；不能证明吸筹/派筹 |
 | 盘中/成交 | 当前没有合法盘中序列、order book 或 actual fill | 炸板时间/卖出成交标 `UNKNOWN/EXECUTION_UNCERTAIN`，不得模拟 T 日盘中卖出 |
 | 涨停/停牌/NO_TRADE | quote trade-state helper 可识别部分显式状态；日线本身不够推断 fill | entry/exit 必须保留 `NO_TRADE`、limit-state、missing-open 和 uncertain 分类 |
-| 可重放性 | manifest 有 source/hash/determinism 元数据；核心 K 本地缺失 | metadata 可复核，实际 C replay 需另行授权恢复合法输入 |
+| 可重放性 | manifest 有 source/hash/determinism 元数据；核心 K 在本 C worktree 缺失且没有可验证本地 SHA | metadata 可复核，实际 C replay 需另行授权恢复合法输入；文件存在也不能替代 SHA 校验 |
 
 因此：新版 C 的**研究前设计和纯函数验证可继续**；正式历史收益研究当前不 ready，至少
 等待合法可恢复的 daily-K 与 T-known ST 状态证据，且需要解决或明确限定逐 bar known-at
@@ -472,7 +497,8 @@ flow）必须列为限制，不得用当前数据回填。
 ## 10. 本轮交付文件与验证
 
 - `scripts/c_pre_outcome_design.py`：C 独立规则纯函数、数据检查 CLI；
-- `tests/test_c_pre_outcome_design.py`：9 个合成/边界测试；
+- `tests/test_c_pre_outcome_design.py`：C 聚焦合成/边界回归，覆盖趋势反例、支撑事件、严格
+  pre-T pivot、出场时序、量能最小样本、日期和 T/T+1 边界；
 - `data/research/c_pre_outcome_design_v1/data_dependency_check.json`：只读 manifest/本地
   存在性检查，包含 `c_outcome_accessed=false` 等边界字段；
 - 本文件与 `c_data_feasibility_v1.md`：规则、数据、比较方法和审计问题。
@@ -481,4 +507,4 @@ flow）必须列为限制，不得用当前数据回填。
 要创建这些文件，路径必须继续位于 `data/research/c_pre_outcome_design_v1/` 下，并使用新的
 明确 protocol/spec identity。
 
-终态：`C_PRE_OUTCOME_DESIGN_READY_FOR_SOL_AUDIT`。
+终态：`C_PRE_OUTCOME_CORRECTNESS_FIX_READY_FOR_SOL_REAUDIT`。

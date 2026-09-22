@@ -12,8 +12,8 @@
   future returns 的确定性 observable，并在正式研究前暴露时间可用性和执行限制；它不改变
   Formal B，也不阻止 B 当前收盘作业。
 - live reconciliation：实时 `origin/master=4633b37ee6eb99bee527d8907e4e51768fd3f82a`；
-  #77/#78/#79/#80 已合并，#80 merge-head `test` CI 为 success。当前治理文件没有把 #80
-  写成待合并，因此没有产生无关的 `PROJECT_GOVERNANCE_STATE_CONFLICT` 修正文档。
+  #77/#78/#79/#80 已合并，#80 merge-head `test` CI 为 success。较早治理快照中的 #80
+  待合并文字仅作历史 provenance，不代表实时状态；不清理无关历史。
 - identity/boundary：独立 `C_PRE_OUTCOME_DESIGN_V1`、`C_MAIN_TREND_RETEST_RESEARCH_V1`、
   `codex/c-pre-outcome-design-ready-for-sol-audit` worktree 和
   `data/research/c_pre_outcome_design_v1/`。旧 C V0 仅为 provenance；旧 A 停止、旧 D 排除，

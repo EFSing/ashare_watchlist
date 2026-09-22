@@ -6,7 +6,7 @@
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
-## 2026-09-22 — C_PRE_OUTCOME_DESIGN_V1 ready for Sol audit
+## 2026-09-22 — C_PRE_OUTCOME_CORRECTNESS_FIX_V1 ready for Sol re-audit
 
 - Classification: `research question + correctness/provenance gate`; not a product blocker for
   existing Formal B and not a promotion/freeze decision.
@@ -15,8 +15,9 @@
   T-close confirmation. Old C V0 is provenance only; its 30% run-up, 5%–22% pullback, Fib/MA20
   and volume conditions are not inherited. No recent 60-session breakout gate is required.
 - Live reconciliation: `origin/master=4633b37ee6eb99bee527d8907e4e51768fd3f82a`; #77/#78/#79/#80
-  are merged and #80 master `test` CI is successful. No stale #80-pending text was present in the
-  governance files, so no unrelated governance correction was made.
+  are merged and #80 master `test` CI is successful. The older #80 open/awaiting-merge wording in
+  the retained checkpoint below is a historical snapshot only; no unrelated governance history is
+  being cleaned.
 - Independent branch/worktree: `codex/c-pre-outcome-design-ready-for-sol-audit` /
   `D:\dev\ashare-watchlist-c-pre-outcome-design`. C module, entry CLI, tests and
   `data/research/c_pre_outcome_design_v1/` are isolated; Formal B, B returns diagnostics, runtime
@@ -29,15 +30,17 @@
   deterministic hashes; local `daily_k.parquet` is absent, historical per-bar vintage proof is
   false, and historical T-known ST/*ST status is unresolved. Status is
   `DESIGN_SUPPORTED / FORMAL_OUTCOME_RESEARCH_NOT_READY`.
-- Verification: C `9 passed`; relevant B/shared regression `92 passed`; full `680 passed,
-  2 skipped, 10 warnings`; compileall and diff check pass.
+- Verification: C `16 passed`; B isolation regression `41 passed`; full `687 passed, 2 skipped,
+  10 warnings`; compileall and diff check pass.
 - Decision: `NEEDS_MORE_EVIDENCE`; terminal
-  `C_PRE_OUTCOME_DESIGN_READY_FOR_SOL_AUDIT`. Draft PR
-  [#81](https://github.com/EFSing/ashare_watchlist/pull/81) is open against `master`, created at
-  head `157d80133a35c9b797e2440151ccb98f3e038044`; final head and exact-head CI remain live
-  GitHub state to verify after this checkpoint push. No automatic merge or C outcome access.
+  `C_PRE_OUTCOME_CORRECTNESS_FIX_READY_FOR_SOL_REAUDIT`. Draft PR
+  [#81](https://github.com/EFSing/ashare_watchlist/pull/81) remains open against `master`; this
+  repair starts from Sol-audited head `edd3039a1d9815eb3bdf4301699cb1fdc90dc815`, and final head/
+  exact-head CI remain live GitHub state to verify after push. No automatic merge or C outcome access.
 
-## Current task — B_PROSPECTIVE_MONITOR_RECOVERY_V1 — 2026-09-22
+## Historical checkpoint — B_PROSPECTIVE_MONITOR_RECOVERY_V1 — 2026-09-22
+
+本节保留 PR #80 合并前的交付快照；实时状态以上方 reconciliation 为准，PR #80 已合并。
 
 本轮分类为 `product blocker + correctness/data-integrity risk`：只恢复 Formal B 旁路的真实
 前瞻 Shadow capture，不改变 Formal B、Main Board universe、评分/排序/触发/止损/目标/RR/T+1、

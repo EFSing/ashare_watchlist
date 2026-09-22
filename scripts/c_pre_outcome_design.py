@@ -43,6 +43,8 @@ SAME_DAY_SELL_POLICY = "PROHIBITED_FOR_NEW_POSITION"
 REFERENCE_EXECUTION_NOT_ACTUAL_FILL = "REFERENCE_EXECUTION_NOT_ACTUAL_FILL"
 EXECUTION_UNCERTAIN = "EXECUTION_UNCERTAIN"
 UNAVAILABLE = "UNAVAILABLE"
+MIN_DIRECTIONAL_VOLUME_DAYS = 2
+SUPPORT_TOLERANCE_ROLE = "DISPLAY_ONLY"
 
 REQUIRED_OHLCV_FIELDS = ("open", "high", "low", "close", "volume")
 _ST_PREFIX = re.compile(r"^\*?ST(?:$|[^A-Z0-9])", re.IGNORECASE)
@@ -143,16 +145,21 @@ def _positive(value: Any) -> float:
 
 def _bar_date(bar: Mapping[str, Any]) -> str:
     value = bar.get("date", bar.get("trade_date"))
+    if value is None:
+        raise ValueError("invalid bar date: None")
     if isinstance(value, datetime):
         return value.date().isoformat()
     if isinstance(value, date):
         return value.isoformat()
     text = str(value).strip().replace("/", "-")
     if len(text) == 8 and text.isdigit():
-        return f"{text[:4]}-{text[4:6]}-{text[6:]}"
+        text = f"{text[:4]}-{text[4:6]}-{text[6:]}"
     if len(text) != 10:
         raise ValueError(f"invalid bar date: {value!r}")
-    return text
+    try:
+        return date.fromisoformat(text).isoformat()
+    except ValueError as exc:
+        raise ValueError(f"invalid bar date: {value!r}") from exc
 
 
 def validate_ohlcv_bars(bars: Sequence[Mapping[str, Any]]) -> tuple[dict[str, Any], ...]:
@@ -298,7 +305,15 @@ def volume_path_features(
     reference = normalized[reference_start:reference_end_exclusive]
     pullback_median = _median_or_none([float(row["volume"]) for row in pullback])
     reference_median = _median_or_none([float(row["volume"]) for row in reference])
-    ratio = None if not reference_median else pullback_median / reference_median
+    if reference_median is None:
+        path_status = "INSUFFICIENT_REFERENCE_DAYS"
+        ratio = None
+    elif reference_median == 0:
+        path_status = "ZERO_REFERENCE_VOLUME"
+        ratio = None
+    else:
+        path_status = "OK"
+        ratio = pullback_median / reference_median
     if ratio is None:
         path_label = "UNDETERMINED"
     elif ratio <= 0.80:
@@ -317,20 +332,34 @@ def volume_path_features(
             up_volumes.append(float(normalized[index]["volume"]))
         elif close < previous:
             down_volumes.append(float(normalized[index]["volume"]))
-    up_median = _median_or_none(up_volumes)
-    down_median = _median_or_none(down_volumes)
-    up_down_ratio = None if down_median in (None, 0) or up_median is None else up_median / down_median
+    directional_days_sufficient = (
+        len(up_volumes) >= MIN_DIRECTIONAL_VOLUME_DAYS
+        and len(down_volumes) >= MIN_DIRECTIONAL_VOLUME_DAYS
+    )
+    up_median = _median_or_none(up_volumes) if directional_days_sufficient else None
+    down_median = _median_or_none(down_volumes) if directional_days_sufficient else None
+    if not directional_days_sufficient:
+        up_down_ratio_status = "INSUFFICIENT_DIRECTIONAL_DAYS"
+        up_down_ratio = None
+    elif down_median == 0:
+        up_down_ratio_status = "ZERO_DOWN_DIRECTIONAL_VOLUME"
+        up_down_ratio = None
+    else:
+        up_down_ratio_status = "OK"
+        up_down_ratio = up_median / down_median
     return {
         "pullback_volume_median": pullback_median,
         "reference_volume_median": reference_median,
         "pullback_to_reference_median_ratio": ratio,
+        "path_status": path_status,
         "path_label": path_label,
+        "minimum_directional_days": MIN_DIRECTIONAL_VOLUME_DAYS,
         "up_day_count": len(up_volumes),
         "down_day_count": len(down_volumes),
         "up_day_volume_median": up_median,
         "down_day_volume_median": down_median,
         "up_to_down_volume_median_ratio": up_down_ratio,
-        "up_down_ratio_status": "OK" if up_down_ratio is not None else "INSUFFICIENT_DIRECTIONAL_DAYS",
+        "up_down_ratio_status": up_down_ratio_status,
         "mechanism_claim": "UNKNOWN; observable volume path only",
     }
 
@@ -363,9 +392,14 @@ def find_pullback_structure(
     t_index = len(normalized) - 1
     lows = [float(row["low"]) for row in normalized]
     highs = [float(row["high"]) for row in normalized]
-    low_pivots = _pivot_indices(lows, config.pivot_radius, low=True)
-    high_pivots = _pivot_indices(highs, config.pivot_radius, low=False)
-    candidate_lows = [index for index in low_pivots if index < t_index]
+    # A pivot used by the T-close signal must be confirmed by bars ending at
+    # T-1.  Computing pivots on the strict pre-T prefix prevents the T bar
+    # from becoming part of the right confirmation window.
+    pre_t_lows = lows[:t_index]
+    pre_t_highs = highs[:t_index]
+    low_pivots = _pivot_indices(pre_t_lows, config.pivot_radius, low=True)
+    high_pivots = _pivot_indices(pre_t_highs, config.pivot_radius, low=False)
+    candidate_lows = list(low_pivots)
     pair_candidates = [
         (first, second)
         for second_position, second in reversed(list(enumerate(candidate_lows)))
@@ -433,6 +467,9 @@ def find_pullback_structure(
         "support_tolerance": config.support_tolerance,
         "stage_prior_high": peak_high,
         "stage_prior_high_index": peak_index,
+        "pivot_confirmation_timing": "T_MINUS_ONE_CLOSE",
+        "pivot_uses_t_bar": False,
+        "pivot_confirmation_end_exclusive": t_index,
     }
 
 
@@ -458,6 +495,14 @@ def trend_features(bars: Sequence[Mapping[str, Any]], config: RuleCandidate) -> 
         "close_above_fast_average": fast is not None and close_t > fast,
         "positive_slope": slope is not None and slope > 0,
         "up_close_fraction_ok": up_close_fraction >= config.minimum_up_close_fraction,
+        "trend_qualified": (
+            fast is not None
+            and slow is not None
+            and close_t > fast > slow
+            and slope is not None
+            and slope > 0
+            and up_close_fraction >= config.minimum_up_close_fraction
+        ),
         "observable_only": True,
     }
 
@@ -525,12 +570,14 @@ def failed_push_features(
     *,
     window: int = 5,
     tolerance: float = 0.01,
+    start_index: int = 0,
 ) -> dict[str, Any]:
     normalized = validate_ohlcv_bars(bars)
-    if resistance <= 0 or window < 1:
+    if resistance <= 0 or window < 1 or start_index < 0 or start_index > len(normalized):
         raise ValueError("invalid resistance or window")
-    start = max(0, len(normalized) - window)
+    start = max(start_index, len(normalized) - window)
     flags: list[bool] = []
+    indices = list(range(start, len(normalized)))
     for row in normalized[start:]:
         geometry = _bar_geometry(row, None)
         flags.append(
@@ -546,11 +593,85 @@ def failed_push_features(
     return {
         "window": window,
         "tolerance": tolerance,
+        "requested_start_index": start_index,
+        "observed_start_index": start,
+        "observed_indices": indices,
         "failed_push_count": sum(flags),
         "consecutive_failed_pushes_at_end": consecutive,
         "failed_pushes": flags,
         "observable_only": True,
     }
+
+
+def _support_observation(
+    normalized: Sequence[Mapping[str, Any]],
+    structure: Mapping[str, Any],
+    config: RuleCandidate,
+) -> dict[str, Any]:
+    """Separate support wicks, close breaks, and pre-T support destruction."""
+
+    t_index = len(normalized) - 1
+    floor = float(structure["support_floor"])
+    pullback_start = int(structure["pullback_start_index"])
+    pullback_end = int(structure["pullback_end_exclusive"])
+    pullback_rows = normalized[pullback_start:pullback_end]
+    pullback_close_break_indices = [
+        pullback_start + offset
+        for offset, row in enumerate(pullback_rows)
+        if float(row["close"]) < floor
+    ]
+    pullback_puncture_recovery_indices = [
+        pullback_start + offset
+        for offset, row in enumerate(pullback_rows)
+        if float(row["low"]) < floor and float(row["close"]) >= floor
+    ]
+    current = normalized[t_index]
+    t_close_break = float(current["close"]) < floor
+    t_intraday_puncture_recovered = float(current["low"]) < floor and not t_close_break
+    pullback_support_destroyed = bool(pullback_close_break_indices)
+    if t_close_break:
+        status = "T_CLOSE_BREAK"
+    elif pullback_support_destroyed:
+        status = "PULLBACK_SUPPORT_DESTROYED"
+    elif t_intraday_puncture_recovered:
+        status = "T_INTRADAY_PUNCTURE_RECOVERED"
+    elif pullback_puncture_recovery_indices:
+        status = "PULLBACK_INTRADAY_PUNCTURE_RECOVERED"
+    else:
+        status = "INTACT"
+    return {
+        "status": status,
+        "support_floor": floor,
+        "support_ceiling": float(structure["support_ceiling"]),
+        "support_tolerance": config.support_tolerance,
+        "support_tolerance_role": SUPPORT_TOLERANCE_ROLE,
+        "support_display_buffer": floor * config.support_tolerance,
+        "t_intraday_puncture_recovered": t_intraday_puncture_recovered,
+        "t_close_break": t_close_break,
+        "pullback_intraday_puncture_recovery_indices": pullback_puncture_recovery_indices,
+        "pullback_close_break_indices": pullback_close_break_indices,
+        "pullback_support_destroyed": pullback_support_destroyed,
+        "entry_support_ok": not pullback_support_destroyed and not t_close_break,
+        "pullback_interval": {
+            "start_index": pullback_start,
+            "end_index_exclusive": pullback_end,
+            "includes_t_bar": False,
+        },
+    }
+
+
+def _resistance_rejection(
+    row: Mapping[str, Any],
+    resistance: float,
+    tolerance: float,
+) -> tuple[bool, dict[str, float | None]]:
+    geometry = _bar_geometry(row, None)
+    qualifies = (
+        float(row["high"]) >= resistance * (1.0 - tolerance)
+        and float(row["close"]) < resistance
+        and float(geometry["close_location"]) <= 0.60
+    )
+    return qualifies, geometry
 
 
 def limit_up_failure_status(bar: Mapping[str, Any]) -> dict[str, Any]:
@@ -630,6 +751,7 @@ def build_entry_observation(
             "future_data_used": False,
         }
     confirmation = _rebound_confirmation(normalized, structure, config)
+    support = _support_observation(normalized, structure, config)
     pullback_start = int(structure["pullback_start_index"])
     pullback_end = int(structure["pullback_end_exclusive"])
     reference_start = max(0, pullback_start - config.volume_baseline_window)
@@ -644,10 +766,6 @@ def build_entry_observation(
     stage_high = float(structure["stage_prior_high"])
     close_t = float(normalized[-1]["close"])
     resistance_distance = stage_high / close_t - 1.0
-    structure_ok = (
-        float(structure["support_floor"]) <= float(normalized[-1]["low"])
-        or float(normalized[-1]["close"]) > float(structure["support_floor"])
-    )
     return {
         "schema_version": C_ENTRY_SCHEMA,
         "namespace": C_RESEARCH_NAMESPACE,
@@ -656,15 +774,19 @@ def build_entry_observation(
         "signal_timing": SIGNAL_TIMING,
         "earliest_execution": EARLIEST_EXECUTION,
         "same_day_sell": SAME_DAY_SELL_POLICY,
-        "entry_candidate": bool(confirmation["confirmation_qualified"] and structure_ok),
+        "entry_candidate": bool(
+            trend["trend_qualified"]
+            and confirmation["confirmation_qualified"]
+            and support["entry_support_ok"]
+        ),
         "trend": trend,
         "structure": structure,
         "confirmation": confirmation,
         "support": {
-            "support_floor": structure["support_floor"],
-            "support_ceiling": structure["support_ceiling"],
-            "support_tolerance": structure["support_tolerance"],
+            **support,
             "support_pre_determined_before_t": True,
+            "pivot_confirmation_timing": structure["pivot_confirmation_timing"],
+            "pivot_uses_t_bar": structure["pivot_uses_t_bar"],
         },
         "stage_resistance": {
             "stage_prior_high": stage_high,
@@ -719,17 +841,17 @@ def classify_exit_observation(
             "future_data_used": False,
         }
     current = normalized[t_index]
-    geometry = _bar_geometry(current, float(normalized[t_index - 1]["close"]))
-    warning = (
-        float(current["high"]) >= resistance * (1.0 - config.resistance_tolerance)
-        and float(current["close"]) < resistance
-        and float(geometry["close_location"]) <= 0.60
+    current_resistance_rejection, geometry = _resistance_rejection(
+        current,
+        resistance,
+        config.resistance_tolerance,
     )
     failed = failed_push_features(
         normalized,
         resistance,
         window=config.failed_push_window,
         tolerance=config.resistance_tolerance,
+        start_index=entry_index + 1,
     )
     stall = high_volume_low_progress(
         normalized,
@@ -737,16 +859,33 @@ def classify_exit_observation(
         baseline_window=config.volume_baseline_window,
         ratio_threshold=config.anomaly_ratio_candidate,
     )
-    bearish_rejections = sum(
-        1
-        for row_index in range(max(entry_index + 1, t_index - config.failed_push_window + 1), t_index + 1)
-        if float(normalized[row_index]["close"]) < float(normalized[row_index]["open"])
+    post_entry_bearish_rejections = 0
+    for row_index, failed_push in zip(failed["observed_indices"], failed["failed_pushes"]):
+        if not failed_push:
+            continue
+        row_geometry = _bar_geometry(normalized[row_index], None)
+        if (
+            float(normalized[row_index]["close"]) < float(normalized[row_index]["open"])
+            or float(row_geometry["upper_shadow_fraction"]) > 0.0
+        ):
+            post_entry_bearish_rejections += 1
+    current_failed_push = bool(current_resistance_rejection)
+    post_entry_prior_failed_push_count = int(failed["failed_push_count"]) - int(current_failed_push)
+    first_resistance_rejection_warning = current_failed_push and post_entry_prior_failed_push_count == 0
+    repeated_resistance_rejection = current_failed_push and post_entry_prior_failed_push_count >= 1
+    high_volume_low_progress_near_resistance = (
+        current_resistance_rejection and bool(stall["high_volume_low_price_progress"])
     )
+    support_intraday_puncture_recovered = float(current["low"]) < floor and float(current["close"]) >= floor
     support_break = float(current["close"]) < floor
     early_profit = (
         float(current["close"]) > entry
+        and repeated_resistance_rejection
         and int(failed["failed_push_count"]) >= config.failed_push_count_candidate
-        and (bool(stall["high_volume_low_price_progress"]) or bearish_rejections >= 2)
+        and (
+            high_volume_low_progress_near_resistance
+            or post_entry_bearish_rejections >= 2
+        )
     )
     if support_break:
         exit_state = "KEY_SUPPORT_BREAK"
@@ -756,7 +895,7 @@ def classify_exit_observation(
         exit_state = "EARLY_PROFIT_TAKING_CANDIDATE"
         exit_class = "PROFIT_EXIT"
         action = "NEXT_SESSION_REFERENCE_EXIT"
-    elif warning:
+    elif first_resistance_rejection_warning:
         exit_state = "FIRST_RESISTANCE_REJECTION_WARNING"
         exit_class = "WARNING_ONLY"
         action = "NONE"
@@ -769,12 +908,23 @@ def classify_exit_observation(
         "namespace": C_RESEARCH_NAMESPACE,
         "strategy_version": C_STRATEGY_VERSION,
         "as_of_index": t_index,
+        "as_of_date": current["date"],
+        "entry_index": entry_index,
         "exit_state": exit_state,
         "exit_class": exit_class,
         "exit_action": action,
-        "warning": warning,
+        "warning": first_resistance_rejection_warning,
+        "current_resistance_rejection": current_resistance_rejection,
+        "first_resistance_rejection_warning": first_resistance_rejection_warning,
+        "repeated_resistance_rejection": repeated_resistance_rejection,
+        "post_entry_prior_failed_push_count": post_entry_prior_failed_push_count,
+        "post_entry_bearish_rejection_count": post_entry_bearish_rejections,
+        "early_profit_taking_candidate": early_profit,
+        "early_profit_taking_confirmed": early_profit,
         "failed_push_features": failed,
         "high_volume_low_progress": stall,
+        "high_volume_low_progress_near_resistance": high_volume_low_progress_near_resistance,
+        "support_intraday_puncture_recovered": support_intraday_puncture_recovered,
         "support_break": support_break,
         "entry_price": entry,
         "close_t": float(current["close"]),
@@ -814,15 +964,37 @@ def build_data_dependency_check(
     for raw in raw_files:
         logical = str(raw.get("path", ""))
         local = project_root / logical
+        local_present = local.is_file()
+        local_sha256 = file_sha256(local) if local_present else None
+        declared_sha256 = raw.get("sha256")
+        if not local_present:
+            sha256_status = "NOT_VERIFIABLE_MISSING"
+        elif not declared_sha256:
+            sha256_status = "NOT_VERIFIABLE_NO_DECLARED_SHA256"
+        elif local_sha256 == declared_sha256:
+            sha256_status = "MATCH"
+        else:
+            sha256_status = "MISMATCH"
         artifact_rows.append({
             "logical_path": logical,
-            "declared_sha256": raw.get("sha256"),
+            "declared_sha256": declared_sha256,
             "declared_bytes": raw.get("bytes"),
-            "local_present": local.exists(),
-            "local_sha256": file_sha256(local) if local.is_file() else None,
+            "local_present": local_present,
+            "local_sha256": local_sha256,
+            "local_sha256_status": sha256_status,
             "local_path": _guarded_relative(local, project_root),
         })
     daily_k = next((row for row in artifact_rows if row["logical_path"].endswith("daily_k.parquet")), None)
+    if daily_k is None:
+        local_replay_status = "DAILY_K_NOT_DECLARED"
+    elif daily_k["local_sha256_status"] == "NOT_VERIFIABLE_MISSING":
+        local_replay_status = "NOT_READY_IN_THIS_WORKTREE"
+    elif daily_k["local_sha256_status"] == "MISMATCH":
+        local_replay_status = "LOCAL_ARTIFACT_HASH_MISMATCH"
+    elif daily_k["local_sha256_status"] == "MATCH":
+        local_replay_status = "LOCAL_ARTIFACT_HASH_MATCH"
+    else:
+        local_replay_status = "LOCAL_ARTIFACT_HASH_UNVERIFIED"
     checks = {
         "ohlcv": {
             "status": "DECLARED_IN_FROZEN_MANIFEST",
@@ -832,8 +1004,10 @@ def build_data_dependency_check(
             "no_turnover_requirement": True,
         },
         "local_replay": {
-            "status": "NOT_READY_IN_THIS_CHECKOUT" if not daily_k or not daily_k["local_present"] else "LOCAL_ARTIFACT_PRESENT",
+            "scope": "THIS_WORKTREE_ONLY",
+            "status": local_replay_status,
             "daily_k_local_present": bool(daily_k and daily_k["local_present"]),
+            "daily_k_local_sha256_status": daily_k["local_sha256_status"] if daily_k else "NOT_DECLARED",
             "formal_history_not_fetched": True,
         },
         "calendar": {
@@ -863,6 +1037,7 @@ def build_data_dependency_check(
         "volume": {
             "daily_volume": "AVAILABLE_AS_RAW_UNADJUSTED_VOLUME_METADATA",
             "relative_volume": "COMPUTABLE_FROM_PRE_T_DAILY_VOLUME",
+            "up_down_median_ratio": "COMPUTABLE_ONLY_WITH_AT_LEAST_TWO_EFFECTIVE_DAYS_PER_DIRECTION",
             "intraday_sequence": "UNAVAILABLE",
             "order_book_or_fill": "UNAVAILABLE",
             "limit_up_ban_or_blast": "ONLY_IF_VALID_LIMIT_PRICE_AND_TICK_ARE_SUPPLIED; otherwise UNKNOWN",

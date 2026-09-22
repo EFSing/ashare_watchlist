@@ -6,6 +6,7 @@
       "local_path": "data/validation/core_signal_validation/raw/daily_k.parquet",
       "local_present": false,
       "local_sha256": null,
+      "local_sha256_status": "NOT_VERIFIABLE_MISSING",
       "logical_path": "data/validation/core_signal_validation/raw/daily_k.parquet"
     },
     {
@@ -14,6 +15,7 @@
       "local_path": "data/validation/core_signal_validation/raw/adjustment_factors.parquet",
       "local_present": true,
       "local_sha256": "a1b7d63c5826ccd3610dc9bdd949d82eeb0ba84ffad451bfb8bb30ca74962716",
+      "local_sha256_status": "MATCH",
       "logical_path": "data/validation/core_signal_validation/raw/adjustment_factors.parquet"
     },
     {
@@ -22,6 +24,7 @@
       "local_path": "data/validation/core_signal_validation/raw/index_000001_SH_2023.json",
       "local_present": true,
       "local_sha256": "c118fb39d31065914740da150455fba2375d3bcaa83566730d265df0753bb51c",
+      "local_sha256_status": "MATCH",
       "logical_path": "data/validation/core_signal_validation/raw/index_000001_SH_2023.json"
     },
     {
@@ -30,6 +33,7 @@
       "local_path": "data/validation/core_signal_validation/raw/index_000001_SH_2024.json",
       "local_present": true,
       "local_sha256": "53fc9e9f0989e67f8a826614c5c8f260171cf081801bf752df6301e69f4ae4bf",
+      "local_sha256_status": "MATCH",
       "logical_path": "data/validation/core_signal_validation/raw/index_000001_SH_2024.json"
     },
     {
@@ -38,6 +42,7 @@
       "local_path": "data/validation/core_signal_validation/raw/index_000001_SH_2025.json",
       "local_present": true,
       "local_sha256": "27acba0bd5bfc0f54d349d7dbc41a86bf6836dfee3976a970cbb210b287f76a1",
+      "local_sha256_status": "MATCH",
       "logical_path": "data/validation/core_signal_validation/raw/index_000001_SH_2025.json"
     },
     {
@@ -46,6 +51,7 @@
       "local_path": "data/validation/core_signal_validation/raw/index_000001_SH_2026.json",
       "local_present": true,
       "local_sha256": "183f472a1699811edb2550f3ce99b2b05d06c23473b5e2acff0ad2431eaf1514",
+      "local_sha256_status": "MATCH",
       "logical_path": "data/validation/core_signal_validation/raw/index_000001_SH_2026.json"
     }
   ],
@@ -79,8 +85,10 @@
     },
     "local_replay": {
       "daily_k_local_present": false,
+      "daily_k_local_sha256_status": "NOT_VERIFIABLE_MISSING",
       "formal_history_not_fetched": true,
-      "status": "NOT_READY_IN_THIS_CHECKOUT"
+      "scope": "THIS_WORKTREE_ONLY",
+      "status": "NOT_READY_IN_THIS_WORKTREE"
     },
     "ohlcv": {
       "no_turnover_requirement": true,
@@ -106,7 +114,8 @@
       "intraday_sequence": "UNAVAILABLE",
       "limit_up_ban_or_blast": "ONLY_IF_VALID_LIMIT_PRICE_AND_TICK_ARE_SUPPLIED; otherwise UNKNOWN",
       "order_book_or_fill": "UNAVAILABLE",
-      "relative_volume": "COMPUTABLE_FROM_PRE_T_DAILY_VOLUME"
+      "relative_volume": "COMPUTABLE_FROM_PRE_T_DAILY_VOLUME",
+      "up_down_median_ratio": "COMPUTABLE_ONLY_WITH_AT_LEAST_TWO_EFFECTIVE_DAYS_PER_DIRECTION"
     }
   },
   "final_oos_read": false,
