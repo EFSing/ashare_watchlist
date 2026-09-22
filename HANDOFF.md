@@ -6,6 +6,31 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-22 — NO_VALID_INPUT_UNIVERSE_DIAGNOSTIC_V1 ready for user merge decision
+
+- Classification: `correctness blocker + product blocker`; 2026-09-22 正式 B 因 HiThink universe
+  资格结果为空而 fail-closed，未生成 watchlist、checkpoint 或 delivery receipt。Formal B、沪深
+  主板范围、合法上市日期检查、HiThink 权威源与现有容错边界未改变。
+- Root cause: `_build_universe()` 的主板/上市日期资格过滤未进入既有 per-symbol exclusion 记录，
+  因此 `raw=5576`、`qualified=0` 时错误呈现为 `excluded=0`、`excluded_reason_counts={}`、
+  `global_failures=[]`。2026-09-22 当次每行上游分布无法从已持久化诊断恢复；只确认零条记录通过
+  主板资格和 `list_date <= target_date` 的最终边界，不能据此声称所有上市日期均缺失。
+- Minimal fix: 独立记录并展示 out-of-scope exchange、non-Main Board、missing/future/invalid
+  list_date 的资格计数与有界样本，同时保留真实异常 exclusion 与 fail-closed 行为；不放宽资格、
+  不填充日期、不生成空成功名单。
+- Verification/evidence: 只读 HiThink 检查得到 `5576` 行、`3197` 条主板、`3196` 条目标日前
+  合资格；`list_date` 为 `5568` 个字符串与 `8` 个 null。全量 pytest=`674 passed, 2 skipped,
+  10 warnings`；compileall 与 `git diff --check` 通过；未写 runtime-state、未触发生产、未读取
+  Final OOS 或触碰 `data/validation/continuous_speed_probe/`。
+- Branch/worktree: `codex/fix-no-valid-input-20260922` /
+  `D:\dev\ashare-watchlist-no-valid-input-20260922`，remote head=`126dcc687ac900871debb97e9d30f6d51959201c`，
+  基于实时 `origin/master=4633b37ee6eb99bee527d8907e4e51768fd3f82a`。
+- Delivery: PR #82 https://github.com/EFSing/ashare_watchlist/pull/82 已创建为非 Draft；等待最终
+  head CI 与用户 merge decision。不修改 PR #60/#68，不自动合并、不补跑 2026-09-22 生产。
+- Next: 只在用户明确授权、目标日窗口仍合法且生产数据身份校验全部通过后，才可按 workflow
+  `mode=production`, `as_of_date=2026-09-22`, `trigger_source=manual`,
+  `allow_weekend_backfill=false` 评估当日恢复；本任务未执行该操作。
+
 ## 2026-09-22 — B_PROSPECTIVE_MONITOR_RECOVERY_V1 ready for user merge decision
 
 - Classification: `product blocker + correctness/data-integrity risk`; Formal B、正式收益口径、
