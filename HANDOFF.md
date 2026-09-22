@@ -55,8 +55,10 @@
 - Verification before delivery: C `19 passed`; B isolation regression `40 passed`; full pytest
   `690 passed, 2 skipped, 10 warnings`; compileall and diff check pass.
 - Draft PR: [#81](https://github.com/EFSing/ashare_watchlist/pull/81) remains open as Draft against
-  `master`. Work started from Sol-audited head `11a47fdb80d7887c97a0cc4c378b8c935bc44121`;
-  final remote head and exact-head CI must be checked live after the delivery commit.
+  `master`. Implementation commit `52c6f1d7ce71292fd73582d6390b5d24ac68489d` is pushed from
+  Sol-audited head `11a47fdb80d7887c97a0cc4c378b8c935bc44121`; exact-head push run
+  `35707980389` and pull-request run `35707984877` both completed `success` with that SHA.
+  Any later governance-only head still requires live verification.
 - Decision: `NEEDS_MORE_EVIDENCE`; terminal marker
   `C_PRE_OUTCOME_EXIT_VOLUME_FIX_READY_FOR_SOL_AUDIT`. Do not merge, read future returns, or
   start C outcome research.

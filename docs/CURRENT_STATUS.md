@@ -24,7 +24,9 @@
 - Decision: `NEEDS_MORE_EVIDENCE`; terminal
   `C_PRE_OUTCOME_EXIT_VOLUME_FIX_READY_FOR_SOL_AUDIT`. Draft PR [#81](https://github.com/EFSing/ashare_watchlist/pull/81)
   remains open as Draft against `master`; final head and exact-head CI are live values to verify
-  after push. Do not merge or start C outcome research.
+  after any later checkpoint. Implementation head
+  `52c6f1d7ce71292fd73582d6390b5d24ac68489d` has exact-head push run `35707980389` and
+  pull-request run `35707984877`, both `success`. Do not merge or start C outcome research.
 
 ## 2026-09-22 — C_PRE_OUTCOME_CORRECTNESS_FIX_V1 ready for Sol re-audit
 
