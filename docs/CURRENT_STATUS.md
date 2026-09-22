@@ -6,6 +6,35 @@
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
+## 2026-09-22 — C_PRE_OUTCOME_DESIGN_V1 ready for Sol audit
+
+- Classification: `research question + correctness/provenance gate`; not a product blocker for
+  existing Formal B and not a promotion/freeze decision.
+- User direction: start independent new C research for Main Board ordinary shares excluding ST/*ST;
+  study sustained uptrend shallow pullback, two distinct lows with a higher low, small rebound and
+  T-close confirmation. Old C V0 is provenance only; its 30% run-up, 5%–22% pullback, Fib/MA20
+  and volume conditions are not inherited. No recent 60-session breakout gate is required.
+- Live reconciliation: `origin/master=4633b37ee6eb99bee527d8907e4e51768fd3f82a`; #77/#78/#79/#80
+  are merged and #80 master `test` CI is successful. No stale #80-pending text was present in the
+  governance files, so no unrelated governance correction was made.
+- Independent branch/worktree: `codex/c-pre-outcome-design-ready-for-sol-audit` /
+  `D:\dev\ashare-watchlist-c-pre-outcome-design`. C module, entry CLI, tests and
+  `data/research/c_pre_outcome_design_v1/` are isolated; Formal B, B returns diagnostics, runtime
+  state, canonical watchlist, formal daily report and scheduler are unchanged.
+- Current delivery: design definitions, volume observables, independent exit research, data
+  feasibility report and metadata-only dependency JSON are present. No C future outcome or formal
+  historical return study was read or run; Final OOS and `data/validation/continuous_speed_probe/`
+  remain sealed/unread and untouched.
+- Data gate: frozen metadata declares 769 XSHG sessions, T-anchor price/raw volume semantics and
+  deterministic hashes; local `daily_k.parquet` is absent, historical per-bar vintage proof is
+  false, and historical T-known ST/*ST status is unresolved. Status is
+  `DESIGN_SUPPORTED / FORMAL_OUTCOME_RESEARCH_NOT_READY`.
+- Verification: C `9 passed`; relevant B/shared regression `92 passed`; full `680 passed,
+  2 skipped, 10 warnings`; compileall and diff check pass.
+- Decision: `NEEDS_MORE_EVIDENCE`; terminal
+  `C_PRE_OUTCOME_DESIGN_READY_FOR_SOL_AUDIT`. Draft PR and exact-head CI are the next bounded
+  delivery steps; no automatic merge or C outcome access.
+
 ## Current task — B_PROSPECTIVE_MONITOR_RECOVERY_V1 — 2026-09-22
 
 本轮分类为 `product blocker + correctness/data-integrity risk`：只恢复 Formal B 旁路的真实

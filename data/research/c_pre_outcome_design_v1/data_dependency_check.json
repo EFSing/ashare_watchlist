@@ -1,0 +1,126 @@
+{
+  "artifact_identities": [
+    {
+      "declared_bytes": 180203424,
+      "declared_sha256": "61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426",
+      "local_path": "data/validation/core_signal_validation/raw/daily_k.parquet",
+      "local_present": false,
+      "local_sha256": null,
+      "logical_path": "data/validation/core_signal_validation/raw/daily_k.parquet"
+    },
+    {
+      "declared_bytes": 295284,
+      "declared_sha256": "a1b7d63c5826ccd3610dc9bdd949d82eeb0ba84ffad451bfb8bb30ca74962716",
+      "local_path": "data/validation/core_signal_validation/raw/adjustment_factors.parquet",
+      "local_present": true,
+      "local_sha256": "a1b7d63c5826ccd3610dc9bdd949d82eeb0ba84ffad451bfb8bb30ca74962716",
+      "logical_path": "data/validation/core_signal_validation/raw/adjustment_factors.parquet"
+    },
+    {
+      "declared_bytes": 40966,
+      "declared_sha256": "c118fb39d31065914740da150455fba2375d3bcaa83566730d265df0753bb51c",
+      "local_path": "data/validation/core_signal_validation/raw/index_000001_SH_2023.json",
+      "local_present": true,
+      "local_sha256": "c118fb39d31065914740da150455fba2375d3bcaa83566730d265df0753bb51c",
+      "logical_path": "data/validation/core_signal_validation/raw/index_000001_SH_2023.json"
+    },
+    {
+      "declared_bytes": 40983,
+      "declared_sha256": "53fc9e9f0989e67f8a826614c5c8f260171cf081801bf752df6301e69f4ae4bf",
+      "local_path": "data/validation/core_signal_validation/raw/index_000001_SH_2024.json",
+      "local_present": true,
+      "local_sha256": "53fc9e9f0989e67f8a826614c5c8f260171cf081801bf752df6301e69f4ae4bf",
+      "logical_path": "data/validation/core_signal_validation/raw/index_000001_SH_2024.json"
+    },
+    {
+      "declared_bytes": 41175,
+      "declared_sha256": "27acba0bd5bfc0f54d349d7dbc41a86bf6836dfee3976a970cbb210b287f76a1",
+      "local_path": "data/validation/core_signal_validation/raw/index_000001_SH_2025.json",
+      "local_present": true,
+      "local_sha256": "27acba0bd5bfc0f54d349d7dbc41a86bf6836dfee3976a970cbb210b287f76a1",
+      "logical_path": "data/validation/core_signal_validation/raw/index_000001_SH_2025.json"
+    },
+    {
+      "declared_bytes": 27109,
+      "declared_sha256": "183f472a1699811edb2550f3ce99b2b05d06c23473b5e2acff0ad2431eaf1514",
+      "local_path": "data/validation/core_signal_validation/raw/index_000001_SH_2026.json",
+      "local_present": true,
+      "local_sha256": "183f472a1699811edb2550f3ce99b2b05d06c23473b5e2acff0ad2431eaf1514",
+      "logical_path": "data/validation/core_signal_validation/raw/index_000001_SH_2026.json"
+    }
+  ],
+  "b_code_or_runtime_state_modified": false,
+  "c_outcome_accessed": false,
+  "checks": {
+    "calendar": {
+      "execution": "T_PLUS_ONE_XSHG_REFERENCE_EXECUTION",
+      "schedule": "continuous_xshg_sessions_within_frozen_validation_interval",
+      "status": "PASS_METADATA",
+      "timezone": "Asia/Shanghai",
+      "window": "769 frozen continuous XSHG sessions from 2023-06-30 through 2026-08-28"
+    },
+    "corporate_actions": {
+      "event_filter": "date < ex_date <= T",
+      "future_event_rows_after_dataset_end": 42,
+      "signal_policy": "use only T-known/raw or T-anchor evidence; never let future events change a T signal",
+      "status": "SIGNAL_PRICE_DEFINITION_AVAILABLE"
+    },
+    "execution": {
+      "earliest_execution": "T_PLUS_ONE_XSHG_REFERENCE_EXECUTION",
+      "new_position_same_day_sell": "PROHIBITED_FOR_NEW_POSITION",
+      "no_close_after_signal_simulation": true,
+      "signal": "T_CLOSE_SIGNAL",
+      "unknown_fill_policy": "EXECUTION_UNCERTAIN"
+    },
+    "known_at": {
+      "historical_per_bar_vintage_proof": false,
+      "restriction": "no retrospective C outcome research until per-bar timing evidence is resolved or scope is explicitly limited",
+      "status": "PARTIAL_UNVERIFIED"
+    },
+    "local_replay": {
+      "daily_k_local_present": false,
+      "formal_history_not_fetched": true,
+      "status": "NOT_READY_IN_THIS_CHECKOUT"
+    },
+    "ohlcv": {
+      "no_turnover_requirement": true,
+      "price_basis": "HISTORICAL_T_ANCHOR_PRICE_RAW_VOLUME",
+      "required_fields": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "status": "DECLARED_IN_FROZEN_MANIFEST",
+      "volume_basis": "raw unadjusted volume"
+    },
+    "universe": {
+      "board_classifier": "ASHARE_BOARD_TAXONOMY_V1 / Main=00,60; ChiNext=30; STAR=68",
+      "board_policy": "C_MAIN_BOARD_NON_ST_V1",
+      "rule": "C requires explicit T-known ST/*ST status; current names cannot backfill historical status",
+      "st_status": "UNRESOLVED_FOR_HISTORICAL_PIT_UNIVERSE"
+    },
+    "volume": {
+      "daily_volume": "AVAILABLE_AS_RAW_UNADJUSTED_VOLUME_METADATA",
+      "intraday_sequence": "UNAVAILABLE",
+      "limit_up_ban_or_blast": "ONLY_IF_VALID_LIMIT_PRICE_AND_TICK_ARE_SUPPLIED; otherwise UNKNOWN",
+      "order_book_or_fill": "UNAVAILABLE",
+      "relative_volume": "COMPUTABLE_FROM_PRE_T_DAILY_VOLUME"
+    }
+  },
+  "final_oos_read": false,
+  "forbidden_directory_touched": false,
+  "formal_historical_return_research_run": false,
+  "namespace": "C_PRE_OUTCOME_DESIGN_V1",
+  "output_namespace": "data/research/c_pre_outcome_design_v1",
+  "schema_version": "C_DATA_DEPENDENCY_CHECK_V1",
+  "source_manifest": {
+    "acquisition_date": "2026-08-28",
+    "file_sha256": "008643a64e0070433f3d63dca8243f8dad294b049a7accb5d49af3597aae17b0",
+    "path": "data/validation/core_signal_validation_continuous_parts/core_signal_validation_manifest.json",
+    "schema_version": "CORE_SIGNAL_VALIDATION_DATASET_MANIFEST_V1",
+    "source": "HiThink Financial-API"
+  },
+  "strategy_version": "C_MAIN_TREND_RETEST_RESEARCH_V1"
+}

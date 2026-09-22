@@ -5,6 +5,34 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-22 — New C pre-outcome design requires Sol audit
+
+- classification：`research question + correctness/provenance gate`。Materiality 是把用户确定
+  的“沪深普通主板、排除 ST/*ST、持续上升通道浅回踩、企稳后 T 收盘重新走强”转成不依赖
+  future returns 的确定性 observable，并在正式研究前暴露时间可用性和执行限制；它不改变
+  Formal B，也不阻止 B 当前收盘作业。
+- live reconciliation：实时 `origin/master=4633b37ee6eb99bee527d8907e4e51768fd3f82a`；
+  #77/#78/#79/#80 已合并，#80 merge-head `test` CI 为 success。当前治理文件没有把 #80
+  写成待合并，因此没有产生无关的 `PROJECT_GOVERNANCE_STATE_CONFLICT` 修正文档。
+- identity/boundary：独立 `C_PRE_OUTCOME_DESIGN_V1`、`C_MAIN_TREND_RETEST_RESEARCH_V1`、
+  `codex/c-pre-outcome-design-ready-for-sol-audit` worktree 和
+  `data/research/c_pre_outcome_design_v1/`。旧 C V0 仅为 provenance；旧 A 停止、旧 D 排除，
+  RS/VCB 既有结论保留。没有读取 C future outcome、Final OOS 或 forbidden directory，未
+  修改 B evaluator、B 专属量能诊断、收益 tracker、canonical watchlist、runtime-state、
+  formal 日报或生产调度。
+- input/stop：只读 frozen OHLCV/calendar/adjustment manifest 元数据和共享无策略 helper；
+  本地 daily-K 缺失，historical `known_at_vintage_proof=false`，T-known historical ST/*ST
+  status 未解决，盘中 fill/limit sequence 不可证明。停止条件是完成规则/出场/量价设计、
+  metadata check 和 synthetic determinism tests，然后停在 Sol audit 前，不抓取、不重写正式
+  历史数据。
+- decision：`NEEDS_MORE_EVIDENCE`，terminal
+  `C_PRE_OUTCOME_DESIGN_READY_FOR_SOL_AUDIT`。缺少 evidence 为合法可恢复 OHLCV bytes、
+  T-known ST status、per-bar vintage 或明确的 `PARTIAL_UNVERIFIED` scope、C 专属 future
+  input identity 和执行 classification。没有这些证据时，B 和现有产品路径仍可继续；不得
+  自动启动 C outcome、参数选择、promotion 或 freeze。
+- verification：C tests `9 passed`；relevant B/shared regression `92 passed`；full pytest
+  `680 passed, 2 skipped, 10 warnings`；compileall/diff check pass。内部验证不称为 Sol 审计通过。
+
 ## 2026-09-20 — VOLUME_CARD_VISUALIZATION_AND_CLOUD_DELIVERY_V1
 
 - decision：`ADOPT` 将三项量能观察拆为独立、股票 K 线驱动的正常 T-close store；它不依赖 index/shadow 成功，不进入 Formal B 或任何排名条件，缺失保持原始原因。

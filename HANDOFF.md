@@ -34,6 +34,31 @@
   诊断增强合并，但不得表述为修复根因；本调查未写 runtime-state、未触发生产，Formal B、Final OOS
   与历史证据均未改写。
 
+## 2026-09-22 — C_PRE_OUTCOME_DESIGN_V1 ready for Sol audit
+
+- Classification: research question + correctness/provenance gate; no product promotion and no
+  Formal B change. User selected the new C direction; old C V0 is provenance only, old A stopped,
+  old D excluded, RS/VCB conclusions retained.
+- Live intake: `origin/master=4633b37ee6eb99bee527d8907e4e51768fd3f82a`; PR #77/#78/#79/#80 are
+  merged, and master `test` CI for #80 merge head is `success`. Governance files did not contain
+  a stale #80-pending statement, so no unrelated reconciliation edit was needed.
+- Independent branch/worktree: `codex/c-pre-outcome-design-ready-for-sol-audit` /
+  `D:\dev\ashare-watchlist-c-pre-outcome-design`; C-only module, CLI, tests and output namespace.
+- Delivered design: `docs/research/c_pre_outcome_design_v1.md` and
+  `docs/research/c_data_feasibility_v1.md`; pure functions in `scripts/c_pre_outcome_design.py`;
+  metadata-only check at `data/research/c_pre_outcome_design_v1/data_dependency_check.json`.
+  No C outcome, formal historical return study, Final OOS or forbidden directory was read.
+- Data status: OHLCV/calendar/T-anchor metadata supports design; local `daily_k.parquet` is absent,
+  historical per-bar vintage proof is false, and T-known historical ST/*ST status is unresolved.
+  Formal C outcome research is not ready.
+- Verification: C tests `9 passed`; relevant B/shared regression `92 passed`; full pytest
+  `680 passed, 2 skipped, 10 warnings`; compileall and diff check pass. The two skips are the
+  pre-existing large exact-date fixture absence.
+- Decision: `NEEDS_MORE_EVIDENCE`; terminal marker
+  `C_PRE_OUTCOME_DESIGN_READY_FOR_SOL_AUDIT`. Next: commit/push this worktree, create a Draft PR,
+  verify exact-head CI, then stop for Sol audit. Do not merge, run provider acquisition, or start
+  C formal returns research.
+
 ## 2026-09-22 — B_PROSPECTIVE_MONITOR_RECOVERY_V1 ready for user merge decision
 
 - Classification: `product blocker + correctness/data-integrity risk`; Formal B、正式收益口径、
