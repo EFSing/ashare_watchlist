@@ -5,6 +5,33 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-22 — Independent C prospective capture boundary
+
+- classification：`correctness/provenance gate + product gate`。研究问题是：在不读取未来
+  收益、不把历史补取冒充前瞻证据的前提下，C 是否已有可审计的 T 日收盘观察入口；其
+  materiality 在于错误的时间边界会污染后续研究并可能把研究观察误接入 B 生产链。停止
+  条件是：独立入口、输入不可变性、失败可诊断、B 隔离和合成关键不变量完成，并交由 Sol
+  审计后再决定是否启用真实采集。
+- decision：`NEEDS_MORE_EVIDENCE`。实现已准备为独立交付，但不是“已启用”或收益结论；
+  独立 provider/credential/quota、持久化与人工验收，以及 Sol 对激活边界的审计仍是启用
+  前置条件。正式历史收益研究、自动通知、真实定时运行、自动下单、Formal B 修改和
+  Final OOS 读取均不在本决定内。
+- protocol contract：全量 `FULL_COMPARABLE_UNIVERSE` 与每条规则独立的
+  `MATCHED_EVENT_SAMPLE` 必须分开记录，不能声称不同入场规则天然拥有相同 entry cohort；
+  观察日浮盈只作 T 日 mark-to-market，T+1 参考执行盈亏必须单独标识；`RV_T >= 2.0` 只
+  检验确认日放量，不能替代完整回踩量能路径；继续持有、价格提前防守、量价提前防守三组
+  观察保留；统一成本模型及来源必须在正式收益研究前预先固定，不能用未来收益调参。
+- implementation contract：C 只接受同一交易日收盘后的 T-known normalized provider
+  snapshot，记录请求/接收时间、证券身份、T 日 ST 状态、OHLCV、历史前缀、复权口径、输入
+  SHA、规则版本和数据质量状态。只有完整的实际当日捕获才可为
+  `PROSPECTIVE_CAPTURED`；缺失、冲突、异常或补取历史数据必须保留原因并使用非成功状态。
+- isolation contract：C 独立写入 `data/research/c_prospective_capture_v1/`，不导入或调用
+  B evaluator/Shadow/return tracker/formal list/daily report/scheduler，不写 B
+  `runtime-state`，不抢占 B 关键配额；C 失败不阻断 B。
+- evidence：当前 C-focused synthetic verification 为 `27 passed`；完整回归、确切远端
+  head、Draft stacked PR 和 exact-head CI 完成后，终点为
+  `C_PROSPECTIVE_CAPTURE_PR_READY_FOR_SOL_ACTIVATION_AUDIT`，随后停止等待 Sol 审计。
+
 ## 2026-09-22 — C data evidence and preregistration protocol ready for Sol decision
 
 - classification：`research question + correctness/provenance gate`。本决定只推进新版 C 的

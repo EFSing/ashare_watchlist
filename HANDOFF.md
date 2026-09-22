@@ -34,6 +34,36 @@
   诊断增强合并，但不得表述为修复根因；本调查未写 runtime-state、未触发生产，Formal B、Final OOS
   与历史证据均未改写。
 
+## 2026-09-22 — C_PROSPECTIVE_CAPTURE_PR_READY_FOR_SOL_ACTIVATION_AUDIT
+
+- Classification: `correctness/provenance gate + product gate`; the task changes the
+  look-ahead-sensitive C observation boundary, but does not select parameters, run formal
+  historical returns, change Formal B, merge, or enable production scheduling.
+- Live intake identity: PR #81 was re-read before branching as `OPEN / DRAFT / CLEAN`, with
+  base `master`, head branch `codex/c-pre-outcome-design-ready-for-sol-audit`, and head
+  `02c7116f5b712b187a2d70e1a46fba061981b6b8`. This work is isolated in branch
+  `codex/c-prospective-capture-v1`, worktree
+  `D:\dev\ashare-watchlist-c-prospective-capture-v1`, based directly on that live head.
+- Implementation checkpoint: `scripts/c_prospective_capture.py` provides a C-only normalized
+  provider-snapshot entry point and immutable input/observation/manifest/log/failure paths under
+  `data/research/c_prospective_capture_v1/`. It accepts only same-day after-close evidence,
+  preserves input SHA and request/receive provenance, records both C rules separately, and
+  fail-closes missing or conflicting evidence. It does not import or call B evaluators, Shadow,
+  return tracking, formal lists, daily reports, schedulers, or `runtime-state`.
+- Protocol checkpoint: the C protocol now separates `FULL_COMPARABLE_UNIVERSE` from each
+  rule's `MATCHED_EVENT_SAMPLE`, separates observation-day floating P/L from T+1 reference
+  execution P/L, limits `RV_T >= 2.0` to confirmation-day volume, retains the three exit
+  observations, and requires a pre-existing unified cost model before formal return research.
+- Current verification: the new synthetic capture tests pass (`8`); together with the existing C
+  design tests the C-focused set is `27 passed`. Full suite, compileall, final diff check, push,
+  stacked Draft PR creation, and exact-head CI verification remain pending.
+- Decision: `NEEDS_MORE_EVIDENCE`. The implementation is prepared but not activated; Sol must
+  audit the capture boundary and an independent provider/credential/quota and persistence setup
+  before any real schedule or notification is enabled. No historical backfill may be labeled
+  `PROSPECTIVE_CAPTURED`; Final OOS and prohibited validation data remain untouched.
+- Next action: run the required regression/full checks, commit and push this branch, create a
+  Draft PR whose base is `codex/c-pre-outcome-design-ready-for-sol-audit`, re-read its exact head
+  and CI, then stop at the audit handoff terminal.
 ## 2026-09-22 — C_DATA_EVIDENCE_AND_PROTOCOL_READY_FOR_SOL_DECISION
 
 - Classification: `research question + correctness/provenance gate`; no parameter selection,

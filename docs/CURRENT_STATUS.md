@@ -6,6 +6,36 @@
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
+## 2026-09-22 — C_PROSPECTIVE_CAPTURE_PR_READY_FOR_SOL_ACTIVATION_AUDIT
+
+- Classification: `correctness/provenance gate + product gate`; this is an independent C
+  prospective-observation delivery, not a Formal B change, formal historical-return study,
+  promotion, merge, automatic ordering, or Final OOS review.
+- Live starting point: PR #81 was `OPEN / DRAFT / CLEAN` at intake, with head
+  `codex/c-pre-outcome-design-ready-for-sol-audit` at
+  `02c7116f5b712b187a2d70e1a46fba061981b6b8`. The implementation is on the separate worktree
+  branch `codex/c-prospective-capture-v1`, based directly on that head; its stacked Draft PR is
+  created only after the validation commit is pushed.
+- C capture contract: `scripts/c_prospective_capture.py` and
+  `docs/research/c_prospective_capture_v1.md` define the C-only namespace
+  `data/research/c_prospective_capture_v1/` with immutable input snapshots, research
+  observations, manifests, canonical capture index, logs, and failure diagnostics. A capture
+  is `PROSPECTIVE_CAPTURED` only when the same-day after-close request/receive evidence and all
+  required T-known fields are complete; missing ST, malformed/future bars, duplicate conflicts,
+  and later backfills remain explicit non-success states.
+- Protocol correction: `FULL_COMPARABLE_UNIVERSE` and per-rule `MATCHED_EVENT_SAMPLE` are
+  distinct; observation-day floating P/L is distinct from T+1 reference execution P/L;
+  `RV_T >= 2.0` is confirmation-day-only; continue holding, price-only defense, and
+  price-plus-volume defense remain separate; a unified cost model/source must be fixed before
+  formal return research without future-return tuning.
+- Isolation: no B evaluator, Shadow, return tracker, formal watchlist, daily report, production
+  scheduler, B `runtime-state`, automatic order, or real schedule/notification is changed or
+  called. No C data was written yet; synthetic tests use temporary roots only.
+- Verification so far: C-focused tests `27 passed` (including eight new synthetic capture
+  tests). Required B regression, full suite, compileall, diff check, push, stacked Draft PR,
+  and exact-head CI are pending. Current decision is `NEEDS_MORE_EVIDENCE`; wait for Sol's
+  activation audit before enabling any live schedule.
+
 ## 2026-09-22 — C_DATA_EVIDENCE_AND_PROTOCOL_READY_FOR_SOL_DECISION
 
 - Classification: `research question + correctness/provenance gate`; no product promotion, Formal B

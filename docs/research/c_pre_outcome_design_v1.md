@@ -314,9 +314,11 @@ T 日 confirmation 为全部条件同时满足：
 协议草案只比较两个清晰版本：
 
 - `PRICE_STRUCTURE_ONLY`：入场只使用第 4 节价格结构，volume 全部为诊断字段；
-- `PRICE_STRUCTURE_PLUS_VOLUME`：在同一价格结构样本上，固定使用
-  `RV_T >= 2.0`（前 20 个完成交易日的自身中位量为基准）作为唯一主 gate；回踩 path、UD
-  和 robust-z 只作描述，不能在结果出来后替换或叠加。
+- `PRICE_STRUCTURE_PLUS_VOLUME`：在同一价格结构事件定义上，固定使用
+  `RV_T >= 2.0`（前 20 个完成交易日的自身中位量为基准）作为唯一主 gate；该值只检验
+  确认日 T 放量，不能代表完整回踩量能路径。回踩 path、UD 和 robust-z 只作描述，不能在
+  结果出来后替换或叠加。量价版本自己的 matched event sample 必须单独保存，不能声称与
+  其他 entry rule 天然拥有相同 entry cohort。
 
 这样可区分“成交量是否增加可预测信息”和“加入多个 volume 条件后样本被重新选择”。
 
