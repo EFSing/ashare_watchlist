@@ -276,6 +276,62 @@ def test_no_valid_input_diagnostic_is_dated_bounded_and_does_not_touch_latest(tm
     assert latest.read_text(encoding="utf-8") == "previous formal latest"
 
 
+def test_no_valid_input_report_displays_universe_qualification_reasons(tmp_path):
+    paths = _paths(tmp_path)
+    qualification = {
+        "schema_version": "HITHINK_UNIVERSE_QUALIFICATION_DIAGNOSTIC_V1",
+        "source": "HiThink Financial-API /api/meta/tickers/list",
+        "target_date": "2026-09-22",
+        "source_row_count": 5576,
+        "sh_sz_scope_count": 5226,
+        "main_board_count": 3197,
+        "eligible_count": 0,
+        "reason_counts": {
+            "UNIVERSE_LIST_DATE_MISSING": 3197,
+            "UNIVERSE_NON_MAIN_BOARD": 2029,
+            "UNIVERSE_OUT_OF_SCOPE_EXCHANGE": 350,
+        },
+        "reason_samples": {
+            "UNIVERSE_LIST_DATE_MISSING": ["001246"],
+            "UNIVERSE_NON_MAIN_BOARD": ["300001"],
+            "UNIVERSE_OUT_OF_SCOPE_EXCHANGE": ["430047"],
+        },
+    }
+
+    _record_path, report_path = renderer.render_input_diagnostic_report(
+        "20260922",
+        {
+            "target_date": "2026-09-22",
+            "raw_symbol_count": 5576,
+            "qualified_symbol_count": 0,
+            "evaluated_symbol_count": 0,
+            "excluded_symbol_count": 0,
+            "excluded_reason_counts": {},
+            "input_coverage": {
+                "schema_version": "INPUT_COVERAGE_V1",
+                "coverage_status": "NO_VALID_INPUT",
+                "evaluated_symbol_count": 0,
+                "excluded_symbol_count": 0,
+                "excluded_symbols": [],
+                "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+                "formal_result_valid": False,
+            },
+            "exclusions": [],
+            "global_failures": [],
+            "universe_qualification": qualification,
+        },
+        paths=paths,
+        generated_at=datetime.fromisoformat("2026-09-22T17:30:00+08:00"),
+    )
+
+    text = report_path.read_text(encoding="utf-8")
+    assert "股票池资格过滤诊断" in text
+    assert "UNIVERSE_LIST_DATE_MISSING" in text
+    assert "UNIVERSE_NON_MAIN_BOARD" in text
+    assert "UNIVERSE_OUT_OF_SCOPE_EXCHANGE" in text
+    assert "001246" in text
+
+
 def test_t_day_new_signal_is_explicitly_waiting_for_t1_not_missing(tmp_path):
     watchlist = _write_watchlist(tmp_path, "20260910", [_candidate("600018", "今日新信号", 70)])
     _write_tracker(tmp_path, watchlist)

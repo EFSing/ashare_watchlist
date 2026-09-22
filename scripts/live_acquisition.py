@@ -123,6 +123,11 @@ HISTORICAL_OHLCV_CONFLICT = "HISTORICAL_OHLCV_CONFLICT"
 HISTORICAL_FUTURE_DATE = "HISTORICAL_FUTURE_DATE"
 TRADE_STATE_CONFLICT = "TRADE_STATE_CONFLICT"
 UNIVERSE_LIST_DATE_INVALID = "UNIVERSE_LIST_DATE_INVALID"
+UNIVERSE_OUT_OF_SCOPE_EXCHANGE = "UNIVERSE_OUT_OF_SCOPE_EXCHANGE"
+UNIVERSE_NON_MAIN_BOARD = "UNIVERSE_NON_MAIN_BOARD"
+UNIVERSE_LIST_DATE_MISSING = "UNIVERSE_LIST_DATE_MISSING"
+UNIVERSE_LIST_DATE_FUTURE = "UNIVERSE_LIST_DATE_FUTURE"
+UNIVERSE_QUALIFICATION_DIAGNOSTIC_V1 = "HITHINK_UNIVERSE_QUALIFICATION_DIAGNOSTIC_V1"
 
 HITHINK_BASE_URL = "https://fuyao.aicubes.cn"
 HITHINK_API_KEY_ENV = "HITHINK_FINANCE_API_KEY"
@@ -2011,6 +2016,15 @@ def _build_universe(
     seen_symbols: set[str] = set()
     canonical_rows: list[dict[str, Any]] = []
     exclusions: list[dict[str, Any]] = []
+    qualification_reason_counts: dict[str, int] = {}
+    qualification_reason_samples: dict[str, list[str]] = {}
+
+    def record_qualification_reason(symbol: str, reason: str) -> None:
+        qualification_reason_counts[reason] = qualification_reason_counts.get(reason, 0) + 1
+        samples = qualification_reason_samples.setdefault(reason, [])
+        if len(samples) < 20:
+            samples.append(symbol)
+
     for index, row in enumerate(rows):
         asset_type = _text(_field(row, ("asset_type",), f"universe[{index}].asset_type"), "universe asset_type")
         if asset_type.lower() != "a-share":
@@ -2037,6 +2051,7 @@ def _build_universe(
                 raise
             list_date = None
             list_date_invalid = True
+            record_qualification_reason(symbol, UNIVERSE_LIST_DATE_INVALID)
             exclusions.append(
                 _symbol_exclusion_record(
                     symbol,
@@ -2072,6 +2087,8 @@ def _build_universe(
         if exchange in {"SH", "SZ"} and not list_date_invalid:
             scoped_names[symbol] = name
             scoped_list_dates[symbol] = list_date
+        elif not list_date_invalid:
+            record_qualification_reason(symbol, UNIVERSE_OUT_OF_SCOPE_EXCHANGE)
     if not scoped_names and not (include_exclusions and exclusions):
         _fail(INCOMPLETE_COVERAGE, "universe has no symbols")
     hithink_symbols = set(scoped_names)
@@ -2088,21 +2105,25 @@ def _build_universe(
         if not is_live_universe_eligible(symbol):
             decision = "NON_MAIN_BOARD"
             eligible = False
+            record_qualification_reason(symbol, UNIVERSE_NON_MAIN_BOARD)
         elif list_date is None:
             decision = "NOT_YET_LISTED_OR_NOT_PROVEN_LISTED"
             eligible = False
             main_board_count += 1
             excluded_not_listed_count += 1
+            record_qualification_reason(symbol, UNIVERSE_LIST_DATE_MISSING)
         elif date.fromisoformat(list_date) > target:
             decision = "FUTURE_LIST_DATE"
             eligible = False
             main_board_count += 1
             excluded_future_list_date_count += 1
+            record_qualification_reason(symbol, UNIVERSE_LIST_DATE_FUTURE)
         else:
             decision = "ELIGIBLE"
             eligible = True
             main_board_count += 1
             retained_names[symbol] = scoped_names[symbol]
+            record_qualification_reason(symbol, "ELIGIBLE")
         listing_date_decisions.append(
             {
                 "symbol": symbol,
@@ -2156,6 +2177,23 @@ def _build_universe(
             }
         ),
     }
+    # These are universe-admission outcomes, not per-symbol acquisition
+    # anomalies.  Keep them separate so ordinary board/list-date filtering
+    # cannot be mistaken for a degraded Formal B input package.
+    universe_qualification = {
+        "schema_version": UNIVERSE_QUALIFICATION_DIAGNOSTIC_V1,
+        "source": f"HiThink Financial-API {HITHINK_UNIVERSE_API}",
+        "target_date": as_of_date,
+        "source_row_count": len(canonical_rows),
+        "sh_sz_scope_count": len(hithink_symbols),
+        "main_board_count": main_board_count,
+        "eligible_count": len(retained_names),
+        "reason_counts": dict(sorted(qualification_reason_counts.items())),
+        "reason_samples": {
+            reason: sorted(samples)
+            for reason, samples in sorted(qualification_reason_samples.items())
+        },
+    }
     if not retained_names:
         if include_exclusions:
             _raise_no_valid_input(
@@ -2169,6 +2207,7 @@ def _build_universe(
                 raw_symbol_count=len(canonical_rows),
                 qualified_symbol_count=0,
                 exclusions=exclusions,
+                universe_qualification=universe_qualification,
                 detail="HiThink universe has no eligible Main Board symbols",
             )
         _fail(INCOMPLETE_COVERAGE, "HiThink universe has no eligible Main Board symbols")
@@ -2857,6 +2896,7 @@ def _raise_no_valid_input(
     raw_symbol_count: int,
     qualified_symbol_count: int,
     exclusions: Sequence[Mapping[str, Any]],
+    universe_qualification: Mapping[str, Any] | None = None,
     global_failures: Sequence[Mapping[str, Any]] = (),
     detail: str = "no valid stock input remained for Formal B",
 ) -> NoReturn:
@@ -2885,6 +2925,8 @@ def _raise_no_valid_input(
         "global_failures": [copy.deepcopy(dict(item)) for item in global_failures],
         "detail": detail[:1000],
     }
+    if universe_qualification is not None:
+        diagnostics["universe_qualification"] = copy.deepcopy(dict(universe_qualification))
     raise NoValidInputError(detail, diagnostics)
 
 
@@ -4519,7 +4561,12 @@ __all__ = [
     "TCloseEvidenceStore",
     "TARGET_DAY_HISTORICAL_STALE",
     "TRADE_STATE_CONFLICT",
+    "UNIVERSE_LIST_DATE_FUTURE",
     "UNIVERSE_LIST_DATE_INVALID",
+    "UNIVERSE_LIST_DATE_MISSING",
+    "UNIVERSE_NON_MAIN_BOARD",
+    "UNIVERSE_OUT_OF_SCOPE_EXCHANGE",
+    "UNIVERSE_QUALIFICATION_DIAGNOSTIC_V1",
     "TRADABLE_UNIVERSE_SCOPE_V1",
     "TRADABLE_UNIVERSE_SCOPE_VERSION",
     "UNIVERSE_POLICY_MAIN_BOARD_ONLY_V1",
