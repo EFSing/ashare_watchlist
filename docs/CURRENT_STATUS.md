@@ -14,8 +14,13 @@
 - Live starting point: PR #81 was `OPEN / DRAFT / CLEAN` at intake, with head
   `codex/c-pre-outcome-design-ready-for-sol-audit` at
   `02c7116f5b712b187a2d70e1a46fba061981b6b8`. The implementation is on the separate worktree
-  branch `codex/c-prospective-capture-v1`, based directly on that head; its stacked Draft PR is
-  created only after the validation commit is pushed.
+  branch `codex/c-prospective-capture-v1`, based directly on that head.
+- Delivery: Draft [PR #83](https://github.com/EFSing/ashare_watchlist/pull/83) is
+  `OPEN / DRAFT / MERGEABLE / CLEAN`, with base
+  `codex/c-pre-outcome-design-ready-for-sol-audit@02c7116f5b712b187a2d70e1a46fba061981b6b8`
+  and implementation head
+  `codex/c-prospective-capture-v1@a6621ec9dbc98173d785000ae7df4b48bce7c33d`. This governance
+  checkpoint itself must be re-read from live Git/GitHub for the final branch tip and CI.
 - C capture contract: `scripts/c_prospective_capture.py` and
   `docs/research/c_prospective_capture_v1.md` define the C-only namespace
   `data/research/c_prospective_capture_v1/` with immutable input snapshots, research
@@ -31,10 +36,12 @@
 - Isolation: no B evaluator, Shadow, return tracker, formal watchlist, daily report, production
   scheduler, B `runtime-state`, automatic order, or real schedule/notification is changed or
   called. No C data was written yet; synthetic tests use temporary roots only.
-- Verification so far: C-focused tests `27 passed` (including eight new synthetic capture
-  tests). Required B regression, full suite, compileall, diff check, push, stacked Draft PR,
-  and exact-head CI are pending. Current decision is `NEEDS_MORE_EVIDENCE`; wait for Sol's
-  activation audit before enabling any live schedule.
+- Verification: C-focused tests `27 passed` (including eight new synthetic capture tests),
+  isolation/regression set `76 passed`, full suite `698 passed, 2 skipped`, compileall and
+  diff check pass, and the CI-equivalent Node dispatcher test is `3 passed`. PR #83 exact-head
+  CI has two `test` runs, both successful at the exact head: push run
+  `35716953816` and pull-request run `35717028240`. Current decision is
+  `NEEDS_MORE_EVIDENCE`; wait for Sol's activation audit before enabling any live schedule.
 
 ## 2026-09-22 — C_DATA_EVIDENCE_AND_PROTOCOL_READY_FOR_SOL_DECISION
 

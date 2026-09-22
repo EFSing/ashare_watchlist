@@ -28,8 +28,13 @@
 - isolation contract：C 独立写入 `data/research/c_prospective_capture_v1/`，不导入或调用
   B evaluator/Shadow/return tracker/formal list/daily report/scheduler，不写 B
   `runtime-state`，不抢占 B 关键配额；C 失败不阻断 B。
-- evidence：当前 C-focused synthetic verification 为 `27 passed`；完整回归、确切远端
-  head、Draft stacked PR 和 exact-head CI 完成后，终点为
+- evidence：C-focused synthetic verification 为 `27 passed`，隔离/回归集合为 `76 passed`，
+  全量为 `698 passed, 2 skipped`，`compileall`、`git diff --check` 和 CI 同款 dispatcher
+  为 `3 passed`。Draft stacked [PR #83](https://github.com/EFSing/ashare_watchlist/pull/83)
+  的 base 为 `codex/c-pre-outcome-design-ready-for-sol-audit@02c7116f5b712b187a2d70e1a46fba061981b6b8`，
+  implementation head 为 `codex/c-prospective-capture-v1@a6621ec9dbc98173d785000ae7df4b48bce7c33d`；
+  该 implementation head 的 push run `35716953816` 与 pull-request run `35717028240` 均为
+  exact-head `success`。本治理 checkpoint 后的最终 branch tip 与 CI 仍须实时重读。终点为
   `C_PROSPECTIVE_CAPTURE_PR_READY_FOR_SOL_ACTIVATION_AUDIT`，随后停止等待 Sol 审计。
 
 ## 2026-09-22 — C data evidence and preregistration protocol ready for Sol decision
