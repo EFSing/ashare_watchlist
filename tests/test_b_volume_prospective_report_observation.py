@@ -251,6 +251,12 @@ def test_observation_does_not_change_candidate_order_or_mobile_layout(tmp_path):
     model = renderer.build_report_model("2026-09-10", paths=paths, calendar=CALENDAR)
     text = renderer.render_html(model)
     css = text.split("<style>", 1)[1].split("</style>", 1)[0]
+    desktop_css = css.split("@media (max-width: 600px)", 1)[0]
     mobile_css = css.split("@media (max-width: 600px)", 1)[1]
+    assert "grid-template-columns: minmax(108px, 1.05fr) minmax(118px, 1fr) minmax(4.8em, auto);" in desktop_css
     assert ".volume-observations" in mobile_css
-    assert "grid-template-columns: 1fr;" in mobile_css
+    assert 'grid-template-areas: "label value" "explanation bar";' in mobile_css
+    assert ".volume-metric-label { display: contents; }" in mobile_css
+    assert ".volume-explanation { grid-area: explanation;" in mobile_css
+    assert "white-space: normal;" in mobile_css
+    assert ".volume-summary { max-width: 100%; overflow-wrap: anywhere; word-break: break-word; }" in mobile_css

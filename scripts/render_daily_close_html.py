@@ -2196,12 +2196,12 @@ input[type=search] {{ width: min(360px, 100%); padding: 8px 10px; border: 1px so
 .watch-facts small {{ display: block; color: var(--muted); font-size: 10px; }}
 .watch-meta {{ display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 7px 0 0 38px; color: var(--muted); font-size: 11px; }}
 .volume-observations {{ display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; min-width: 0; margin: 11px 0 0 38px; }}
-.volume-card {{ min-width: 0; overflow: hidden; padding: 10px 11px; border: 1px solid var(--border); background: var(--surface-2); }}
+.volume-card {{ min-width: 0; max-width: 100%; overflow: hidden; padding: 10px 11px; border: 1px solid var(--border); background: var(--surface-2); }}
 .volume-card-head {{ display: flex; align-items: baseline; justify-content: space-between; gap: 8px; min-width: 0; color: var(--text); font-size: 13px; }}
 .volume-card-head strong {{ font-weight: 700; }}
 .volume-window {{ color: var(--muted); font-size: 11px; font-weight: 400; white-space: nowrap; }}
 .volume-metric-list {{ display: grid; gap: 7px; margin-top: 9px; min-width: 0; }}
-.volume-metric-row {{ display: grid; grid-template-columns: minmax(108px, 1.05fr) minmax(118px, 1fr) minmax(4.8em, auto); align-items: center; gap: 10px; min-width: 0; }}
+.volume-metric-row {{ display: grid; grid-template-columns: minmax(108px, 1.05fr) minmax(118px, 1fr) minmax(4.8em, auto); align-items: center; gap: 10px; min-width: 0; max-width: 100%; }}
 .volume-metric-label, .volume-metric-bar {{ min-width: 0; }}
 .volume-label {{ display: block; overflow: hidden; color: var(--text); font-size: 12px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }}
 .volume-explanation {{ display: block; overflow: hidden; margin-top: 2px; color: var(--muted); font-size: 11px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }}
@@ -2328,10 +2328,18 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   .watch-facts small {{ font-size: 11px; }}
   .watch-meta {{ margin-left: 34px; gap: 5px 12px; font-size: 12px; overflow-wrap: anywhere; }}
   .watch-meta > span {{ min-width: 0; }}
-  .volume-observations {{ grid-template-columns: 1fr; margin: 12px 0 0 34px; }}
-  .volume-card-metrics, .volume-card:last-child .volume-card-metrics {{ grid-template-columns: 1fr; }}
-  .volume-metric-row {{ grid-template-columns: minmax(84px, 1fr) minmax(90px, 1.1fr) 4.4em; gap: 6px; }}
-  .volume-ratio-scale, .volume-bar-scale {{ font-size: 8px; }}
+  .volume-observations {{ grid-template-columns: minmax(0, 1fr); max-width: 100%; margin: 12px 0 0 34px; }}
+  .volume-metric-row {{ grid-template-columns: minmax(0, 1fr) minmax(96px, 1fr); grid-template-areas: "label value" "explanation bar"; align-items: start; gap: 3px 8px; }}
+  .volume-metric-label {{ display: contents; }}
+  .volume-label {{ grid-area: label; min-width: 0; overflow: visible; overflow-wrap: anywhere; text-overflow: clip; white-space: normal; }}
+  .volume-explanation {{ grid-area: explanation; min-width: 0; overflow: visible; overflow-wrap: anywhere; text-overflow: clip; white-space: normal; }}
+  .volume-metric-bar {{ grid-area: bar; width: 100%; min-width: 0; }}
+  .volume-value {{ grid-area: value; min-width: 0; max-width: 100%; align-self: start; }}
+  .volume-ratio-scale, .volume-bar-scale {{ gap: 2px; font-size: 8px; white-space: normal; }}
+  .volume-ratio-scale {{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }}
+  .volume-bar-scale {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }}
+  .volume-ratio-scale span, .volume-bar-scale span {{ min-width: 0; overflow-wrap: anywhere; text-align: center; }}
+  .volume-summary {{ max-width: 100%; overflow-wrap: anywhere; word-break: break-word; }}
   .volume-window {{ white-space: normal; text-align: right; }}
   .action-top {{ flex-direction: column; align-items: flex-start; gap: 8px; }}
   .action-status {{ justify-content: flex-start; }}
