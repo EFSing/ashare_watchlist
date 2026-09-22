@@ -131,6 +131,30 @@ def test_shadow_capture_does_not_change_canonical_candidate(tmp_path: Path):
     assert normalized["candidates"][0]["signal_id"]
 
 
+def test_missing_index_does_not_create_a_complete_capture(tmp_path: Path):
+    watchlist_path = _write_watchlist(tmp_path)
+
+    with pytest.raises(
+        shadow.ShadowMonitorError,
+        match=r"SHADOW_FEATURE_UNAVAILABLE: index\.bars is unavailable",
+    ):
+        shadow.capture_t_close_signals(
+            watchlist_path=watchlist_path,
+            run_manifest_path=None,
+            generation_input_manifest={
+                "status": "READY_FOR_STRATEGY_EVALUATION",
+                "signal_date": "2026-09-10",
+                "input_fingerprint": "a" * 64,
+                "stock_klines": [],
+            },
+            market_env={},
+            input_package_sha256="b" * 64,
+            store_root=tmp_path / "data" / "shadow_monitor",
+        )
+
+    assert not (tmp_path / "data" / "shadow_monitor" / "b_shadow_monitor.json").exists()
+
+
 def test_shadow_capture_failure_is_fail_soft_for_formal_runner(monkeypatch, tmp_path: Path):
     watchlist_path = _write_watchlist(tmp_path)
     run_manifest = tmp_path / "run_manifest.json"

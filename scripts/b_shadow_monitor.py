@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 from collections import defaultdict
+from collections.abc import Sequence
 from copy import deepcopy
 from datetime import date, datetime, timedelta, timezone
 import hashlib
@@ -313,7 +314,10 @@ def save_store(store: Mapping[str, Any], root: str | Path) -> Path:
 
 
 def _validated_bars(raw: Any, signal_date: str, *, label: str) -> list[dict[str, Any]]:
-    if not isinstance(raw, list):
+    # GenerationInputManifest.to_dict() preserves the canonical manifest's
+    # tuple-backed bars when it is passed directly in memory by t_close_runner.
+    # JSON round-trips turn them into lists, so accept both transport forms.
+    if not isinstance(raw, Sequence) or isinstance(raw, (str, bytes)):
         raise ShadowMonitorError("SHADOW_FEATURE_UNAVAILABLE", f"{label}.bars is unavailable")
     result: list[dict[str, Any]] = []
     seen: set[str] = set()
