@@ -7,7 +7,7 @@ only an input source; missing source bytes and timing evidence remain explicit.
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 import hashlib
 import json
 from pathlib import Path
@@ -145,6 +145,8 @@ def consume_b_input(package_path: str | Path, *, target_date: str, expected_sha2
                     handoff_receipt_path: str | Path, expected_handoff_manifest_sha256: str,
                     evidence_root: str | Path | None = None, read_at: datetime | None = None) -> dict[str, Any]:
     """Verify B bytes read-only, evaluate C rules, and persist a C-only result."""
+    if not isinstance(target_date, str) or len(target_date) != 10 or date.fromisoformat(target_date).isoformat() != target_date:
+        raise ValueError("canonical target T is required")
     now = (read_at or datetime.now(_BJT)).astimezone(_BJT)
     gaps: list[str] = []
     observations: list[dict[str, Any]] = []
