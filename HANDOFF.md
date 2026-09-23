@@ -4,7 +4,9 @@
 
 - Classification: product blocker with correctness boundaries, unchanged; STRICT PATH. Work branch
   `codex/c-daily-research-watchlist-shared-b-input-v1` is stacked on Draft #83 (which is stacked
-  on Draft #81). Fetch live remote HEAD/CI before continuing. Draft #84 remains separate and disabled.
+  on Draft #81). Draft PR #85: https://github.com/EFSing/ashare_watchlist/pull/85.
+  Implementation commit `aff7f6c982bdaca50de27ea7f1bc4959129cfdb2`; fetch live remote HEAD/CI
+  before continuing. Draft #84 remains separate and disabled.
 - Added same-runner read-only C input mode, independent two-rule daily research list and mobile HTML;
   synthetic preview is `docs/examples/c_daily_research_watchlist_synthetic.html`. C keeps price-rule
   match and volume research values separate from formal volume confirmation/entry candidate.
@@ -17,6 +19,8 @@
 - Next: review this bounded Draft PR and its exact-head CI; design a verified isolated C execution
   path that consumes the same package without holding B's lock or publishing raw evidence. Then test
   a real same-day daily report and decide merge/enable. `PROSPECTIVE_CAPTURED` remains unproven.
+- Local verification: focused 26 passed; full 740 passed, 2 skipped, 10 warnings; compileall,
+  workflow YAML parse, and staged diff check passed. No real daily C capture was run.
 
 ## 2026-09-23 — C_VOLUME_OBSERVATION_AND_EXISTING_STORAGE_REUSE_V1
 

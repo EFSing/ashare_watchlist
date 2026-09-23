@@ -16,6 +16,7 @@
   independent report persistence has been demonstrated. These are product activation blockers.
 - #81/#83/#84 stay Draft and unmerged. This work is stacked on #83; #84's private Release path is
   unused. The narrow #84 raw request/response timestamp recording is included here directly.
+  Draft PR #85 carries this implementation; merge/activation is not approved.
 
 更新时间：2026-09-23（Asia/Shanghai）
 
