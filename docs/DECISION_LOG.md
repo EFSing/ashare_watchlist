@@ -5,6 +5,21 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-23 — REJECT raw-price reconstruction from current B frozen response
+
+- Research question: can C's original unadjusted OHLCV and raw-volume basis be recovered
+  deterministically from B's same-day frozen package and raw evidence? This matters because a
+  basis mismatch would contaminate C signal identity. Inputs were the B serializer, HiThink
+  historical request, immutable capture metadata and the real-package compatibility fixture;
+  stop condition was whether unadjusted prices, adjustment factors and volume units were present.
+- Decision: `REJECT` deterministic reconstruction with current bytes. B stock history requests
+  `adjust=forward`; package and raw response contain forward-adjusted prices, no independent
+  unadjusted OHLC or factor series. Volume is present but its unit/raw semantics are unproven.
+  No future outcome was read. C may continue only as `PARTIAL_UNVERIFIED` until the user selects
+  A (new qfq protocol identity with proved volume semantics) or B (original raw definition,
+  input incomplete). Both routes preserve the nine isolated-symbol coverage gaps in the
+  2026-09-22 checkpoint.
+
 ## 2026-09-23 — ADOPT B frozen input read-only reuse as C primary route
 
 - Decision: `ADOPT` 只读复用 B 当日已合法获取并冻结的完整收盘原始输入作为 C 主路线；C

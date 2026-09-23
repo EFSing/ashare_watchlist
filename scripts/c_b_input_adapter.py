@@ -29,6 +29,52 @@ def _canonical(value: Any) -> bytes:
     return (json.dumps(value, ensure_ascii=False, allow_nan=False, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
 
 
+def _b_kline_sha(value: Any) -> str:
+    # generation_contract.KlineManifest hashes normalized JSON without a trailing newline.
+    return sha256_bytes(_canonical(value).rstrip(b"\n"))
+
+
+def _verify_generation_identity(package: Mapping[str, Any], manifest: Mapping[str, Any]) -> None:
+    identity = package.get("generation_identity_payload")
+    if (not isinstance(identity, dict)
+            or identity.get("input_fingerprint") != manifest.get("input_fingerprint")
+            or identity.get("input_coverage") != (manifest.get("provider_version_metadata") or {}).get("input_coverage")
+            or identity.get("display_names") != package.get("display_names")
+            or identity.get("market_env") != package.get("market_env")
+            or sha256_bytes(_canonical(identity)) != package.get("generation_fingerprint")):
+        raise CaptureError("B_GENERATION_IDENTITY_MISMATCH", "B generation identity is inconsistent")
+    context = manifest.get("run_context") or {}
+    universe = manifest.get("universe") or {}
+    quotes = manifest.get("quote_snapshot") or {}
+    stock = manifest.get("stock_klines") or []
+    index = manifest.get("index") or {}
+    sector = manifest.get("sector") or {}
+    payload = {
+        "as_of_date": context.get("as_of_date"), "calendar": context.get("calendar"),
+        "mode": context.get("mode"), "timezone": context.get("timezone"),
+        "universe_hash": universe.get("content_sha256"),
+        "universe_scope": {"name": universe.get("universe_scope"), "version": universe.get("universe_scope_version")},
+        "quote_hash": quotes.get("content_sha256"),
+        "stock_kline_hashes": {item["symbol"]: item["normalized_data_sha256"] for item in stock},
+        "index_hash": index.get("normalized_data_sha256"), "sector_hash": sector.get("content_sha256"),
+        "adjustment_mode": sorted({item["adjustment_mode"] for item in [*stock, index]}),
+        "temporal_semantics": {
+            "universe": universe.get("temporal_semantics"), "quotes": quotes.get("temporal_semantics"),
+            "stock_klines": {item["symbol"]: item["temporal_semantics"] for item in stock},
+            "index": index.get("temporal_semantics"), "sector": sector.get("temporal_semantics"),
+        },
+        "provider_version_metadata": {**(context.get("provider_version_metadata") or {}),
+                                      **(manifest.get("provider_version_metadata") or {})},
+        "providers": {
+            "universe": universe.get("source"), "quotes": quotes.get("provider"),
+            "stock_klines": {item["symbol"]: item["provider"] for item in stock},
+            "index": index.get("provider"), "sector": sector.get("source"),
+        },
+    }
+    if _b_kline_sha(payload) != manifest.get("input_fingerprint"):
+        raise CaptureError("B_GENERATION_MANIFEST_HASH_MISMATCH", "B generation manifest fingerprint differs")
+
+
 def _record(target_date: str, payload: Mapping[str, Any]) -> dict[str, Any]:
     root = _safe_output_root()
     digest = sha256_bytes(_canonical(payload))
@@ -67,6 +113,8 @@ def consume_b_input(package_path: str | Path, *, target_date: str, expected_sha2
         manifest = package.get("generation_input_manifest")
         if not isinstance(manifest, dict) or manifest.get("status") != "READY_FOR_STRATEGY_EVALUATION":
             raise CaptureError("B_FULL_INPUT_MISSING", "B input manifest is not READY")
+        if "generation_identity_payload" in package:
+            _verify_generation_identity(package, manifest)
         if manifest.get("signal_date") != target_date or package.get("market_env", {}).get("as_of_date") != target_date:
             raise CaptureError("B_TARGET_DATE_MISMATCH", "B input date differs from target T")
         if not default_calendar().is_trading_day(target_date):
@@ -103,6 +151,15 @@ def consume_b_input(package_path: str | Path, *, target_date: str, expected_sha2
         if len(by_symbol) != len(klines) or set(symbols) != set(names) or set(symbols) != set(quotes) or set(symbols) != set(by_symbol):
             raise CaptureError("B_FULL_INPUT_MISSING", "B per-symbol input coverage is incomplete")
         quality = (manifest.get("provider_version_metadata") or {}).get("universe_quality") or {}
+        coverage = (manifest.get("provider_version_metadata") or {}).get("input_coverage") or {}
+        if coverage != provenance.get("input_coverage") or coverage.get("evaluated_symbol_count") != len(symbols):
+            raise CaptureError("B_INPUT_COVERAGE_MISMATCH", "B input coverage does not match evaluated symbols")
+        excluded = coverage.get("excluded_symbols")
+        if not isinstance(excluded, list) or coverage.get("excluded_symbol_count") != len(excluded):
+            raise CaptureError("B_INPUT_COVERAGE_MISMATCH", "B excluded-symbol evidence is incomplete")
+        identity["b_input_coverage"] = coverage
+        if excluded:
+            gaps.append("B_INPUT_FAILURE_ISOLATED_SYMBOLS_MISSING_FROM_C_HISTORY")
         identity["b_broad_source_row_count"] = quality.get("source_row_count")
         identity["b_qualified_main_board_count"] = quality.get("retained_count")
         identity["b_evaluated_symbol_count"] = len(symbols)
@@ -124,15 +181,23 @@ def consume_b_input(package_path: str | Path, *, target_date: str, expected_sha2
                     gaps.append("B_RAW_SOURCE_CAPTURE_IDENTITY_MISSING")
                     continue
                 path = root / target_date.replace("-", "") / component / f"{hashlib.sha256(logical.encode()).hexdigest()}.raw"
-                if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != item.get("file_sha256"):
+                sidecar = path.with_suffix(".json")
+                if not path.is_file() or not sidecar.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != item.get("file_sha256"):
                     gaps.append("B_RAW_SOURCE_SHA_UNVERIFIED")
+                    continue
+                metadata = json.loads(sidecar.read_bytes())
+                if (metadata.get("file_sha256") != item.get("file_sha256")
+                        or metadata.get("byte_length") != path.stat().st_size
+                        or metadata.get("logical_component_identity") != logical
+                        or metadata.get("source_identity") != item.get("source_identity")):
+                    gaps.append("B_RAW_SOURCE_SIDECAR_UNVERIFIED")
             identity["b_raw_capture_count"] = len(captures)
         for symbol in symbols:
             item = by_symbol[symbol]
             if item.get("as_of_date") != target_date or item.get("provider") != "HiThink Financial-API":
                 gaps.append(f"B_HISTORY_SOURCE_OR_DATE_INCOMPATIBLE:{symbol}")
                 continue
-            if sha256_bytes(_canonical({"symbol": symbol, "bars": item.get("bars")})) != item.get("normalized_data_sha256"):
+            if _b_kline_sha({"symbol": symbol, "bars": item.get("bars")}) != item.get("normalized_data_sha256"):
                 raise CaptureError("B_KLINE_HASH_MISMATCH", f"B Kline hash mismatch for {symbol}")
             bars = validate_ohlcv_bars(item.get("bars", []))
             if len(bars) < _MIN_HISTORY_BARS or bars[-1]["date"] != target_date or any(bar["date"] >= target_date for bar in bars[:-1]):

@@ -1,7 +1,7 @@
 # C_PROSPECTIVE_CAPTURE_V1
 
-状态：`SHARED_INPUT_READER_IMPLEMENTED_NOT_ACTIVATED`；终点：
-`C_SHARED_INPUT_REUSE_READY_FOR_SOL_AUDIT`。
+状态：`C_B_TO_C_HANDOFF_AND_PRICE_BASIS_READY_FOR_SOL_DECISION`；真实交接尚未完成，
+`PROSPECTIVE_CAPTURED` 尚未成立。
 
 这是新版 C 的独立 T-close 前瞻捕获契约。它只生成研究观察，不生成正式交易名单、不
 写入 B 的 `runtime-state`、不调用 B evaluator / Shadow / return tracker / daily report，
@@ -18,10 +18,17 @@
 
 当前 B package 只在生产 runner 的临时 data root 留存；`runtime-state` 白名单不包含它，
 也不包含 T-close raw evidence。C 工作流已移除早于 B 的 15:15 BJT 定时任务，保持禁用。
-待 Sol 审计的最小 B 导出设计是：B 成功冻结并持久化完整输入后，从关键路径外只读复制
-package 与相关 raw evidence 到独立的只读交接位置，附原始 SHA、各请求/接收时间和持久化时间；
-完成交接后再单独触发 C。不得把 B 失败后的补采、B 候选名单或后续 C 读取时间当作前瞻
-获取证明。本 PR 不改 B 生产路径，也不启用交接。
+独立 B 导出草案从成功结果的 `input_package.path/file_sha256` 读取 package，按
+`provenance.evidence_capture.captures` 原样复制每个 `.raw` 与 `.json` sidecar，
+用 `handoff.json` 记录逐文件 SHA、字节数、package 内部 content SHA、覆盖记录和导出时间。
+独立 B Draft PR 将目录压缩后上传到配置的私有 GitHub 仓库 release asset；默认未配置，
+不会运行。C 的手工工作流按 T 日和 package SHA 下载指定 asset，验证包内逐文件 SHA，
+再只读消费。导出目的地必须与 B 运行目录及 `runtime-state` 分离；本地导出状态
+`EXPORTED_LOCAL_UNVERIFIED_REMOTE` 不代表交接完成。只有目的地完成持久化及独立读回、
+所有 SHA 和同日时间证据通过核验，才能交给 C 只读消费。B 失败则不导出；导出或私有
+持久化失败仅记录交接失败，不能使已成功的 B 生产任务失败；C 失败仅保留 C 私有诊断。
+B 同日重试必须按 package SHA 形成新的不可变身份，C 只能消费已验证的指定 SHA，
+不得以日期覆盖、混合两次运行证据，或把后续 C 读取时间当成 B 获取时间。
 
 字段级审计：
 
@@ -30,10 +37,17 @@ package 与相关 raw evidence 到独立的只读交接位置，附原始 SHA、
 | HiThink 全市场 ticker 原始响应 | 临时 evidence 有 raw SHA | `NOT_PERSISTED` | `AVAILABLE_PARTIAL` |
 | 主板证券代码、名称、T 日 ST 名称证据 | 完整 package 有已筛选主板名称；原始 ticker 行在临时 evidence | `NOT_PERSISTED` | `AVAILABLE_PARTIAL` |
 | T 日 OHLCV 与历史 K 线前缀 | 成功 package 对通过 B 输入门的股票具备，逐票有 SHA；被 B 输入失败隔离的合格股票不在 package 内 | `NOT_PERSISTED` | `AVAILABLE_PARTIAL` |
-| 价格/量口径 | B 股价 `PROVIDER_QFQ_SNAPSHOT`；C 现有主口径未复权/raw volume | 包声明不能证明逐 bar 原始量口径 | `INCOMPATIBLE` |
+| 价格/量口径 | B 股票历史请求明确 `adjust=forward`，逐票标记 `PROVIDER_QFQ_SNAPSHOT`；bar 字段为 date/open/high/low/close/volume/turnover | 同日冻结响应也是 qfq，请求中没有未复权 OHLC 或调整因子；volume 有数值但单位/原始语义未获证实 | `INCOMPATIBLE` |
 | provider 请求/接收时间 | B package 有运行开始的 `retrieved_at_bjt`，raw metadata 复用这一时间 | 逐请求真实时间缺失 | `NOT_PERSISTED` |
 | 包 manifest、generation fingerprint、SHA | 完整 package 内可核验；成功 runner 结果有文件 SHA | checkpoint/runtime-state 只有局部引用，无完整字节 | runner 内 `AVAILABLE_VERIFIED`；跨任务 `NOT_PERSISTED` |
 | `NO_VALID_INPUT`/持久化失败 | 诊断可能进入 runtime-state；raw 留 runner 临时目录 | 无完整 package | `NOT_PERSISTED` |
+
+2026-09-22 远端 `runtime-state` checkpoint SHA-256 为
+`826f02807bb58846788137bdaa85d47455fa679497dbd82f49f5cf2898b8ccb1`：
+原始 universe 5,576，合格主板 3,196，实际评估 3,187，9 只
+`TARGET_DAY_HISTORICAL_STALE` 被隔离。它保存覆盖缺口，但没有完整 package/raw 字节；
+不能据此伪造 package SHA 或对 9 只计算 C 观察。真实 B `LiveInputPackage.to_bytes()`
+兼容性测试已经核验文件 SHA、内部 content SHA、逐票 K 线 SHA、覆盖与 raw sidecar。
 
 因此当前只读消费最多是 `CAPTURE_PARTIAL_UNVERIFIED`；完整 raw bytes、T-known ST、
 逐请求时间、持久化时间及复权/成交量口径经证实兼容之前，不得生成
@@ -57,6 +71,14 @@ package 与相关 raw evidence 到独立的只读交接位置，附原始 SHA、
 周末补取、次日补取、future bar、T 日前请求或缺少上述证据都会 fail closed。只有所有
 必需证据完整且确实同日完成时，顶层状态才可为 `PROSPECTIVE_CAPTURED`。
 
+### 价格口径与覆盖决策
+
+| 路线 | 研究口径 | 数据覆盖及决定 |
+| --- | --- | --- |
+| 原始响应确定性恢复 | B 同日冻结股票请求只有 `adjust=forward`，无未复权 OHLC/调整因子；原始 volume 单位也未证实 | `NOT_REPRODUCIBLE_WITH_CURRENT_DATA`，不能声明与 C 原协议等价 |
+| A：采用 B qfq | 需先固定新的明确价格/成交量协议身份和 volume 来源语义，不使用未来收益选择 | 可复用 B 实际评估股票；隔离股票仍记缺口；待用户研究口径决定 |
+| B：保持 C 未复权定义 | 原 C 定义保持；B 输入不得填充所缺未复权 OHLCV | `PARTIAL_UNVERIFIED`，真实输入仍不完整 |
+
 ## 2. C 专属不可变存储
 
 根目录固定为 `data/research/c_prospective_capture_v1/`，不使用 B 的数据路径：
@@ -66,7 +88,7 @@ package 与相关 raw evidence 到独立的只读交接位置，附原始 SHA、
 | `input_snapshots/YYYYMMDD/input_<input_sha>.json` | provider snapshot 原始规范化字节 |
 | `observations/YYYYMMDD/observation_<input_sha>.json` | C 的两条规则研究观察 |
 | `manifests/YYYYMMDD/capture_<input_sha>.json` | source、时间点、输入/观察 SHA、质量状态 |
-| `captures/YYYYMMDD/canonical.json` | 一个 T 日的 canonical capture identity |
+| `captures/YYYYMMDD/captured.json` | 一个 T 日的已核验 capture identity，仅完整时创建 |
 | `logs/YYYYMMDD/capture_<input_sha>.json` | 运行、质量缺口和边界日志 |
 | `failures/YYYYMMDD/failure_*.json` | 失败、补取和冲突诊断 |
 

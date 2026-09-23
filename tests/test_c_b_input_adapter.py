@@ -34,15 +34,16 @@ def _package(tmp_path: Path, *, include_history: bool = True, day: str = T) -> t
     symbol = "600000"
     kline = {"symbol": symbol, "as_of_date": day, "provider": "HiThink Financial-API",
              "adjustment_mode": "PROVIDER_QFQ_SNAPSHOT", "bars": bars,
-             "normalized_data_sha256": hashlib.sha256(adapter._canonical({"symbol": symbol, "bars": bars})).hexdigest()}
+             "normalized_data_sha256": adapter._b_kline_sha({"symbol": symbol, "bars": bars})}
+    coverage = {"evaluated_symbol_count": 1, "excluded_symbol_count": 0, "excluded_symbols": []}
     manifest = {"status": "READY_FOR_STRATEGY_EVALUATION", "signal_date": day,
                 "input_fingerprint": "fingerprint", "universe": {"symbols": [symbol]},
                 "quote_snapshot": {"quotes": {symbol: {"quote_date": day}}},
                 "stock_klines": [kline] if include_history else [],
-                "provider_version_metadata": {"universe_quality": {"source_row_count": 5576}}}
+                "provider_version_metadata": {"universe_quality": {"source_row_count": 5576}, "input_coverage": coverage}}
     package = {"schema_version": adapter.PACKAGE_SCHEMA, "generation_input_manifest": manifest,
                "market_env": {"as_of_date": day}, "display_names": {symbol: "浦发银行"},
-               "generation_fingerprint": "generation", "provenance": {"retrieved_at_bjt": f"{day}T17:17:00+08:00"}}
+               "generation_fingerprint": "generation", "provenance": {"retrieved_at_bjt": f"{day}T17:17:00+08:00", "input_coverage": coverage}}
     package["content_sha256"] = hashlib.sha256(adapter._canonical(package)).hexdigest()
     path = tmp_path / "package.json"
     path.write_bytes(adapter._canonical(package))
@@ -120,3 +121,59 @@ def test_b_retry_then_ready_without_provider_or_b_write(c_root: Path, tmp_path: 
     assert second["status"] == capture.C_PARTIAL_UNVERIFIED
     assert path.read_bytes() == before
     assert first["record"] != second["record"]
+
+
+def test_real_b_serialization_and_isolated_coverage_are_consumed(c_root: Path, tmp_path: Path) -> None:
+    from test_live_acquisition import _bars, _multi_symbol_acquire
+
+    package = _multi_symbol_acquire(bars_by_code={
+        "605366": _bars(last_date="2026-08-26", count=141),
+        "600519": _bars(last_date="2026-08-27", count=141),
+    })
+    persisted = __import__("live_acquisition").persist_live_input_package(package, tmp_path)
+    original = persisted.path.read_bytes()
+    result = adapter.consume_b_input(
+        persisted.path, target_date="2026-08-27", expected_sha256=persisted.file_sha256,
+        read_at=datetime(2026, 8, 27, 19, tzinfo=BJT),
+    )
+    assert result["status"] == capture.C_PARTIAL_UNVERIFIED
+    assert result["observation_count"] == 1
+    record = json.loads((c_root / result["record"]).read_bytes())
+    assert record["source"]["b_input_coverage"]["excluded_symbols"][0]["symbol"] == "605366"
+    assert record["observations"][0]["symbol"] == "600519"
+    assert "B_INPUT_FAILURE_ISOLATED_SYMBOLS_MISSING_FROM_C_HISTORY" in result["gaps"]
+    assert persisted.path.read_bytes() == original
+    altered = json.loads(original)
+    altered["generation_input_manifest"]["input_fingerprint"] = "0" * 64
+    altered.pop("content_sha256")
+    altered["content_sha256"] = hashlib.sha256(adapter._canonical(altered)).hexdigest()
+    altered_path = tmp_path / "altered.json"
+    altered_path.write_bytes(adapter._canonical(altered))
+    rejected = adapter.consume_b_input(altered_path, target_date="2026-08-27",
+                                       expected_sha256=hashlib.sha256(altered_path.read_bytes()).hexdigest(),
+                                       read_at=datetime(2026, 8, 27, 19, tzinfo=BJT))
+    assert "B_GENERATION_IDENTITY_MISMATCH" in rejected["gaps"]
+
+
+def test_real_b_evidence_sidecars_are_sha_verified(c_root: Path, tmp_path: Path) -> None:
+    import live_acquisition as live
+    from test_live_acquisition import FakeHiThink, _acquire, _bars
+
+    evidence_root = tmp_path / "evidence"
+    package = _acquire(evidence_root=evidence_root,
+                       hithink_client=FakeHiThink(bars=_bars(count=120), index_bars=_bars(count=120)),
+                       stock_bar_count=120)
+    persisted = live.persist_live_input_package(package, tmp_path)
+    result = adapter.consume_b_input(persisted.path, target_date="2026-08-27",
+                                     expected_sha256=persisted.file_sha256, evidence_root=evidence_root,
+                                     read_at=datetime(2026, 8, 27, 19, tzinfo=BJT))
+    assert result["observation_count"] == 1
+    assert "B_RAW_SOURCE_SHA_UNVERIFIED" not in result["gaps"]
+    capture = package.provenance["evidence_capture"]["captures"][0]
+    raw_path = evidence_root / "20260827" / capture["component"] / (
+        hashlib.sha256(capture["logical_component_identity"].encode()).hexdigest() + ".raw")
+    raw_path.write_bytes(b"corrupted")
+    corrupt = adapter.consume_b_input(persisted.path, target_date="2026-08-27",
+                                      expected_sha256=persisted.file_sha256, evidence_root=evidence_root,
+                                      read_at=datetime(2026, 8, 27, 19, 1, tzinfo=BJT))
+    assert "B_RAW_SOURCE_SHA_UNVERIFIED" in corrupt["gaps"]

@@ -6,7 +6,22 @@
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
-## 2026-09-23 — C_SHARED_INPUT_REUSE_READY_FOR_SOL_AUDIT
+## 2026-09-23 — C_B_TO_C_HANDOFF_AND_PRICE_BASIS_READY_FOR_SOL_DECISION
+
+- Classification: `correctness blocker`，未改变。#83 C reader 现经 B 实际
+  `LiveInputPackage.to_bytes()` 与 `persist_live_input_package()` 验证，修正 B K 线 SHA
+  不带换行的编码差异，并核对 generation fingerprint、逐票 SHA、隔离覆盖和 raw sidecar。
+- #83 手工工作流可从配置的私有 handoff release asset 下载并逐文件核验；独立 B 导出
+  Draft PR 从最新 master 提供成功后只读导出，默认配置未启用。真实私有读回、逐请求时间、
+  B 持久化时间、T-known ST 和成交量语义仍未验收，不能宣布 `PROSPECTIVE_CAPTURED`。
+- B 股票历史响应请求 `adjust=forward`；同日 raw evidence 没有未复权 OHLC 或调整因子，
+  当前无法确定性还原 C 原始 raw 定义。研究口径 A（新协议采用 B qfq）与 B（保留原
+  未复权口径并维持输入不完整）待用户选择，不能以未来收益决定。
+- 2026-09-22 `runtime-state` checkpoint SHA-256
+  `826f02807bb58846788137bdaa85d47455fa679497dbd82f49f5cf2898b8ccb1`：
+  5,576 原始、3,196 合格、3,187 评估、9 隔离；完整 package/raw 未持久化。
+
+## Historical checkpoint — 2026-09-23 — C_SHARED_INPUT_REUSE_READY_FOR_SOL_AUDIT
 
 - Classification: `correctness blocker`，本轮未改变。新版 C 的主路线改为只读消费 B
   已冻结的全量收盘输入，再由 C 独立计算规则；独立 HiThink 请求降为关闭的备用方案。

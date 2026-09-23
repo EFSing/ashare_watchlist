@@ -35,13 +35,51 @@ jobs:
         run: python -m pip install -e .
       - name: Restore private C capture state
         run: python scripts/c_state_store.py restore --state-repo .c-state
+      - name: Restore B handoff from private repository
+        id: handoff
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.B_C_PRIVATE_HANDOFF_TOKEN }}
+          HANDOFF_REPOSITORY: ${{ vars.B_C_PRIVATE_HANDOFF_REPOSITORY }}
+          TARGET_DATE: ${{ inputs.target_date }}
+          B_PACKAGE_SHA: ${{ inputs.b_input_sha256 }}
+        run: |
+          set -euo pipefail
+          [[ "$(gh repo view "$HANDOFF_REPOSITORY" --json isPrivate --jq .isPrivate)" == "true" ]]
+          day="$TARGET_DATE"
+          sha="$B_PACKAGE_SHA"
+          [[ "$day" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ && "$sha" =~ ^[0-9a-f]{64}$ ]]
+          archive="b-c-${day//-/}-$sha.zip"
+          gh release download "b-c-input-${day//-/}" --repo "$HANDOFF_REPOSITORY" \
+            --pattern "$archive" --dir "$RUNNER_TEMP"
+          python - "$RUNNER_TEMP/$archive" "$RUNNER_TEMP/b-input" "$sha" <<'PY'
+          import hashlib, json, pathlib, sys, zipfile
+          archive, target, expected = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2]), sys.argv[3]
+          with zipfile.ZipFile(archive) as bundle:
+              names = bundle.namelist()
+              if any(pathlib.PurePosixPath(name).is_absolute() or ".." in pathlib.PurePosixPath(name).parts for name in names):
+                  raise ValueError("unsafe handoff path")
+              manifest = json.loads(bundle.read("handoff.json"))
+              if manifest["package_sha256"] != expected or manifest["target_date"] != __import__("os").environ["TARGET_DATE"]:
+                  raise ValueError("handoff identity mismatch")
+              for item in manifest["files"]:
+                  data = bundle.read(item["path"])
+                  if len(data) != item["bytes"] or hashlib.sha256(data).hexdigest() != item["sha256"]:
+                      raise ValueError("handoff file SHA mismatch")
+              bundle.extractall(target)
+          PY
       - name: Consume frozen B input after independent handoff
         id: capture
+        if: always() && steps.handoff.outcome != 'skipped'
+        env:
+          TARGET_DATE: ${{ inputs.target_date }}
+          B_PACKAGE_SHA: ${{ inputs.b_input_sha256 }}
         run: |
           python scripts/run_c_prospective_capture.py \
-            --target-date "${{ inputs.target_date }}" \
+            --target-date "$TARGET_DATE" \
             --b-input-package "$RUNNER_TEMP/b-input/package.json" \
-            --b-input-sha256 "${{ inputs.b_input_sha256 }}"
+            --b-input-sha256 "$B_PACKAGE_SHA" \
+            --b-evidence-root "$RUNNER_TEMP/b-input/evidence"
       - name: Persist private C capture state
         if: ${{ always() && steps.capture.outcome != 'skipped' }}
         run: python scripts/c_state_store.py publish --state-repo .c-state

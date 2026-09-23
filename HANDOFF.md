@@ -6,6 +6,23 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-23 — C_B_TO_C_HANDOFF_AND_PRICE_BASIS_READY_FOR_SOL_DECISION
+
+- Classification: `correctness blocker`，未改变。Branch `codex/c-prospective-capture-v1`
+  continues Draft PR #83 stacked on Draft #81; fetch live remote HEAD and exact-head CI.
+  At intake master=`a54bce2c34d1c76298b02f2ddc8347fd88757ace`, runtime-state=
+  `2fc7f9f69949b20da0444a13a2dba860c952fc3f`; these are snapshots only.
+- C reader now consumes B's actual serialized package, verifies generation and per-symbol SHA,
+  preserves excluded-symbol coverage, and checks raw/sidecar bytes. Private handoff download is
+  wired only in the disabled manual workflow. Independent B exporter Draft PR is on
+  `codex/b-c-readonly-handoff-v1` from current master; no merge or production activation.
+- Current B stock request is qfq (`adjust=forward`), with no frozen unadjusted OHLC/factors and
+  unproved volume unit. User must choose A: new qfq protocol identity, or B: original raw C
+  definition remains input-incomplete. No future returns or Final OOS read.
+- Next: Sol decides price basis and reviews both Draft PRs. Before any real C capture, verify a
+  same-day private handoff readback, ST/time/volume evidence and excluded coverage. Do not enable
+  C schedule, notification or orders; do not merge #81/#83 or the B exporter automatically.
+
 ## 2026-09-23 — C_SHARED_INPUT_REUSE_READY_FOR_SOL_AUDIT
 
 - Classification: `correctness blocker`，未改变。用户纠正 C 应优先复用 B 已冻结的收盘
