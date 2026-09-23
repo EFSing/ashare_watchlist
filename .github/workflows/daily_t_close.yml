@@ -567,6 +567,43 @@ jobs:
               ;;
           esac
 
+      - name: Export frozen B input to private C handoff
+        if: always() && env.RUN_MODE == 'production' && env.PRODUCTION_CANONICAL_READY == '1' && vars.B_C_PRIVATE_HANDOFF_REPOSITORY != ''
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.B_C_PRIVATE_HANDOFF_TOKEN }}
+          HANDOFF_REPOSITORY: ${{ vars.B_C_PRIVATE_HANDOFF_REPOSITORY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$(gh repo view "$HANDOFF_REPOSITORY" --json isPrivate --jq .isPrivate)" == "true" ]]
+          result_file="${PRODUCTION_RESULT:-${ASHARE_SUMMARY_RESULT:-}}"
+          [[ -f "$result_file" ]]
+          export_json="$RUNNER_TEMP/b-c-export.json"
+          python scripts/b_c_handoff_export.py \
+            --b-result "$result_file" \
+            --b-evidence-root "$ASHARE_DATA_ROOT/t_close_evidence" \
+            --private-destination "$RUNNER_TEMP/b-c-handoff" > "$export_json"
+          read -r handoff_dir package_sha < <(python - "$export_json" <<'PY'
+          import json, sys
+          result = json.load(open(sys.argv[1], encoding="utf-8"))
+          print(result["path"], result["package_sha256"])
+          PY
+          )
+          archive="$RUNNER_TEMP/b-c-${AS_OF_DATE//-/}-$package_sha.zip"
+          python - "$handoff_dir" "$archive" <<'PY'
+          import pathlib, sys, zipfile
+          root = pathlib.Path(sys.argv[1])
+          with zipfile.ZipFile(sys.argv[2], "w", compression=zipfile.ZIP_DEFLATED) as bundle:
+              for path in sorted(root.rglob("*")):
+                  if path.is_file():
+                      bundle.write(path, path.relative_to(root).as_posix())
+          PY
+          tag="b-c-input-${AS_OF_DATE//-/}"
+          gh release view "$tag" --repo "$HANDOFF_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create "$tag" --repo "$HANDOFF_REPOSITORY" --title "$tag" --notes "Immutable B input handoff for C"
+          gh release upload "$tag" "$archive" --repo "$HANDOFF_REPOSITORY"
+
       - name: Checkout clean runtime-state for failure notice
         if: always() && env.RUN_MODE == 'production' && env.AS_OF_DATE != '' && env.ASHARE_SKIP_PRODUCTION != '1' && env.PRODUCTION_CANONICAL_READY != '1'
         uses: actions/checkout@v4
