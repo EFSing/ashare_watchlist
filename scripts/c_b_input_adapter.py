@@ -136,15 +136,15 @@ def _price_only_observation(symbol: str, target_date: str, bars: Sequence[Mappin
     observation = _rule_observation(symbol=symbol, target_date=target_date, bars=bars, rule_id=rule)
     observation["price_structure_match"] = observation.get("entry_candidate") is True
     observation["price_structure_event_identity"] = observation.get("event_identity")
-    observation["research_match_status"] = (
-        "PRICE_STRUCTURE_MATCH_VOLUME_GATE_UNVERIFIED"
-        if observation["price_structure_match"] else "RULE_NOT_MATCHED"
-    )
-    observation["research_match_reason"] = (
-        "TREND_PULLBACK_REBOUND_SUPPORT_MATCH; VOLUME_BASIS_UNVERIFIED"
-        if observation["price_structure_match"] else
-        "PRICE_STRUCTURE_RULE_NOT_SATISFIED"
-    )
+    if observation["price_structure_match"]:
+        observation["research_match_status"] = "PRICE_STRUCTURE_MATCH_VOLUME_GATE_UNVERIFIED"
+        observation["research_match_reason"] = "TREND_PULLBACK_REBOUND_SUPPORT_MATCH; VOLUME_BASIS_UNVERIFIED"
+    elif observation.get("status") in {"OBSERVATION_FAILED", "OBSERVATION_INSUFFICIENT_HISTORY"}:
+        observation["research_match_status"] = "DATA_PENDING_VERIFICATION"
+        observation["research_match_reason"] = observation.get("reason") or "INSUFFICIENT_HISTORY"
+    else:
+        observation["research_match_status"] = "RULE_NOT_MATCHED"
+        observation["research_match_reason"] = "PRICE_STRUCTURE_RULE_NOT_SATISFIED"
     observation["entry_candidate"] = False
     observation["event_identity"] = None
     if observation.get("status") == "OBSERVATION_RECORDED":

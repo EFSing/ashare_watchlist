@@ -54,6 +54,7 @@ def test_research_match_keeps_volume_and_formal_signal_separate() -> None:
 def test_no_match_still_has_readable_report() -> None:
     result = build_watchlist(_record(matched=False))
     assert result["matched_stock_count"] == 0
+    assert result["data_pending_by_rule"]["CONSERVATIVE_B"] == 1
     assert "今日无 C 研究匹配" in render_html(result)
 
 

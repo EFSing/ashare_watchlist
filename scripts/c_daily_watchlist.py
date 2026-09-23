@@ -35,7 +35,9 @@ def _rule_html(rule_id: str, rule: Mapping[str, Any]) -> str:
     rv = volume.get("t_day_relative_volume") or {}
     path = volume.get("pullback_path") or {}
     match = rule.get("price_structure_match") is True
-    status = "价格结构研究匹配；量能口径待核验" if match else "不满足该规则"
+    pending = rule.get("research_match_status") == "DATA_PENDING_VERIFICATION"
+    status = ("价格结构研究匹配；量能口径待核验" if match else
+              "数据待核验" if pending else "不满足该规则")
     half = path.get("second_to_first_half_median_ratio")
     half_note = (f"回踩后半程日成交量中位数约为前半程的 {_shown(half * 100, 0)}%，"
                  + ("显示继续缩量。" if half < 1 else "显示量能增加。")) if isinstance(half, (int, float)) else "样本不足，无法比较回踩前后半程。"
@@ -59,10 +61,13 @@ def build_watchlist(observation: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError("no verified C rule input is available")
     source = observation.get("source") or {}
     rows = []
+    pending_by_rule = {rule: 0 for rule in RULES}
     for item in observation.get("observations") or []:
         rules = item.get("rules") or {}
         if set(rules) != set(RULES):
             raise ValueError("both frozen C rules are required")
+        for rule in RULES:
+            pending_by_rule[rule] += rules[rule].get("research_match_status") == "DATA_PENDING_VERIFICATION"
         matched = [rule for rule in RULES if rules[rule].get("price_structure_match") is True]
         if matched:
             rows.append({"symbol": item["symbol"], "name": item["name"],
@@ -79,6 +84,7 @@ def build_watchlist(observation: Mapping[str, Any]) -> dict[str, Any]:
             "coverage": source.get("b_input_coverage"), "gaps": observation.get("gaps") or [],
             "matched_stock_count": len(rows),
             "matched_by_rule": {rule: sum(rule in row["matched_rules"] for row in rows) for rule in RULES},
+            "data_pending_by_rule": pending_by_rule,
             "rows": rows, "formal_b_signal": False, "prospective_captured": False}
 
 
@@ -105,7 +111,7 @@ h1{{margin:0 0 8px}}h2,h3,h4{{margin-bottom:8px}}p{{line-height:1.6}}.card{{back
 </style></head><body><main><header><h1>C 每日研究名单</h1><p>信号日期 {date} · 独立研究观察，非 Formal B 名单或买入建议</p>
 <p>BALANCED_A 匹配 {_shown(watchlist['matched_by_rule']['BALANCED_A'],0)} · CONSERVATIVE_B 匹配 {_shown(watchlist['matched_by_rule']['CONSERVATIVE_B'],0)} · 去重股票 {_shown(watchlist['matched_stock_count'],0)}</p></header>
 {cards}<section class='card'><h2>市场覆盖与数据质量</h2><p>只覆盖 B 冻结输入中实际评估且 C 时间、ST 证据合格的证券，不代表完整主板股票池。</p>
-<p>输入状态：{escape(str(watchlist.get('input_status')))}；覆盖：{escape(str(watchlist.get('coverage_status')))}；缺口：{gaps}</p>
+<p>输入状态：{escape(str(watchlist.get('input_status')))}；覆盖：{escape(str(watchlist.get('coverage_status')))}；BALANCED_A 数据待核验 {_shown(watchlist['data_pending_by_rule']['BALANCED_A'],0)}；CONSERVATIVE_B 数据待核验 {_shown(watchlist['data_pending_by_rule']['CONSERVATIVE_B'],0)}；缺口：{gaps}</p>
 <p>package SHA：<code>{escape(str(watchlist.get('package_sha256')))}</code></p>
 <p>量能研究数值可查看，volume 前复权影响仍为 VOLUME_BASIS_UNVERIFIED，正式量价确认保持关闭。每日名单可查看不等于完整永久前瞻证据集。</p></section></main></body></html>"""
 
