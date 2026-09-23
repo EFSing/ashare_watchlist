@@ -1,5 +1,20 @@
 # DECISION LOG
 
+## 2026-09-23 — ADOPT independent C daily research report; NEEDS_MORE_EVIDENCE for automatic activation
+
+- Product decision: implement `C_DAILY_RESEARCH_WATCHLIST_V1` as an independent, viewable daily
+  research list from the same frozen B qfq package. Both preregistered rules retain separate match
+  and event identities. Price match, computable volume features, unverified volume basis, and formal
+  trading validity remain distinct; volume is diagnostic in the existing price-structure baseline.
+- Use a same-runner read-only input mode for local calculation and keep #84's private Release export
+  disabled. Reuse only its per-request timestamp sidecar change so C can verify T-day provenance.
+  This supports a daily list but does not establish durable prospective research capture.
+- `NEEDS_MORE_EVIDENCE`: before automatic production enablement, prove an isolated C execution path
+  that does not hold B's production lock, has a private and size-validated transfer of frozen
+  package/raw evidence if it changes jobs, and independently persists a lightweight report with
+  tested readback/visibility. The daily report product path may continue through review and local
+  samples without those claims; `PROSPECTIVE_CAPTURED` remains unavailable.
+
 职责：只记录具有长期约束力、未来需要解释“为什么这样设计”的决定（含进入、退出或拒绝
 某项研究/产品决策的理由，以及冻结的契约）；不记录普通 bugfix、测试补充和局部实现细节。
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见

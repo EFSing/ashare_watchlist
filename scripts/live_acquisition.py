@@ -1356,11 +1356,13 @@ class HiThinkClient:
         logical_identity = _hithink_capture_identity(api_name, params)
         for attempt in range(1, self.max_attempts + 1):
             try:
+                requested_at_bjt = datetime.now(_BJT).isoformat()
                 response = self.request_get(
                     url,
                     timeout=timeout,
                     headers={"X-api-key": self.api_key},
                 )
+                received_at_bjt = datetime.now(_BJT).isoformat()
                 if self.capture_store is not None:
                     payload, encoding = _response_bytes(response)
                     response_identity = _hithink_response_capture_identity(
@@ -1378,6 +1380,8 @@ class HiThinkClient:
                         request_identity=url.split("?", 1)[-1] if "?" in url else path,
                         encoding=encoding,
                         content_type="provider_response",
+                        metadata_extra={"requested_at_bjt": requested_at_bjt,
+                                        "received_at_bjt": received_at_bjt},
                     )
                 raise_for_status = getattr(response, "raise_for_status", None)
                 if callable(raise_for_status):

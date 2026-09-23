@@ -1,5 +1,22 @@
 # CURRENT STATUS
 
+## 2026-09-23 — C daily research list implementation, activation pending
+
+- Independent C aggregation and self-contained mobile HTML now show each stock's rule matches,
+  price trend/pullback/rebound, support/resistance, RV_T, pullback/reference and first/second-half
+  volume, and up/down-day asymmetry. An empty match set renders an explicit report. Synthetic
+  preview: `docs/examples/c_daily_research_watchlist_synthetic.html`; it is not a real daily result.
+- The same-runner reader checks frozen B package/file/content SHA, qfq identity, raw sidecar SHA,
+  T-day ST/name and per-request timing before calculating C. B input isolation remains a coverage
+  gap. Formal volume confirmation and `entry_candidate` remain false; volume adjustment effect is
+  `UNRESOLVED`. The report does not claim Formal B or `PROSPECTIVE_CAPTURED` status.
+- Automatic daily delivery is **not active**. Current B workflow holds a production concurrency
+  lock for the whole job. A same-job C step would hold it, and a separate job needs a transfer of
+  package/raw evidence. The repository is public; no private, size-validated runner transfer or
+  independent report persistence has been demonstrated. These are product activation blockers.
+- #81/#83/#84 stay Draft and unmerged. This work is stacked on #83; #84's private Release path is
+  unused. The narrow #84 raw request/response timestamp recording is included here directly.
+
 更新时间：2026-09-23（Asia/Shanghai）
 
 本文件只记录当前有效状态；历史实现过程与旧 checkpoint 以 Git history / PR / CI 为 provenance，

@@ -136,6 +136,15 @@ def _price_only_observation(symbol: str, target_date: str, bars: Sequence[Mappin
     observation = _rule_observation(symbol=symbol, target_date=target_date, bars=bars, rule_id=rule)
     observation["price_structure_match"] = observation.get("entry_candidate") is True
     observation["price_structure_event_identity"] = observation.get("event_identity")
+    observation["research_match_status"] = (
+        "PRICE_STRUCTURE_MATCH_VOLUME_GATE_UNVERIFIED"
+        if observation["price_structure_match"] else "RULE_NOT_MATCHED"
+    )
+    observation["research_match_reason"] = (
+        "TREND_PULLBACK_REBOUND_SUPPORT_MATCH; VOLUME_BASIS_UNVERIFIED"
+        if observation["price_structure_match"] else
+        "PRICE_STRUCTURE_RULE_NOT_SATISFIED"
+    )
     observation["entry_candidate"] = False
     observation["event_identity"] = None
     if observation.get("status") == "OBSERVATION_RECORDED":
@@ -160,7 +169,9 @@ def _price_only_observation(symbol: str, target_date: str, bars: Sequence[Mappin
 
 
 def consume_b_input(package_path: str | Path, *, target_date: str, expected_sha256: str,
-                    handoff_receipt_path: str | Path, expected_handoff_manifest_sha256: str,
+                    handoff_receipt_path: str | Path | None = None,
+                    expected_handoff_manifest_sha256: str | None = None,
+                    local_runner_input: bool = False,
                     evidence_root: str | Path | None = None, read_at: datetime | None = None) -> dict[str, Any]:
     """Verify B bytes read-only, evaluate C rules, and persist a C-only result."""
     if not isinstance(target_date, str) or len(target_date) != 10 or date.fromisoformat(target_date).isoformat() != target_date:
@@ -182,18 +193,25 @@ def consume_b_input(package_path: str | Path, *, target_date: str, expected_sha2
         identity["b_package_actual_sha256"] = actual
         if actual != expected_sha256:
             raise CaptureError("B_PACKAGE_SHA_MISMATCH", "B package bytes differ from expected SHA-256")
-        identity["handoff"] = _verify_handoff(Path(package_path), Path(handoff_receipt_path),
-                                                target_date=target_date, package_sha256=actual,
-                                                handoff_manifest_sha256=expected_handoff_manifest_sha256)
-        for key in ("exported_at_bjt", "download_verified_at_bjt"):
-            value = identity["handoff"].get(key)
-            if not isinstance(value, str):
-                raise CaptureError("B_HANDOFF_TIME_UNVERIFIED", f"handoff {key} is missing")
-            when = datetime.fromisoformat(value)
-            if when.tzinfo is None or when.astimezone(_BJT).date().isoformat() != target_date:
-                raise CaptureError("B_HISTORICAL_HANDOFF", f"handoff {key} is not on target T")
-            if when.astimezone(_BJT) > now:
-                raise CaptureError("C_READ_BEFORE_B_HANDOFF", f"C read precedes {key}")
+        if local_runner_input:
+            if handoff_receipt_path or expected_handoff_manifest_sha256:
+                raise CaptureError("B_INPUT_MODE_CONFLICT", "local runner input cannot use a remote handoff")
+            identity["handoff"] = {"mode": "SAME_RUNNER_READ_ONLY", "private_persistence": "NOT_CLAIMED"}
+        else:
+            if not handoff_receipt_path or not expected_handoff_manifest_sha256:
+                raise CaptureError("B_HANDOFF_IDENTITY_REQUIRED", "remote handoff identity is required")
+            identity["handoff"] = _verify_handoff(Path(package_path), Path(handoff_receipt_path),
+                                                    target_date=target_date, package_sha256=actual,
+                                                    handoff_manifest_sha256=expected_handoff_manifest_sha256)
+            for key in ("exported_at_bjt", "download_verified_at_bjt"):
+                value = identity["handoff"].get(key)
+                if not isinstance(value, str):
+                    raise CaptureError("B_HANDOFF_TIME_UNVERIFIED", f"handoff {key} is missing")
+                when = datetime.fromisoformat(value)
+                if when.tzinfo is None or when.astimezone(_BJT).date().isoformat() != target_date:
+                    raise CaptureError("B_HISTORICAL_HANDOFF", f"handoff {key} is not on target T")
+                if when.astimezone(_BJT) > now:
+                    raise CaptureError("C_READ_BEFORE_B_HANDOFF", f"C read precedes {key}")
         package = json.loads(raw)
         if not isinstance(package, dict) or package.get("schema_version") != PACKAGE_SCHEMA:
             raise CaptureError("B_FULL_INPUT_MISSING", "source is not a complete B input package")
@@ -225,16 +243,20 @@ def consume_b_input(package_path: str | Path, *, target_date: str, expected_sha2
             raise CaptureError("B_HISTORICAL_OR_PRE_CLOSE_INPUT", "B weekend backfill is not prospective T input")
         if now < acquired_time:
             raise CaptureError("C_READ_BEFORE_B_ACQUISITION", "C read time precedes B acquisition")
-        exported_time = datetime.fromisoformat(identity["handoff"]["exported_at_bjt"]).astimezone(_BJT)
-        verified_time = datetime.fromisoformat(identity["handoff"]["download_verified_at_bjt"]).astimezone(_BJT)
-        if not acquired_time <= exported_time <= verified_time <= now:
-            raise CaptureError("B_HANDOFF_TIME_UNVERIFIED", "B acquisition, export, readback and C read are out of order")
+        if not local_runner_input:
+            exported_time = datetime.fromisoformat(identity["handoff"]["exported_at_bjt"]).astimezone(_BJT)
+            verified_time = datetime.fromisoformat(identity["handoff"]["download_verified_at_bjt"]).astimezone(_BJT)
+            if not acquired_time <= exported_time <= verified_time <= now:
+                raise CaptureError("B_HANDOFF_TIME_UNVERIFIED", "B acquisition, export, readback and C read are out of order")
+        else:
+            exported_time = now
         # Export time is an independently read-back durable handoff bound.
         # The runner start time above never substitutes for response timing.
         identity["b_generation_fingerprint"] = package.get("generation_fingerprint")
-        handoff_manifest = json.loads((Path(package_path).parent / "handoff.json").read_bytes())
-        if handoff_manifest.get("generation_fingerprint") != package.get("generation_fingerprint"):
-            raise CaptureError("B_HANDOFF_IDENTITY_MISMATCH", "handoff generation fingerprint differs")
+        if not local_runner_input:
+            handoff_manifest = json.loads((Path(package_path).parent / "handoff.json").read_bytes())
+            if handoff_manifest.get("generation_fingerprint") != package.get("generation_fingerprint"):
+                raise CaptureError("B_HANDOFF_IDENTITY_MISMATCH", "handoff generation fingerprint differs")
         identity["b_input_fingerprint"] = manifest.get("input_fingerprint")
         universe = manifest.get("universe") or {}
         symbols = universe.get("symbols")
@@ -413,8 +435,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--b-input-package", required=True, type=Path)
     parser.add_argument("--b-input-sha256", required=True)
-    parser.add_argument("--b-handoff-manifest-sha256", required=True)
-    parser.add_argument("--b-handoff-receipt", required=True, type=Path)
+    parser.add_argument("--b-handoff-manifest-sha256")
+    parser.add_argument("--b-handoff-receipt", type=Path)
+    parser.add_argument("--local-runner-input", action="store_true")
     parser.add_argument("--target-date", required=True)
     parser.add_argument("--b-evidence-root", type=Path)
     args = parser.parse_args()
@@ -422,6 +445,7 @@ def main() -> int:
                              expected_sha256=args.b_input_sha256,
                              handoff_receipt_path=args.b_handoff_receipt,
                              expected_handoff_manifest_sha256=args.b_handoff_manifest_sha256,
+                             local_runner_input=args.local_runner_input,
                              evidence_root=args.b_evidence_root)
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     return 0 if result["status"] in {C_PARTIAL_UNVERIFIED, PRICE_OBSERVATION_VOLUME_UNVERIFIED} else 1

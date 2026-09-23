@@ -1,5 +1,23 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-09-23 — C_DAILY_RESEARCH_WATCHLIST_SHARED_B_INPUT_V1 review checkpoint
+
+- Classification: product blocker with correctness boundaries, unchanged; STRICT PATH. Work branch
+  `codex/c-daily-research-watchlist-shared-b-input-v1` is stacked on Draft #83 (which is stacked
+  on Draft #81). Fetch live remote HEAD/CI before continuing. Draft #84 remains separate and disabled.
+- Added same-runner read-only C input mode, independent two-rule daily research list and mobile HTML;
+  synthetic preview is `docs/examples/c_daily_research_watchlist_synthetic.html`. C keeps price-rule
+  match and volume research values separate from formal volume confirmation/entry candidate.
+- Reused the narrow #84 per-request HiThink start/receive sidecar timestamps, without importing its
+  private Release export or modifying its PR. No provider call, production run, merge, or Final OOS read.
+- **Activation remains closed:** workflow-level production concurrency covers the entire B job; a C
+  tail step would hold B's lock. A separate job loses runner-local package/raw bytes, while the repo
+  is public and has no verified private transfer for that large input. Do not add a public raw artifact
+  or claim daily automatic reports until isolation, privacy, size, and persistence are demonstrated.
+- Next: review this bounded Draft PR and its exact-head CI; design a verified isolated C execution
+  path that consumes the same package without holding B's lock or publishing raw evidence. Then test
+  a real same-day daily report and decide merge/enable. `PROSPECTIVE_CAPTURED` remains unproven.
+
 ## 2026-09-23 — C_VOLUME_OBSERVATION_AND_EXISTING_STORAGE_REUSE_V1
 
 - Classification: correctness blocker + product blocker, unchanged. `#81/#83/#84` remain Draft;
