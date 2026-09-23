@@ -8,6 +8,11 @@
 正式历史收益研究或 Formal B 修改。两套 `BALANCED_A` / `CONSERVATIVE_B` 结构参数不变。
 量的单位依据 [HiThink 历史行情接口](https://github.com/HiThink-Tech/Financial-API/blob/main/skills/hithink-finance/references/api/endpoints-prices.md)
 `PriceBarItem.volume`（股）；`adjust=forward` 对 volume 的处理在该契约中未说明。
+只读 B 输入时，C 保留 T 日 RV、回踩相对基准、前后半段、涨跌日方向性及
+量价诊断的原始研究值。`VOLUME_FEATURE_COMPUTED` 不等于
+`VOLUME_CONFIRMATION_VALID`；当前量能口径为 `VOLUME_BASIS_UNVERIFIED`，
+正式量价确认固定为 false。无有效价格回踩结构时仍保留可计算的 T 日 RV，
+回踩路径标记 `PRICE_STRUCTURE_UNAVAILABLE`。
 
 这是新版 C 的独立 T-close 前瞻捕获契约。它只生成研究观察，不生成正式交易名单、不
 写入 B 的 `runtime-state`、不调用 B evaluator / Shadow / return tracker / daily report，

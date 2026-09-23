@@ -1,5 +1,25 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-09-23 — C_VOLUME_OBSERVATION_AND_EXISTING_STORAGE_REUSE_V1
+
+- Classification: correctness blocker + product blocker, unchanged. `#81/#83/#84` remain Draft;
+  current master `a54bce2c34d1c76298b02f2ddc8347fd88757ace`, runtime-state
+  `2fc7f9f69949b20da0444a13a2dba860c952fc3f` are live intake snapshots.
+- Recovery branch: `codex/c-prospective-capture-v1` (Draft #83, stacked on #81); fetch
+  its live remote HEAD and exact-head CI. #84 is `codex/b-c-readonly-handoff-v1` and remains
+  unchanged; no handoff backend was enabled.
+- C now preserves B frozen volume research values, with `VOLUME_FEATURE_COMPUTED` and
+  `VOLUME_BASIS_UNVERIFIED` separate; formal volume confirmation remains false. The 2026-09-22
+  nine B isolated symbols stay gaps. No provider call or Formal B mutation.
+- Existing private Drive project root is readable through the Codex connector, owned and unshared;
+  the historical 180,203,424-byte daily-K backup is visible. The B cloud runner has no verified
+  Drive writer or quota evidence. #84's optional private GitHub Release backend remains disabled
+  because no additional private repository is available. Neither backend is a proven live handoff.
+- Next user decision: authorize a runner-accessible use of the existing private Drive account
+  through a secure deployment configuration, or accept a manual local handoff with computer-on
+  and cross-device recovery limits. Do not request a token in chat, activate C, merge, or claim
+  `PROSPECTIVE_CAPTURED` before independent SHA readback.
+
 > 恢复链：remote Git → branch → remote HEAD → HANDOFF.md → next action。
 > 本文件只保留当前恢复所需的最小事实，不承担历史归档职责；历史 provenance 在 Git 历史中，
 > 正式状态与长期决策分别见 `docs/CURRENT_STATUS.md` 与 `docs/DECISION_LOG.md`。

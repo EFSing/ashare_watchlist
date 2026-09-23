@@ -142,12 +142,20 @@ def _price_only_observation(symbol: str, target_date: str, bars: Sequence[Mappin
         observation["status"] = "PRICE_OBSERVATION_ONLY"
     observation["data_quality_status"] = "PARTIAL_UNVERIFIED"
     observation["price_protocol"] = PRICE_PROTOCOL
-    observation["volume_observation"] = {
-        "status": "PARTIAL_UNVERIFIED", "source": "HiThink historical PriceBarItem.volume",
-        "raw_t_day_volume": bars[-1].get("volume"), "declared_unit": "shares",
+    volume = dict(observation.get("volume_observation") or {})
+    volume.update({
+        "status": "VOLUME_BASIS_UNVERIFIED",
+        "feature_status": "VOLUME_FEATURE_COMPUTED" if volume else "PARTIAL_UNVERIFIED",
+        "source": "HiThink historical PriceBarItem.volume",
+        "input_protocol": PRICE_PROTOCOL,
+        "normalization": "B_NUMERIC_PARSE_ONLY",
+        "raw_t_day_volume": bars[-1].get("volume"),
+        "declared_unit": "shares",
+        "price_adjustment": "forward",
         "forward_adjustment_effect": "UNRESOLVED",
         "volume_confirmation_valid": False,
-    }
+    })
+    observation["volume_observation"] = volume
     return observation
 
 

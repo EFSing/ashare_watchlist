@@ -6,6 +6,23 @@
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
+## 2026-09-23 — C_VOLUME_OBSERVATION_AND_STORAGE_REUSE_READY_FOR_SOL_AUDIT
+
+- #83 保留 B 冻结逐日 volume 的 RV_T、可形成价格回踩时的 path/方向性及前后半程
+  描述值；`VOLUME_FEATURE_COMPUTED` 与 `VOLUME_BASIS_UNVERIFIED` 并存，正式
+  `volume_confirmation_valid=false`、`entry_candidate=false`。原下文“仅记录原值”
+  已由本记录纠正。2026-09-22 的 9 只 B 隔离股票仍是缺口。
+- 现有私有 Drive 根目录通过 Codex connector 实际可读，项目账号为 owner、未共享；
+  可见 180,203,424-byte 的历史 daily-K 备份及既有小型 watchlist。
+  Drive 中另有 2026-09-07 既有分块备份，package/outputs 约 556 MB、source evidence
+  约 564 MB；它们是容量先例，不是本次完整 B→C bundle 的实测大小。
+  云端 B runner 无已验证 Drive 写入接口/授权，剩余额度和单日完整 package/raw
+  大小未获证实，
+  因此不能启用自动 B→C Drive 交接或声称跨设备捕获。#84 的私有 GitHub 后端
+  保持默认禁用；用户没有新私有仓库额度。C 自身的私有 state repo 工作流同样
+  尚无已验证目标；本地 C 记录不能冒充跨设备持久化。
+- Formal B 与 C 研究观察继续隔离；无 merge、正式历史收益、调度、通知或下单。
+
 ## 2026-09-23 — C_SHARED_INPUT_ACTIVATION_RELEASE_GATE_READY_FOR_SOL
 
 - #83 reader 已将私有独立读回、T 日逐票价格/ST 证据、B 输入隔离、C 自身排除、

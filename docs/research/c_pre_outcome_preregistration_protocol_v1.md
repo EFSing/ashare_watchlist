@@ -18,7 +18,11 @@
 
 HiThink 历史接口将 `volume` 声明为股；B 的归一化直接保留响应中的数值。该接口没有
 明确说明 `adjust=forward` 对 `volume` 的影响，因此 `C_QFQ_INPUT_V1` 将 volume
-调整语义记为 `UNRESOLVED`，只保存原值和来源。`PRICE_STRUCTURE_PLUS_VOLUME`、
+调整语义记为 `UNRESOLVED`，保存 B 冻结的逐日数值、来源和由它计算的研究特征。
+`VOLUME_FEATURE_COMPUTED` 表示数值已计算；`VOLUME_BASIS_UNVERIFIED` 表示
+`adjust=forward` 的量能语义尚无证据；两者可以同时成立。回踩期间沿用现有中位数
+基准和上涨/下跌日口径，另记录按时间等分的前后半段中位数及后/前比值，均只作描述，
+不增加阈值或 gate。`PRICE_STRUCTURE_PLUS_VOLUME`、
 `PRICE_VOLUME_EARLY_DEFENSE` 等量价确认均不能作为本版本正式有效信号，直至单位、
 调整路径和同日原始证据核验通过。下文 raw unadjusted volume 是原草案历史定义，
 不自动迁移为 qfq 版本的已验证量能口径。

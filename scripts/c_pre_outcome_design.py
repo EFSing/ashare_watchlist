@@ -310,6 +310,11 @@ def volume_path_features(
     reference = normalized[reference_start:reference_end_exclusive]
     pullback_median = _median_or_none([float(row["volume"]) for row in pullback])
     reference_median = _median_or_none([float(row["volume"]) for row in reference])
+    midpoint = (len(pullback) + 1) // 2
+    first_half_median = _median_or_none([float(row["volume"]) for row in pullback[:midpoint]])
+    second_half_median = _median_or_none([float(row["volume"]) for row in pullback[midpoint:]])
+    half_ratio = (second_half_median / first_half_median
+                  if first_half_median not in (None, 0) and second_half_median is not None else None)
     if reference_median is None:
         path_status = "INSUFFICIENT_REFERENCE_DAYS"
         ratio = None
@@ -356,6 +361,9 @@ def volume_path_features(
         "pullback_volume_median": pullback_median,
         "reference_volume_median": reference_median,
         "pullback_to_reference_median_ratio": ratio,
+        "first_half_volume_median": first_half_median,
+        "second_half_volume_median": second_half_median,
+        "second_to_first_half_median_ratio": half_ratio,
         "path_status": path_status,
         "path_label": path_label,
         "minimum_directional_days": MIN_DIRECTIONAL_VOLUME_DAYS,
@@ -743,6 +751,7 @@ def build_entry_observation(
     normalized = validate_ohlcv_bars(bars)
     trend = trend_features(normalized, config)
     structure = find_pullback_structure(normalized, config)
+    t_volume = relative_volume_features(normalized, len(normalized) - 1, baseline_window=config.volume_baseline_window)
     if trend.get("status") != "OK" or structure.get("status") != "OK":
         return {
             "schema_version": C_ENTRY_SCHEMA,
@@ -755,6 +764,8 @@ def build_entry_observation(
             "entry_candidate": False,
             "trend": trend,
             "structure": structure,
+            "volume": {"t_day_relative_volume": t_volume,
+                       "pullback_path": {"status": "PRICE_STRUCTURE_UNAVAILABLE"}},
             "future_data_used": False,
         }
     confirmation = _rebound_confirmation(normalized, structure, config)
@@ -769,7 +780,6 @@ def build_entry_observation(
         reference_start=reference_start,
         reference_end_exclusive=pullback_start,
     )
-    t_volume = relative_volume_features(normalized, len(normalized) - 1, baseline_window=config.volume_baseline_window)
     stage_high = float(structure["stage_prior_high"])
     close_t = float(normalized[-1]["close"])
     resistance_distance = stage_high / close_t - 1.0

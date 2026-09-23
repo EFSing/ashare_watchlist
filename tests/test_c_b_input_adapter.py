@@ -349,8 +349,18 @@ def test_timed_price_observation_keeps_volume_and_market_coverage_separate(
     record = json.loads((c_root / result["record"]).read_bytes())
     assert record["source"]["coverage_status"] == ("COMPLETE" if isolated == 0 else "PARTIAL_UNVERIFIED")
     assert len(record["source"]["coverage_groups"]["b_input_isolated"]) == isolated
-    assert record["observations"][0]["rules"]["BALANCED_A"]["volume_observation"]["volume_confirmation_valid"] is False
-    assert record["observations"][0]["rules"]["BALANCED_A"]["entry_candidate"] is False
+    for rule in ("BALANCED_A", "CONSERVATIVE_B"):
+        observation = record["observations"][0]["rules"][rule]
+        volume = observation["volume_observation"]
+        assert volume["feature_status"] == "VOLUME_FEATURE_COMPUTED"
+        assert volume["status"] == "VOLUME_BASIS_UNVERIFIED"
+        assert volume["t_day_relative_volume"]["relative_volume_ratio"] == 1.0
+        assert volume["pullback_path"]["status"] == "PRICE_STRUCTURE_UNAVAILABLE"
+        assert volume["raw_t_day_volume"] == 100.0
+        assert volume["forward_adjustment_effect"] == "UNRESOLVED"
+        assert volume["volume_confirmation_valid"] is False
+        assert observation["entry_candidate"] is False
+        assert observation["event_identity"] is None
     assert record["prospective_captured"] is False
 
 

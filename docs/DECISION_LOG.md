@@ -5,6 +5,19 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-23 — ADOPT observable volume, NEEDS_MORE_EVIDENCE for Drive handoff
+
+- Decision: `ADOPT` computation of C volume research features from B's frozen daily field,
+  including T relative volume and eligible pullback path/direction diagnostics. Unknown
+  forward-adjustment semantics are `VOLUME_BASIS_UNVERIFIED`, not evidence of bad data;
+  no volume confirmation or formal candidate follows from a computed feature.
+- `NEEDS_MORE_EVIDENCE` for automatic private handoff: Codex can read the existing private
+  Drive root, but the B cloud runner cannot currently use the connector; runner write/readback
+  authority, available quota, and actual daily package/raw size are unverified. #84's optional
+  private GitHub Release route has no available new private repository and remains disabled.
+  The product gate needing this evidence is independent same-day B→C recovery. C code review
+  and Formal B daily operation can continue without it; no paid service or token in chat.
+
 ## 2026-09-23 — ADOPT `C_QFQ_INPUT_V1` for prospective C input
 
 - Decision: `ADOPT` user-selected A for prospective input only. C takes stock OHLC solely from
