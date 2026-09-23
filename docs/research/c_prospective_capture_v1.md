@@ -6,7 +6,7 @@
 前瞻输入版本为 `C_QFQ_INPUT_V1`。用户已选 A：唯一价格输入是 B 当日冻结的 qfq
 股票历史 OHLC。原未复权设计保留历史定义，不能与该版本混算；这不是 qfq 收益优势、
 正式历史收益研究或 Formal B 修改。两套 `BALANCED_A` / `CONSERVATIVE_B` 结构参数不变。
-量的单位依据 [HiThink 历史行情接口](https://github.com/HiThink-Tech/Financial-API/blob/main/docs/api/a-share/prices.md)
+量的单位依据 [HiThink 历史行情接口](https://github.com/HiThink-Tech/Financial-API/blob/main/skills/hithink-finance/references/api/endpoints-prices.md)
 `PriceBarItem.volume`（股）；`adjust=forward` 对 volume 的处理在该契约中未说明。
 
 这是新版 C 的独立 T-close 前瞻捕获契约。它只生成研究观察，不生成正式交易名单、不

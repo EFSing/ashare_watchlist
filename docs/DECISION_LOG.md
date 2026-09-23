@@ -54,7 +54,7 @@
   不能证明请求配额与 B 隔离。
 - evidence：HiThink 官方[接入说明](https://github.com/HiThink-Tech/Financial-API/blob/main/README.md)
   说明 API/CLI/SDK 共用统一 API Key 且限流动态；[REST 通用契约](https://github.com/HiThink-Tech/Financial-API/blob/main/docs/api/README.md)
-  和[历史行情接口](https://github.com/HiThink-Tech/Financial-API/blob/main/docs/api/a-share/prices.md)
+  和[历史行情接口](https://github.com/HiThink-Tech/Financial-API/blob/main/skills/hithink-finance/references/api/endpoints-prices.md)
   没有提供独立账户/配额分配标识和可复核的固定调用上限。全 universe 每标的一次历史请求
   所需容量因此未被证明。不得用 B 的共享关键配额完成 C 采集。
 - decision：本条独立配额约束仅适用于 C 自行发起新的 HiThink 请求；只读复用 B 已冻结输入
