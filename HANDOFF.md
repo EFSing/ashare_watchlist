@@ -6,7 +6,7 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
-## 2026-09-22 — NO_VALID_INPUT root-cause investigation — `UNRESOLVED`
+## Historical checkpoint — 2026-09-22 — NO_VALID_INPUT root-cause investigation — `UNRESOLVED`
 
 - Classification: `correctness blocker + product blocker`，未改变。2026-09-22 正式 B 因 HiThink
   universe 资格结果为空而 fail-closed，未生成 watchlist、checkpoint 或 delivery receipt。
@@ -34,6 +34,56 @@
   诊断增强合并，但不得表述为修复根因；本调查未写 runtime-state、未触发生产，Formal B、Final OOS
   与历史证据均未改写。
 
+## 2026-09-23 — C_PROSPECTIVE_ACTIVATION_GATE_READY_FOR_SOL_REAUDIT
+
+- Classification: correctness blocker + product blocker for actual C activation. The prior
+  checkpoint said to wait for Sol's audit; the user has now supplied Sol's finding that the
+  real-enable audit failed. That finding supersedes the earlier “wait for activation audit” status.
+- `PROJECT_GOVERNANCE_STATE_CONFLICT` (resolved): live master had advanced from #81's original
+  base `4633b37ee6eb99bee527d8907e4e51768fd3f82a` to
+  `a54bce2c34d1c76298b02f2ddc8347fd88757ace` via PR #82; #81 remained at `02c7116` and GitHub
+  reported it `dirty`. A read-only merge-tree confirmed the only conflict was `HANDOFF.md`.
+  Rebased #81 onto current master, retaining the #82 B incident record and C checkpoint history;
+  new #81 head is `78b723c96a351038fea379284ba52be3bd645b1a`. Rebased #83's two original commits
+  plus the C activation repair onto that #81 head. The C implementation and local verification
+  checkpoint is `26d8fe9c35e22ecdcf0fb182ab1c33dfc0bcdd56`. The reconciled branch was pushed at
+  `dbedf9a3ff35a9a964f3491c97aa19b7067ea805`; both exact-head checks passed there. This final
+  handoff-only update is on top; read its final branch SHA and exact-head checks from live PR state.
+- Live intake: `origin/master=a54bce2c34d1c76298b02f2ddc8347fd88757ace`,
+  `origin/runtime-state=2fc7f9f69949b20da0444a13a2dba860c952fc3f`. PR #81 remains Draft/CLEAN on
+  current master at `78b723c96a351038fea379284ba52be3bd645b1a`; exact-head push run
+  `35817419573` and pull-request run `35817423031` both succeeded. PR #83 remains Draft and is
+  stacked on the #81 branch. Its pushed code checkpoint `dbedf9a3ff35a9a964f3491c97aa19b7067ea805`
+  resolved to #81 head `78b723c96a351038fea379284ba52be3bd645b1a`; both checks succeeded (runs
+  `35818216059`, `35818212182`). Read live state for this final handoff-only update. Continue on
+  `codex/c-prospective-capture-v1`; do not merge either PR.
+- C repairs: provider-backed T-day ST evidence now requires the verified ticker-list row, T-date
+  upstream timestamp, and actual receive time; raw provider body hash and envelope request ID are
+  checked. Public capture uses the actual runtime clock and fixed C-only root. Partial attempts can
+  resume the same day; immutable response, snapshot, observation, manifest, and index artifacts
+  preserve prior input identities and failure reasons. `PROSPECTIVE_CAPTURED` requires complete
+  verified inputs and a finalized, reverified immutable index.
+- Independent chain: `scripts/c_provider_adapter.py` and
+  `scripts/run_c_prospective_capture.py` use only C credentials, the documented HiThink ticker
+  list and per-symbol daily-history endpoints, serial request pacing, immutable response caching,
+  and same-day resume. HiThink publishes a unified API key and dynamic rate limits, but no provider-
+  issued allocation proving a quota independent of B was available at this checkpoint. The adapter
+  therefore hard-blocks all live requests until such evidence is separately verified; no live
+  provider request has been made.
+- Recovery/schedule: `.github/workflows/c_prospective_capture.yml` prepares a weekday C-only job
+  gated by an explicit repository variable. As #83 remains Draft, this workflow is not on the
+  default branch and is not active. It stores only `data/research/c_prospective_capture_v1/` in a
+  separate private state repository and refuses runtime/report/production destinations. No C
+  credentials, private state repository, or cloud secrets were configured in this worktree. No
+  real schedule, notification, or order is enabled.
+- Verification at the rebased stack: C-focused `41 passed`; B isolation `40 passed`; full suite
+  `715 passed, 2 skipped, 10 warnings`; `compileall` and `git diff --check` pass. These runs cover
+  source checkpoint `26d8fe9c35e22ecdcf0fb182ab1c33dfc0bcdd56`. The code checkpoint's exact-head
+  CI passed in runs `35818216059` and `35818212182`; read live PR checks for this handoff-only
+  update, then stop at
+  `C_PROSPECTIVE_ACTIVATION_GATE_READY_FOR_SOL_REAUDIT`. Actual activation still requires provider-
+  issued independent quota evidence, C-only credentials/private repository configuration, and Sol's
+  re-audit. No formal C historical return research, Final OOS read, or Formal B change is authorized.
 ## 2026-09-22 — C_PROSPECTIVE_CAPTURE_PR_READY_FOR_SOL_ACTIVATION_AUDIT
 
 - Classification: `correctness/provenance gate + product gate`; the task changes the

@@ -5,6 +5,28 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-23 — C activation requires independently verified provider quota
+
+- classification：`correctness blocker + product blocker`，仅针对新版 C 真实启用，不改变
+  Formal B 或既有 C 策略。Sol 的实际启用审计发现，仅有 C 专属环境变量或另一 API Key
+  不能证明请求配额与 B 隔离。
+- evidence：HiThink 官方[接入说明](https://github.com/HiThink-Tech/Financial-API/blob/main/README.md)
+  说明 API/CLI/SDK 共用统一 API Key 且限流动态；[REST 通用契约](https://github.com/HiThink-Tech/Financial-API/blob/main/docs/api/README.md)
+  和[历史行情接口](https://github.com/HiThink-Tech/Financial-API/blob/main/docs/api/a-share/prices.md)
+  没有提供独立账户/配额分配标识和可复核的固定调用上限。全 universe 每标的一次历史请求
+  所需容量因此未被证明。不得用 B 的共享关键配额完成 C 采集。
+- decision：`DEFER` live capture until provider-issued evidence verifies an independent C quota
+  with sufficient daily capacity, request rate, and concurrency. Code hard-blocks provider calls
+  while that evidence is absent; an environment-supplied boolean or reference string alone is not
+  evidence. Re-review the gate after verification and Sol audit.
+- persistence contract：C inputs and capture state stay under
+  `data/research/c_prospective_capture_v1/` and recover through a separate private state repository.
+  Never publish them to B `runtime-state`, reports, watchlists, or production paths. The prepared
+  weekday workflow remains inactive until independently authorized after Sol review.
+- boundary: no real provider request, schedule, notification, automatic order, C historical-return
+  study, Final OOS read, or Formal B change is included. Terminal:
+  `C_PROSPECTIVE_ACTIVATION_GATE_READY_FOR_SOL_REAUDIT`.
+
 ## 2026-09-22 — Independent C prospective capture boundary
 
 - classification：`correctness/provenance gate + product gate`。研究问题是：在不读取未来

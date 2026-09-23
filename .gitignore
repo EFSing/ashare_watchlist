@@ -41,3 +41,4 @@ data/reports/latest.html
 
 # Prospective shadow monitor runtime state; source code and tests are tracked.
 data/shadow_monitor/
+data/research/c_prospective_capture_v1/

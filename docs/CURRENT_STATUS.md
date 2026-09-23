@@ -6,7 +6,42 @@
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
-## 2026-09-22 — C_PROSPECTIVE_CAPTURE_PR_READY_FOR_SOL_ACTIVATION_AUDIT
+## 2026-09-23 — C_PROSPECTIVE_ACTIVATION_GATE_READY_FOR_SOL_REAUDIT
+
+- Classification: `correctness blocker + product blocker` for actual C activation. The user
+  supplied Sol's audit conclusion that PR #83's real-enable audit failed; this supersedes the
+  prior persisted “ready for activation audit” state.
+- Live intake: `origin/master=a54bce2c34d1c76298b02f2ddc8347fd88757ace`,
+  `origin/runtime-state=2fc7f9f69949b20da0444a13a2dba860c952fc3f`.
+- `PROJECT_GOVERNANCE_STATE_CONFLICT` (resolved): master gained PR #82 after the old #81 base
+  `4633b37ee6eb99bee527d8907e4e51768fd3f82a`; #81 at `02c7116` was `DIRTY`, and read-only
+  merge-tree found a `HANDOFF.md` conflict. Rebased #81 onto current master while retaining its
+  C history and the #82 B incident record. Live #81 is now Draft/CLEAN at
+  `78b723c96a351038fea379284ba52be3bd645b1a`, based on current master; both exact-head CI runs
+  succeeded (`35817419573`, `35817423031`). No B source code was changed.
+- PR #83 remains Draft and stacked on #81. Its C implementation and verification checkpoint is
+  `26d8fe9c35e22ecdcf0fb182ab1c33dfc0bcdd56`; the pushed code checkpoint
+  `dbedf9a3ff35a9a964f3491c97aa19b7067ea805` resolved to #81 head `78b723c`, and both exact-head
+  checks succeeded. This final handoff-only update is on top; read the final remote SHA and exact-
+  head checks from live PR state. Do not merge either PR.
+- C capture repairs require verifiable T-day ST source/time and raw provider response identity;
+  prevent fake runtime clock and arbitrary output roots; allow same-day partial recovery while
+  retaining immutable attempts, inputs, hashes, and failures; and emit
+  `PROSPECTIVE_CAPTURED` only after the full input and finalized index verify.
+- A C-only HiThink adapter, independent runner, and serial workflow are prepared. Official provider
+  documentation describes one unified key and dynamic limits, not an independently allocated
+  B-isolated quota. The adapter has a hard live-request block until provider-issued independence
+  evidence is verified. No real provider request has been made. The workflow remains only in Draft
+  PR #83 and is not active on the default branch; private state repository and cloud secrets remain
+  unconfigured.
+- Synthetic C adapter/capture tests: `41 passed`; B isolation: `40 passed`; full suite:
+  `715 passed, 2 skipped, 10 warnings`; compileall and diff check pass. Exact-head CI for the pushed
+  code checkpoint succeeded in runs `35818216059` and `35818212182`; read live PR checks for this
+  final handoff-only update.
+  No Formal B modification, C historical-return research, Final OOS read, real schedule,
+  notification, or automatic order is authorized.
+
+## Historical checkpoint — 2026-09-22 — C_PROSPECTIVE_CAPTURE_PR_READY_FOR_SOL_ACTIVATION_AUDIT
 
 - Classification: `correctness/provenance gate + product gate`; this is an independent C
   prospective-observation delivery, not a Formal B change, formal historical-return study,
