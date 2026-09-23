@@ -568,7 +568,8 @@ jobs:
           esac
 
       - name: Export frozen B input to private C handoff
-        if: always() && env.RUN_MODE == 'production' && env.PRODUCTION_CANONICAL_READY == '1' && vars.B_C_PRIVATE_HANDOFF_REPOSITORY != ''
+        id: b_c_handoff
+        if: always() && env.RUN_MODE == 'production' && env.PRODUCTION_CANONICAL_READY == '1' && env.ASHARE_SKIP_PRODUCTION != '1' && vars.B_C_PRIVATE_HANDOFF_REPOSITORY != ''
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.B_C_PRIVATE_HANDOFF_TOKEN }}
@@ -602,7 +603,52 @@ jobs:
           tag="b-c-input-${AS_OF_DATE//-/}"
           gh release view "$tag" --repo "$HANDOFF_REPOSITORY" >/dev/null 2>&1 || \
             gh release create "$tag" --repo "$HANDOFF_REPOSITORY" --title "$tag" --notes "Immutable B input handoff for C"
-          gh release upload "$tag" "$archive" --repo "$HANDOFF_REPOSITORY"
+          asset="$(basename "$archive")"
+          if ! gh release view "$tag" --repo "$HANDOFF_REPOSITORY" --json assets --jq '.assets[].name' | grep -Fxq "$asset"; then
+            gh release upload "$tag" "$archive" --repo "$HANDOFF_REPOSITORY"
+          fi
+          mkdir -p "$RUNNER_TEMP/b-c-independent-download"
+          gh release download "$tag" --repo "$HANDOFF_REPOSITORY" \
+            --pattern "$asset" --dir "$RUNNER_TEMP/b-c-independent-download"
+          python scripts/b_c_handoff_export.py \
+            --verify-download "$RUNNER_TEMP/b-c-independent-download/$asset" \
+            --target-date "$AS_OF_DATE" --package-sha256 "$package_sha" \
+            --repository "$HANDOFF_REPOSITORY" --tag "$tag" > "$RUNNER_TEMP/b-c-handoff-result.json"
+          receipt="b-c-${AS_OF_DATE//-/}-$package_sha.receipt.json"
+          cp "$RUNNER_TEMP/b-c-handoff-result.json" "$RUNNER_TEMP/$receipt"
+          if ! gh release view "$tag" --repo "$HANDOFF_REPOSITORY" --json assets --jq '.assets[].name' | grep -Fxq "$receipt"; then
+            gh release upload "$tag" "$RUNNER_TEMP/$receipt" --repo "$HANDOFF_REPOSITORY"
+          fi
+          mkdir -p "$RUNNER_TEMP/b-c-receipt-readback"
+          gh release download "$tag" --repo "$HANDOFF_REPOSITORY" \
+            --pattern "$receipt" --dir "$RUNNER_TEMP/b-c-receipt-readback"
+          python - "$RUNNER_TEMP/b-c-receipt-readback/$receipt" "$AS_OF_DATE" "$package_sha" <<'PY'
+          import json, pathlib, sys
+          receipt = json.loads(pathlib.Path(sys.argv[1]).read_bytes())
+          if (receipt.get("status") != "HANDOFF_VERIFIED" or
+                  receipt.get("target_date") != sys.argv[2] or
+                  receipt.get("package_sha256") != sys.argv[3] or
+                  receipt.get("repository") != __import__("os").environ["HANDOFF_REPOSITORY"]):
+              raise ValueError("private handoff receipt readback mismatch")
+          PY
+          cat "$RUNNER_TEMP/b-c-handoff-result.json" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Record independent B to C handoff result
+        if: always() && steps.b_c_handoff.outcome != 'skipped'
+        shell: bash
+        run: |
+          if [[ "${{ steps.b_c_handoff.outcome }}" == "success" ]]; then
+            echo "B to C handoff: HANDOFF_VERIFIED" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "B to C handoff: HANDOFF_FAILED; formal B result remains independent" >> "$GITHUB_STEP_SUMMARY"
+            printf '{"schema_version":"B_C_HANDOFF_RECEIPT_V1","status":"HANDOFF_FAILED","target_date":"%s","diagnostic":"see Export frozen B input to private C handoff step logs"}\n' "$AS_OF_DATE" > "$RUNNER_TEMP/b-c-handoff-result.json"
+          fi
+      - name: Preserve independent handoff result
+        if: always() && steps.b_c_handoff.outcome != 'skipped'
+        uses: actions/upload-artifact@v4
+        with:
+          name: b-c-handoff-result-${{ github.run_id }}
+          path: ${{ runner.temp }}/b-c-handoff-result.json
 
       - name: Checkout clean runtime-state for failure notice
         if: always() && env.RUN_MODE == 'production' && env.AS_OF_DATE != '' && env.ASHARE_SKIP_PRODUCTION != '1' && env.PRODUCTION_CANONICAL_READY != '1'

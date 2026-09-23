@@ -6,6 +6,18 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-23 — independent B to C handoff acceptance for PR #84
+
+- Classification: correctness blocker + product blocker, unchanged. Branch
+  `codex/b-c-readonly-handoff-v1` remains an independent B handoff PR based on master.
+- After a successful new B freeze only, the workflow reads its existing package and raw evidence,
+  exports an immutable local manifest, uploads an archive to the configured private repository,
+  downloads it independently, verifies every file SHA and byte count, then publishes and reads
+  back a `HANDOFF_VERIFIED` receipt. Failures retain an independent `HANDOFF_FAILED` result and
+  do not change Formal B's result. No additional HiThink call is made.
+- Private repository/token are not configured by this PR. No real remote handoff has been claimed;
+  fetch live #84 head and exact-head CI on resumption. No merge or real dispatch is authorized.
+
 ## 2026-09-23 — B_TO_C_READONLY_HANDOFF_EXPORT_DRAFT
 
 - Classification: `correctness blocker` for C input provenance, unchanged. Independent branch

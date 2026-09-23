@@ -13,6 +13,7 @@ import json
 import os
 from pathlib import Path
 import tempfile
+import zipfile
 
 
 def _sha(data: bytes) -> str:
@@ -108,6 +109,8 @@ def export(result_path: Path, evidence_root: Path, destination_root: Path) -> di
         "schema_version": "B_C_READONLY_HANDOFF_V1", "status": "EXPORTED_LOCAL_UNVERIFIED_REMOTE",
         "target_date": day, "exported_at_bjt": datetime.now(timezone(timedelta(hours=8))).isoformat(),
         "package_sha256": package_sha, "content_sha256": declared,
+        "generation_fingerprint": package.get("generation_fingerprint"),
+        "b_acquired_at_bjt": package.get("provenance", {}).get("retrieved_at_bjt"),
         "input_coverage": package["provenance"]["input_coverage"],
         "files": [{"path": "package.json", "sha256": package_sha, "bytes": len(package_bytes)}, *files],
     }
@@ -116,13 +119,67 @@ def export(result_path: Path, evidence_root: Path, destination_root: Path) -> di
             "file_count": len(manifest["files"])}
 
 
+def verify_download(archive_path: Path, *, target_date: str, package_sha256: str,
+                    repository: str, tag: str) -> dict[str, object]:
+    """Verify a fresh private download, independently of the export directory."""
+    archive = archive_path.read_bytes()
+    with zipfile.ZipFile(archive_path) as bundle:
+        names = bundle.namelist()
+        if len(names) != len(set(names)) or any(
+            name.startswith("/") or "\\" in name or ".." in Path(name).parts for name in names
+        ):
+            raise ValueError("unsafe or duplicate handoff archive path")
+        manifest = json.loads(bundle.read("handoff.json"))
+        if (manifest.get("schema_version") != "B_C_READONLY_HANDOFF_V1"
+                or manifest.get("target_date") != target_date
+                or manifest.get("package_sha256") != package_sha256
+                or manifest.get("status") != "EXPORTED_LOCAL_UNVERIFIED_REMOTE"):
+            raise ValueError("handoff identity mismatch")
+        files = manifest.get("files")
+        if not isinstance(files, list) or set(names) != {"handoff.json", *(item["path"] for item in files)}:
+            raise ValueError("handoff archive file inventory mismatch")
+        for item in files:
+            data = bundle.read(item["path"])
+            if len(data) != item["bytes"] or _sha(data) != item["sha256"]:
+                raise ValueError(f"handoff download SHA or length mismatch: {item['path']}")
+        if _sha(bundle.read("package.json")) != package_sha256:
+            raise ValueError("handoff package SHA mismatch")
+    return {
+        "schema_version": "B_C_HANDOFF_RECEIPT_V1", "status": "HANDOFF_VERIFIED",
+        "local_export": "SUCCESS", "private_persistence": "READBACK_VERIFIED",
+        "independent_download": "SUCCESS", "per_file_sha_and_bytes": "VERIFIED",
+        "target_date": target_date, "package_sha256": package_sha256,
+        "handoff_manifest_sha256": _sha(_canonical(manifest)),
+        "generation_fingerprint": manifest.get("generation_fingerprint"),
+        "repository": repository, "tag": tag, "asset": archive_path.name,
+        "archive_sha256": _sha(archive), "archive_bytes": len(archive),
+        "files": files, "exported_at_bjt": manifest["exported_at_bjt"],
+        "download_verified_at_bjt": datetime.now(timezone(timedelta(hours=8))).isoformat(),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--b-result", type=Path, required=True)
-    parser.add_argument("--b-evidence-root", type=Path, required=True)
-    parser.add_argument("--private-destination", type=Path, required=True)
+    parser.add_argument("--verify-download", type=Path)
+    parser.add_argument("--target-date")
+    parser.add_argument("--package-sha256")
+    parser.add_argument("--repository")
+    parser.add_argument("--tag")
+    parser.add_argument("--b-result", type=Path)
+    parser.add_argument("--b-evidence-root", type=Path)
+    parser.add_argument("--private-destination", type=Path)
     args = parser.parse_args()
-    print(json.dumps(export(args.b_result, args.b_evidence_root, args.private_destination)))
+    if args.verify_download:
+        if not all((args.target_date, args.package_sha256, args.repository, args.tag)):
+            parser.error("download verification requires target date, package SHA, repository and tag")
+        result = verify_download(args.verify_download, target_date=args.target_date,
+                                 package_sha256=args.package_sha256, repository=args.repository,
+                                 tag=args.tag)
+    else:
+        if not all((args.b_result, args.b_evidence_root, args.private_destination)):
+            parser.error("export requires B result, evidence root and private destination")
+        result = export(args.b_result, args.b_evidence_root, args.private_destination)
+    print(json.dumps(result))
     return 0
 
 
