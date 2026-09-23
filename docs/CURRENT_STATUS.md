@@ -1,10 +1,19 @@
 # CURRENT STATUS
 
-更新时间：2026-09-21（Asia/Shanghai）
+更新时间：2026-09-23（Asia/Shanghai）
 
 本文件只记录当前有效状态；历史实现过程与旧 checkpoint 以 Git history / PR / CI 为 provenance，
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
+
+## 2026-09-23 — independent #84 B to C handoff review
+
+- #84 是独立 Draft PR，默认关闭。HiThink 原始 HTTP 响应 sidecar 记录实际逐请求
+  开始/接收时间；不增加行情请求、不改 Formal B 结果或策略。
+- B 可选交接诊断分别保留本地导出、远端 archive 持久化、独立下载、receipt 读回；
+  C 消费只能由 C 自己证明。按 package SHA 隔离同日重试，不覆盖旧证据。
+- 私有仓库、权限及真实同日验收尚未配置；不能宣称 `HANDOFF_VERIFIED` 已在生产发生。
+  下文旧 current-task 章节是历史 checkpoint，以本节与 live Git/PR 为准。
 
 ## Current task — B_PROSPECTIVE_MONITOR_RECOVERY_V1 — 2026-09-22
 

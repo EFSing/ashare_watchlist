@@ -6,6 +6,42 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-23 — #84 B to C handoff timing and staged evidence
+
+- Classification: correctness blocker + product blocker, unchanged. This independent Draft PR
+  remains default-off and does not change Formal B, its result, request count or strategy.
+- HiThink raw response sidecars now record actual per-request start and receive timestamps.
+  The optional handoff result distinguishes local export, private archive persistence, independent
+  archive download, receipt readback, and C consumption (`NOT_OBSERVED` on the B side).
+  Same-day retries retain distinct immutable package SHA directories and release asset names.
+- Next: Sol reviews #84 with #83. Real same-day acceptance requires a user-provided private
+  repository and scoped token; none has been configured. Do not merge or enable the workflow.
+
+## 2026-09-23 — independent B to C handoff acceptance for PR #84
+
+- Classification: correctness blocker + product blocker, unchanged. Branch
+  `codex/b-c-readonly-handoff-v1` remains an independent B handoff PR based on master.
+- After a successful new B freeze only, the workflow reads its existing package and raw evidence,
+  exports an immutable local manifest, uploads an archive to the configured private repository,
+  downloads it independently, verifies every file SHA and byte count, then publishes and reads
+  back a `HANDOFF_VERIFIED` receipt. Failures retain an independent `HANDOFF_FAILED` result and
+  do not change Formal B's result. No additional HiThink call is made.
+- Private repository/token are not configured by this PR. No real remote handoff has been claimed;
+  fetch live #84 head and exact-head CI on resumption. No merge or real dispatch is authorized.
+
+## 2026-09-23 — B_TO_C_READONLY_HANDOFF_EXPORT_DRAFT
+
+- Classification: `correctness blocker` for C input provenance, unchanged. Independent branch
+  `codex/b-c-readonly-handoff-v1` starts at `origin/master=a54bce2c34d1c76298b02f2ddc8347fd88757ace`.
+  Fetch branch and Draft PR for current head and exact-head CI; no merge or deployment.
+- Successful B result's frozen package and captured raw/sidecar bytes can be copied without
+  provider calls by `scripts/b_c_handoff_export.py`. Optional production workflow step runs
+  outside the B critical path only when a private handoff repository/token are configured;
+  failures cannot fail B. Local export alone is `EXPORTED_LOCAL_UNVERIFIED_REMOTE`.
+- Next: review the Draft PR and configure/verify a private release asset readback before any
+  C activation. C still requires a price-basis decision and time/ST/volume evidence. Formal B
+  acquisition, watchlist, checkpoint, report, Shadow and tracker semantics are unchanged.
+
 ## 2026-09-22 — NO_VALID_INPUT root-cause investigation — `UNRESOLVED`
 
 - Classification: `correctness blocker + product blocker`，未改变。2026-09-22 正式 B 因 HiThink
