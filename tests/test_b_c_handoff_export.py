@@ -69,3 +69,50 @@ def test_failed_b_run_cannot_create_handoff(tmp_path):
     with pytest.raises(ValueError, match="B success result"):
         handoff.export(result_path, tmp_path / "evidence", destination)
     assert not destination.exists()
+
+
+def test_hithink_raw_response_records_actual_request_window(tmp_path):
+    class Response:
+        content = b'{"code":0,"data":{"item":[]}}'
+
+        def json(self):
+            return json.loads(self.content)
+
+    store = live.TCloseEvidenceStore(tmp_path, "2026-09-22",
+                                     actual_retrieved_at_bjt="2026-09-22T17:17:00+08:00")
+    client = live.HiThinkClient(api_key="test", request_get=lambda *args, **kwargs: Response(),
+                               capture_store=store)
+    assert client._read("universe", live.HITHINK_UNIVERSE_API, {"offset": 0}, timeout=1) == {"item": []}
+    response = store.latest("hithink_response")
+    assert response is not None
+    metadata = json.loads(response.metadata_path.read_bytes())
+    assert metadata["requested_at_bjt"] <= metadata["received_at_bjt"]
+    assert metadata["requested_at_bjt"] != store.actual_retrieved_at_bjt
+    assert metadata["file_sha256"] == __import__("hashlib").sha256(response.payload).hexdigest()
+
+
+def test_same_day_retry_uses_distinct_package_identity(tmp_path):
+    evidence = tmp_path / "evidence"
+    package = _acquire(evidence_root=evidence,
+                       hithink_client=FakeHiThink(bars=_bars(count=120), index_bars=_bars(count=120)),
+                       stock_bar_count=120)
+    first = live.persist_live_input_package(package, tmp_path / "first")
+    altered = json.loads(first.path.read_bytes())
+    altered["provenance"]["retry_note"] = "second-run"
+    altered.pop("content_sha256")
+    altered["content_sha256"] = handoff._sha(handoff._canonical(altered))
+    second_path = tmp_path / "second" / "package.json"
+    second_path.parent.mkdir()
+    second_path.write_bytes(handoff._canonical(altered))
+    second_sha = handoff._sha(second_path.read_bytes())
+    destination = tmp_path / "private"
+    for number, path, sha in ((1, first.path, first.file_sha256), (2, second_path, second_sha)):
+        result = tmp_path / f"result-{number}.json"
+        result.write_text(json.dumps({
+            "status": "T_CLOSE_EVIDENCE_PACKAGE_AND_WATCHLIST_PERSISTED",
+            "as_of_date": "2026-08-27", "input_package": {"path": str(path), "file_sha256": sha},
+        }), encoding="utf-8")
+        handoff.export(result, evidence, destination)
+    assert first.file_sha256 != second_sha
+    assert (destination / "20260827" / first.file_sha256 / "package.json").read_bytes() == first.path.read_bytes()
+    assert (destination / "20260827" / second_sha / "package.json").read_bytes() == second_path.read_bytes()

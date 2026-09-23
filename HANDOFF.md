@@ -6,6 +6,17 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-23 — #84 B to C handoff timing and staged evidence
+
+- Classification: correctness blocker + product blocker, unchanged. This independent Draft PR
+  remains default-off and does not change Formal B, its result, request count or strategy.
+- HiThink raw response sidecars now record actual per-request start and receive timestamps.
+  The optional handoff result distinguishes local export, private archive persistence, independent
+  archive download, receipt readback, and C consumption (`NOT_OBSERVED` on the B side).
+  Same-day retries retain distinct immutable package SHA directories and release asset names.
+- Next: Sol reviews #84 with #83. Real same-day acceptance requires a user-provided private
+  repository and scoped token; none has been configured. Do not merge or enable the workflow.
+
 ## 2026-09-23 — independent B to C handoff acceptance for PR #84
 
 - Classification: correctness blocker + product blocker, unchanged. Branch
