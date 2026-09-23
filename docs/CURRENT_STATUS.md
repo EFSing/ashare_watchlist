@@ -1,12 +1,30 @@
 # CURRENT STATUS
 
-更新时间：2026-09-22（Asia/Shanghai）
+更新时间：2026-09-23（Asia/Shanghai）
 
 本文件只记录当前有效状态；历史实现过程与旧 checkpoint 以 Git history / PR / CI 为 provenance，
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
-## 2026-09-23 — C_PROSPECTIVE_ACTIVATION_GATE_READY_FOR_SOL_REAUDIT
+## 2026-09-23 — C_SHARED_INPUT_REUSE_READY_FOR_SOL_AUDIT
+
+- Classification: `correctness blocker`，本轮未改变。新版 C 的主路线改为只读消费 B
+  已冻结的全量收盘输入，再由 C 独立计算规则；独立 HiThink 请求降为关闭的备用方案。
+- B 现有成功路径在 runner 临时 data root 持久化完整 generation input package 与 source
+  evidence，但 `runtime-state` 白名单不包含这些字节。候选名单、checkpoint、诊断摘要均不足以
+  代替全量输入。`NO_VALID_INPUT` 和持久化失败没有可恢复的完整 package。
+- C reader 已实现 package 文件 SHA、内部 SHA、T 日、完整逐票覆盖与 K 线 SHA 校验，写入
+  C 私有 `shared_input` 观察/失败记录；B 重试后可重新读取。已识别的 qfq/raw 口径、T 日 ST
+  原始来源、逐请求时刻和真实持久化时间缺口使当前结果只能是
+  `CAPTURE_PARTIAL_UNVERIFIED` 或 `CAPTURE_FAILED`，不能是 `PROSPECTIVE_CAPTURED`。
+- C 工作流移除了早于 B 完成的定时触发，失败后的私有状态发布使用 `always()`；由于 B
+  尚无跨任务原始输入交接，工作流仍不启用。最小 B 只读导出设计在
+  `docs/research/c_prospective_capture_v1.md`，需 Sol 审计；本 PR 未改 B 生产代码。
+- Verification: C focused `50 passed`; B acquisition/runtime isolation `206 passed`；full suite
+  `724 passed, 2 skipped, 10 warnings`；`compileall` 和 `git diff --check` 通过。
+- Draft PR #83 继续 stacked on Draft #81，不合并。实时 SHA/CI 以 GitHub 当前结果为准。
+
+## Historical checkpoint — 2026-09-23 — C_PROSPECTIVE_ACTIVATION_GATE_READY_FOR_SOL_REAUDIT
 
 - Classification: `correctness blocker + product blocker` for actual C activation. The user
   supplied Sol's audit conclusion that PR #83's real-enable audit failed; this supersedes the

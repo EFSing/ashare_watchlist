@@ -6,6 +6,27 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-23 — C_SHARED_INPUT_REUSE_READY_FOR_SOL_AUDIT
+
+- Classification: `correctness blocker`，未改变。用户纠正 C 应优先复用 B 已冻结的收盘
+  原始输入；先前独立 provider 配额门槛只约束 C 新发 HiThink 请求。这一语义冲突已在
+  protocol/status/decision 记录中调和；没有改变 #81/#83 stacked 关系。
+- Live intake: `origin/master=a54bce2c34d1c76298b02f2ddc8347fd88757ace`，
+  `origin/runtime-state=2fc7f9f69949b20da0444a13a2dba860c952fc3f`，#81 Draft/CLEAN
+  head `78b723c96a351038fea379284ba52be3bd645b1a`；#83 Draft/CLEAN，base 指向 #81。
+  本轮最终 #83 head/CI 请从 GitHub 实时读取。
+- B 成功时完整 package 与 raw evidence 仅在 runner 临时目录；`runtime-state` 只保存
+  allowlisted 正式产物/诊断，没有完整输入。C 只读 adapter 在本 PR 内验证 SHA、T 日、
+  逐票覆盖及 K 线，独立执行 C 规则并写 C 私有观察/失败记录。qfq 与 C raw 口径、T 日
+  ST 原始来源、逐请求时间及 B 持久化时间仍缺；只能 `CAPTURE_PARTIAL_UNVERIFIED` 或
+  `CAPTURE_FAILED`，无真实 `PROSPECTIVE_CAPTURED`。
+- 下一步：Sol 审计 `docs/research/c_prospective_capture_v1.md` 的最小 B 只读交接设计，
+  明确复权/量口径与 ST/时间证据是否可补齐；之后才可另行决定 B 生产导出改动与启用。
+  不合并 #81/#83，不开启真实调度/通知或 provider 请求。
+- Verification: C focused `50 passed`; B isolation `206 passed`; full suite `724 passed,
+  2 skipped, 10 warnings`; compileall/diff check PASS。最终 pushed branch head 和 exact-head
+  CI 以实时 GitHub 查询为准；无仅保留在本机的有价值代码状态。
+
 ## Historical checkpoint — 2026-09-22 — NO_VALID_INPUT root-cause investigation — `UNRESOLVED`
 
 - Classification: `correctness blocker + product blocker`，未改变。2026-09-22 正式 B 因 HiThink

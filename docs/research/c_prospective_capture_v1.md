@@ -1,7 +1,7 @@
 # C_PROSPECTIVE_CAPTURE_V1
 
-状态：`IMPLEMENTED_NOT_ACTIVATED`；终点：
-`C_PROSPECTIVE_CAPTURE_PR_READY_FOR_SOL_ACTIVATION_AUDIT`。
+状态：`SHARED_INPUT_READER_IMPLEMENTED_NOT_ACTIVATED`；终点：
+`C_SHARED_INPUT_REUSE_READY_FOR_SOL_AUDIT`。
 
 这是新版 C 的独立 T-close 前瞻捕获契约。它只生成研究观察，不生成正式交易名单、不
 写入 B 的 `runtime-state`、不调用 B evaluator / Shadow / return tracker / daily report，
@@ -9,17 +9,42 @@
 
 ## 1. 入口与时间点
 
-入口为：
+优先入口是 `scripts/c_b_input_adapter.py`：只读一个 B 成功收盘后冻结的完整
+`CANDIDATE_BOUND_LIVE_INPUT_PACKAGE_V4` 文件，以调用方给出的文件 SHA-256 和包内
+`content_sha256` 双重校验，再按 C 自己的 `BALANCED_A` / `CONSERVATIVE_B` 规则计算观察。
+调用方必须提供 T 日和预期 SHA；候选名单、checkpoint 或 `runtime-state` 里的摘要不能代替
+全量原始输入。C 只写 `data/research/c_prospective_capture_v1/shared_input/`，从不修改 B 文件。
+输入未就绪时写 C 私有 `CAPTURE_FAILED` 诊断，允许同日 B 重试成功后重新消费。
 
-```text
-python scripts/c_prospective_capture.py capture \
-  --date YYYY-MM-DD \
-  --input-snapshot <C_PROVIDER_SNAPSHOT_V1.json> \
-  --output-root data/research/c_prospective_capture_v1
-```
+当前 B package 只在生产 runner 的临时 data root 留存；`runtime-state` 白名单不包含它，
+也不包含 T-close raw evidence。C 工作流已移除早于 B 的 15:15 BJT 定时任务，保持禁用。
+待 Sol 审计的最小 B 导出设计是：B 成功冻结并持久化完整输入后，从关键路径外只读复制
+package 与相关 raw evidence 到独立的只读交接位置，附原始 SHA、各请求/接收时间和持久化时间；
+完成交接后再单独触发 C。不得把 B 失败后的补采、B 候选名单或后续 C 读取时间当作前瞻
+获取证明。本 PR 不改 B 生产路径，也不启用交接。
 
-`C_PROVIDER_SNAPSHOT_V1` 由未来 C 专属 provider adapter 生成。该模块本身不联网，因而
-不会与 B 争用请求配额或运行资源。snapshot 必须包含：
+字段级审计：
+
+| 字段 | B runner 内 | 跨任务可恢复 | C 判定 |
+| --- | --- | --- | --- |
+| HiThink 全市场 ticker 原始响应 | 临时 evidence 有 raw SHA | `NOT_PERSISTED` | `AVAILABLE_PARTIAL` |
+| 主板证券代码、名称、T 日 ST 名称证据 | 完整 package 有已筛选主板名称；原始 ticker 行在临时 evidence | `NOT_PERSISTED` | `AVAILABLE_PARTIAL` |
+| T 日 OHLCV 与历史 K 线前缀 | 成功 package 对通过 B 输入门的股票具备，逐票有 SHA；被 B 输入失败隔离的合格股票不在 package 内 | `NOT_PERSISTED` | `AVAILABLE_PARTIAL` |
+| 价格/量口径 | B 股价 `PROVIDER_QFQ_SNAPSHOT`；C 现有主口径未复权/raw volume | 包声明不能证明逐 bar 原始量口径 | `INCOMPATIBLE` |
+| provider 请求/接收时间 | B package 有运行开始的 `retrieved_at_bjt`，raw metadata 复用这一时间 | 逐请求真实时间缺失 | `NOT_PERSISTED` |
+| 包 manifest、generation fingerprint、SHA | 完整 package 内可核验；成功 runner 结果有文件 SHA | checkpoint/runtime-state 只有局部引用，无完整字节 | runner 内 `AVAILABLE_VERIFIED`；跨任务 `NOT_PERSISTED` |
+| `NO_VALID_INPUT`/持久化失败 | 诊断可能进入 runtime-state；raw 留 runner 临时目录 | 无完整 package | `NOT_PERSISTED` |
+
+因此当前只读消费最多是 `CAPTURE_PARTIAL_UNVERIFIED`；完整 raw bytes、T-known ST、
+逐请求时间、持久化时间及复权/成交量口径经证实兼容之前，不得生成
+`PROSPECTIVE_CAPTURED`。现有 C 专属 HiThink adapter 仅作为关闭的备用路线，只有它自行发出
+新请求时才适用独立配额门槛；只读复用不需要第二套 API Key。
+
+备用的 C 专属 provider 入口由 `scripts/c_provider_adapter.py` 保留并关闭；它必须独立
+证明配额后才允许新增请求。旧 provider snapshot 的验证入口是代码中的
+`capture_t_close_snapshot`，不改变只读主路线。
+
+`C_PROVIDER_SNAPSHOT_V2` 由备用 C 专属 provider adapter 生成。snapshot 必须包含：
 
 - `capture.mode=SAME_DAY_T_CLOSE`、provider/version 和每个 request 的 source、endpoint、
   `requested_at`、`received_at`、response identity；
@@ -80,7 +105,7 @@ C 失败只写 C 的 failure/log namespace，不阻断 B，也不触碰 B 的 wa
 Shadow、tracker 或 `runtime-state`。在 Sol activation audit 之前，不启用真实定时运行、
 正式通知或 provider adapter。
 
-正式启用前仍需：Sol 审计通过 C protocol/capture identity 和 failure semantics；配置
-独立的 C provider adapter、凭证及配额（不能复用或争用 B 的关键配额）；配置独立持久化
-根目录和保留策略；完成一次真实同日 T-close capture 的人工验收。上述条件未满足时，
+正式启用前仍需：Sol 审计通过 C 只读交接、口径与 failure semantics；完成最小 B 原始输入
+导出及其独立交接、C 私有状态持久化和一次真实同日 T-close 捕获人工验收。只有启用备用的
+C 自行请求 HiThink 方案才需要独立凭证及独立配额证明。上述条件未满足时，
 只能运行合成测试或显式手工验证，不能把历史补取标成前瞻证据。

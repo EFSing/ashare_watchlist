@@ -5,6 +5,17 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-23 — ADOPT B frozen input read-only reuse as C primary route
+
+- Decision: `ADOPT` 只读复用 B 当日已合法获取并冻结的完整收盘原始输入作为 C 主路线；C
+  仍独立计算两条规则并只写私有研究状态。B 选股结论、Shadow、收益跟踪及正式名单均不作为
+  C 输入。原有 C 独立 HiThink 请求只保留关闭的备用方案，其独立配额门槛只约束新增请求。
+- Evidence boundary: B 的完整 package 与 raw source evidence 目前只在 runner 临时目录，
+  `runtime-state` 不持久化这些字节；B qfq 价格与 C 未复权口径不一致，逐请求时间和持久化
+  时间未留下可恢复证明。当前 reader 可形成 `CAPTURE_PARTIAL_UNVERIFIED` 或失败诊断，
+  不能形成 `PROSPECTIVE_CAPTURED`。最小只读导出方案交 Sol 审计后再决定是否改 B。
+- Terminal: `C_SHARED_INPUT_REUSE_READY_FOR_SOL_AUDIT`；无真实调度、通知、provider 请求或合并。
+
 ## 2026-09-23 — C activation requires independently verified provider quota
 
 - classification：`correctness blocker + product blocker`，仅针对新版 C 真实启用，不改变
@@ -15,10 +26,8 @@
   和[历史行情接口](https://github.com/HiThink-Tech/Financial-API/blob/main/docs/api/a-share/prices.md)
   没有提供独立账户/配额分配标识和可复核的固定调用上限。全 universe 每标的一次历史请求
   所需容量因此未被证明。不得用 B 的共享关键配额完成 C 采集。
-- decision：`DEFER` live capture until provider-issued evidence verifies an independent C quota
-  with sufficient daily capacity, request rate, and concurrency. Code hard-blocks provider calls
-  while that evidence is absent; an environment-supplied boolean or reference string alone is not
-  evidence. Re-review the gate after verification and Sol audit.
+- decision：本条独立配额约束仅适用于 C 自行发起新的 HiThink 请求；只读复用 B 已冻结输入
+  不消耗新配额。备用 adapter 在无独立证明时继续 hard-block，等待单独审计。
 - persistence contract：C inputs and capture state stay under
   `data/research/c_prospective_capture_v1/` and recover through a separate private state repository.
   Never publish them to B `runtime-state`, reports, watchlists, or production paths. The prepared

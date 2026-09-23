@@ -1,6 +1,6 @@
-"""Run only the independent, fail-closed C prospective provider chain."""
+"""Read a frozen B input package without making provider requests."""
 
-from c_provider_adapter import main
+from c_b_input_adapter import main
 
 
 if __name__ == "__main__":

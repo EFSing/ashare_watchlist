@@ -42,7 +42,7 @@ Materiality：如果入场样本、前高受阻、量能确认、支撑失效和
 | --- | --- | --- |
 | `PIT_HISTORICAL_RESEARCH` | daily-K 身份、T-known ST/*ST、逐 bar known-at/vintage、复权和执行边界均可证明 | 当前 `UNRESOLVED`；未运行；条件满足后才可形成历史研究结论 |
 | `EVIDENCE_LIMITED_HISTORICAL_EXPLORATION` | 明确标注缺失证据和样本边界，并取得 Sol/用户对 `PARTIAL_UNVERIFIED` 范围的接受 | 当前仅保留为可能的受限研究模式；不得宣称严格 PIT、不得调参或晋级 |
-| `PROSPECTIVE_OBSERVATION` | 每次 T-close 记录当时可见输入、known-at、C 专属 identity，并以 T+1 参考执行等待观察 | 未来可单独授权；不复用 B-bound package，不把事后数据标为当时捕获 |
+| `PROSPECTIVE_OBSERVATION` | 每次 T-close 记录当时可见输入、known-at、C 专属 identity，并以 T+1 参考执行等待观察 | 优先只读复用 B 已冻结的原始收盘输入，由 C 独立计算规则；绝不复用 B 候选结论或把事后数据标为当时捕获 |
 
 ## 3. 入场研究定义
 
