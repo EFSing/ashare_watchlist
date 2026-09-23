@@ -364,6 +364,24 @@ def test_timed_price_observation_keeps_volume_and_market_coverage_separate(
     assert record["prospective_captured"] is False
 
 
+def test_price_event_keeps_pullback_volume_without_formal_candidate() -> None:
+    from test_c_pre_outcome_design import _synthetic_entry_bars
+
+    bars = _synthetic_entry_bars()
+    observation = adapter._price_only_observation("600000", bars[-1]["date"], bars, "BALANCED_A")
+    volume = observation["volume_observation"]
+    assert observation["price_structure_match"] is True
+    assert observation["price_structure_event_identity"]
+    assert observation["entry_candidate"] is False
+    assert observation["event_identity"] is None
+    assert volume["feature_status"] == "VOLUME_FEATURE_COMPUTED"
+    assert volume["t_day_relative_volume"]["relative_volume_ratio"] is not None
+    assert volume["pullback_path"]["pullback_to_reference_median_ratio"] is not None
+    assert volume["pullback_path"]["second_to_first_half_median_ratio"] is not None
+    assert "up_to_down_volume_median_ratio" in volume["pullback_path"]
+    assert volume["volume_confirmation_valid"] is False
+
+
 def test_runner_start_cannot_replace_response_receive_time(c_root: Path, tmp_path: Path) -> None:
     path, _ = _package(tmp_path)
     evidence_root = tmp_path / "raw"
