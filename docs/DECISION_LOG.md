@@ -5,6 +5,22 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-23 — ADOPT `C_QFQ_INPUT_V1` for prospective C input
+
+- Decision: `ADOPT` user-selected A for prospective input only. C takes stock OHLC solely from
+  B's same-day frozen `PROVIDER_QFQ_SNAPSHOT`; the older unadjusted C design remains historical
+  provenance and cannot be mixed into this version. No future outcome comparison, formal C
+  historical return study, or Formal B change supports this choice.
+- Existing `BALANCED_A` and `CONSERVATIVE_B` structure parameters remain fixed. HiThink historical
+  `volume` is documented in shares and B copies the response field directly; the effect of
+  `adjust=forward` on volume remains `UNRESOLVED`. Raw values may be retained, but volume
+  confirmation has no verified signal status.
+- C must bind explicit T, package SHA and verified private handoff identity, distinguish B evaluated
+  securities, B isolated input failures and C ST/rule exclusions, and decline rule observations
+  where prospective ST or time evidence is missing. This is a correctness and product gate,
+  not an activated capture. Decision state is `NEEDS_MORE_EVIDENCE` for real same-day ST/time,
+  private readback and isolated coverage; Formal B remains usable while C waits for Sol audit.
+
 ## 2026-09-23 — REJECT raw-price reconstruction from current B frozen response
 
 - Research question: can C's original unadjusted OHLCV and raw-volume basis be recovered

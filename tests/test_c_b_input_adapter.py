@@ -51,20 +51,51 @@ def _package(tmp_path: Path, *, include_history: bool = True, day: str = T) -> t
 
 
 def _consume(path: Path, sha: str, **kwargs):
+    receipt, manifest_sha = _handoff(path, sha, kwargs.pop("target_date", T))
     return adapter.consume_b_input(path, target_date=T, expected_sha256=sha,
+                                   handoff_receipt_path=receipt,
+                                   expected_handoff_manifest_sha256=manifest_sha,
                                    read_at=datetime(2026, 9, 22, 19, tzinfo=BJT), **kwargs)
 
 
-def test_full_b_package_creates_independent_partial_observations(c_root: Path, tmp_path: Path) -> None:
+def _handoff(path: Path, sha: str, day: str) -> tuple[Path, str]:
+    manifest = {
+        "schema_version": "B_C_READONLY_HANDOFF_V1", "status": "EXPORTED_LOCAL_UNVERIFIED_REMOTE",
+        "target_date": day, "package_sha256": sha,
+        "exported_at_bjt": f"{day}T17:30:00+08:00",
+        "generation_fingerprint": json.loads(path.read_bytes()).get("generation_fingerprint") if path.is_file() else None,
+        "files": [{"path": "package.json", "sha256": sha, "bytes": path.stat().st_size}] if path.is_file() else [],
+    }
+    manifest_path = path.parent / "handoff.json"
+    manifest_path.write_bytes(adapter._canonical(manifest))
+    manifest_sha = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+    receipt = {
+        "schema_version": "B_C_HANDOFF_RECEIPT_V1", "status": "HANDOFF_VERIFIED",
+        "local_export": "SUCCESS", "private_persistence": "READBACK_VERIFIED",
+        "independent_download": "SUCCESS", "per_file_sha_and_bytes": "VERIFIED",
+        "target_date": day, "package_sha256": sha,
+        "handoff_manifest_sha256": manifest_sha,
+        "generation_fingerprint": manifest["generation_fingerprint"],
+        "files": manifest["files"], "repository": "private/test", "tag": "test",
+        "asset": "test.zip", "archive_sha256": "a" * 64,
+        "exported_at_bjt": f"{day}T17:30:00+08:00",
+        "download_verified_at_bjt": f"{day}T18:00:00+08:00",
+    }
+    receipt_path = path.parent / "handoff-receipt.json"
+    receipt_path.write_bytes(adapter._canonical(receipt))
+    return receipt_path, manifest_sha
+
+
+def test_full_b_package_preserves_st_gap_without_c_signal(c_root: Path, tmp_path: Path) -> None:
     path, sha = _package(tmp_path)
     original = path.read_bytes()
     result = _consume(path, sha)
     assert result["status"] == capture.C_PARTIAL_UNVERIFIED
-    assert result["observation_count"] == 1
+    assert result["observation_count"] == 0
     record = json.loads((c_root / result["record"]).read_text(encoding="utf-8"))
-    assert set(record["observations"][0]["rules"]) == set(capture.RULE_CANDIDATES)
+    assert record["price_protocol"] == adapter.PRICE_PROTOCOL
     assert record["source"]["b_package_actual_sha256"] == sha
-    assert "B_FORWARD_ADJUSTED_PRICE_INCOMPATIBLE_WITH_C_UNADJUSTED_BASIS" in result["gaps"]
+    assert "B_T_DAY_ST_SOURCE_UNVERIFIED:600000" in result["gaps"]
     assert not record["prospective_captured"]
     assert path.read_bytes() == original
 
@@ -132,15 +163,21 @@ def test_real_b_serialization_and_isolated_coverage_are_consumed(c_root: Path, t
     })
     persisted = __import__("live_acquisition").persist_live_input_package(package, tmp_path)
     original = persisted.path.read_bytes()
+    handoff_package = tmp_path / "handoff" / "package.json"
+    handoff_package.parent.mkdir()
+    handoff_package.write_bytes(original)
+    receipt, manifest_sha = _handoff(handoff_package, persisted.file_sha256, "2026-08-27")
     result = adapter.consume_b_input(
-        persisted.path, target_date="2026-08-27", expected_sha256=persisted.file_sha256,
+        handoff_package, target_date="2026-08-27", expected_sha256=persisted.file_sha256,
+        handoff_receipt_path=receipt, expected_handoff_manifest_sha256=manifest_sha,
         read_at=datetime(2026, 8, 27, 19, tzinfo=BJT),
     )
     assert result["status"] == capture.C_PARTIAL_UNVERIFIED
-    assert result["observation_count"] == 1
+    assert result["observation_count"] == 0
     record = json.loads((c_root / result["record"]).read_bytes())
     assert record["source"]["b_input_coverage"]["excluded_symbols"][0]["symbol"] == "605366"
-    assert record["observations"][0]["symbol"] == "600519"
+    assert record["source"]["coverage_groups"]["b_evaluated_symbols"] == ["600519"]
+    assert record["source"]["coverage_groups"]["c_st_evidence_unresolved"] == ["600519"]
     assert "B_INPUT_FAILURE_ISOLATED_SYMBOLS_MISSING_FROM_C_HISTORY" in result["gaps"]
     assert persisted.path.read_bytes() == original
     altered = json.loads(original)
@@ -149,8 +186,15 @@ def test_real_b_serialization_and_isolated_coverage_are_consumed(c_root: Path, t
     altered["content_sha256"] = hashlib.sha256(adapter._canonical(altered)).hexdigest()
     altered_path = tmp_path / "altered.json"
     altered_path.write_bytes(adapter._canonical(altered))
-    rejected = adapter.consume_b_input(altered_path, target_date="2026-08-27",
-                                       expected_sha256=hashlib.sha256(altered_path.read_bytes()).hexdigest(),
+    altered_sha = hashlib.sha256(altered_path.read_bytes()).hexdigest()
+    altered_handoff = tmp_path / "altered-handoff" / "package.json"
+    altered_handoff.parent.mkdir()
+    altered_handoff.write_bytes(altered_path.read_bytes())
+    altered_receipt, altered_manifest_sha = _handoff(altered_handoff, altered_sha, "2026-08-27")
+    rejected = adapter.consume_b_input(altered_handoff, target_date="2026-08-27",
+                                       expected_sha256=altered_sha,
+                                       handoff_receipt_path=altered_receipt,
+                                       expected_handoff_manifest_sha256=altered_manifest_sha,
                                        read_at=datetime(2026, 8, 27, 19, tzinfo=BJT))
     assert "B_GENERATION_IDENTITY_MISMATCH" in rejected["gaps"]
 
@@ -164,16 +208,89 @@ def test_real_b_evidence_sidecars_are_sha_verified(c_root: Path, tmp_path: Path)
                        hithink_client=FakeHiThink(bars=_bars(count=120), index_bars=_bars(count=120)),
                        stock_bar_count=120)
     persisted = live.persist_live_input_package(package, tmp_path)
-    result = adapter.consume_b_input(persisted.path, target_date="2026-08-27",
-                                     expected_sha256=persisted.file_sha256, evidence_root=evidence_root,
+    handoff_package = tmp_path / "handoff" / "package.json"
+    handoff_package.parent.mkdir()
+    handoff_package.write_bytes(persisted.path.read_bytes())
+    receipt, manifest_sha = _handoff(handoff_package, persisted.file_sha256, "2026-08-27")
+    result = adapter.consume_b_input(handoff_package, target_date="2026-08-27",
+                                     expected_sha256=persisted.file_sha256,
+                                     handoff_receipt_path=receipt, expected_handoff_manifest_sha256=manifest_sha,
+                                     evidence_root=evidence_root,
                                      read_at=datetime(2026, 8, 27, 19, tzinfo=BJT))
-    assert result["observation_count"] == 1
+    assert result["observation_count"] == 0
     assert "B_RAW_SOURCE_SHA_UNVERIFIED" not in result["gaps"]
     capture = package.provenance["evidence_capture"]["captures"][0]
     raw_path = evidence_root / "20260827" / capture["component"] / (
         hashlib.sha256(capture["logical_component_identity"].encode()).hexdigest() + ".raw")
     raw_path.write_bytes(b"corrupted")
-    corrupt = adapter.consume_b_input(persisted.path, target_date="2026-08-27",
-                                      expected_sha256=persisted.file_sha256, evidence_root=evidence_root,
+    corrupt = adapter.consume_b_input(handoff_package, target_date="2026-08-27",
+                                      expected_sha256=persisted.file_sha256,
+                                      handoff_receipt_path=receipt, expected_handoff_manifest_sha256=manifest_sha,
+                                      evidence_root=evidence_root,
                                       read_at=datetime(2026, 8, 27, 19, 1, tzinfo=BJT))
     assert "B_RAW_SOURCE_SHA_UNVERIFIED" in corrupt["gaps"]
+
+
+def test_exact_handoff_identity_and_nine_isolated_symbols(c_root: Path, tmp_path: Path) -> None:
+    path, _ = _package(tmp_path)
+    package = json.loads(path.read_bytes())
+    excluded = [{"symbol": f"600{i:03d}", "reason": "TARGET_DAY_HISTORICAL_STALE"}
+                for i in range(1, 10)]
+    coverage = package["provenance"]["input_coverage"]
+    coverage.update({"excluded_symbol_count": 9, "excluded_symbols": excluded})
+    package["generation_input_manifest"]["provider_version_metadata"]["input_coverage"] = coverage
+    package.pop("content_sha256")
+    package["content_sha256"] = hashlib.sha256(adapter._canonical(package)).hexdigest()
+    path.write_bytes(adapter._canonical(package))
+    sha = hashlib.sha256(path.read_bytes()).hexdigest()
+    result = _consume(path, sha)
+    assert result["status"] == capture.C_PARTIAL_UNVERIFIED
+    record = json.loads((c_root / result["record"]).read_bytes())
+    assert len(record["source"]["coverage_groups"]["b_input_isolated"]) == 9
+    assert record["source"]["coverage_groups"]["b_evaluated_symbols"] == ["600000"]
+    assert record["observations"] == []
+    receipt = path.parent / "handoff-receipt.json"
+    receipt_data = json.loads(receipt.read_bytes())
+    receipt_data["status"] = "EXPORTED_LOCAL_UNVERIFIED_REMOTE"
+    receipt.write_bytes(adapter._canonical(receipt_data))
+    failed = adapter.consume_b_input(path, target_date=T, expected_sha256=sha,
+                                     handoff_receipt_path=receipt,
+                                     expected_handoff_manifest_sha256=record["source"]["handoff"]["manifest_sha256"],
+                                     read_at=datetime(2026, 9, 22, 19, tzinfo=BJT))
+    assert "B_HANDOFF_IDENTITY_MISMATCH" in failed["gaps"]
+
+
+def test_missing_b_volume_does_not_create_c_observation(c_root: Path, tmp_path: Path) -> None:
+    path, _ = _package(tmp_path)
+    package = json.loads(path.read_bytes())
+    package["generation_input_manifest"]["stock_klines"][0]["bars"][-1].pop("volume")
+    package.pop("content_sha256")
+    package["content_sha256"] = hashlib.sha256(adapter._canonical(package)).hexdigest()
+    path.write_bytes(adapter._canonical(package))
+    result = _consume(path, hashlib.sha256(path.read_bytes()).hexdigest())
+    assert result["observation_count"] == 0
+    assert result["status"] == capture.C_CAPTURE_FAILED
+
+
+def test_st_name_and_late_handoff_remain_outside_c_observation(c_root: Path, tmp_path: Path) -> None:
+    path, _ = _package(tmp_path)
+    package = json.loads(path.read_bytes())
+    package["display_names"]["600000"] = "*ST浦发"
+    package.pop("content_sha256")
+    package["content_sha256"] = hashlib.sha256(adapter._canonical(package)).hexdigest()
+    path.write_bytes(adapter._canonical(package))
+    sha = hashlib.sha256(path.read_bytes()).hexdigest()
+    result = _consume(path, sha)
+    record = json.loads((c_root / result["record"]).read_bytes())
+    assert record["observations"] == []
+    assert record["source"]["coverage_groups"]["c_rule_or_st_excluded"] == [
+        {"symbol": "600000", "reason": "ST_NAME_PREFIX; T_DAY_TIME_UNVERIFIED"}]
+    receipt = path.parent / "handoff-receipt.json"
+    value = json.loads(receipt.read_bytes())
+    value["download_verified_at_bjt"] = "2026-09-23T18:00:00+08:00"
+    receipt.write_bytes(adapter._canonical(value))
+    late = adapter.consume_b_input(path, target_date=T, expected_sha256=sha,
+                                   handoff_receipt_path=receipt,
+                                   expected_handoff_manifest_sha256=record["source"]["handoff"]["manifest_sha256"],
+                                   read_at=datetime(2026, 9, 23, 19, tzinfo=BJT))
+    assert "B_HISTORICAL_HANDOFF" in late["gaps"]

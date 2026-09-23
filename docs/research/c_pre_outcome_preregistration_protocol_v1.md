@@ -7,6 +7,22 @@
 当前终点为 `C_DATA_EVIDENCE_AND_PROTOCOL_READY_FOR_SOL_DECISION`；Sol/用户下一轮审计后
 再决定是否采纳、缩窄或否定本协议。
 
+## 2026-09-23 prospective input amendment — `C_QFQ_INPUT_V1`
+
+用户已为**前瞻 T-close 输入**选择 A：`C_QFQ_INPUT_V1` 仅使用 B 当日已冻结的
+`PROVIDER_QFQ_SNAPSHOT` 股票历史 OHLC 作为 C 的价格输入。它是独立于下文原始
+未复权设计的输入版本；两版本不得混算、合并样本或共享收益结论。此选择不代表 qfq
+收益优于未复权，不批准正式历史收益研究，也不改 Formal B。`BALANCED_A` 和
+`CONSERVATIVE_B` 的现有趋势、回踩、确认、支撑、阻力与退出结构参数保持原值，
+不按收益调整。
+
+HiThink 历史接口将 `volume` 声明为股；B 的归一化直接保留响应中的数值。该接口没有
+明确说明 `adjust=forward` 对 `volume` 的影响，因此 `C_QFQ_INPUT_V1` 将 volume
+调整语义记为 `UNRESOLVED`，只保存原值和来源。`PRICE_STRUCTURE_PLUS_VOLUME`、
+`PRICE_VOLUME_EARLY_DEFENSE` 等量价确认均不能作为本版本正式有效信号，直至单位、
+调整路径和同日原始证据核验通过。下文 raw unadjusted volume 是原草案历史定义，
+不自动迁移为 qfq 版本的已验证量能口径。
+
 ## 1. 研究问题、materiality、输入与停止条件
 
 研究问题：在沪深普通主板、且每个 T 都能证明当时不是 ST/*ST 的可比 universe 中，比较

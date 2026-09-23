@@ -6,6 +6,21 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-23 — C_QFQ_SHARED_INPUT_HANDOFF_READY_FOR_SOL_FINAL_ACTIVATION_AUDIT
+
+- Classification: correctness blocker + product blocker, unchanged. User chose A for prospective
+  C input: `C_QFQ_INPUT_V1` uses only B's same-day frozen qfq stock prices. Original unadjusted
+  design stays historical; no Formal B strategy, historical returns, Final OOS, schedule or order change.
+- #83 branch `codex/c-prospective-capture-v1` remains stacked on #81. C now requires T, package
+  SHA, handoff manifest SHA and a `HANDOFF_VERIFIED` private readback receipt before consumption;
+  missing T-known ST prevents C rule observation. B evaluated, B isolated and C exclusions remain
+  separate. Volume is documented in shares but forward-adjustment behavior is `UNRESOLVED`;
+  volume confirmation remains invalid.
+- #84 independent branch `codex/b-c-readonly-handoff-v1` adds private upload, separate download,
+  SHA/byte readback and an independent receipt. Real private configuration and same-day acceptance
+  remain outstanding. On resumption fetch both live PR heads and exact-head CI; no automatic merge
+  or activation. The 9 isolated symbols in 2026-09-22 B coverage are still unavailable to C.
+
 ## 2026-09-23 — C_B_TO_C_HANDOFF_AND_PRICE_BASIS_READY_FOR_SOL_DECISION
 
 - Classification: `correctness blocker`，未改变。Branch `codex/c-prospective-capture-v1`

@@ -6,6 +6,20 @@
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
+## 2026-09-23 — C_QFQ_SHARED_INPUT_HANDOFF_READY_FOR_SOL_FINAL_ACTIVATION_AUDIT
+
+- 用户正式选择 A，前瞻 C 输入版本为 `C_QFQ_INPUT_V1`：B 当日冻结 qfq 股票历史 OHLC
+  是唯一价格输入；原未复权方案保留历史身份，不能混算。`BALANCED_A` / `CONSERVATIVE_B`
+  结构参数及 Formal B 均未改变；没有正式历史收益研究。
+- HiThink 历史 `volume` 文档单位为股，B 直接复制响应数值；`adjust=forward` 对该字段的
+  影响 `UNRESOLVED`。C 仅可记录原值/来源，不得将量价确认列为有效信号。
+- #83 需要显式 T、package SHA 和 handoff manifest SHA，并核验私有读回 receipt、archive
+  与逐文件身份。B 已评估股票、B 输入失败隔离、C ST/规则排除单独记录；缺 T-known ST
+  或时间证据的股票不计算 C 规则观察。2026-09-22 的 9 只隔离仍是覆盖缺口。
+- #84 独立 B 交接 PR 在 B 成功后只读导出，私有上传、独立下载和最终 SHA/字节数读回
+  由单独结果记录。真实私有仓库配置与同日验收尚未发生，不能宣称真实
+  `HANDOFF_VERIFIED` 或 `PROSPECTIVE_CAPTURED`。两 PR 保持 Draft、未合并、未启用。
+
 ## 2026-09-23 — C_B_TO_C_HANDOFF_AND_PRICE_BASIS_READY_FOR_SOL_DECISION
 
 - Classification: `correctness blocker`，未改变。#83 C reader 现经 B 实际
