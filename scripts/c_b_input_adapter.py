@@ -24,6 +24,7 @@ _BJT = timezone(timedelta(hours=8))
 ADAPTER_VERSION = "C_B_FROZEN_INPUT_READER_V1"
 PACKAGE_SCHEMA = "CANDIDATE_BOUND_LIVE_INPUT_PACKAGE_V4"
 PRICE_PROTOCOL = "C_QFQ_INPUT_V1"
+PRICE_OBSERVATION_VOLUME_UNVERIFIED = "PRICE_OBSERVATION_VOLUME_UNVERIFIED"
 
 
 def _canonical(value: Any) -> bytes:
@@ -122,6 +123,8 @@ def _verify_handoff(package_path: Path, receipt_path: Path, *, target_date: str,
         if len(data) != item["bytes"] or sha256_bytes(data) != item["sha256"]:
             raise CaptureError("B_HANDOFF_FILE_HASH_MISMATCH", f"handoff file differs: {relative}")
     return {"manifest_sha256": handoff_manifest_sha256, "receipt_sha256": sha256_bytes(receipt_path.read_bytes()),
+            "local_export": "SUCCESS", "private_persistence": "READBACK_VERIFIED",
+            "independent_download": "SUCCESS", "c_consumption": "SUCCESS",
             "repository": receipt["repository"], "tag": receipt["tag"], "asset": receipt["asset"],
             "archive_sha256": receipt["archive_sha256"],
             "exported_at_bjt": receipt.get("exported_at_bjt"),
@@ -131,6 +134,13 @@ def _verify_handoff(package_path: Path, receipt_path: Path, *, target_date: str,
 def _price_only_observation(symbol: str, target_date: str, bars: Sequence[Mapping[str, Any]],
                             rule: str) -> dict[str, Any]:
     observation = _rule_observation(symbol=symbol, target_date=target_date, bars=bars, rule_id=rule)
+    observation["price_structure_match"] = observation.get("entry_candidate") is True
+    observation["price_structure_event_identity"] = observation.get("event_identity")
+    observation["entry_candidate"] = False
+    observation["event_identity"] = None
+    if observation.get("status") == "OBSERVATION_RECORDED":
+        observation["status"] = "PRICE_OBSERVATION_ONLY"
+    observation["data_quality_status"] = "PARTIAL_UNVERIFIED"
     observation["price_protocol"] = PRICE_PROTOCOL
     observation["volume_observation"] = {
         "status": "PARTIAL_UNVERIFIED", "source": "HiThink historical PriceBarItem.volume",
@@ -211,10 +221,8 @@ def consume_b_input(package_path: str | Path, *, target_date: str, expected_sha2
         verified_time = datetime.fromisoformat(identity["handoff"]["download_verified_at_bjt"]).astimezone(_BJT)
         if not acquired_time <= exported_time <= verified_time <= now:
             raise CaptureError("B_HANDOFF_TIME_UNVERIFIED", "B acquisition, export, readback and C read are out of order")
-        # B's package records run-start retrieval time, not per-response receive
-        # or durable export time. Do not infer those from C's read time or mtime.
-        gaps.extend(["B_EXACT_PROVIDER_REQUEST_RECEIVE_TIMES_NOT_PERSISTED",
-                     "B_DURABLE_PERSISTENCE_TIME_NOT_PERSISTED"])
+        # Export time is an independently read-back durable handoff bound.
+        # The runner start time above never substitutes for response timing.
         identity["b_generation_fingerprint"] = package.get("generation_fingerprint")
         handoff_manifest = json.loads((Path(package_path).parent / "handoff.json").read_bytes())
         if handoff_manifest.get("generation_fingerprint") != package.get("generation_fingerprint"):
@@ -251,11 +259,14 @@ def consume_b_input(package_path: str | Path, *, target_date: str, expected_sha2
         identity["b_broad_source_row_count"] = quality.get("source_row_count")
         identity["b_qualified_main_board_count"] = quality.get("retained_count")
         identity["b_evaluated_symbol_count"] = len(symbols)
-        if quality.get("source_row_count", 0) > len(symbols):
-            gaps.append("B_BROAD_UNIVERSE_ROWS_NOT_IN_PACKAGE")
+        if not isinstance(quality.get("source_row_count"), int) or quality["source_row_count"] < len(symbols):
+            gaps.append("B_BROAD_UNIVERSE_COVERAGE_UNVERIFIED")
         if isinstance(quality.get("retained_count"), int) and quality["retained_count"] != len(symbols):
             gaps.append("B_QUALIFIED_SYMBOLS_EXCLUDED_FROM_EVALUATION_PACKAGE")
         captures = (provenance.get("evidence_capture") or {}).get("captures") or []
+        response_times: dict[str, datetime] = {}
+        ticker_names: dict[str, str] = {}
+        ticker_received: dict[str, datetime] = {}
         if not evidence_root or not isinstance(captures, list) or not captures:
             gaps.append("B_RAW_SOURCE_BYTES_NOT_DURABLE")
         else:
@@ -279,7 +290,45 @@ def consume_b_input(package_path: str | Path, *, target_date: str, expected_sha2
                         or metadata.get("logical_component_identity") != logical
                         or metadata.get("source_identity") != item.get("source_identity")):
                     gaps.append("B_RAW_SOURCE_SIDECAR_UNVERIFIED")
+                    continue
+                if component == "hithink_response":
+                    try:
+                        response_body = json.loads(path.read_bytes())
+                        if response_body.get("code") != 0 or not isinstance(response_body.get("data"), dict):
+                            raise ValueError("unsuccessful response")
+                    except (TypeError, ValueError):
+                        gaps.append("B_PROVIDER_RESPONSE_UNVERIFIED")
+                        continue
+                    requested, received = metadata.get("requested_at_bjt"), metadata.get("received_at_bjt")
+                    try:
+                        start = datetime.fromisoformat(requested)
+                        end = datetime.fromisoformat(received)
+                        if start.tzinfo is None or end.tzinfo is None:
+                            raise ValueError("time zone missing")
+                        start, end = start.astimezone(_BJT), end.astimezone(_BJT)
+                        if (start.date().isoformat() != target_date or
+                                start < default_calendar().session_close(target_date).astimezone(_BJT) or
+                                end < start or end > exported_time):
+                            raise ValueError("out of window")
+                    except (TypeError, ValueError):
+                        gaps.append("B_PROVIDER_REQUEST_TIME_UNVERIFIED")
+                        continue
+                    if metadata.get("source_identity") == "/api/meta/tickers/list":
+                        try:
+                            rows = response_body["data"]["item"]
+                            for row in rows:
+                                symbol = str(row["ticker"])
+                                ticker_names[symbol] = str(row["name"])
+                                ticker_received[symbol] = end
+                        except (KeyError, TypeError, ValueError):
+                            gaps.append("B_T_DAY_ST_SOURCE_UNVERIFIED")
+                    elif metadata.get("source_identity") == "/api/a-share/prices/historical":
+                        for symbol in symbols:
+                            if f"thscode={symbol}." in str(metadata.get("request_identity")):
+                                response_times[symbol] = end
             identity["b_raw_capture_count"] = len(captures)
+        if not ticker_received:
+            gaps.append("B_T_DAY_ST_SOURCE_UNVERIFIED")
         for symbol in symbols:
             item = by_symbol[symbol]
             if item.get("as_of_date") != target_date or item.get("provider") != "HiThink Financial-API":
@@ -294,12 +343,18 @@ def consume_b_input(package_path: str | Path, *, target_date: str, expected_sha2
             if item.get("adjustment_mode") != "PROVIDER_QFQ_SNAPSHOT":
                 gaps.append(f"B_ADJUSTMENT_UNKNOWN:{symbol}")
                 continue
-            classification = classify_c_universe_row({"symbol": symbol, "name": names[symbol], "st_status_known_at_t": False})
+            st_proven = symbol in ticker_received and ticker_names.get(symbol) == names[symbol]
+            history_proven = symbol in response_times
+            classification = classify_c_universe_row({"symbol": symbol, "name": names[symbol],
+                                                       "st_status_known_at_t": st_proven})
             name_classification = classify_c_universe_row({"symbol": symbol, "name": names[symbol],
                                                            "st_status_known_at_t": True})
             if name_classification.get("status") == "EXCLUDED_ST_OR_STAR_ST":
                 identity["coverage_groups"]["c_rule_or_st_excluded"].append(
-                    {"symbol": symbol, "reason": "ST_NAME_PREFIX; T_DAY_TIME_UNVERIFIED"})
+                    {"symbol": symbol, "reason": "ST_NAME_PREFIX" if st_proven else
+                     "ST_NAME_PREFIX; T_DAY_TIME_UNVERIFIED"})
+            if not history_proven:
+                gaps.append(f"B_T_DAY_PRICE_RESPONSE_TIME_UNVERIFIED:{symbol}")
             if classification.get("status") == "UNRESOLVED_ST_STATUS":
                 gaps.append(f"B_T_DAY_ST_SOURCE_UNVERIFIED:{symbol}")
                 if name_classification.get("status") != "EXCLUDED_ST_OR_STAR_ST":
@@ -308,9 +363,12 @@ def consume_b_input(package_path: str | Path, *, target_date: str, expected_sha2
                 identity["coverage_groups"]["c_rule_or_st_excluded"].append(symbol)
             # B's name alone is not verified T-day ST evidence. Keep the security
             # in coverage, but do not compute a C rule on an ineligible identity.
-            if classification.get("status") != "ELIGIBLE":
+            if classification.get("status") != "ELIGIBLE" or not history_proven:
                 continue
             observations.append({"symbol": symbol, "name": names[symbol], "b_quote": quotes[symbol],
+                                 "t_day_st_evidence": {"source": "HiThink ticker response",
+                                                       "received_at_bjt": ticker_received[symbol].isoformat()},
+                                 "price_response_received_at_bjt": response_times[symbol].isoformat(),
                                  "b_kline_sha256": item["normalized_data_sha256"],
                                  "price_protocol": PRICE_PROTOCOL,
                                  "price_basis": item["adjustment_mode"],
@@ -318,9 +376,20 @@ def consume_b_input(package_path: str | Path, *, target_date: str, expected_sha2
                                  "st_status": classification.get("status"),
                                  "rules": {rule: _price_only_observation(symbol, target_date, bars, rule)
                                            for rule in RULE_CANDIDATES}})
+        identity["coverage_status"] = (
+            "COMPLETE" if (not excluded and quality.get("retained_count") == len(symbols)
+                           and all(symbol in response_times and symbol in ticker_received
+                                   and ticker_names.get(symbol) == names[symbol] for symbol in symbols))
+            else "PARTIAL_UNVERIFIED"
+        )
+        identity["volume_semantics"] = "UNRESOLVED"
         if not observations:
             gaps.append("NO_C_RULE_OBSERVATION_FROM_B_INPUT")
-        status = C_PARTIAL_UNVERIFIED
+        gaps.append("VOLUME_ADJUSTMENT_SEMANTICS_UNRESOLVED")
+        status = (PRICE_OBSERVATION_VOLUME_UNVERIFIED
+                  if any(rule.get("status") == "PRICE_OBSERVATION_ONLY"
+                         for item in observations for rule in item["rules"].values())
+                  else C_PARTIAL_UNVERIFIED)
     except (CaptureError, OSError, ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
         status = C_CAPTURE_FAILED
         gaps.append(exc.status if isinstance(exc, CaptureError) else f"B_INPUT_READ_OR_SCHEMA_FAILED:{type(exc).__name__}")
@@ -347,7 +416,7 @@ def main() -> int:
                              expected_handoff_manifest_sha256=args.b_handoff_manifest_sha256,
                              evidence_root=args.b_evidence_root)
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
-    return 0 if result["status"] == C_PARTIAL_UNVERIFIED else 1
+    return 0 if result["status"] in {C_PARTIAL_UNVERIFIED, PRICE_OBSERVATION_VOLUME_UNVERIFIED} else 1
 
 
 if __name__ == "__main__":

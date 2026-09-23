@@ -6,6 +6,18 @@
 > 若治理文字与实时 Git / PR / CI / runtime-state 冲突，先标记
 > `PROJECT_GOVERNANCE_STATE_CONFLICT`，以实时证据完成 reconciliation 后再继续。
 
+## 2026-09-23 — C_SHARED_INPUT_ACTIVATION_RELEASE_GATE_READY_FOR_SOL
+
+- Classification: correctness blocker + product blocker, unchanged. #83 remains Draft and stacked
+  on #81; live PR heads and exact-head CI must be rechecked before review. No merge or activation.
+- The C reader verifies private handoff identity, actual HiThink response request/receive times,
+  raw ticker name at T, per-symbol qfq history, B isolated symbols and C exclusions separately.
+  Verified price observations use `PRICE_OBSERVATION_VOLUME_UNVERIFIED`; they are not formal
+  candidates or `PROSPECTIVE_CAPTURED`. Volume forward-adjustment semantics remain `UNRESOLVED`;
+  volume confirmation is disabled. The 2026-09-22 nine isolated symbols remain a market gap.
+- Next: Sol reviews #83/#84. A real same-day private handoff and C consumption acceptance still
+  requires a user-provided private repository and scoped permission; no cloud secret was configured.
+
 ## 2026-09-23 — C_QFQ_SHARED_INPUT_HANDOFF_READY_FOR_SOL_FINAL_ACTIVATION_AUDIT
 
 - Classification: correctness blocker + product blocker, unchanged. User chose A for prospective

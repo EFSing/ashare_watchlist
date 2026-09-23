@@ -1,6 +1,6 @@
 # C_PROSPECTIVE_CAPTURE_V1
 
-状态：`C_QFQ_SHARED_INPUT_HANDOFF_READY_FOR_SOL_FINAL_ACTIVATION_AUDIT`；真实交接尚未完成，
+状态：`C_SHARED_INPUT_ACTIVATION_RELEASE_GATE_READY_FOR_SOL`；真实交接尚未完成，
 `PROSPECTIVE_CAPTURED` 尚未成立。
 
 前瞻输入版本为 `C_QFQ_INPUT_V1`。用户已选 A：唯一价格输入是 B 当日冻结的 qfq
@@ -60,10 +60,15 @@ B 同日重试必须按 package SHA 形成新的不可变身份，C 只能消费
 不能据此伪造 package SHA 或对 9 只计算 C 观察。真实 B `LiveInputPackage.to_bytes()`
 兼容性测试已经核验文件 SHA、内部 content SHA、逐票 K 线 SHA、覆盖与 raw sidecar。
 
-因此当前只读消费最多是 `CAPTURE_PARTIAL_UNVERIFIED`；缺 T-known ST 的股票不计算 C
-规则观察，B 已评估、B 输入隔离、C 自身 ST/规则排除分别记录。完整 raw bytes、T-known ST、
-逐请求时间、持久化时间及 volume 调整语义经证实之前，不得生成
-`PROSPECTIVE_CAPTURED`。现有 C 专属 HiThink adapter 仅作为关闭的备用路线，只有它自行发出
+只读消费分别记录独立交接、逐票 T 日价格与 ST 证据、B 输入隔离、C 自身排除、
+全市场覆盖和 volume 语义。HiThink 原始响应 sidecar 的逐请求开始/接收时间与
+T 日 ticker 名称经 raw SHA 核验后，合格股票可以形成
+`PRICE_OBSERVATION_VOLUME_UNVERIFIED`；它不是正式候选，也不是
+`PROSPECTIVE_CAPTURED`。缺逐票时间/ST 证据的股票不计算规则观察；B 输入隔离的
+9 只仍是全市场覆盖缺口。量能调整语义尚为 `UNRESOLVED`，量价确认继续禁用。
+只有完整的同日请求、原始字节、交接、逐票资格、全市场覆盖及量能证据契约全部通过，
+才可晋级 `PROSPECTIVE_CAPTURED`；receipt 成功不能单独触发晋级。
+现有 C 专属 HiThink adapter 仅作为关闭的备用路线，只有它自行发出
 新请求时才适用独立配额门槛；只读复用不需要第二套 API Key。
 
 备用的 C 专属 provider 入口由 `scripts/c_provider_adapter.py` 保留并关闭；它必须独立

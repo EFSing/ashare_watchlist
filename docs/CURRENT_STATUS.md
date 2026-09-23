@@ -6,6 +6,19 @@
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
+## 2026-09-23 — C_SHARED_INPUT_ACTIVATION_RELEASE_GATE_READY_FOR_SOL
+
+- #83 reader 已将私有独立读回、T 日逐票价格/ST 证据、B 输入隔离、C 自身排除、
+  主板覆盖和 volume 语义分层。真实 HiThink 响应时间只从 raw sidecar 获取；runner 起点、
+  mtime、C 下载时间不能替代。逐票证据通过可形成
+  `PRICE_OBSERVATION_VOLUME_UNVERIFIED`，不等于正式候选或 `PROSPECTIVE_CAPTURED`。
+- #84 独立记录 HTTP 逐请求开始/接收时间，未增加请求；交接诊断区分本地导出、
+  私有持久化、独立读回、receipt 读回及 C 实际消费。同日重试以 package SHA 隔离。
+  正式 B 结果不受可选交接失败影响。两 PR 未合并且真实云端交接未配置。
+- HiThink 历史 volume 单位为股，B 逐 bar 原值复制；`adjust=forward` 对 volume
+  的影响仍 `UNRESOLVED`，量价确认禁用。下一项验收为真实同日 B package/raw 私有读回
+  与 C 消费，并由 Sol 核对完整证据契约。
+
 ## 2026-09-23 — C_QFQ_SHARED_INPUT_HANDOFF_READY_FOR_SOL_FINAL_ACTIVATION_AUDIT
 
 - 用户正式选择 A，前瞻 C 输入版本为 `C_QFQ_INPUT_V1`：B 当日冻结 qfq 股票历史 OHLC

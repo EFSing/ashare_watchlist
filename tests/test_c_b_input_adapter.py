@@ -294,3 +294,70 @@ def test_st_name_and_late_handoff_remain_outside_c_observation(c_root: Path, tmp
                                    expected_handoff_manifest_sha256=record["source"]["handoff"]["manifest_sha256"],
                                    read_at=datetime(2026, 9, 23, 19, tzinfo=BJT))
     assert "B_HISTORICAL_HANDOFF" in late["gaps"]
+
+
+def _timed_source(path: Path, evidence_root: Path, *, isolated: int = 0,
+                  received: str = "2026-09-22T17:20:00+08:00") -> str:
+    package = json.loads(path.read_bytes())
+    symbol = "600000"
+    captures = []
+    for source, logical, body in (
+        ("/api/meta/tickers/list", "ticker-page",
+         {"code": 0, "data": {"item": [{"ticker": symbol, "name": package["display_names"][symbol]}]}}),
+        ("/api/a-share/prices/historical", f"thscode={symbol}.SH",
+         {"code": 0, "data": {"item": []}}),
+    ):
+        payload = adapter._canonical(body)
+        digest = hashlib.sha256(payload).hexdigest()
+        base = evidence_root / "20260922" / "hithink_response" / hashlib.sha256(logical.encode()).hexdigest()
+        base.parent.mkdir(parents=True, exist_ok=True)
+        base.with_suffix(".raw").write_bytes(payload)
+        metadata = {"file_sha256": digest, "byte_length": len(payload),
+                    "logical_component_identity": logical, "source_identity": source,
+                    "request_identity": logical,
+                    "requested_at_bjt": "2026-09-22T17:19:00+08:00",
+                    "received_at_bjt": received}
+        base.with_suffix(".json").write_bytes(adapter._canonical(metadata))
+        captures.append({"component": "hithink_response", "logical_component_identity": logical,
+                         "source_identity": source, "file_sha256": digest,
+                         "completeness_status": "COMPLETE"})
+    package["provenance"]["evidence_capture"] = {"captures": captures}
+    coverage = package["provenance"]["input_coverage"]
+    coverage["excluded_symbols"] = [{"symbol": f"600{i:03d}",
+                                      "reason": "TARGET_DAY_HISTORICAL_STALE"}
+                                     for i in range(1, isolated + 1)]
+    coverage["excluded_symbol_count"] = isolated
+    package["generation_input_manifest"]["provider_version_metadata"]["input_coverage"] = coverage
+    quality = package["generation_input_manifest"]["provider_version_metadata"]["universe_quality"]
+    quality["retained_count"] = isolated + 1
+    package.pop("content_sha256")
+    package["content_sha256"] = hashlib.sha256(adapter._canonical(package)).hexdigest()
+    path.write_bytes(adapter._canonical(package))
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+@pytest.mark.parametrize("isolated", [0, 9])
+def test_timed_price_observation_keeps_volume_and_market_coverage_separate(
+    c_root: Path, tmp_path: Path, isolated: int,
+) -> None:
+    path, _ = _package(tmp_path)
+    evidence_root = tmp_path / "raw"
+    sha = _timed_source(path, evidence_root, isolated=isolated)
+    result = _consume(path, sha, evidence_root=evidence_root)
+    assert result["status"] == adapter.PRICE_OBSERVATION_VOLUME_UNVERIFIED
+    assert result["observation_count"] == 1
+    record = json.loads((c_root / result["record"]).read_bytes())
+    assert record["source"]["coverage_status"] == ("COMPLETE" if isolated == 0 else "PARTIAL_UNVERIFIED")
+    assert len(record["source"]["coverage_groups"]["b_input_isolated"]) == isolated
+    assert record["observations"][0]["rules"]["BALANCED_A"]["volume_observation"]["volume_confirmation_valid"] is False
+    assert record["observations"][0]["rules"]["BALANCED_A"]["entry_candidate"] is False
+    assert record["prospective_captured"] is False
+
+
+def test_runner_start_cannot_replace_response_receive_time(c_root: Path, tmp_path: Path) -> None:
+    path, _ = _package(tmp_path)
+    evidence_root = tmp_path / "raw"
+    sha = _timed_source(path, evidence_root, received="2026-09-23T17:20:00+08:00")
+    result = _consume(path, sha, evidence_root=evidence_root)
+    assert result["observation_count"] == 0
+    assert "B_PROVIDER_REQUEST_TIME_UNVERIFIED" in result["gaps"]
