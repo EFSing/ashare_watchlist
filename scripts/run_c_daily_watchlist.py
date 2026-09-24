@@ -11,13 +11,15 @@ from typing import Any, Mapping
 from c_b_input_adapter import consume_b_input
 from c_daily_watchlist import write_report
 from c_prospective_capture import _safe_output_root
+from daily_report_delivery import DeliveryError, delivery_receipt_path, load_delivery_receipt
 
 
 def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def b_is_complete(result: Mapping[str, Any], delivery: Mapping[str, Any], data_root: Path) -> bool:
+def b_is_complete(result: Mapping[str, Any], delivery: Mapping[str, Any], data_root: Path,
+                  state_root: Path) -> bool:
     bundle = result.get("daily_close_bundle") or {}
     watchlist = result.get("watchlist") or {}
     package = result.get("input_package") or {}
@@ -27,24 +29,31 @@ def b_is_complete(result: Mapping[str, Any], delivery: Mapping[str, Any], data_r
             or (bundle.get("track_perf") or {}).get("status") != "SUCCESS"
             or (bundle.get("renderer") or {}).get("status") != "SUCCESS"
             or (bundle.get("cloud_checkpoint") or {}).get("status") != "DRIVE_CHECKPOINT_DISABLED_FOR_CLOUD"
-            or delivery.get("status") not in {"DELIVERY_SUCCESS", "ALREADY_DELIVERED"}):
+            or delivery.get("status") not in {"DELIVERY_SUCCESS", "ALREADY_DELIVERED"}
+            or delivery.get("receipt_status") != "PERSISTED"):
         return False
     try:
         package_path = Path(package["path"])
         watchlist_path = Path(watchlist["path"])
         report_path = Path(bundle["dated_html"])
+        receipt_path = delivery_receipt_path(data_root, result["as_of_date"])
+        persisted_receipt = state_root / "data" / "delivery" / receipt_path.name
+        receipt = load_delivery_receipt(data_root, result["as_of_date"])
         if (not package_path.is_file() or _sha(package_path) != package["file_sha256"]
                 or not watchlist_path.is_file() or _sha(watchlist_path) != watchlist["file_sha256"]
-                or not report_path.is_file() or report_path.parent != data_root / "reports"):
+                or not report_path.is_file() or report_path.parent != data_root / "reports"
+                or not receipt or receipt["report_sha256"] != _sha(report_path)
+                or not persisted_receipt.is_file()
+                or persisted_receipt.read_bytes() != receipt_path.read_bytes()):
             return False
-    except (KeyError, OSError, TypeError):
+    except (DeliveryError, KeyError, OSError, TypeError, ValueError):
         return False
     return True
 
 
 def run(result: Mapping[str, Any], delivery: Mapping[str, Any], *,
-        data_root: Path, evidence_root: Path, report_root: Path) -> dict[str, Any]:
-    if not b_is_complete(result, delivery, data_root):
+        data_root: Path, state_root: Path, evidence_root: Path, report_root: Path) -> dict[str, Any]:
+    if not b_is_complete(result, delivery, data_root, state_root):
         return {"status": "C_NOT_STARTED_B_FORMAL_GATE_INCOMPLETE"}
     package = result["input_package"]
     formal_paths = [Path(package["path"]), Path(result["watchlist"]["path"]),
@@ -71,12 +80,13 @@ def main() -> int:
     parser.add_argument("--b-result", type=Path, required=True)
     parser.add_argument("--delivery-result", type=Path, required=True)
     parser.add_argument("--data-root", type=Path, required=True)
+    parser.add_argument("--state-root", type=Path, required=True)
     parser.add_argument("--evidence-root", type=Path, required=True)
     parser.add_argument("--report-root", type=Path, required=True)
     args = parser.parse_args()
     result = json.loads(args.b_result.read_text(encoding="utf-8").splitlines()[-1])
     delivery = json.loads(args.delivery_result.read_text(encoding="utf-8").splitlines()[-1])
-    print(json.dumps(run(result, delivery, data_root=args.data_root,
+    print(json.dumps(run(result, delivery, data_root=args.data_root, state_root=args.state_root,
                          evidence_root=args.evidence_root, report_root=args.report_root), ensure_ascii=False))
     return 0
 

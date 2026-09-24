@@ -1,5 +1,20 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-09-24 — C daily report post-B delivery implementation
+
+- Classification: product blocker with correctness boundaries, unchanged; STRICT PATH.
+  Draft #85 branch `codex/c-daily-research-watchlist-shared-b-input-v1` is stacked on #83/#81.
+  Fetch its live head and exact-head CI. Formal B and #84 remain unchanged.
+- Sol chose bounded C work in the same runner after B delivery health succeeds. This supersedes
+  the earlier requirement below for C to avoid B's workflow lock. The separate workflow wiring
+  will be an additional Draft PR based on #85, disabled by default and subject to time guards.
+- C now requires a locally valid B delivery receipt whose exact bytes are in the runtime-state
+  checkout. Public C output is only small HTML and manifest JSON under
+  `data/reports/c_daily/YYYYMMDD/`, with immutable version subdirectories; the dated index is
+  the latest successful C version. B's formal report, watchlist, checkpoint and receipt are untouched.
+- Next: review the dependent workflow PR and exact-head CI, then decide merge and separate enablement.
+  No production execution, C notification, order, or formal returns study has occurred.
+
 ## 2026-09-23 — C_DAILY_RESEARCH_WATCHLIST_SHARED_B_INPUT_V1 review checkpoint
 
 - Classification: product blocker with correctness boundaries, unchanged; STRICT PATH. Work branch

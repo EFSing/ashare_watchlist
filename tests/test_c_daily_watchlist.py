@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from c_b_input_adapter import _price_only_observation
-from c_daily_watchlist import build_watchlist, render_html, write_report
+from c_daily_watchlist import build_watchlist, publish_report, render_html, write_report
 from run_c_daily_watchlist import b_is_complete, run
 from test_c_pre_outcome_design import _synthetic_entry_bars
 
@@ -81,6 +81,39 @@ def test_report_write_failure_does_not_touch_input(tmp_path: Path) -> None:
     assert record.read_bytes() == before
 
 
+def test_public_report_is_small_versioned_and_c_only(tmp_path: Path) -> None:
+    record = tmp_path / "record.json"
+    record.write_text(json.dumps(_record(), ensure_ascii=False), encoding="utf-8")
+    report = write_report(record, tmp_path / "rendered")
+    state = tmp_path / "runtime-state"
+    published = publish_report(report, state)
+    assert published["status"] == "C_REPORT_STAGED"
+    assert all(path.startswith("data/reports/c_daily/") for path in published["paths"])
+    assert report["html_bytes"] < 2_000_000
+    assert report["manifest_bytes"] < 100_000
+    day = report["signal_date"].replace("-", "")
+    dated = state / "data" / "reports" / "c_daily" / day
+    assert (dated / "index.html").read_bytes() == Path(report["path"]).read_bytes()
+    assert (dated / "manifest.json").read_bytes() == Path(report["manifest_path"]).read_bytes()
+    assert (dated / report["version_sha256"] / "index.html").is_file()
+    assert publish_report(report, state) == published
+    assert not (state / "data" / "reports" / "latest.html").exists()
+
+
+def test_publication_rejects_corrupt_report_and_preserves_previous_version(tmp_path: Path) -> None:
+    record = tmp_path / "record.json"
+    record.write_text(json.dumps(_record(), ensure_ascii=False), encoding="utf-8")
+    report = write_report(record, tmp_path / "rendered")
+    state = tmp_path / "runtime-state"
+    publish_report(report, state)
+    day = report["signal_date"].replace("-", "")
+    previous = (state / "data" / "reports" / "c_daily" / day / "index.html").read_bytes()
+    Path(report["path"]).write_bytes(b"corrupt")
+    with pytest.raises(ValueError, match="bytes differ"):
+        publish_report(report, state)
+    assert (state / "data" / "reports" / "c_daily" / day / "index.html").read_bytes() == previous
+
+
 def test_missing_c_input_is_not_called_no_match() -> None:
     record = _record()
     record["observations"] = []
@@ -90,11 +123,24 @@ def test_missing_c_input_is_not_called_no_match() -> None:
 
 def _b_result(tmp_path: Path) -> tuple[dict, dict]:
     from hashlib import sha256
+    from daily_report_delivery import RECEIPT_SCHEMA_VERSION, delivery_receipt_path
     data = tmp_path / "data"
     (data / "reports").mkdir(parents=True)
     paths = [data / "input.json", data / "watchlist.json", data / "reports" / "daily_close_20260922.html"]
     for path in paths:
         path.write_text("formal B bytes", encoding="utf-8")
+    receipt = {"schema_version": RECEIPT_SCHEMA_VERSION, "report_date": "2026-09-22",
+               "report_sha256": sha256(paths[2].read_bytes()).hexdigest(), "candidate_count": 0,
+               "review_status": "READY", "shadow_status": "READY", "email_status": "SUCCESS",
+               "email_sent_at_bjt": "2026-09-22T17:30:00+08:00", "bark_status": "SUCCESS",
+               "bark_sent_at_bjt": "2026-09-22T17:30:00+08:00",
+               "last_attempt_at_bjt": "2026-09-22T17:30:00+08:00"}
+    receipt_path = delivery_receipt_path(data, "2026-09-22")
+    receipt_path.parent.mkdir(parents=True)
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+    persisted = tmp_path / "runtime-state" / "data" / "delivery" / receipt_path.name
+    persisted.parent.mkdir(parents=True)
+    persisted.write_bytes(receipt_path.read_bytes())
     result = {"status": "T_CLOSE_EVIDENCE_PACKAGE_AND_WATCHLIST_PERSISTED", "as_of_date": "2026-09-22",
               "input_package": {"path": str(paths[0]), "file_sha256": sha256(paths[0].read_bytes()).hexdigest()},
               "watchlist": {"path": str(paths[1]), "file_sha256": sha256(paths[1].read_bytes()).hexdigest()},
@@ -102,28 +148,33 @@ def _b_result(tmp_path: Path) -> tuple[dict, dict]:
                                      "renderer": {"status": "SUCCESS"},
                                      "cloud_checkpoint": {"status": "DRIVE_CHECKPOINT_DISABLED_FOR_CLOUD"},
                                      "dated_html": str(paths[2])}}
-    return result, {"status": "DELIVERY_SUCCESS"}
+    return result, {"status": "DELIVERY_SUCCESS", "receipt_status": "PERSISTED"}
 
 
 def test_b_failure_modes_never_start_c(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     result, delivery = _b_result(tmp_path)
     data = tmp_path / "data"
-    assert b_is_complete(result, delivery, data)
+    state = tmp_path / "runtime-state"
+    assert b_is_complete(result, delivery, data, state)
     monkeypatch.setattr("run_c_daily_watchlist.consume_b_input", lambda *a, **k: pytest.fail("C started"))
     cases = [({**result, "status": "NO_VALID_INPUT"}, delivery),
              ({**result, "daily_close_bundle": {**result["daily_close_bundle"], "renderer": {"status": "FAILED"}}}, delivery),
              (result, {"status": "DELIVERY_FAILED"})]
     for b_result, b_delivery in cases:
-        assert run(b_result, b_delivery, data_root=data, evidence_root=tmp_path, report_root=tmp_path)["status"] == "C_NOT_STARTED_B_FORMAL_GATE_INCOMPLETE"
+        assert run(b_result, b_delivery, data_root=data, state_root=state, evidence_root=tmp_path, report_root=tmp_path)["status"] == "C_NOT_STARTED_B_FORMAL_GATE_INCOMPLETE"
+    (state / "data" / "delivery" / "daily_delivery_20260922.json").unlink()
+    assert run(result, delivery, data_root=data, state_root=state, evidence_root=tmp_path,
+               report_root=tmp_path)["status"] == "C_NOT_STARTED_B_FORMAL_GATE_INCOMPLETE"
 
 
 def test_c_exception_is_isolated_from_b_bytes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     result, delivery = _b_result(tmp_path)
     data = tmp_path / "data"
+    state = tmp_path / "runtime-state"
     formal = [Path(result["input_package"]["path"]), Path(result["watchlist"]["path"]),
               Path(result["daily_close_bundle"]["dated_html"])]
     before = [path.read_bytes() for path in formal]
     monkeypatch.setattr("run_c_daily_watchlist.consume_b_input", lambda *a, **k: (_ for _ in ()).throw(TimeoutError("C budget")))
-    status = run(result, delivery, data_root=data, evidence_root=tmp_path, report_root=tmp_path)["status"]
+    status = run(result, delivery, data_root=data, state_root=state, evidence_root=tmp_path, report_root=tmp_path)["status"]
     assert status == "C_FAILED_B_UNCHANGED"
     assert [path.read_bytes() for path in formal] == before

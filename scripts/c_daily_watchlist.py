@@ -12,6 +12,8 @@ from typing import Any, Mapping
 
 REPORT_VERSION = "C_DAILY_RESEARCH_WATCHLIST_V1"
 RULES = ("BALANCED_A", "CONSERVATIVE_B")
+MAX_REPORT_BYTES = 2_000_000
+MAX_MANIFEST_BYTES = 100_000
 
 
 def _shown(value: Any, digits: int = 2) -> str:
@@ -125,20 +127,100 @@ def write_report(record_path: Path, output_dir: Path) -> dict[str, Any]:
     target = output_dir / watchlist["signal_date"].replace("-", "") / digest
     target.mkdir(parents=True, exist_ok=True)
     html = render_html(watchlist).encode("utf-8")
+    if len(html) > MAX_REPORT_BYTES:
+        raise ValueError("C public report exceeds size limit")
+    manifest = {
+        "schema_version": REPORT_VERSION, "signal_date": watchlist["signal_date"],
+        "version_sha256": digest, "package_sha256": watchlist["package_sha256"],
+        "html_sha256": hashlib.sha256(html).hexdigest(),
+        "matched_stock_count": watchlist["matched_stock_count"],
+        "matched_by_rule": watchlist["matched_by_rule"],
+        "input_status": watchlist["input_status"], "coverage_status": watchlist["coverage_status"],
+        "gaps": watchlist["gaps"], "formal_b_signal": False,
+        "prospective_captured": False,
+    }
+    manifest_bytes = (json.dumps(manifest, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+    if len(manifest_bytes) > MAX_MANIFEST_BYTES:
+        raise ValueError("C public manifest exceeds size limit")
     path = target / "index.html"
-    if path.exists() and path.read_bytes() != html:
-        raise ValueError("immutable C report conflict")
+    manifest_path = target / "manifest.json"
+    for destination, content in ((path, html), (manifest_path, manifest_bytes)):
+        if destination.exists() and destination.read_bytes() != content:
+            raise ValueError("immutable C report conflict")
     path.write_bytes(html)
+    manifest_path.write_bytes(manifest_bytes)
     return {"status": "C_DAILY_REPORT_READY", "path": str(path),
-            "sha256": hashlib.sha256(html).hexdigest(), "matched_stock_count": watchlist["matched_stock_count"]}
+            "sha256": manifest["html_sha256"], "manifest_path": str(manifest_path),
+            "manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
+            "version_sha256": digest, "signal_date": watchlist["signal_date"],
+            "package_sha256": watchlist["package_sha256"],
+            "html_bytes": len(html), "manifest_bytes": len(manifest_bytes),
+            "matched_stock_count": watchlist["matched_stock_count"]}
+
+
+def publish_report(report: Mapping[str, Any], state_root: Path) -> dict[str, Any]:
+    """Stage only public C report bytes under an independent runtime-state namespace."""
+    if report.get("status") != "C_DAILY_REPORT_READY":
+        raise ValueError("C report is not ready")
+    day = str(report["signal_date"]).replace("-", "")
+    version = str(report["version_sha256"])
+    if not (len(day) == 8 and day.isdigit() and len(version) == 64
+            and all(char in "0123456789abcdef" for char in version)):
+        raise ValueError("invalid C report identity")
+    html = Path(report["path"]).read_bytes()
+    manifest = Path(report["manifest_path"]).read_bytes()
+    if (hashlib.sha256(html).hexdigest() != report["sha256"]
+            or hashlib.sha256(manifest).hexdigest() != report["manifest_sha256"]
+            or len(html) > MAX_REPORT_BYTES or len(manifest) > MAX_MANIFEST_BYTES):
+        raise ValueError("C report bytes differ from identity or size limit")
+    value = json.loads(manifest)
+    if (value.get("signal_date") != report["signal_date"]
+            or value.get("version_sha256") != version
+            or value.get("package_sha256") != report["package_sha256"]
+            or value.get("html_sha256") != report["sha256"]):
+        raise ValueError("C manifest identity mismatch")
+    root = state_root / "data" / "reports" / "c_daily" / day
+    version_root = root / version
+    for component in (state_root, state_root / "data", state_root / "data" / "reports",
+                      state_root / "data" / "reports" / "c_daily", root, version_root):
+        if component.is_symlink():
+            raise ValueError("C publication path cannot be a symlink")
+    if (root / "index.html").is_symlink() or (root / "manifest.json").is_symlink():
+        raise ValueError("C publication file cannot be a symlink")
+    version_root.mkdir(parents=True, exist_ok=True)
+    for target, content in ((version_root / "index.html", html), (version_root / "manifest.json", manifest)):
+        if target.is_symlink():
+            raise ValueError("C publication file cannot be a symlink")
+        if target.exists() and target.read_bytes() != content:
+            raise ValueError("immutable C report version conflict")
+        target.write_bytes(content)
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "index.html").write_bytes(html)
+    (root / "manifest.json").write_bytes(manifest)
+    paths = [f"data/reports/c_daily/{day}/{version}/{name}" for name in ("index.html", "manifest.json")]
+    paths += [f"data/reports/c_daily/{day}/{name}" for name in ("index.html", "manifest.json")]
+    return {"status": "C_REPORT_STAGED", "paths": paths, "signal_date": report["signal_date"],
+            "version_sha256": version, "html_sha256": report["sha256"],
+            "manifest_sha256": report["manifest_sha256"], "matched_stock_count": value["matched_stock_count"]}
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--observation-record", type=Path, required=True)
-    parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--observation-record", type=Path)
+    parser.add_argument("--output-dir", type=Path)
+    parser.add_argument("--publish-result", type=Path)
+    parser.add_argument("--state-root", type=Path)
     args = parser.parse_args()
-    print(json.dumps(write_report(args.observation_record, args.output_dir), ensure_ascii=False))
+    if args.publish_result:
+        if not args.state_root:
+            parser.error("publishing requires --state-root")
+        run_result = json.loads(args.publish_result.read_text(encoding="utf-8"))
+        result = publish_report(run_result["report"], args.state_root)
+    else:
+        if not args.observation_record or not args.output_dir:
+            parser.error("generation requires --observation-record and --output-dir")
+        result = write_report(args.observation_record, args.output_dir)
+    print(json.dumps(result, ensure_ascii=False))
     return 0
 
 

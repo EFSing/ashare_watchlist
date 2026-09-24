@@ -42,6 +42,18 @@ CALENDAR = TradingCalendar(holidays=set())
 DATE = "2026-09-10"
 
 
+def test_c_daily_namespace_is_narrow_and_not_copied_by_formal_allowlist(tmp_path: Path) -> None:
+    relative = Path("reports/c_daily/20260922/" + "a" * 64 + "/index.html")
+    assert _is_allowlisted_data_relative(relative)
+    assert _is_allowlisted_data_relative(Path("reports/c_daily/20260922/manifest.json"))
+    assert not _is_allowlisted_data_relative(Path("reports/c_daily/20260922/package.json"))
+    assert not _is_allowlisted_data_relative(Path("reports/c_daily/20260922/raw.response"))
+    path = tmp_path / relative
+    path.parent.mkdir(parents=True)
+    path.write_text("C research only", encoding="utf-8")
+    assert all(item != relative for _source, item in allowlisted_data_files(tmp_path))
+
+
 def _workflow_step_body(workflow: str, step_name: str) -> str:
     marker = f"      - name: {step_name}\n"
     start = workflow.index(marker)

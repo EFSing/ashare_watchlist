@@ -1,5 +1,17 @@
 # DECISION LOG
 
+## 2026-09-24 — ADOPT bounded C tail after Formal B delivery
+
+- Sol chose `C_DAILY_RESEARCH_WATCHLIST_V1` as a small, public, independent HTML/JSON report
+  computed in B's existing runner only after Formal B delivery, receipt persistence and
+  delivery-health enforcement succeed. This replaces the earlier separate-runner requirement
+  for this product report; full raw archival is outside this decision.
+- The C tail must be independently switchable, time bounded, and skipped near the next B run
+  or the job deadline. Its failure is recorded as C failure while B's formal success remains
+  intact. The extra lock occupancy is accepted only within the measured execution budget.
+- A daily research list does not verify volume adjustment semantics or create a durable full
+  prospective evidence set. Formal B strategy and C's two existing rule parameters stay fixed.
+
 ## 2026-09-23 — ADOPT independent C daily research report; NEEDS_MORE_EVIDENCE for automatic activation
 
 - Product decision: implement `C_DAILY_RESEARCH_WATCHLIST_V1` as an independent, viewable daily

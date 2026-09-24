@@ -1,5 +1,15 @@
 # CURRENT STATUS
 
+## 2026-09-24 — C daily research report path prepared
+
+- Sol selected a bounded same-runner C tail after completed Formal B delivery. #85 now checks
+  the B receipt in the independent runtime-state checkout, renders a small C-only HTML plus
+  manifest, and permits only `reports/c_daily/YYYYMMDD/` HTML/JSON paths in runtime-state
+  validation. The production workflow remains disabled pending its separate Draft PR.
+- Versioned C files keep same-day B package identities distinct; a dated index points to the
+  latest successful C version. Public output contains research matches and source hashes, no
+  raw response or package. `PROSPECTIVE_CAPTURED` remains unproved by a daily report alone.
+
 ## 2026-09-23 — C daily research list implementation, activation pending
 
 - Independent C aggregation and self-contained mobile HTML now show each stock's rule matches,
