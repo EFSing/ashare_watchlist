@@ -1,5 +1,19 @@
 # CURRENT STATUS
 
+## 2026-09-24 — C daily post-B delivery workflow prepared, disabled
+
+- #85 renders small C-only HTML/manifest and requires the actual Formal B receipt in the
+  runtime-state checkout. Its dependent workflow PR starts C only after six B production and
+  delivery steps succeed, and only when `ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1=true`.
+- Public report destination is `data/reports/c_daily/YYYYMMDD/index.html` plus manifest;
+  SHA-versioned subdirectories preserve retries. The Actions summary independently records C
+  success, skip, timeout or failure. No raw package or provider response enters runtime-state.
+- 3,196 synthetic securities / 6,392 frozen C rule evaluations took 10.757 s locally;
+  child timeout 360 s, C tail 600 s, reserve 300 s. Recent real B run durations of
+  58.2–82.5 min make the workflow lock risk material. The primary run skips C at/after the
+  retry overlap, and manual runs skip near either scheduled B time. Production enablement
+  remains off until user merge and activation decisions.
+
 ## 2026-09-24 — C daily research report path prepared
 
 - Sol selected a bounded same-runner C tail after completed Formal B delivery. #85 now checks

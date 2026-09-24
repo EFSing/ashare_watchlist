@@ -82,6 +82,10 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
+      - name: Record job start for optional C budget
+        shell: bash
+        run: echo "JOB_STARTED_AT_UTC=$(date -u --iso-8601=seconds)" >> "$GITHUB_ENV"
+
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -294,6 +298,7 @@ jobs:
             --result-file "$ASHARE_SUMMARY_RESULT" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run genuine XSHG T-close production chain
+        id: b_production
         if: env.RUN_MODE == 'production' && env.ASHARE_SKIP_PRODUCTION != '1'
         shell: bash
         run: |
@@ -358,6 +363,7 @@ jobs:
           PY
 
       - name: Validate production outputs before state copy
+        id: b_output_validation
         if: env.RUN_MODE == 'production' && env.ASHARE_SKIP_PRODUCTION != '1'
         shell: bash
         run: |
@@ -386,6 +392,7 @@ jobs:
             --data-root "$ASHARE_DATA_ROOT"
 
       - name: Atomically commit and push runtime-state with GITHUB_TOKEN
+        id: b_state_push
         if: env.RUN_MODE == 'production' && env.ASHARE_SKIP_PRODUCTION != '1'
         shell: bash
         run: |
@@ -460,6 +467,7 @@ jobs:
           echo "runtime-state mutation = NO" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Deliver production report by Email and Bark
+        id: b_delivery
         if: always() && env.RUN_MODE == 'production' && env.PRODUCTION_CANONICAL_READY == '1'
         shell: bash
         run: |
@@ -486,6 +494,7 @@ jobs:
           fi
 
       - name: Persist delivery receipt to runtime-state
+        id: b_receipt_persist
         if: always() && env.RUN_MODE == 'production' && env.PRODUCTION_CANONICAL_READY == '1'
         shell: bash
         run: |
@@ -542,6 +551,7 @@ jobs:
             "${delivery_args[@]}" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Enforce production delivery health
+        id: delivery_health
         if: always() && env.RUN_MODE == 'production' && env.PRODUCTION_CANONICAL_READY == '1'
         shell: bash
         run: |
@@ -566,6 +576,48 @@ jobs:
               exit 1
               ;;
           esac
+
+      - name: Run bounded C research report after B delivery
+        id: c_daily
+        if: env.RUN_MODE == 'production' && env.ASHARE_SKIP_PRODUCTION != '1' && vars.ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1 == 'true' && steps.b_production.outcome == 'success' && steps.b_output_validation.outcome == 'success' && steps.b_state_push.outcome == 'success' && steps.b_delivery.outcome == 'success' && steps.b_receipt_persist.outcome == 'success' && steps.delivery_health.outcome == 'success'
+        shell: bash
+        run: |
+          set -uo pipefail
+          output="$RUNNER_TEMP/c-daily-result.json"
+          if [[ -z "${PRODUCTION_RESULT:-}" || -z "${DELIVERY_RESULT:-}" ]]; then
+            printf '{"status":"C_NOT_STARTED_B_FORMAL_GATE_INCOMPLETE"}\n' > "$output"
+          else
+            timeout --signal=TERM --kill-after=10s 600s \
+              python scripts/run_c_daily_watchlist.py --post-b \
+                --b-result "$PRODUCTION_RESULT" \
+                --delivery-result "$DELIVERY_RESULT" \
+                --data-root "$ASHARE_DATA_ROOT" \
+                --state-root "$GITHUB_WORKSPACE/runtime-state" \
+                --evidence-root "$ASHARE_EVIDENCE_ROOT" \
+                --report-root "$RUNNER_TEMP/c-daily-report" \
+                --job-started-at-utc "$JOB_STARTED_AT_UTC" \
+                --schedule-cron "$SCHEDULE_CRON" > "$output"
+            rc=$?
+            if (( rc != 0 )); then
+              printf '{"status":"C_FAILED_B_UNCHANGED","stage":"C_TAIL_PROCESS","exit_code":%s}\n' "$rc" > "$output"
+            fi
+          fi
+          python - "$output" <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json, sys
+          try:
+              result = json.loads(open(sys.argv[1], encoding="utf-8").read().splitlines()[-1])
+          except (OSError, ValueError, IndexError):
+              result = {"status": "C_FAILED_B_UNCHANGED", "stage": "RESULT_PARSE"}
+          print("## C daily research report (independent of Formal B)")
+          print("C status: " + str(result.get("status", "C_FAILED_B_UNCHANGED")))
+          print("Formal B delivery health: SUCCESS")
+          if result.get("paths"):
+              path = result["paths"][-2]
+              print("C runtime-state report: [open C research report](https://github.com/${{ github.repository }}/blob/runtime-state/" + path + ")")
+          if result.get("matched_stock_count") is not None:
+              print("C research matches: " + str(result["matched_stock_count"]))
+          PY
+          echo "C_DAILY_RESULT=$output" >> "$GITHUB_ENV"
 
       - name: Checkout clean runtime-state for failure notice
         if: always() && env.RUN_MODE == 'production' && env.AS_OF_DATE != '' && env.ASHARE_SKIP_PRODUCTION != '1' && env.PRODUCTION_CANONICAL_READY != '1'

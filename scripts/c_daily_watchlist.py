@@ -62,6 +62,15 @@ def build_watchlist(observation: Mapping[str, Any]) -> dict[str, Any]:
     if observation.get("status") == "CAPTURE_FAILED" or not observation.get("observations"):
         raise ValueError("no verified C rule input is available")
     source = observation.get("source") or {}
+    groups = source.get("coverage_groups") or {}
+    gaps = observation.get("gaps") or []
+    coverage_breakdown = {
+        "b_evaluated": len(groups.get("b_evaluated_symbols") or []),
+        "b_input_isolated": len(groups.get("b_input_isolated") or []),
+        "c_st_or_rule_excluded": len(groups.get("c_rule_or_st_excluded") or []),
+        "c_st_unverified": len(groups.get("c_st_evidence_unresolved") or []),
+        "c_request_time_unverified": sum(str(gap).startswith("B_T_DAY_PRICE_RESPONSE_TIME_UNVERIFIED:") for gap in gaps),
+    }
     rows = []
     pending_by_rule = {rule: 0 for rule in RULES}
     for item in observation.get("observations") or []:
@@ -83,7 +92,8 @@ def build_watchlist(observation: Mapping[str, Any]) -> dict[str, Any]:
             "input_status": observation.get("status"), "package_sha256": source.get("b_package_actual_sha256"),
             "generation_fingerprint": source.get("b_generation_fingerprint"),
             "coverage_status": source.get("coverage_status", "PARTIAL_UNVERIFIED"),
-            "coverage": source.get("b_input_coverage"), "gaps": observation.get("gaps") or [],
+            "coverage": source.get("b_input_coverage"), "coverage_breakdown": coverage_breakdown,
+            "gaps": gaps,
             "matched_stock_count": len(rows),
             "matched_by_rule": {rule: sum(rule in row["matched_rules"] for row in rows) for rule in RULES},
             "data_pending_by_rule": pending_by_rule,
@@ -113,7 +123,7 @@ h1{{margin:0 0 8px}}h2,h3,h4{{margin-bottom:8px}}p{{line-height:1.6}}.card{{back
 </style></head><body><main><header><h1>C 每日研究名单</h1><p>信号日期 {date} · 独立研究观察，非 Formal B 名单或买入建议</p>
 <p>BALANCED_A 匹配 {_shown(watchlist['matched_by_rule']['BALANCED_A'],0)} · CONSERVATIVE_B 匹配 {_shown(watchlist['matched_by_rule']['CONSERVATIVE_B'],0)} · 去重股票 {_shown(watchlist['matched_stock_count'],0)}</p></header>
 {cards}<section class='card'><h2>市场覆盖与数据质量</h2><p>只覆盖 B 冻结输入中实际评估且 C 时间、ST 证据合格的证券，不代表完整主板股票池。</p>
-<p>输入状态：{escape(str(watchlist.get('input_status')))}；覆盖：{escape(str(watchlist.get('coverage_status')))}；BALANCED_A 数据待核验 {_shown(watchlist['data_pending_by_rule']['BALANCED_A'],0)}；CONSERVATIVE_B 数据待核验 {_shown(watchlist['data_pending_by_rule']['CONSERVATIVE_B'],0)}；缺口：{gaps}</p>
+<p>输入状态：{escape(str(watchlist.get('input_status')))}；覆盖：{escape(str(watchlist.get('coverage_status')))}；B 已评估 {_shown(watchlist['coverage_breakdown']['b_evaluated'],0)}；B 输入隔离 {_shown(watchlist['coverage_breakdown']['b_input_isolated'],0)}；C ST/规则排除 {_shown(watchlist['coverage_breakdown']['c_st_or_rule_excluded'],0)}；C ST 证据待核验 {_shown(watchlist['coverage_breakdown']['c_st_unverified'],0)}；C 价格请求时间待核验 {_shown(watchlist['coverage_breakdown']['c_request_time_unverified'],0)}。BALANCED_A 数据待核验 {_shown(watchlist['data_pending_by_rule']['BALANCED_A'],0)}；CONSERVATIVE_B 数据待核验 {_shown(watchlist['data_pending_by_rule']['CONSERVATIVE_B'],0)}；缺口：{gaps}</p>
 <p>package SHA：<code>{escape(str(watchlist.get('package_sha256')))}</code></p>
 <p>量能研究数值可查看，volume 前复权影响仍为 VOLUME_BASIS_UNVERIFIED，正式量价确认保持关闭。每日名单可查看不等于完整永久前瞻证据集。</p></section></main></body></html>"""
 
@@ -135,6 +145,7 @@ def write_report(record_path: Path, output_dir: Path) -> dict[str, Any]:
         "html_sha256": hashlib.sha256(html).hexdigest(),
         "matched_stock_count": watchlist["matched_stock_count"],
         "matched_by_rule": watchlist["matched_by_rule"],
+        "coverage_breakdown": watchlist["coverage_breakdown"],
         "input_status": watchlist["input_status"], "coverage_status": watchlist["coverage_status"],
         "gaps": watchlist["gaps"], "formal_b_signal": False,
         "prospective_captured": False,
