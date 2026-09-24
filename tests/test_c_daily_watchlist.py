@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
 import subprocess
+import textwrap
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -212,9 +215,9 @@ def _init_c_state_repo(state: Path, remote: Path) -> None:
 
 
 @pytest.mark.parametrize("matched", [True, False])
-@pytest.mark.parametrize("fail_push", [False, True])
+@pytest.mark.parametrize("fail_stage", [None, "push", "readback"])
 def test_post_b_publishes_only_c_files_with_real_git_readback(tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
-                                                               matched: bool, fail_push: bool) -> None:
+                                                               matched: bool, fail_stage: str | None) -> None:
     result, delivery = _b_result(tmp_path)
     state = tmp_path / "runtime-state"
     remote = tmp_path / "remote.git"
@@ -228,14 +231,16 @@ def test_post_b_publishes_only_c_files_with_real_git_readback(tmp_path: Path, mo
     report = write_report(observation, tmp_path / "rendered")
     monkeypatch.setattr("run_c_daily_watchlist._run_c_child",
                         lambda command: {"status": "C_DAILY_RESEARCH_REPORT_READY", "report": report})
-    if fail_push:
+    if fail_stage:
         import run_c_daily_watchlist as runner
         original_git = runner._git
-        def reject_push(root, *args, **kwargs):
-            if args and args[0] == "push":
+        def reject_git(root, *args, **kwargs):
+            if (fail_stage == "push" and args and args[0] == "push") or (
+                fail_stage == "readback" and args and args[0] == "show"
+            ):
                 raise subprocess.CalledProcessError(1, ["git", *args])
             return original_git(root, *args, **kwargs)
-        monkeypatch.setattr(runner, "_git", reject_push)
+        monkeypatch.setattr(runner, "_git", reject_git)
     formal_paths = [Path(result["input_package"]["path"]), Path(result["watchlist"]["path"]),
                     Path(result["daily_close_bundle"]["dated_html"]),
                     state / "data" / "delivery" / "daily_delivery_20260922.json"]
@@ -244,13 +249,15 @@ def test_post_b_publishes_only_c_files_with_real_git_readback(tmp_path: Path, mo
     outcome = post_b(b_result=b_result, delivery_result=delivery_result, data_root=tmp_path / "data",
                      state_root=state, evidence_root=tmp_path / "evidence", report_root=tmp_path / "rendered",
                      started_at=started, now=started + timedelta(minutes=1), schedule_cron="17 10 * * 1-5")
-    assert outcome["status"] == ("C_REPORT_PUBLISH_FAILED_B_UNCHANGED" if fail_push else "C_DAILY_REPORT_PUBLISHED")
-    if not fail_push:
+    assert outcome["status"] == ("C_REPORT_PUBLISH_FAILED_B_UNCHANGED" if fail_stage else "C_DAILY_REPORT_PUBLISHED")
+    if fail_stage:
+        assert outcome["stage"] == ("PUSH_C_REPORT" if fail_stage == "push" else "REMOTE_READBACK")
+    if not fail_stage:
         assert outcome["matched_stock_count"] == (1 if matched else 0)
         assert all(path.startswith("data/reports/c_daily/") for path in outcome["paths"])
     assert {str(path): path.read_bytes() for path in formal_paths} == original
     assert not (state / "data" / "reports" / "latest.html").exists()
-    if not fail_push:
+    if not fail_stage:
         assert subprocess.run(["git", "--git-dir", str(remote), "show", "runtime-state:" + outcome["paths"][-2]],
                               check=True, capture_output=True).stdout == (state / outcome["paths"][-2]).read_bytes()
 
@@ -266,8 +273,16 @@ def test_post_b_c_failure_and_publish_failure_leave_b_success(tmp_path: Path, mo
                   state_root=tmp_path / "runtime-state", evidence_root=tmp_path / "evidence",
                   report_root=tmp_path / "rendered", started_at=started,
                   now=started + timedelta(minutes=1), schedule_cron="17 10 * * 1-5")
+    formal_paths = [Path(result["input_package"]["path"]), Path(result["watchlist"]["path"]),
+                    Path(result["daily_close_bundle"]["dated_html"]),
+                    tmp_path / "data/delivery/daily_delivery_20260922.json"]
+    original = {str(path): path.read_bytes() for path in formal_paths}
     monkeypatch.setattr("run_c_daily_watchlist._run_c_child", lambda command: {"status": "C_FAILED_B_UNCHANGED"})
     assert post_b(**kwargs)["status"] == "C_FAILED_B_UNCHANGED"
+    def nonzero(command):
+        raise subprocess.CalledProcessError(2, command)
+    monkeypatch.setattr("run_c_daily_watchlist._run_c_child", nonzero)
+    assert post_b(**kwargs) == {"status": "C_FAILED_B_UNCHANGED", "reason": "C_PROCESS_FAILED"}
     def timeout(command):
         raise subprocess.TimeoutExpired(command, 360)
     monkeypatch.setattr("run_c_daily_watchlist._run_c_child", timeout)
@@ -276,6 +291,7 @@ def test_post_b_c_failure_and_publish_failure_leave_b_success(tmp_path: Path, mo
                         lambda command: {"status": "C_DAILY_RESEARCH_REPORT_READY", "report": {"status": "C_DAILY_REPORT_READY"}})
     assert post_b(**kwargs)["status"] == "C_REPORT_PUBLISH_FAILED_B_UNCHANGED"
     assert delivery["status"] == "DELIVERY_SUCCESS"
+    assert {str(path): path.read_bytes() for path in formal_paths} == original
 
 
 def test_workflow_c_gate_is_after_all_b_success_steps() -> None:
@@ -290,8 +306,49 @@ def test_workflow_c_gate_is_after_all_b_success_steps() -> None:
                  "b_receipt_persist", "delivery_health"):
         assert f"steps.{gate}.outcome == 'success'" in c_step
     assert "ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1" in c_step
+    assert "continue-on-error: true" in c_step
     assert "timeout --signal=TERM --kill-after=10s 600s" in c_step
     assert "C status:" in c_step and "Formal B delivery health: SUCCESS" in c_step
+    fallback = workflow[workflow.index("      - name: Preserve C failure diagnosis") :]
+    assert "steps.c_daily.outcome == 'failure'" in fallback
+    assert "continue-on-error: true" in fallback
+    assert "::warning::C daily step failed after Formal B delivery at $stage" in fallback
+
+
+@pytest.mark.parametrize("failed_file", ["summary", "env"])
+def test_workflow_c_file_write_failures_keep_b_success(tmp_path: Path, failed_file: str) -> None:
+    bash = shutil.which("bash") or r"C:\Program Files\Git\bin\bash.exe"
+    if not Path(bash).is_file() and not shutil.which("bash"):
+        pytest.skip("bash unavailable")
+    workflow = (Path(__file__).resolve().parents[1] / ".github/workflows/daily_t_close.yml").read_text(encoding="utf-8")
+    step = workflow[workflow.index("        id: c_daily\n"):workflow.index("      - name: Preserve C failure diagnosis")]
+    fallback_step = workflow[workflow.index("      - name: Preserve C failure diagnosis"):workflow.index("      - name: Checkout clean runtime-state for failure notice")]
+    script = textwrap.dedent(step.split("        run: |\n", 1)[1])
+    fallback_script = textwrap.dedent(fallback_step.split("        run: |\n", 1)[1])
+    summary = tmp_path / "summary"
+    env_file = tmp_path / "env"
+    if failed_file == "summary":
+        summary.mkdir()
+    else:
+        env_file.mkdir()
+    variables = dict(os.environ, RUNNER_TEMP=tmp_path.as_posix(),
+                     GITHUB_STEP_SUMMARY=summary.as_posix(), GITHUB_ENV=env_file.as_posix())
+    completed = subprocess.run([bash, "-c", script], cwd=tmp_path, env=variables,
+                               text=True, capture_output=True, timeout=30)
+    assert completed.returncode != 0
+    assert json.loads((tmp_path / "c-daily-result.json").read_text(encoding="utf-8"))["status"] == "C_NOT_STARTED_B_FORMAL_GATE_INCOMPLETE"
+    assert (tmp_path / "c-daily-step-failure.txt").read_text(encoding="utf-8").strip() == (
+        "ACTIONS_SUMMARY" if failed_file == "summary" else "GITHUB_ENV")
+    fallback = subprocess.run([bash, "-c", fallback_script], cwd=tmp_path, env=variables,
+                              text=True, capture_output=True, timeout=30)
+    assert fallback.returncode == 0
+    assert "C daily step failed after Formal B delivery at " in fallback.stdout
+    if failed_file == "env":
+        assert "C step outcome: failure at GITHUB_ENV" in summary.read_text(encoding="utf-8")
+    # Both file-write failures are contained by the workflow's C-only continue-on-error;
+    # the Formal B receipt and production steps are upstream of this isolated step.
+    assert "continue-on-error: true" in step
+    assert not (tmp_path / "data").exists()
 
 
 def test_same_day_retry_keeps_both_c_package_versions(tmp_path: Path) -> None:

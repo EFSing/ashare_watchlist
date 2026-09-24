@@ -1,5 +1,15 @@
 # DECISION LOG
 
+## 2026-09-24 — Formal B health is independent of C workflow step outcome
+
+- `ADOPT` a C-only `continue-on-error` boundary after Formal B delivery health. Keep C's
+  actual failure visible through its step outcome, stage/status diagnostic, Actions warning and
+  best-effort separate summary. This includes reporting-channel failures. Do not infer C success
+  from the Formal B job conclusion.
+- `NEEDS_MORE_EVIDENCE` for a directly rendered online C report URL: GitHub blob shows HTML
+  source and raw serves `text/plain; nosniff`. Until an existing free viewer is verified, offer
+  the small HTML through its GitHub file page for download and local opening, consistent with B's offline HTML attachment.
+
 ## 2026-09-24 — B delivery gate and bounded shared-lock C tail
 
 - `ADOPT` the six-step Formal B success gate before C daily research: production result,

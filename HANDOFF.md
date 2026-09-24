@@ -1,5 +1,19 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-09-24 — C_DAILY_REPORT_B_ISOLATION_FINAL_MERGE_READY_FOR_SOL
+
+- Classification: product blocker with correctness boundary, unchanged. Draft #86 on
+  `codex/c-post-b-delivery-workflow-v1` depends on Draft #85; fetch live remote heads and CI.
+- C workflow step now uses `continue-on-error: true` after the six Formal B success gates.
+  C failures still produce a failed C step outcome, a stage/status diagnostic file, Actions
+  warning, and best-effort separate summary. Summary or environment-file write failure cannot
+  turn delivered Formal B into a failed job. The 360 s child, 600 s tail and 300 s reserve remain.
+- GitHub's HTML blob shows source; its raw response is `text/plain; nosniff`. The C report
+  link opens the GitHub file page for downloading and local browser viewing, matching B's offline HTML
+  pattern. There is no verified directly rendered online URL. Do not claim one at enablement.
+- No production run, merge, variable enablement, C notification or order. Next: Sol reviews
+  #85/#86 and the report-viewing limitation; user decides merge and enablement separately.
+
 ## 2026-09-24 — C_DAILY_REPORT_POST_B_DELIVERY_PR_READY_FOR_SOL_DECISION
 
 - Classification: product blocker with correctness boundaries, unchanged. #85 holds C report
