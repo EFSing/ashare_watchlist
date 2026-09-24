@@ -1,5 +1,19 @@
 # DECISION LOG
 
+## 2026-09-24 — ADOPT C daily research list activation; historical exploration keeps its own identity
+
+- `ADOPT` the authorized merge chain #81 → #83 → #85 → #86 and set
+  `ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1=true`. Activation stays gated by the six Formal B success
+  steps, `continue-on-error`, the 360 s child / 600 s tail / 300 s reserve budget and C-only
+  publication under `data/reports/c_daily/YYYYMMDD/`; a C failure never changes Formal B artifacts,
+  delivery state or runtime-state validation.
+- `ADOPT` a distinct identity `C_RAW_T_ANCHOR_LIMITED_EXPLORATION_V1` for evidence-limited
+  historical exploration over the legacy frozen `adjusted=none` daily-K plus the frozen
+  corporate-action table. Its outputs must never be presented as `C_QFQ_INPUT_V1` formal results,
+  and #87's verified input-gap conclusion stays valid for its own identity.
+- `DEFER` the private C Release handoff (#84); the historical evidence gap does not gate the C
+  daily research list.
+
 ## 2026-09-24 — Formal B health is independent of C workflow step outcome
 
 - `ADOPT` a C-only `continue-on-error` boundary after Formal B delivery health. Keep C's

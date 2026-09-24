@@ -1,5 +1,20 @@
 # CURRENT STATUS
 
+## 2026-09-24 — C daily research watchlist enabled after authorized merge chain
+
+- Merge order #81 → #83 → #85 → #86 completed as squash merges on `master` (`3e635bd`, `fb7b6df`,
+  `464c445`, `6f1720c`). Each dependent PR was synced with `master` (branch-side resolution of the
+  stacked-squash conflicts) and merged only after exact-head CI success and a `CLEAN` /
+  `MERGEABLE` state. Post-merge `master` correctness runs `35953848215` / `35954210300` /
+  `35954394416` / `35954580331` all `success` (full `pytest`, `compileall`, Cloudflare dispatcher).
+- `ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1=true` is now set on the repository. The C step still starts
+  only after the six Formal B success gates, keeps `continue-on-error`, and holds the shared lock
+  for at most its bounded tail. No production run was dispatched and no past trading day was
+  backfilled; acceptance is the next normal trading-day run.
+- Boundaries unchanged: #84's private Release handoff remains Draft and disabled; #87 remains an
+  independent Draft whose historical block is an input-identity gap, not a C daily-list blocker.
+  Formal B, runtime-state validation and Final OOS (`SEALED / UNREAD`) are unchanged.
+
 ## 2026-09-24 — C/B workflow failure isolation completed in Draft #86
 
 - C step and its failure-diagnosis follow-up are independently `continue-on-error`; a failed C
