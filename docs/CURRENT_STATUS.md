@@ -25,7 +25,9 @@
   recorded in the matching `HANDOFF.md` entry.
 - Verification: C focused and B-isolation regression `82 passed`; full pytest `757 passed,
   2 skipped, 10 warnings`; `compileall` passed. Formal B and runtime-state were not modified;
-  Final OOS was not read. The independent Draft PR is for Sol audit only; no merge or promotion.
+  Final OOS was not read. Draft PR #87 is OPEN / DRAFT, based on
+  `codex/c-post-b-delivery-workflow-v1@20216bfd9a154ce638e2b9306817a727be732110`; this
+  handoff update advances its head. Fetch exact-head CI before review; Sol audit only, no merge.
 
 ## 2026-09-24 — C/B workflow failure isolation completed in Draft #86
 

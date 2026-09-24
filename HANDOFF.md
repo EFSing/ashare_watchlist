@@ -19,7 +19,11 @@
   `16b9d264deac5160b7ff7e10e20e7ae1e0d39d474670f793f130cafb6860f842`.
 - Focused C/B-isolation tests: 82 passed; full pytest: 757 passed, 2 skipped, 10 warnings;
   compileall passed. The branch is `codex/c-development-historical-backtest-v1`; fetch its live
-  tip and exact-head CI before resuming. Draft PR is requested for Sol review; no merge.
+  tip and exact-head CI before resuming. Draft PR #87 is OPEN / DRAFT at
+  https://github.com/EFSing/ashare_watchlist/pull/87, based on #86's branch
+  `codex/c-post-b-delivery-workflow-v1`; initial PR head was
+  `cf20d5e358c8c68a3848051a2bbc1a301280a74e`. The handoff update advances the branch;
+  fetch the final head and exact-head CI. No merge.
 - Formal B unchanged; runtime-state not modified; Final OOS remains unread.
 
 ## 2026-09-24 — C_DAILY_REPORT_B_ISOLATION_FINAL_MERGE_READY_FOR_SOL
