@@ -1,0 +1,57 @@
+{
+ "schema_version": "C_RAW_T_ANCHOR_ARTIFACT_IDENTITY_V1",
+ "study_id": "C_RAW_T_ANCHOR_LIMITED_EXPLORATION_V1",
+ "input_identity": "RAW_DAILY_K_DECLARED_T_ANCHOR_V1",
+ "generated_at": "2026-09-24 Asia/Shanghai",
+ "line_ending_policy": "generated artifacts are written LF-only so working-tree bytes equal the Git blob",
+ "artifacts": [
+  {
+   "logical_path": "data/research/c_raw_t_anchor_limited_exploration_v1/summary.json",
+   "role": "machine_readable_summary",
+   "bytes": 29269,
+   "file_sha256": "01fb12ca541057e5ce85727d54a0b7f68d597d38d9a467d40c1eb6538c5cf63a"
+  },
+  {
+   "logical_path": "data/research/c_raw_t_anchor_limited_exploration_v1/events.json",
+   "role": "per_event_records_and_windows",
+   "bytes": 7566423,
+   "file_sha256": "88cc0fbbb831c411a949de4e89b53113ddc3b952576bb5b7eec6cd892c3378f0"
+  },
+  {
+   "logical_path": "data/research/c_raw_t_anchor_limited_exploration_v1/input_verification.json",
+   "role": "frozen_input_identity_check",
+   "bytes": 2743,
+   "file_sha256": "2cfa223754a049bb6cfcb06092ce7427117c4dad3dc761b8b2f0fa79c4497575"
+  },
+ {
+   "logical_path": "docs/research/c_raw_t_anchor_limited_exploration_v1_protocol.md",
+   "role": "frozen_protocol",
+   "bytes": 13098,
+   "file_sha256": "9fb7849055e87b55b2e436a2b6d59d007f532e6493e64eb6ea4975e48609bfe4"
+ },
+ {
+   "logical_path": "docs/research/c_raw_t_anchor_limited_exploration_v1_report.md",
+   "role": "human_readable_report",
+   "bytes": 7809,
+   "file_sha256": "e6ff885e3629bdbf88d4e1c8c3010a20958f8b4febf8be00b4afc78c170ef688"
+ },
+ {
+   "logical_path": "scripts/c_raw_t_anchor_exploration.py",
+   "role": "research_runner",
+   "bytes": 59152,
+   "file_sha256": "4cee3f16dfbb45af1d5d0e1f760afa03f68807bdee659d2cf7c025c23223bc39"
+ },
+  {
+   "logical_path": "tests/test_c_raw_t_anchor_exploration.py",
+   "role": "focused_regression_tests",
+   "bytes": 13119,
+   "file_sha256": "3f7d22129e43c3cfe6857d10558f2d83c0930f5e1a85775e92b6ba8e93e8a6f4"
+  }
+ ],
+ "frozen_inputs": {
+  "daily_k.parquet": "61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426",
+  "adjustment_factors.parquet": "a1b7d63c5826ccd3610dc9bdd949d82eeb0ba84ffad451bfb8bb30ca74962716",
+  "core_signal_validation_manifest.json (LF-normalised)": "008643a64e0070433f3d63dca8243f8dad294b049a7accb5d49af3597aae17b0"
+ },
+ "registry_note": "FROZEN_ARTIFACT_POLICY registry entry is deliberately deferred to the merge decision: these are Draft-PR research outputs that are fully reproducible from the frozen inputs plus the committed code, so no shared governance registry file was edited while the C product chain was being merged in parallel."
+}

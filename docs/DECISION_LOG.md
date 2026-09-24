@@ -68,6 +68,32 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-24 — C_RAW_T_ANCHOR_LIMITED_EXPLORATION_V1：采纳研究输入身份，规则收益仍待证据
+
+- classification：`research question`；不是 product blocker，不是 promotion，不是 Formal B 变更，
+  不改变 C 每日研究名单的可用性。
+- 用户授权在**独立研究路径**下使用既有历史数据开展证据受限的 C 收益探索。本研究**没有**推翻
+  #87：现有 `adjusted=none` 历史文件仍不是 `C_QFQ_INPUT_V1` 的严格历史快照，
+  `C_HISTORICAL_BACKTEST_BLOCKED_BY_VERIFIED_DATA_GAP` 继续成立，且不得被重新解释。
+- decision `ADOPT`（**仅限输入身份与换算方法**）：新研究身份
+  `C_RAW_T_ANCHOR_LIMITED_EXPLORATION_V1` / 输入身份
+  `RAW_DAILY_K_DECLARED_T_ANCHOR_V1`，使用项目**既有声明**的确定性 T-anchor 换算
+  （`docs/phase2e_pit_source_audit.md` 与 manifest `adjustment_semantics`：`date < ex_date <= T`
+  升序仿射变换，锚点行保持 raw，volume 保持 raw）。三份冻结输入字节身份全部 `HASH_VERIFIED`。
+- decision `NEEDS_MORE_EVIDENCE`（规则收益）：`BALANCED_A` 4,130 事件 / 2,453 episode，
+  T+3/T+5/T+10 正收益观察比例 44.99%/44.07%/45.80%，均值 +0.09%/+0.01%/+0.02%，中位
+  -0.37%/-0.64%/-0.70%；`CONSERVATIVE_B` 246 事件 / 127 episode，
+  47.97%/43.09%/41.06%，均值 -0.27%/-0.88%/-0.68%。这些是观察统计，不是策略胜率或可执行收益。
+- 为什么不做更多（缺什么、谁使用、缺证据时哪些路径仍可继续）：缺
+  (1) 历史 T-known ST/*ST、(2) 逐 bar known-at/vintage、(3) 合法固定成本模型与 T+1 实际 fill、
+  (4) `C_QFQ_INPUT_V1` 历史快照。这些由 Sol/用户决定是否为 C 正式历史研究建立；缺它们时
+  Formal B 与 C 每日研究名单继续可用。
+- 样本边界：本轮样本身份固定为 `MAIN_BOARD_ST_UNVERIFIED_CANDIDATE_SAMPLE`，
+  **不满足** formal `C_MAIN_BOARD_NON_ST_V1` 的 PIT 有效样本条件；结果不得写成“已排除 ST/*ST”。
+- 边界：研究输出只在 `data/research/c_raw_t_anchor_limited_exploration_v1/`；独立 Draft PR；
+  未合并、未 dispatch、未改 runtime-state、未读 Final OOS、未触碰
+  `data/validation/continuous_speed_probe/`；历史探索不阻断 C 每日名单。
+
 ## 2026-09-23 — ADOPT observable volume, NEEDS_MORE_EVIDENCE for Drive handoff
 
 - Decision: `ADOPT` computation of C volume research features from B's frozen daily field,

@@ -1,5 +1,36 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-09-24 — C_RAW_T_ANCHOR_LIMITED_EXPLORATION_V1（独立 Draft PR，未合并）
+
+- Classification: `research question`。不改变 Formal B、C 每日研究名单、生产 workflow、
+  runtime-state 或 #87 的原始阻断结论；历史探索不构成产品阻断。
+- Recovery branch: `codex/c-raw-t-anchor-limited-exploration-v1`；worktree
+  `D:\dev\ashare-watchlist-c-raw-anchor`。live remote HEAD 与 exact-head CI 以实时 GitHub 为准，
+  不写死在本文件。
+- 输入身份 `RAW_DAILY_K_DECLARED_T_ANCHOR_V1`（**不是** `C_QFQ_INPUT_V1`）：
+  `daily_k.parquet` `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426`
+  (180,203,424 B)、`adjustment_factors.parquet`
+  `a1b7d63c5826ccd3610dc9bdd949d82eeb0ba84ffad451bfb8bb30ca74962716` (295,284 B)、
+  manifest LF-normalised `008643a64e0070433f3d63dca8243f8dad294b049a7accb5d49af3597aae17b0`；
+  三份实际字节核验均为 `HASH_VERIFIED`。
+- 协议以“内容定稿”在读取收益前冻结（2026-09-24 12:12:35 +0800，SHA-256
+  `3aa6ffe2db431574c17a88bfe0b58b85af4a37aa05fb08c3279dc043584e59e3`；冻结提交 `9616b49`
+  创建于 14:01:23 +0800，**晚于** 13:57:22 的全样本 outcome 运行；详见 protocol 的
+  provenance 段）：`docs/research/c_raw_t_anchor_limited_exploration_v1_protocol.md`；
+  报告：`docs/research/c_raw_t_anchor_limited_exploration_v1_report.md`；机器可读产物与
+  产物 SHA：`data/research/c_raw_t_anchor_limited_exploration_v1/{summary,events,input_verification,artifact_identity}.json`。
+- 结果：`BALANCED_A` 4,130 事件 / 2,453 episode；`CONSERVATIVE_B` 246 / 127。
+  T+3/T+5/T+10 正收益观察比例 A 44.99%/44.07%/45.80%、B 47.97%/43.09%/41.06%；
+  成本后收益 `NOT_CALCULABLE_COST_MODEL_NOT_PREEXISTING`，实际成交胜率
+  `NOT_AVAILABLE_NO_ACTUAL_FILL_EVIDENCE`。样本身份
+  `MAIN_BOARD_ST_UNVERIFIED_CANDIDATE_SAMPLE`，不满足 formal C PIT 样本条件。
+- 复现命令：`python scripts/c_raw_t_anchor_exploration.py --raw-dir <raw> --manifest <manifest>`
+  （全量约 4 分钟，需要 `pyarrow`；CI 的 `.[test]` 不含 pyarrow，故模块内延迟导入）。
+  仅重绘报告：加 `--render-from <summary.json> --report-path <md>`。
+- 下一步：等待下一次正常交易日 schedule run 的真实 C 报告验收；Sol/用户决定是否为 C 建立
+  合法历史输入（T-known ST 历史、逐 bar vintage、成本模型、`C_QFQ_INPUT_V1` 历史快照）。
+  无自动合并、无自动 dispatch、未读 Final OOS。
+
 ## 2026-09-24 — C_DAILY_ACTIVATION_AND_LIMITED_HISTORY_RESEARCH_V1
 
 - Classification: the C daily research list product blocker is resolved (STRICT PATH). The separate
