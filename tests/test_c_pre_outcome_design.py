@@ -99,6 +99,9 @@ def test_volume_path_keeps_directional_counts_and_does_not_claim_mechanism():
     assert result["path_label"] in {"CONTRACTED_OBSERVABLE", "MIXED_OBSERVABLE", "EXPANDED_OBSERVABLE"}
     assert result["mechanism_claim"].startswith("UNKNOWN")
     assert result["up_day_count"] + result["down_day_count"] <= 5
+    assert result["first_half_volume_median"] == 106.0
+    assert result["second_half_volume_median"] == 108.5
+    assert result["second_to_first_half_median_ratio"] == pytest.approx(108.5 / 106.0)
 
 
 def test_volume_path_requires_two_effective_days_per_direction():

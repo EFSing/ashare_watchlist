@@ -5,6 +5,113 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-23 — ADOPT observable volume, NEEDS_MORE_EVIDENCE for Drive handoff
+
+- Decision: `ADOPT` computation of C volume research features from B's frozen daily field,
+  including T relative volume and eligible pullback path/direction diagnostics. Unknown
+  forward-adjustment semantics are `VOLUME_BASIS_UNVERIFIED`, not evidence of bad data;
+  no volume confirmation or formal candidate follows from a computed feature.
+- `NEEDS_MORE_EVIDENCE` for automatic private handoff: Codex can read the existing private
+  Drive root, but the B cloud runner cannot currently use the connector; runner write/readback
+  authority, available quota, and actual daily package/raw size are unverified. #84's optional
+  private GitHub Release route has no available new private repository and remains disabled.
+  The product gate needing this evidence is independent same-day B→C recovery. C code review
+  and Formal B daily operation can continue without it; no paid service or token in chat.
+
+## 2026-09-23 — ADOPT `C_QFQ_INPUT_V1` for prospective C input
+
+- Decision: `ADOPT` user-selected A for prospective input only. C takes stock OHLC solely from
+  B's same-day frozen `PROVIDER_QFQ_SNAPSHOT`; the older unadjusted C design remains historical
+  provenance and cannot be mixed into this version. No future outcome comparison, formal C
+  historical return study, or Formal B change supports this choice.
+- Existing `BALANCED_A` and `CONSERVATIVE_B` structure parameters remain fixed. HiThink historical
+  `volume` is documented in shares and B copies the response field directly; the effect of
+  `adjust=forward` on volume remains `UNRESOLVED`. Raw values may be retained, but volume
+  confirmation has no verified signal status.
+- C must bind explicit T, package SHA and verified private handoff identity, distinguish B evaluated
+  securities, B isolated input failures and C ST/rule exclusions, and decline rule observations
+  where prospective ST or time evidence is missing. This is a correctness and product gate,
+  not an activated capture. Decision state is `NEEDS_MORE_EVIDENCE` for real same-day ST/time,
+  private readback and isolated coverage; Formal B remains usable while C waits for Sol audit.
+
+## 2026-09-23 — REJECT raw-price reconstruction from current B frozen response
+
+- Research question: can C's original unadjusted OHLCV and raw-volume basis be recovered
+  deterministically from B's same-day frozen package and raw evidence? This matters because a
+  basis mismatch would contaminate C signal identity. Inputs were the B serializer, HiThink
+  historical request, immutable capture metadata and the real-package compatibility fixture;
+  stop condition was whether unadjusted prices, adjustment factors and volume units were present.
+- Decision: `REJECT` deterministic reconstruction with current bytes. B stock history requests
+  `adjust=forward`; package and raw response contain forward-adjusted prices, no independent
+  unadjusted OHLC or factor series. Volume is present but its unit/raw semantics are unproven.
+  No future outcome was read. C may continue only as `PARTIAL_UNVERIFIED` until the user selects
+  A (new qfq protocol identity with proved volume semantics) or B (original raw definition,
+  input incomplete). Both routes preserve the nine isolated-symbol coverage gaps in the
+  2026-09-22 checkpoint.
+
+## 2026-09-23 — ADOPT B frozen input read-only reuse as C primary route
+
+- Decision: `ADOPT` 只读复用 B 当日已合法获取并冻结的完整收盘原始输入作为 C 主路线；C
+  仍独立计算两条规则并只写私有研究状态。B 选股结论、Shadow、收益跟踪及正式名单均不作为
+  C 输入。原有 C 独立 HiThink 请求只保留关闭的备用方案，其独立配额门槛只约束新增请求。
+- Evidence boundary: B 的完整 package 与 raw source evidence 目前只在 runner 临时目录，
+  `runtime-state` 不持久化这些字节；B qfq 价格与 C 未复权口径不一致，逐请求时间和持久化
+  时间未留下可恢复证明。当前 reader 可形成 `CAPTURE_PARTIAL_UNVERIFIED` 或失败诊断，
+  不能形成 `PROSPECTIVE_CAPTURED`。最小只读导出方案交 Sol 审计后再决定是否改 B。
+- Terminal: `C_SHARED_INPUT_REUSE_READY_FOR_SOL_AUDIT`；无真实调度、通知、provider 请求或合并。
+
+## 2026-09-23 — C activation requires independently verified provider quota
+
+- classification：`correctness blocker + product blocker`，仅针对新版 C 真实启用，不改变
+  Formal B 或既有 C 策略。Sol 的实际启用审计发现，仅有 C 专属环境变量或另一 API Key
+  不能证明请求配额与 B 隔离。
+- evidence：HiThink 官方[接入说明](https://github.com/HiThink-Tech/Financial-API/blob/main/README.md)
+  说明 API/CLI/SDK 共用统一 API Key 且限流动态；[REST 通用契约](https://github.com/HiThink-Tech/Financial-API/blob/main/docs/api/README.md)
+  和[历史行情接口](https://github.com/HiThink-Tech/Financial-API/blob/main/skills/hithink-finance/references/api/endpoints-prices.md)
+  没有提供独立账户/配额分配标识和可复核的固定调用上限。全 universe 每标的一次历史请求
+  所需容量因此未被证明。不得用 B 的共享关键配额完成 C 采集。
+- decision：本条独立配额约束仅适用于 C 自行发起新的 HiThink 请求；只读复用 B 已冻结输入
+  不消耗新配额。备用 adapter 在无独立证明时继续 hard-block，等待单独审计。
+- persistence contract：C inputs and capture state stay under
+  `data/research/c_prospective_capture_v1/` and recover through a separate private state repository.
+  Never publish them to B `runtime-state`, reports, watchlists, or production paths. The prepared
+  weekday workflow remains inactive until independently authorized after Sol review.
+- boundary: no real provider request, schedule, notification, automatic order, C historical-return
+  study, Final OOS read, or Formal B change is included. Terminal:
+  `C_PROSPECTIVE_ACTIVATION_GATE_READY_FOR_SOL_REAUDIT`.
+
+## 2026-09-22 — Independent C prospective capture boundary
+
+- classification：`correctness/provenance gate + product gate`。研究问题是：在不读取未来
+  收益、不把历史补取冒充前瞻证据的前提下，C 是否已有可审计的 T 日收盘观察入口；其
+  materiality 在于错误的时间边界会污染后续研究并可能把研究观察误接入 B 生产链。停止
+  条件是：独立入口、输入不可变性、失败可诊断、B 隔离和合成关键不变量完成，并交由 Sol
+  审计后再决定是否启用真实采集。
+- decision：`NEEDS_MORE_EVIDENCE`。实现已准备为独立交付，但不是“已启用”或收益结论；
+  独立 provider/credential/quota、持久化与人工验收，以及 Sol 对激活边界的审计仍是启用
+  前置条件。正式历史收益研究、自动通知、真实定时运行、自动下单、Formal B 修改和
+  Final OOS 读取均不在本决定内。
+- protocol contract：全量 `FULL_COMPARABLE_UNIVERSE` 与每条规则独立的
+  `MATCHED_EVENT_SAMPLE` 必须分开记录，不能声称不同入场规则天然拥有相同 entry cohort；
+  观察日浮盈只作 T 日 mark-to-market，T+1 参考执行盈亏必须单独标识；`RV_T >= 2.0` 只
+  检验确认日放量，不能替代完整回踩量能路径；继续持有、价格提前防守、量价提前防守三组
+  观察保留；统一成本模型及来源必须在正式收益研究前预先固定，不能用未来收益调参。
+- implementation contract：C 只接受同一交易日收盘后的 T-known normalized provider
+  snapshot，记录请求/接收时间、证券身份、T 日 ST 状态、OHLCV、历史前缀、复权口径、输入
+  SHA、规则版本和数据质量状态。只有完整的实际当日捕获才可为
+  `PROSPECTIVE_CAPTURED`；缺失、冲突、异常或补取历史数据必须保留原因并使用非成功状态。
+- isolation contract：C 独立写入 `data/research/c_prospective_capture_v1/`，不导入或调用
+  B evaluator/Shadow/return tracker/formal list/daily report/scheduler，不写 B
+  `runtime-state`，不抢占 B 关键配额；C 失败不阻断 B。
+- evidence：C-focused synthetic verification 为 `27 passed`，隔离/回归集合为 `76 passed`，
+  全量为 `698 passed, 2 skipped`，`compileall`、`git diff --check` 和 CI 同款 dispatcher
+  为 `3 passed`。Draft stacked [PR #83](https://github.com/EFSing/ashare_watchlist/pull/83)
+  的 base 为 `codex/c-pre-outcome-design-ready-for-sol-audit@02c7116f5b712b187a2d70e1a46fba061981b6b8`，
+  implementation head 为 `codex/c-prospective-capture-v1@a6621ec9dbc98173d785000ae7df4b48bce7c33d`；
+  该 implementation head 的 push run `35716953816` 与 pull-request run `35717028240` 均为
+  exact-head `success`。本治理 checkpoint 后的最终 branch tip 与 CI 仍须实时重读。终点为
+  `C_PROSPECTIVE_CAPTURE_PR_READY_FOR_SOL_ACTIVATION_AUDIT`，随后停止等待 Sol 审计。
+
 ## 2026-09-22 — C data evidence and preregistration protocol ready for Sol decision
 
 - classification：`research question + correctness/provenance gate`。本决定只推进新版 C 的

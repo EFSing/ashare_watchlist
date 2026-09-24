@@ -1,0 +1,120 @@
+name: C prospective capture (disabled by default)
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_date:
+        required: true
+      b_input_sha256:
+        required: true
+      b_handoff_manifest_sha256:
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: c-prospective-capture
+  cancel-in-progress: false
+
+jobs:
+  capture:
+    if: ${{ vars.C_SHARED_INPUT_HANDOFF_VERIFIED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.C_CAPTURE_STATE_REPOSITORY }}
+          token: ${{ secrets.C_CAPTURE_STATE_TOKEN }}
+          path: .c-state
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install C reader runtime
+        run: python -m pip install -e .
+      - name: Restore private C capture state
+        run: python scripts/c_state_store.py restore --state-repo .c-state
+      - name: Restore B handoff from private repository
+        id: handoff
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.B_C_PRIVATE_HANDOFF_TOKEN }}
+          HANDOFF_REPOSITORY: ${{ vars.B_C_PRIVATE_HANDOFF_REPOSITORY }}
+          TARGET_DATE: ${{ inputs.target_date }}
+          B_PACKAGE_SHA: ${{ inputs.b_input_sha256 }}
+          HANDOFF_MANIFEST_SHA: ${{ inputs.b_handoff_manifest_sha256 }}
+        run: |
+          set -euo pipefail
+          [[ "$(gh repo view "$HANDOFF_REPOSITORY" --json isPrivate --jq .isPrivate)" == "true" ]]
+          day="$TARGET_DATE"
+          sha="$B_PACKAGE_SHA"
+          [[ "$day" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ && "$sha" =~ ^[0-9a-f]{64}$ && "$HANDOFF_MANIFEST_SHA" =~ ^[0-9a-f]{64}$ ]]
+          archive="b-c-${day//-/}-$sha.zip"
+          receipt="b-c-${day//-/}-$sha.receipt.json"
+          gh release download "b-c-input-${day//-/}" --repo "$HANDOFF_REPOSITORY" \
+            --pattern "$archive" --dir "$RUNNER_TEMP"
+          gh release download "b-c-input-${day//-/}" --repo "$HANDOFF_REPOSITORY" \
+            --pattern "$receipt" --dir "$RUNNER_TEMP"
+          python - "$RUNNER_TEMP/$archive" "$RUNNER_TEMP/$receipt" "$RUNNER_TEMP/b-input" "$sha" <<'PY'
+          import hashlib, json, pathlib, sys, zipfile
+          archive, receipt_path, target, expected = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2]), pathlib.Path(sys.argv[3]), sys.argv[4]
+          receipt = json.loads(receipt_path.read_bytes())
+          if (receipt.get("status") != "HANDOFF_VERIFIED" or
+                  receipt.get("package_sha256") != expected or
+                  receipt.get("target_date") != __import__("os").environ["TARGET_DATE"] or
+                  receipt.get("repository") != __import__("os").environ["HANDOFF_REPOSITORY"] or
+                  receipt.get("archive_sha256") != hashlib.sha256(archive.read_bytes()).hexdigest()):
+              raise ValueError("independent handoff receipt mismatch")
+          with zipfile.ZipFile(archive) as bundle:
+              names = bundle.namelist()
+              if len(names) != len(set(names)) or any(pathlib.PurePosixPath(name).is_absolute() or ".." in pathlib.PurePosixPath(name).parts for name in names):
+                  raise ValueError("unsafe handoff path")
+              manifest_bytes = bundle.read("handoff.json")
+              manifest = json.loads(manifest_bytes)
+              if manifest["package_sha256"] != expected or manifest["target_date"] != __import__("os").environ["TARGET_DATE"]:
+                  raise ValueError("handoff identity mismatch")
+              if (hashlib.sha256(manifest_bytes).hexdigest() != __import__("os").environ["HANDOFF_MANIFEST_SHA"] or
+                      receipt.get("handoff_manifest_sha256") != __import__("os").environ["HANDOFF_MANIFEST_SHA"] or
+                      receipt.get("files") != manifest.get("files") or
+                      set(names) != {"handoff.json", *(item["path"] for item in manifest["files"])}):
+                  raise ValueError("selected handoff manifest mismatch")
+              for item in manifest["files"]:
+                  data = bundle.read(item["path"])
+                  if len(data) != item["bytes"] or hashlib.sha256(data).hexdigest() != item["sha256"]:
+                      raise ValueError("handoff file SHA mismatch")
+              bundle.extractall(target)
+          (target / "handoff-receipt.json").write_bytes(receipt_path.read_bytes())
+          PY
+      - name: Consume frozen B input after independent handoff
+        id: capture
+        if: always() && steps.handoff.outcome != 'skipped'
+        env:
+          TARGET_DATE: ${{ inputs.target_date }}
+          B_PACKAGE_SHA: ${{ inputs.b_input_sha256 }}
+          HANDOFF_MANIFEST_SHA: ${{ inputs.b_handoff_manifest_sha256 }}
+        run: |
+          python scripts/run_c_prospective_capture.py \
+            --target-date "$TARGET_DATE" \
+            --b-input-package "$RUNNER_TEMP/b-input/package.json" \
+            --b-input-sha256 "$B_PACKAGE_SHA" \
+            --b-handoff-manifest-sha256 "$HANDOFF_MANIFEST_SHA" \
+            --b-handoff-receipt "$RUNNER_TEMP/b-input/handoff-receipt.json" \
+            --b-evidence-root "$RUNNER_TEMP/b-input/evidence"
+      - name: Persist private C capture state
+        if: ${{ always() && steps.capture.outcome != 'skipped' }}
+        run: python scripts/c_state_store.py publish --state-repo .c-state
+      - name: Commit private C capture state
+        if: ${{ always() && steps.capture.outcome != 'skipped' }}
+        run: |
+          git -C .c-state config user.name "github-actions[bot]"
+          git -C .c-state config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C .c-state add data/research/c_prospective_capture_v1
+          if git -C .c-state diff --cached --quiet; then
+            echo "C state already current"
+          else
+            git -C .c-state commit -m "Persist C prospective capture"
+            git -C .c-state push
+          fi

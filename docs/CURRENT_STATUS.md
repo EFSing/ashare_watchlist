@@ -1,10 +1,159 @@
 # CURRENT STATUS
 
-更新时间：2026-09-22（Asia/Shanghai）
+更新时间：2026-09-23（Asia/Shanghai）
 
 本文件只记录当前有效状态；历史实现过程与旧 checkpoint 以 Git history / PR / CI 为 provenance，
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
+
+## 2026-09-23 — C_VOLUME_OBSERVATION_AND_STORAGE_REUSE_READY_FOR_SOL_AUDIT
+
+- #83 保留 B 冻结逐日 volume 的 RV_T、可形成价格回踩时的 path/方向性及前后半程
+  描述值；`VOLUME_FEATURE_COMPUTED` 与 `VOLUME_BASIS_UNVERIFIED` 并存，正式
+  `volume_confirmation_valid=false`、`entry_candidate=false`。原下文“仅记录原值”
+  已由本记录纠正。2026-09-22 的 9 只 B 隔离股票仍是缺口。
+- 现有私有 Drive 根目录通过 Codex connector 实际可读，项目账号为 owner、未共享；
+  可见 180,203,424-byte 的历史 daily-K 备份及既有小型 watchlist。
+  Drive 中另有 2026-09-07 既有分块备份，package/outputs 约 556 MB、source evidence
+  约 564 MB；它们是容量先例，不是本次完整 B→C bundle 的实测大小。
+  云端 B runner 无已验证 Drive 写入接口/授权，剩余额度和单日完整 package/raw
+  大小未获证实，
+  因此不能启用自动 B→C Drive 交接或声称跨设备捕获。#84 的私有 GitHub 后端
+  保持默认禁用；用户没有新私有仓库额度。C 自身的私有 state repo 工作流同样
+  尚无已验证目标；本地 C 记录不能冒充跨设备持久化。
+- Formal B 与 C 研究观察继续隔离；无 merge、正式历史收益、调度、通知或下单。
+
+## 2026-09-23 — C_SHARED_INPUT_ACTIVATION_RELEASE_GATE_READY_FOR_SOL
+
+- #83 reader 已将私有独立读回、T 日逐票价格/ST 证据、B 输入隔离、C 自身排除、
+  主板覆盖和 volume 语义分层。真实 HiThink 响应时间只从 raw sidecar 获取；runner 起点、
+  mtime、C 下载时间不能替代。逐票证据通过可形成
+  `PRICE_OBSERVATION_VOLUME_UNVERIFIED`，不等于正式候选或 `PROSPECTIVE_CAPTURED`。
+- #84 独立记录 HTTP 逐请求开始/接收时间，未增加请求；交接诊断区分本地导出、
+  私有持久化、独立读回、receipt 读回及 C 实际消费。同日重试以 package SHA 隔离。
+  正式 B 结果不受可选交接失败影响。两 PR 未合并且真实云端交接未配置。
+- HiThink 历史 volume 单位为股，B 逐 bar 原值复制；`adjust=forward` 对 volume
+  的影响仍 `UNRESOLVED`，量价确认禁用。下一项验收为真实同日 B package/raw 私有读回
+  与 C 消费，并由 Sol 核对完整证据契约。
+
+## 2026-09-23 — C_QFQ_SHARED_INPUT_HANDOFF_READY_FOR_SOL_FINAL_ACTIVATION_AUDIT
+
+- 用户正式选择 A，前瞻 C 输入版本为 `C_QFQ_INPUT_V1`：B 当日冻结 qfq 股票历史 OHLC
+  是唯一价格输入；原未复权方案保留历史身份，不能混算。`BALANCED_A` / `CONSERVATIVE_B`
+  结构参数及 Formal B 均未改变；没有正式历史收益研究。
+- HiThink 历史 `volume` 文档单位为股，B 直接复制响应数值；`adjust=forward` 对该字段的
+  影响 `UNRESOLVED`。C 仅可记录原值/来源，不得将量价确认列为有效信号。
+- #83 需要显式 T、package SHA 和 handoff manifest SHA，并核验私有读回 receipt、archive
+  与逐文件身份。B 已评估股票、B 输入失败隔离、C ST/规则排除单独记录；缺 T-known ST
+  或时间证据的股票不计算 C 规则观察。2026-09-22 的 9 只隔离仍是覆盖缺口。
+- #84 独立 B 交接 PR 在 B 成功后只读导出，私有上传、独立下载和最终 SHA/字节数读回
+  由单独结果记录。真实私有仓库配置与同日验收尚未发生，不能宣称真实
+  `HANDOFF_VERIFIED` 或 `PROSPECTIVE_CAPTURED`。两 PR 保持 Draft、未合并、未启用。
+
+## 2026-09-23 — C_B_TO_C_HANDOFF_AND_PRICE_BASIS_READY_FOR_SOL_DECISION
+
+- Classification: `correctness blocker`，未改变。#83 C reader 现经 B 实际
+  `LiveInputPackage.to_bytes()` 与 `persist_live_input_package()` 验证，修正 B K 线 SHA
+  不带换行的编码差异，并核对 generation fingerprint、逐票 SHA、隔离覆盖和 raw sidecar。
+- #83 手工工作流可从配置的私有 handoff release asset 下载并逐文件核验；独立 B 导出
+  Draft PR 从最新 master 提供成功后只读导出，默认配置未启用。真实私有读回、逐请求时间、
+  B 持久化时间、T-known ST 和成交量语义仍未验收，不能宣布 `PROSPECTIVE_CAPTURED`。
+- B 股票历史响应请求 `adjust=forward`；同日 raw evidence 没有未复权 OHLC 或调整因子，
+  当前无法确定性还原 C 原始 raw 定义。研究口径 A（新协议采用 B qfq）与 B（保留原
+  未复权口径并维持输入不完整）待用户选择，不能以未来收益决定。
+- 2026-09-22 `runtime-state` checkpoint SHA-256
+  `826f02807bb58846788137bdaa85d47455fa679497dbd82f49f5cf2898b8ccb1`：
+  5,576 原始、3,196 合格、3,187 评估、9 隔离；完整 package/raw 未持久化。
+
+## Historical checkpoint — 2026-09-23 — C_SHARED_INPUT_REUSE_READY_FOR_SOL_AUDIT
+
+- Classification: `correctness blocker`，本轮未改变。新版 C 的主路线改为只读消费 B
+  已冻结的全量收盘输入，再由 C 独立计算规则；独立 HiThink 请求降为关闭的备用方案。
+- B 现有成功路径在 runner 临时 data root 持久化完整 generation input package 与 source
+  evidence，但 `runtime-state` 白名单不包含这些字节。候选名单、checkpoint、诊断摘要均不足以
+  代替全量输入。`NO_VALID_INPUT` 和持久化失败没有可恢复的完整 package。
+- C reader 已实现 package 文件 SHA、内部 SHA、T 日、完整逐票覆盖与 K 线 SHA 校验，写入
+  C 私有 `shared_input` 观察/失败记录；B 重试后可重新读取。已识别的 qfq/raw 口径、T 日 ST
+  原始来源、逐请求时刻和真实持久化时间缺口使当前结果只能是
+  `CAPTURE_PARTIAL_UNVERIFIED` 或 `CAPTURE_FAILED`，不能是 `PROSPECTIVE_CAPTURED`。
+- C 工作流移除了早于 B 完成的定时触发，失败后的私有状态发布使用 `always()`；由于 B
+  尚无跨任务原始输入交接，工作流仍不启用。最小 B 只读导出设计在
+  `docs/research/c_prospective_capture_v1.md`，需 Sol 审计；本 PR 未改 B 生产代码。
+- Verification: C focused `50 passed`; B acquisition/runtime isolation `206 passed`；full suite
+  `724 passed, 2 skipped, 10 warnings`；`compileall` 和 `git diff --check` 通过。
+- Draft PR #83 继续 stacked on Draft #81，不合并。实时 SHA/CI 以 GitHub 当前结果为准。
+
+## Historical checkpoint — 2026-09-23 — C_PROSPECTIVE_ACTIVATION_GATE_READY_FOR_SOL_REAUDIT
+
+- Classification: `correctness blocker + product blocker` for actual C activation. The user
+  supplied Sol's audit conclusion that PR #83's real-enable audit failed; this supersedes the
+  prior persisted “ready for activation audit” state.
+- Live intake: `origin/master=a54bce2c34d1c76298b02f2ddc8347fd88757ace`,
+  `origin/runtime-state=2fc7f9f69949b20da0444a13a2dba860c952fc3f`.
+- `PROJECT_GOVERNANCE_STATE_CONFLICT` (resolved): master gained PR #82 after the old #81 base
+  `4633b37ee6eb99bee527d8907e4e51768fd3f82a`; #81 at `02c7116` was `DIRTY`, and read-only
+  merge-tree found a `HANDOFF.md` conflict. Rebased #81 onto current master while retaining its
+  C history and the #82 B incident record. Live #81 is now Draft/CLEAN at
+  `78b723c96a351038fea379284ba52be3bd645b1a`, based on current master; both exact-head CI runs
+  succeeded (`35817419573`, `35817423031`). No B source code was changed.
+- PR #83 remains Draft and stacked on #81. Its C implementation and verification checkpoint is
+  `26d8fe9c35e22ecdcf0fb182ab1c33dfc0bcdd56`; the pushed code checkpoint
+  `dbedf9a3ff35a9a964f3491c97aa19b7067ea805` resolved to #81 head `78b723c`, and both exact-head
+  checks succeeded. This final handoff-only update is on top; read the final remote SHA and exact-
+  head checks from live PR state. Do not merge either PR.
+- C capture repairs require verifiable T-day ST source/time and raw provider response identity;
+  prevent fake runtime clock and arbitrary output roots; allow same-day partial recovery while
+  retaining immutable attempts, inputs, hashes, and failures; and emit
+  `PROSPECTIVE_CAPTURED` only after the full input and finalized index verify.
+- A C-only HiThink adapter, independent runner, and serial workflow are prepared. Official provider
+  documentation describes one unified key and dynamic limits, not an independently allocated
+  B-isolated quota. The adapter has a hard live-request block until provider-issued independence
+  evidence is verified. No real provider request has been made. The workflow remains only in Draft
+  PR #83 and is not active on the default branch; private state repository and cloud secrets remain
+  unconfigured.
+- Synthetic C adapter/capture tests: `41 passed`; B isolation: `40 passed`; full suite:
+  `715 passed, 2 skipped, 10 warnings`; compileall and diff check pass. Exact-head CI for the pushed
+  code checkpoint succeeded in runs `35818216059` and `35818212182`; read live PR checks for this
+  final handoff-only update.
+  No Formal B modification, C historical-return research, Final OOS read, real schedule,
+  notification, or automatic order is authorized.
+
+## Historical checkpoint — 2026-09-22 — C_PROSPECTIVE_CAPTURE_PR_READY_FOR_SOL_ACTIVATION_AUDIT
+
+- Classification: `correctness/provenance gate + product gate`; this is an independent C
+  prospective-observation delivery, not a Formal B change, formal historical-return study,
+  promotion, merge, automatic ordering, or Final OOS review.
+- Live starting point: PR #81 was `OPEN / DRAFT / CLEAN` at intake, with head
+  `codex/c-pre-outcome-design-ready-for-sol-audit` at
+  `02c7116f5b712b187a2d70e1a46fba061981b6b8`. The implementation is on the separate worktree
+  branch `codex/c-prospective-capture-v1`, based directly on that head.
+- Delivery: Draft [PR #83](https://github.com/EFSing/ashare_watchlist/pull/83) is
+  `OPEN / DRAFT / MERGEABLE / CLEAN`, with base
+  `codex/c-pre-outcome-design-ready-for-sol-audit@02c7116f5b712b187a2d70e1a46fba061981b6b8`
+  and implementation head
+  `codex/c-prospective-capture-v1@a6621ec9dbc98173d785000ae7df4b48bce7c33d`. This governance
+  checkpoint itself must be re-read from live Git/GitHub for the final branch tip and CI.
+- C capture contract: `scripts/c_prospective_capture.py` and
+  `docs/research/c_prospective_capture_v1.md` define the C-only namespace
+  `data/research/c_prospective_capture_v1/` with immutable input snapshots, research
+  observations, manifests, canonical capture index, logs, and failure diagnostics. A capture
+  is `PROSPECTIVE_CAPTURED` only when the same-day after-close request/receive evidence and all
+  required T-known fields are complete; missing ST, malformed/future bars, duplicate conflicts,
+  and later backfills remain explicit non-success states.
+- Protocol correction: `FULL_COMPARABLE_UNIVERSE` and per-rule `MATCHED_EVENT_SAMPLE` are
+  distinct; observation-day floating P/L is distinct from T+1 reference execution P/L;
+  `RV_T >= 2.0` is confirmation-day-only; continue holding, price-only defense, and
+  price-plus-volume defense remain separate; a unified cost model/source must be fixed before
+  formal return research without future-return tuning.
+- Isolation: no B evaluator, Shadow, return tracker, formal watchlist, daily report, production
+  scheduler, B `runtime-state`, automatic order, or real schedule/notification is changed or
+  called. No C data was written yet; synthetic tests use temporary roots only.
+- Verification: C-focused tests `27 passed` (including eight new synthetic capture tests),
+  isolation/regression set `76 passed`, full suite `698 passed, 2 skipped`, compileall and
+  diff check pass, and the CI-equivalent Node dispatcher test is `3 passed`. PR #83 exact-head
+  CI has two `test` runs, both successful at the exact head: push run
+  `35716953816` and pull-request run `35717028240`. Current decision is
+  `NEEDS_MORE_EVIDENCE`; wait for Sol's activation audit before enabling any live schedule.
 
 ## 2026-09-22 — C_DATA_EVIDENCE_AND_PROTOCOL_READY_FOR_SOL_DECISION
 
