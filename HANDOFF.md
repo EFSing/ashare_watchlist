@@ -1,5 +1,30 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-09-24 — C_DAILY_ACTIVATION_AND_LIMITED_HISTORY_RESEARCH_V1
+
+- Classification: the C daily research list product blocker is resolved (STRICT PATH). The separate
+  historical exploration below is a research question and never a product blocker.
+- Authorized product merge order completed as squash merges on `master`: #81 `3e635bd`, #83
+  `fb7b6df`, #85 `464c445`, #86 `6f1720c`. Because the PRs were stacked, each dependent branch was
+  first synced with `master` (branch side won; the resolved trees were byte-identical to the branch
+  content) before retargeting, so each merged diff contained only its own changes. Every merge
+  required exact-head CI success and a `CLEAN` / `MERGEABLE` state. Post-merge `master` correctness
+  runs `35953848215`, `35954210300`, `35954394416`, `35954580331` are all `success`.
+- Activation: repository variable `ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1=true`, set after the chain
+  landed and after confirming no queued/in-progress run (last `daily-t-close` run `35878426562`
+  completed 2026-09-23; next schedule 17:17 BJT). No production dispatch and no backfill of past
+  trading days: acceptance is the next normal trading-day run.
+- Unchanged isolation: C starts only after the six Formal B success gates with
+  `continue-on-error`, 360 s child / 600 s C tail / 300 s reserve, and C-only publication under
+  `data/reports/c_daily/YYYYMMDD/`. #84's private Release backend stays Draft and unenabled; #87
+  stays an independent Draft and its `C_HISTORICAL_BACKTEST_BLOCKED_BY_VERIFIED_DATA_GAP`
+  conclusion is retained verbatim.
+- Historical exploration: new identity `C_RAW_T_ANCHOR_LIMITED_EXPLORATION_V1` on branch
+  `codex/c-raw-t-anchor-limited-exploration-v1`, protocol frozen before outcome access; its results
+  are evidence-limited and must never be reported as `C_QFQ_INPUT_V1` formal results.
+- Next: verify the first real C daily report after the next normal trading day, then review the
+  research Draft PR. Final OOS remains `SEALED / UNREAD`.
+
 ## 2026-09-24 — C_DAILY_REPORT_B_ISOLATION_FINAL_MERGE_READY_FOR_SOL
 
 - Classification: product blocker with correctness boundary, unchanged. Draft #86 on
