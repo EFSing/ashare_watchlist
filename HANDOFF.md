@@ -34,6 +34,103 @@
   诊断增强合并，但不得表述为修复根因；本调查未写 runtime-state、未触发生产，Formal B、Final OOS
   与历史证据均未改写。
 
+## 2026-09-22 — C_DATA_EVIDENCE_AND_PROTOCOL_READY_FOR_SOL_DECISION
+
+- Classification: `research question + correctness/provenance gate`; no parameter selection,
+  promotion, Formal B change or merge.
+- Live recovery identity: branch/worktree=`codex/c-pre-outcome-design-ready-for-sol-audit` /
+  `D:\dev\ashare-watchlist-c-pre-outcome-design`; `origin/master`=`4633b37ee6eb99bee527d8907e4e51768fd3f82a`.
+  The immediately preceding content checkpoint head was
+  `f35a4c0877dc0c3d619516eacb1d820bb09cbfbd`; exact-head push run `35712987048` and
+  pull-request run `35712992003` were both `success`. PR #81 remains `OPEN / DRAFT / CLEAN /
+  mergeable`; after this governance-only update, re-read the final branch/PR head and exact-head
+  CI live before resuming, rather than treating the persisted checkpoint SHA as invariant.
+- Authorized read-only daily-K verification: external existing path
+  `D:\dev\ashare-watchlist\data\validation\core_signal_validation\raw\daily_k.parquet` has
+  size `180203424` bytes and SHA-256
+  `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426`, matching the frozen
+  declaration. C worktree canonical daily-K remains absent; no download, copy or overwrite was
+  performed and the external bytes were not used as C input. Evidence record:
+  `data/research/c_pre_outcome_design_v1/daily_k_integrity_check.json`, SHA-256
+  `2a0496e3414b4bd43969f66f7cf93c2b7a1e4a698266abdc74243f662799f939`.
+- Evidence status: daily-K identity=`VERIFIED`; manifest field/adjustment semantics=`DECLARED_ONLY`;
+  calendar mapping=`VERIFIED` for deterministic metadata/helper; historical T-known ST/*ST and
+  per-bar known-at/vintage=`UNRESOLVED`; limit/tick/intraday/actual fill=`MISSING`.
+- Independent protocol draft:
+  `docs/research/c_pre_outcome_preregistration_protocol_v1.md`, SHA-256
+  `c74447608490fdd7068ea4a018dc3be31358198d3570ead878e5095cc09befd3`. It keeps
+  `BALANCED_A`/`CONSERVATIVE_B`, proposes the former as main and latter as sensitivity without
+  outcome selection, fixes `RV>=2.0` as the price-plus-volume hypothesis and keeps robust-z only
+  observational, with explicit five-session repeated-failure, T-close/T+1, MFE/MAE and execution
+  boundaries. Draft only; Sol/user decision remains required.
+- Boundary: only C research docs, C data evidence and necessary governance text changed. No C future
+  outcome, Final OOS, forbidden directory, Formal B, shared production code, runtime-state, formal
+  artifact or scheduler was read or changed; no formal C backtest ran.
+- Decision/terminal: `NEEDS_MORE_EVIDENCE` /
+  `C_DATA_EVIDENCE_AND_PROTOCOL_READY_FOR_SOL_DECISION`. Next action is Sol/user audit; do not
+  merge, select parameters or start outcome research.
+
+## Historical snapshot — 2026-09-22 — C_PRE_OUTCOME_EXIT_VOLUME_FIX_V1 ready for Sol audit
+
+- Classification: `research question + correctness/provenance gate`; no product promotion and no
+  Formal B change. This repair is limited to the early-defense price/volume observation semantics
+  requested after Sol's second audit.
+- Scope: `classify_exit_observation()` now exposes the explicit
+  `PRICE_ONLY_EARLY_DEFENSE` price baseline and `PRICE_VOLUME_EARLY_DEFENSE` same-position,
+  same-price-event version. `upper_shadow_fraction > 0` is descriptive only; it is not a weakness
+  gate or volume confirmation. Repeated rejection without the selected exit condition returns
+  `REPEATED_RESISTANCE_REJECTION_RISK`, while first warning, early candidate, and support break
+  remain independent.
+- Boundary: C-only script/tests/docs changed. Formal B, shared production code, runtime-state,
+  canonical watchlist, daily report, provider acquisition, C future returns, Final OOS and
+  `data/validation/continuous_speed_probe/` were not read or changed.
+- Data recovery intake was read-only: the C worktree lacks daily-K; an existing copy is present
+  only in another worktree at the canonical path with declared SHA
+  `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426`, and governance metadata
+  points to the existing private Drive recovery location. No download, copy, overwrite or hash
+  replacement was performed. Historical T-known ST and per-bar known-at evidence remain unresolved.
+- Verification before delivery: C `19 passed`; B isolation regression `40 passed`; full pytest
+  `690 passed, 2 skipped, 10 warnings`; compileall and diff check pass.
+- Draft PR: [#81](https://github.com/EFSing/ashare_watchlist/pull/81) remains open as Draft against
+  `master`. Implementation commit `52c6f1d7ce71292fd73582d6390b5d24ac68489d` is pushed from
+  Sol-audited head `11a47fdb80d7887c97a0cc4c378b8c935bc44121`; exact-head push run
+  `35707980389` and pull-request run `35707984877` both completed `success` with that SHA.
+  Any later governance-only head still requires live verification.
+- Decision: `NEEDS_MORE_EVIDENCE`; terminal marker
+  `C_PRE_OUTCOME_EXIT_VOLUME_FIX_READY_FOR_SOL_AUDIT`. Do not merge, read future returns, or
+  start C outcome research.
+
+## Historical snapshot — 2026-09-22 — C_PRE_OUTCOME_CORRECTNESS_FIX_V1 ready for Sol re-audit
+
+- Classification: research question + correctness/provenance gate; no product promotion and no
+  Formal B change. User selected the new C direction; old C V0 is provenance only, old A stopped,
+  old D excluded, RS/VCB conclusions retained.
+- Live intake: `origin/master=4633b37ee6eb99bee527d8907e4e51768fd3f82a`; PR #77/#78/#79/#80 are
+  merged, and master `test` CI for #80 merge head is `success`. The older #80 open/awaiting-merge
+  wording below is retained as a historical snapshot only; no unrelated governance history is
+  being cleaned.
+- Independent branch/worktree: `codex/c-pre-outcome-design-ready-for-sol-audit` /
+  `D:\dev\ashare-watchlist-c-pre-outcome-design`; C-only module, CLI, tests and output namespace.
+- Delivered design: `docs/research/c_pre_outcome_design_v1.md` and
+  `docs/research/c_data_feasibility_v1.md`; pure functions in `scripts/c_pre_outcome_design.py`;
+  metadata-only check at `data/research/c_pre_outcome_design_v1/data_dependency_check.json`.
+  No C outcome, formal historical return study, Final OOS or forbidden directory was read.
+- Data status: OHLCV/calendar/T-anchor metadata supports design; local `daily_k.parquet` is absent,
+  historical per-bar vintage proof is false, and T-known historical ST/*ST status is unresolved.
+  Formal C outcome research is not ready.
+- Verification: C tests `16 passed`; B isolation regression `41 passed`; full pytest
+  `687 passed, 2 skipped, 10 warnings`; compileall and diff check pass. The two skips are the
+  pre-existing large exact-date fixture absence.
+- Draft PR: [#81](https://github.com/EFSing/ashare_watchlist/pull/81) remains open as Draft against
+  `master`; this repair starts from Sol-audited head `edd3039a1d9815eb3bdf4301699cb1fdc90dc815`.
+  Implementation head `ad6ec63ebc9f47ed1d5822460063cb13234b2cd2` is pushed and its exact-head
+  push correctness run `35706143436` and pull-request correctness run `35706147202` are both
+  `success`; this governance checkpoint is the final branch update and must be checked live again.
+- Decision: `NEEDS_MORE_EVIDENCE`; terminal marker
+  `C_PRE_OUTCOME_CORRECTNESS_FIX_READY_FOR_SOL_REAUDIT`. Next: push the repair, verify exact-head CI
+  on the final remote head, then stop for Sol re-audit. Do not merge, run provider acquisition, or
+  start C formal returns research.
+
 ## 2026-09-22 — B_PROSPECTIVE_MONITOR_RECOVERY_V1 ready for user merge decision
 
 - Classification: `product blocker + correctness/data-integrity risk`; Formal B、正式收益口径、
@@ -58,7 +155,8 @@
   未读取或触碰。
 - Branch/worktree：`codex/b-prospective-monitor-recovery-v1` /
   `D:\dev\ashare-watchlist-b-prospective-monitor-recovery-v1`，基于实时 `origin/master`。
-- Delivery：PR #80 https://github.com/EFSing/ashare_watchlist/pull/80 已创建为非 Draft，
+- Historical snapshot (superseded by the live merge above)：Delivery：PR #80
+  https://github.com/EFSing/ashare_watchlist/pull/80 已创建为非 Draft，
   final head=`25987fb4b85881c1ddf2541d7001bb2b5867ca28`；push correctness run=`35694717548`
   与 pull_request correctness run=`35694781177` 均为 `success` 且 head exact，PR live 状态为
   `OPEN / CLEAN / mergeable`。不自动合并、不触发生产或正式通知。

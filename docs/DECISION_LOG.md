@@ -5,6 +5,86 @@
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见
 [`CURRENT_STATUS.md`](CURRENT_STATUS.md)。
 
+## 2026-09-22 — C data evidence and preregistration protocol ready for Sol decision
+
+- classification：`research question + correctness/provenance gate`。本决定只推进新版 C 的
+  研究前证据和协议，不做参数选择、Formal B 变更、promotion、freeze 或 merge。
+- daily-K identity：在授权的只读外部现存路径
+  `D:\dev\ashare-watchlist\data\validation\core_signal_validation\raw\daily_k.parquet`
+  实际读取文件大小 `180203424` bytes 和 SHA-256
+  `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426`，与
+  `phase2e.raw.daily_k` 冻结声明一致。证据记录
+  `data/research/c_pre_outcome_design_v1/daily_k_integrity_check.json` 的 SHA-256 为
+  `2a0496e3414b4bd43969f66f7cf93c2b7a1e4a698266abdc74243f662799f939`。该核验只解决 artifact
+  identity；C worktree 本地 daily-K 仍缺，未复制、覆盖或作为 C replay 输入。
+- evidence decision：daily-K 字节 identity=`VERIFIED`；字段/复权语义=`DECLARED_ONLY`；
+  calendar mapping=`VERIFIED`（metadata/helper scope）；历史 T-known ST/*ST=`UNRESOLVED`；
+  per-bar known-at/vintage=`UNRESOLVED`；limit/tick、盘中 sequence 和实际 T+1 fill=`MISSING`。
+  acquisition date 不得冒充历史可见时间，当前名称不得回填历史状态。
+- protocol decision：新增独立草案
+  `docs/research/c_pre_outcome_preregistration_protocol_v1.md`，SHA-256 为
+  `c74447608490fdd7068ea4a018dc3be31358198d3570ead878e5095cc09befd3`。草案保留
+  `BALANCED_A`/`CONSERVATIVE_B`，提出前者主定义、后者敏感性；比较简单趋势/动量、价格结构、
+  价格结构＋成交量；把出场 `RV>=2.0` 固定为事前量能假设，`robust-z>=3.0` 仅观察；固定最近
+  5 日至少 2 次且当前失败的重复受阻定义、独立状态、T-close→T+1、无法成交、MFE/MAE 和
+  假警报/卖飞口径。该“主/敏感性”安排和量能假设均待 Sol/用户采纳，不由收益选择。
+- boundary：本轮没有读取 C future outcome、Final OOS 或 forbidden directory；没有正式 C
+  backtest、provider acquisition、替代数据下载或 B/shared/runtime-state/production 修改。
+- decision：`NEEDS_MORE_EVIDENCE`。缺失证据仍由上述 ST/PIT/执行项构成；没有这些证据时，
+  Formal B 和现有产品路径可继续，但新版 C 不得进入 outcome 研究。terminal：
+  `C_DATA_EVIDENCE_AND_PROTOCOL_READY_FOR_SOL_DECISION`。
+
+## 2026-09-22 — C early defense must keep price and volume observations separate
+
+- classification：`research question + correctness/provenance gate`。本决定只约束新版 C 的
+  提前防守 observable，不改变 Formal B、生产路径或任何收益结论。
+- 语义边界：`PRICE_ONLY_EARLY_DEFENSE` 是价格基线；`PRICE_VOLUME_EARLY_DEFENSE` 必须在同一
+  持仓、同一价格受阻事件上再满足事前固定的当前日 H 附近放量滞涨候选。价格基线不得称为
+  “量价确认退出”。`upper_shadow_fraction > 0` 仅保留为描述字段，不是显著转弱或成交量
+  确认。重复受阻但未达所选版本条件时必须输出
+  `REPEATED_RESISTANCE_REJECTION_RISK`，不能静默变成普通持有；首次预警、提前候选和支撑
+  失效继续独立。
+- 历史 checkpoint 当时将 ratio/robust-z 记为
+  `PRE_REGISTERED_CANDIDATE_NOT_OUTCOME_SELECTED`，不从收益选择，也不新增第三套退出方案。
+  没有读取 C future returns、Final OOS 或 forbidden directory；历史 T-known ST 与逐 bar
+  known-at evidence 仍未解决。当前协议口径以上方新决策为准：`RV>=2.0` 作为量价版本主假设，
+  robust-z 仅作观察。
+- decision：`NEEDS_MORE_EVIDENCE`；这是提前防守语义修复完成后的历史 checkpoint，当前交付
+  已由上方的数据证据与协议决策 supersede；不得自动进入 C outcome research。
+
+## 2026-09-22 — New C pre-outcome design requires Sol audit
+
+- classification：`research question + correctness/provenance gate`。Materiality 是把用户确定
+  的“沪深普通主板、排除 ST/*ST、持续上升通道浅回踩、企稳后 T 收盘重新走强”转成不依赖
+  future returns 的确定性 observable，并在正式研究前暴露时间可用性和执行限制；它不改变
+  Formal B，也不阻止 B 当前收盘作业。
+- live reconciliation：实时 `origin/master=4633b37ee6eb99bee527d8907e4e51768fd3f82a`；
+  #77/#78/#79/#80 已合并，#80 merge-head `test` CI 为 success。较早治理快照中的 #80
+  待合并文字仅作历史 provenance，不代表实时状态；不清理无关历史。
+- identity/boundary：独立 `C_PRE_OUTCOME_DESIGN_V1`、`C_MAIN_TREND_RETEST_RESEARCH_V1`、
+  `codex/c-pre-outcome-design-ready-for-sol-audit` worktree 和
+  `data/research/c_pre_outcome_design_v1/`。旧 C V0 仅为 provenance；旧 A 停止、旧 D 排除，
+  RS/VCB 既有结论保留。没有读取 C future outcome、Final OOS 或 forbidden directory，未
+  修改 B evaluator、B 专属量能诊断、收益 tracker、canonical watchlist、runtime-state、
+  formal 日报或生产调度。
+- input/stop：只读 frozen OHLCV/calendar/adjustment manifest 元数据和共享无策略 helper；
+  本地 daily-K 缺失，historical `known_at_vintage_proof=false`，T-known historical ST/*ST
+  status 未解决，盘中 fill/limit sequence 不可证明。停止条件是完成规则/出场/量价设计、
+  metadata check 和 synthetic determinism tests，然后停在 Sol audit 前，不抓取、不重写正式
+  历史数据。
+- decision：`NEEDS_MORE_EVIDENCE`，terminal
+  `C_PRE_OUTCOME_DESIGN_READY_FOR_SOL_AUDIT`。缺少 evidence 为合法可恢复 OHLCV bytes、
+  T-known ST status、per-bar vintage 或明确的 `PARTIAL_UNVERIFIED` scope、C 专属 future
+  input identity 和执行 classification。没有这些证据时，B 和现有产品路径仍可继续；不得
+  自动启动 C outcome、参数选择、promotion 或 freeze。
+- verification：C tests `9 passed`；relevant B/shared regression `92 passed`；full pytest
+  `680 passed, 2 skipped, 10 warnings`；compileall/diff check pass。内部验证不称为 Sol 审计通过。
+- delivery checkpoint：已创建 target=`master` 的 Draft PR
+  [#81](https://github.com/EFSing/ashare_watchlist/pull/81)，创建时 head 为
+  `157d80133a35c9b797e2440151ccb98f3e038044`。本 checkpoint 只更新治理 provenance；最终
+  remote head 与 exact-head CI 必须以 live GitHub 状态核对，不代表 Sol 审计通过或允许进入
+  C outcome 研究。
+
 ## 2026-09-20 — VOLUME_CARD_VISUALIZATION_AND_CLOUD_DELIVERY_V1
 
 - decision：`ADOPT` 将三项量能观察拆为独立、股票 K 线驱动的正常 T-close store；它不依赖 index/shadow 成功，不进入 Formal B 或任何排名条件，缺失保持原始原因。
