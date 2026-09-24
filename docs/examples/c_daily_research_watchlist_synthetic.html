@@ -1,0 +1,34 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C 每日研究名单 · 2026-04-23</title><style>
+:root{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#202c3a;background:#f4f7fa}*{box-sizing:border-box}
+body{margin:0}main{max-width:1000px;margin:auto;padding:20px}header{background:#123047;color:white;padding:24px;border-radius:16px}
+h1{margin:0 0 8px}h2,h3,h4{margin-bottom:8px}p{line-height:1.6}.card{background:white;border:1px solid #dce5eb;border-radius:14px;padding:18px;margin:18px 0;overflow-wrap:anywhere}
+.rule{border-top:1px solid #dce5eb;margin-top:16px}.badge{font-size:.76em;background:#e5f1ec;color:#176247;padding:4px 8px;border-radius:8px}
+.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.metrics div{background:#f4f7fa;padding:12px;border-radius:10px}small{display:block;line-height:1.5;margin-top:5px}
+.muted{color:#536579;font-size:.92em}code{overflow-wrap:anywhere}@media(max-width:640px){main{padding:10px}header{padding:18px}.metrics{grid-template-columns:1fr}.card{padding:14px}}
+</style></head><body><main><header><h1>C 每日研究名单 · 合成示例</h1><p>合成测试数据，仅用于界面审阅；不是任何交易日的真实选股。</p><p>信号日期 2026-04-23 · 独立研究观察，非 Formal B 名单或买入建议</p>
+<p>BALANCED_A 匹配 1 · CONSERVATIVE_B 匹配 0 · 去重股票 1</p></header>
+<article class='card'><h3>600000 浦发银行</h3><p>匹配规则：BALANCED_A</p><section class="rule"><h4>BALANCED_A <span class="badge">价格结构研究匹配；量能口径待核验</span></h4>
+      <p>事件身份：<code>C_PULLBACK_EPISODE_ID_V1:b466f6fcd0fe58e1faa1021b430927b43886dffb7fd94d1d917ac6ac2322b4f3</code></p>
+      <p>趋势：OK；均线顺序 True；收盘高于快线 True；趋势合格 True。</p>
+      <p>回踩：OK；前高 135.00；两处低点 123.00 / 124.00；深度 0.09。</p>
+      <p>反弹确认：True；支撑参考 123.00–124.00；前高阻力 135.00；支撑判定 True。</p>
+      <div class="metrics"><div><b>确认日 RV_T 1.37×</b><small>T 日成交量相对之前基准期中位量；只描述确认日。</small></div>
+      <div><b>回踩/基准量 0.78×</b><small>回踩期与此前基准期成交量中位数之比。</small></div>
+      <div><b>回踩后半/前半量 1.31×</b><small>回踩后半程日成交量中位数约为前半程的 131%，显示量能增加。</small></div>
+      <div><b>上涨日/下跌日量 1.07×</b><small>回踩期上涨日与下跌日成交量中位数之比；不足天数时不计算。上涨日 5 天，下跌日 5 天。</small></div></div>
+      <p class="muted">规则数据质量：PARTIAL_UNVERIFIED；判定原因：TREND_PULLBACK_REBOUND_SUPPORT_MATCH; VOLUME_BASIS_UNVERIFIED。量能特征：VOLUME_FEATURE_COMPUTED；口径：VOLUME_BASIS_UNVERIFIED；正式量价确认：false。诊断值不证明机构行为或未来收益。</p>
+    </section><section class="rule"><h4>CONSERVATIVE_B <span class="badge">数据待核验</span></h4>
+      <p>事件身份：<code>—</code></p>
+      <p>趋势：INSUFFICIENT_HISTORY；均线顺序 —；收盘高于快线 —；趋势合格 —。</p>
+      <p>回踩：INSUFFICIENT_HISTORY；前高 —；两处低点 — / —；深度 —。</p>
+      <p>反弹确认：—；支撑参考 —–—；前高阻力 —；支撑判定 —。</p>
+      <div class="metrics"><div><b>确认日 RV_T 1.37×</b><small>T 日成交量相对之前基准期中位量；只描述确认日。</small></div>
+      <div><b>回踩/基准量 —</b><small>回踩期与此前基准期成交量中位数之比。</small></div>
+      <div><b>回踩后半/前半量 —</b><small>样本不足，无法比较回踩前后半程。</small></div>
+      <div><b>上涨日/下跌日量 —</b><small>回踩期上涨日与下跌日成交量中位数之比；不足天数时不计算。上涨日 — 天，下跌日 — 天。</small></div></div>
+      <p class="muted">规则数据质量：PARTIAL_UNVERIFIED；判定原因：INSUFFICIENT_HISTORY。量能特征：VOLUME_FEATURE_COMPUTED；口径：VOLUME_BASIS_UNVERIFIED；正式量价确认：false。诊断值不证明机构行为或未来收益。</p>
+    </section><p class='muted'>来源：B 同次冻结 HiThink 历史行情；qfq 价格；volume 单位为股，调整影响未核验。ST 名称响应：—；价格响应：—。逐票 K 线 SHA：<code>bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb</code></p></article><section class='card'><h2>市场覆盖与数据质量</h2><p>只覆盖 B 冻结输入中实际评估且 C 时间、ST 证据合格的证券，不代表完整主板股票池。</p>
+<p>输入状态：PRICE_OBSERVATION_VOLUME_UNVERIFIED；覆盖：PARTIAL_UNVERIFIED；BALANCED_A 数据待核验 0；CONSERVATIVE_B 数据待核验 1；缺口：VOLUME_ADJUSTMENT_SEMANTICS_UNRESOLVED</p>
+<p>package SHA：<code>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</code></p>
+<p>量能研究数值可查看，volume 前复权影响仍为 VOLUME_BASIS_UNVERIFIED，正式量价确认保持关闭。每日名单可查看不等于完整永久前瞻证据集。</p></section></main></body></html>

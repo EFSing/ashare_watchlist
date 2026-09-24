@@ -1,5 +1,42 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-09-24 — C daily report post-B delivery implementation
+
+- Classification: product blocker with correctness boundaries, unchanged; STRICT PATH.
+  Draft #85 branch `codex/c-daily-research-watchlist-shared-b-input-v1` is stacked on #83/#81.
+  Fetch its live head and exact-head CI. Formal B and #84 remain unchanged.
+- Sol chose bounded C work in the same runner after B delivery health succeeds. This supersedes
+  the earlier requirement below for C to avoid B's workflow lock. The separate workflow wiring
+  will be an additional Draft PR based on #85, disabled by default and subject to time guards.
+- C now requires a locally valid B delivery receipt whose exact bytes are in the runtime-state
+  checkout. Public C output is only small HTML and manifest JSON under
+  `data/reports/c_daily/YYYYMMDD/`, with immutable version subdirectories; the dated index is
+  the latest successful C version. B's formal report, watchlist, checkpoint and receipt are untouched.
+- Next: review the dependent workflow PR and exact-head CI, then decide merge and separate enablement.
+  No production execution, C notification, order, or formal returns study has occurred.
+
+## 2026-09-23 — C_DAILY_RESEARCH_WATCHLIST_SHARED_B_INPUT_V1 review checkpoint
+
+- Classification: product blocker with correctness boundaries, unchanged; STRICT PATH. Work branch
+  `codex/c-daily-research-watchlist-shared-b-input-v1` is stacked on Draft #83 (which is stacked
+  on Draft #81). Draft PR #85: https://github.com/EFSing/ashare_watchlist/pull/85.
+  Implementation commit `aff7f6c982bdaca50de27ea7f1bc4959129cfdb2`; fetch live remote HEAD/CI
+  before continuing. Draft #84 remains separate and disabled.
+- Added same-runner read-only C input mode, independent two-rule daily research list and mobile HTML;
+  synthetic preview is `docs/examples/c_daily_research_watchlist_synthetic.html`. C keeps price-rule
+  match and volume research values separate from formal volume confirmation/entry candidate.
+- Reused the narrow #84 per-request HiThink start/receive sidecar timestamps, without importing its
+  private Release export or modifying its PR. No provider call, production run, merge, or Final OOS read.
+- **Activation remains closed:** workflow-level production concurrency covers the entire B job; a C
+  tail step would hold B's lock. A separate job loses runner-local package/raw bytes, while the repo
+  is public and has no verified private transfer for that large input. Do not add a public raw artifact
+  or claim daily automatic reports until isolation, privacy, size, and persistence are demonstrated.
+- Next: review this bounded Draft PR and its exact-head CI; design a verified isolated C execution
+  path that consumes the same package without holding B's lock or publishing raw evidence. Then test
+  a real same-day daily report and decide merge/enable. `PROSPECTIVE_CAPTURED` remains unproven.
+- Local verification: focused 26 passed; full 740 passed, 2 skipped, 10 warnings; compileall,
+  workflow YAML parse, and staged diff check passed. No real daily C capture was run.
+
 ## 2026-09-23 — C_VOLUME_OBSERVATION_AND_EXISTING_STORAGE_REUSE_V1
 
 - Classification: correctness blocker + product blocker, unchanged. `#81/#83/#84` remain Draft;

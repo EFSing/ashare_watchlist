@@ -251,6 +251,8 @@ def _is_allowlisted_data_relative(relative: Path) -> bool:
         return True
     if _VOLUME_ENRICHED_REPORT_NAME.fullmatch(Path(token).name) and token.startswith("reports/addenda/"):
         return True
+    if re.fullmatch(r"reports/c_daily/\d{8}/(?:[0-9a-f]{64}/)?(?:index\.html|manifest\.json)", token):
+        return True
     if _VOLUME_OBSERVATION_NAME.fullmatch(Path(token).name) and token.startswith("volume_observations/"):
         return True
     if _DIAGNOSTIC_NAME.fullmatch(Path(token).name) and token.startswith("diagnostics/"):
