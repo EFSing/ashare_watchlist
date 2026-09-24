@@ -201,6 +201,56 @@ def test_c_time_budget_protects_retry_job_deadline_and_manual_dispatch() -> None
     assert time_budget_status(base, base + timedelta(minutes=107), "17 9 * * 1-5")["reason"] == "JOB_DEADLINE"
 
 
+def test_primary_run_may_start_c_once_b_completed_the_target_date() -> None:
+    utc = timezone.utc
+    base = datetime(2026, 9, 24, 9, 20, tzinfo=utc)
+    after_retry_slot = datetime(2026, 9, 24, 10, 20, tzinfo=utc)
+    assert time_budget_status(base, after_retry_slot, "17 9 * * 1-5")["reason"] == "PRIMARY_OVERLAPS_RETRY"
+    ready = time_budget_status(base, after_retry_slot, "17 9 * * 1-5", b_complete_for_target_date=True)
+    assert ready["status"] == "C_BUDGET_READY"
+    assert ready["next_b_schedule_utc"] == "2026-09-25T09:17:00+00:00"
+    assert ready["c_tail_budget_seconds"] == 600
+    near_retry_slot = datetime(2026, 9, 24, 10, 5, tzinfo=utc)
+    assert time_budget_status(base, near_retry_slot, "17 9 * * 1-5")["reason"] == "NEXT_B_SCHEDULE"
+    assert time_budget_status(base, near_retry_slot, "17 9 * * 1-5",
+                              b_complete_for_target_date=True)["status"] == "C_BUDGET_READY"
+    manual_window = datetime(2026, 9, 24, 10, 30, tzinfo=utc)
+    assert time_budget_status(base, manual_window, "")["reason"] == "MANUAL_NEAR_B_SCHEDULE"
+    assert time_budget_status(base, manual_window, "",
+                              b_complete_for_target_date=True)["status"] == "C_BUDGET_READY"
+    for complete in (False, True):
+        assert time_budget_status(base, base + timedelta(minutes=107), "17 9 * * 1-5",
+                                  b_complete_for_target_date=complete)["reason"] == "JOB_DEADLINE"
+
+
+def test_post_b_attempts_c_on_primary_run_after_the_retry_slot(tmp_path: Path,
+                                                              monkeypatch: pytest.MonkeyPatch) -> None:
+    result, delivery = _b_result(tmp_path)
+    b_result = tmp_path / "b-result.json"
+    delivery_result = tmp_path / "delivery-result.json"
+    b_result.write_text(json.dumps(result), encoding="utf-8")
+    delivery_result.write_text(json.dumps(delivery), encoding="utf-8")
+    attempts: list[list[str]] = []
+
+    def timeout_child(command: list[str]) -> dict:
+        attempts.append(command)
+        raise subprocess.TimeoutExpired(command, 360)
+
+    monkeypatch.setattr("run_c_daily_watchlist._run_c_child", timeout_child)
+    formal_paths = [Path(result["input_package"]["path"]), Path(result["watchlist"]["path"]),
+                    Path(result["daily_close_bundle"]["dated_html"]),
+                    tmp_path / "data/delivery/daily_delivery_20260922.json"]
+    original = {str(path): path.read_bytes() for path in formal_paths}
+    started = datetime(2026, 9, 24, 9, 20, tzinfo=timezone.utc)
+    outcome = post_b(b_result=b_result, delivery_result=delivery_result, data_root=tmp_path / "data",
+                     state_root=tmp_path / "runtime-state", evidence_root=tmp_path / "evidence",
+                     report_root=tmp_path / "rendered", started_at=started,
+                     now=datetime(2026, 9, 24, 10, 20, tzinfo=timezone.utc), schedule_cron="17 9 * * 1-5")
+    assert attempts, "the primary run must attempt C once Formal B completed the target date"
+    assert outcome["status"] == "C_TIMEOUT_B_UNCHANGED"
+    assert {str(path): path.read_bytes() for path in formal_paths} == original
+
+
 def _init_c_state_repo(state: Path, remote: Path) -> None:
     state.mkdir(parents=True, exist_ok=True)
     (state / "RUNTIME_STATE.md").write_text(

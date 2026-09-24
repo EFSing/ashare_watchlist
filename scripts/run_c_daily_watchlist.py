@@ -24,30 +24,44 @@ JOB_TIMEOUT_SECONDS = 7200
 B_RESERVE_SECONDS = 300
 
 
-def time_budget_status(started_at: datetime, now: datetime, schedule_cron: str = "") -> dict[str, Any]:
-    """Reserve ten minutes for C and five for B's next run or job termination."""
+def time_budget_status(started_at: datetime, now: datetime, schedule_cron: str = "",
+                       *, b_complete_for_target_date: bool = False) -> dict[str, Any]:
+    """Reserve ten minutes for C and five for B's next run or job termination.
+
+    The 900 s reserve only protects a B slot that could still need the shared lock.
+    ``post_b`` reaches this check after the six Formal B gates and the persisted
+    delivery receipt for the target date are verified, so a later B slot for the same
+    date hits the ALREADY_COMPLETED gate and does no work; C may then use its bounded
+    tail. The hard job deadline, the 600 s tail and the 300 s reserve stay unchanged.
+    """
     start = started_at.astimezone(timezone.utc)
     current = now.astimezone(timezone.utc)
     elapsed = (current - start).total_seconds()
     if elapsed < 0 or elapsed + C_TAIL_BUDGET_SECONDS + B_RESERVE_SECONDS >= JOB_TIMEOUT_SECONDS:
-        return {"status": "C_NOT_STARTED_TIME_BUDGET", "reason": "JOB_DEADLINE"}
+        return {"status": "C_NOT_STARTED_TIME_BUDGET", "reason": "JOB_DEADLINE",
+                "b_complete_for_target_date": b_complete_for_target_date}
     dates = [current.date() + timedelta(days=offset) for offset in range(8)]
     upcoming = [datetime.combine(day, datetime.min.time(), tzinfo=timezone.utc).replace(hour=hour, minute=17)
                 for day in dates if day.weekday() < 5 for hour in (9, 10)]
     next_run = min(item for item in upcoming if item > current)
-    if current + timedelta(seconds=C_TAIL_BUDGET_SECONDS + B_RESERVE_SECONDS) >= next_run:
-        return {"status": "C_NOT_STARTED_TIME_BUDGET", "reason": "NEXT_B_SCHEDULE"}
-    # The primary B run may finish after its retry was queued under the shared lock.
-    if schedule_cron == "17 9 * * 1-5" and current.hour >= 10:
-        return {"status": "C_NOT_STARTED_TIME_BUDGET", "reason": "PRIMARY_OVERLAPS_RETRY"}
-    if not schedule_cron and current.weekday() < 5 and (
-        (current.hour == 9 and current.minute < 47)
-        or current.hour == 10
-        or (current.hour == 11 and current.minute < 17)
-    ):
-        return {"status": "C_NOT_STARTED_TIME_BUDGET", "reason": "MANUAL_NEAR_B_SCHEDULE"}
+    if not b_complete_for_target_date:
+        if current + timedelta(seconds=C_TAIL_BUDGET_SECONDS + B_RESERVE_SECONDS) >= next_run:
+            return {"status": "C_NOT_STARTED_TIME_BUDGET", "reason": "NEXT_B_SCHEDULE",
+                    "b_complete_for_target_date": b_complete_for_target_date}
+        # The primary B run may finish after its retry was queued under the shared lock.
+        if schedule_cron == "17 9 * * 1-5" and current.hour >= 10:
+            return {"status": "C_NOT_STARTED_TIME_BUDGET", "reason": "PRIMARY_OVERLAPS_RETRY",
+                    "b_complete_for_target_date": b_complete_for_target_date}
+        if not schedule_cron and current.weekday() < 5 and (
+            (current.hour == 9 and current.minute < 47)
+            or current.hour == 10
+            or (current.hour == 11 and current.minute < 17)
+        ):
+            return {"status": "C_NOT_STARTED_TIME_BUDGET", "reason": "MANUAL_NEAR_B_SCHEDULE",
+                    "b_complete_for_target_date": b_complete_for_target_date}
     return {"status": "C_BUDGET_READY", "remaining_job_seconds": int(JOB_TIMEOUT_SECONDS - elapsed),
-            "next_b_schedule_utc": next_run.isoformat(), "c_tail_budget_seconds": C_TAIL_BUDGET_SECONDS}
+            "next_b_schedule_utc": next_run.isoformat(), "c_tail_budget_seconds": C_TAIL_BUDGET_SECONDS,
+            "b_complete_for_target_date": b_complete_for_target_date}
 
 
 def _sha(path: Path) -> str:
@@ -134,7 +148,11 @@ def post_b(*, b_result: Path, delivery_result: Path, data_root: Path, state_root
         return {"status": "C_NOT_STARTED_B_FORMAL_GATE_INCOMPLETE", "reason": type(exc).__name__}
     if not b_is_complete(result, delivery, data_root, state_root):
         return {"status": "C_NOT_STARTED_B_FORMAL_GATE_INCOMPLETE"}
-    budget = time_budget_status(started_at, now or datetime.now(timezone.utc), schedule_cron)
+    # The six B gates and the persisted delivery receipt are verified above, so a later
+    # B slot for this target date is an ALREADY_COMPLETED no-op and no longer reserves
+    # the shared lock. The hard job deadline and the bounded C tail still apply.
+    budget = time_budget_status(started_at, now or datetime.now(timezone.utc), schedule_cron,
+                                b_complete_for_target_date=True)
     if budget["status"] != "C_BUDGET_READY":
         return budget
     command = [sys.executable, str(Path(__file__).resolve()),
