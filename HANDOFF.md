@@ -1,5 +1,28 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-09-24 — C_RAW_T_ANCHOR_LIMITED_EXPLORATION_V1（独立 Draft PR，未合并）
+
+- Classification: `research question`。不改变 Formal B、C 每日研究名单、生产 workflow、
+  runtime-state 或 #87 的原始阻断结论。
+- Recovery branch: `codex/c-raw-t-anchor-limited-exploration-v1`；worktree
+  `D:\dev\ashare-watchlist-c-raw-anchor`（基于 `origin/master@fb7b6df`）。live remote HEAD 与
+  exact-head CI 以实时 GitHub 为准，不写死在本文件。
+- 输入身份 `RAW_DAILY_K_DECLARED_T_ANCHOR_V1`（**不是** `C_QFQ_INPUT_V1`）：
+  `daily_k.parquet` `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426`
+  (180,203,424 B)、`adjustment_factors.parquet`
+  `a1b7d63c5826ccd3610dc9bdd949d82eeb0ba84ffad451bfb8bb30ca74962716` (295,284 B)、
+  manifest LF-normalised `008643a64e0070433f3d63dca8243f8dad294b049a7accb5d49af3597aae17b0`；
+  三份实际字节核验均为 `HASH_VERIFIED`。
+- 协议在读取收益前冻结：`docs/research/c_raw_t_anchor_limited_exploration_v1_protocol.md`；
+  报告：`docs/research/c_raw_t_anchor_limited_exploration_v1_report.md`；机器可读产物：
+  `data/research/c_raw_t_anchor_limited_exploration_v1/{summary,events,input_verification}.json`。
+- 复现命令：`python scripts/c_raw_t_anchor_exploration.py --raw-dir <raw> --manifest <manifest>`
+  （全量约 4 分钟，需要 `pyarrow`；CI 的 `.[test]` 不含 pyarrow，故模块内延迟导入）。
+  仅重绘报告：加 `--render-from <summary.json> --report-path <md>`。
+- 下一步：等待下一次正常交易日 schedule run 的真实 C 报告验收；Sol/用户决定是否为 C 建立
+  合法历史输入（T-known ST 历史、逐 bar vintage、成本模型、`C_QFQ_INPUT_V1` 历史快照）。
+  无自动合并、无自动 dispatch、未读 Final OOS。
+
 ## 2026-09-23 — C_VOLUME_OBSERVATION_AND_EXISTING_STORAGE_REUSE_V1
 
 - Classification: correctness blocker + product blocker, unchanged. `#81/#83/#84` remain Draft;

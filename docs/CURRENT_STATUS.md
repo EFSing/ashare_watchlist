@@ -6,6 +6,22 @@
 长期约束理由见 `docs/DECISION_LOG.md`，跨设备接手动作见 `HANDOFF.md`。
 恢复时必须实时读取 `origin/master`、相关 PR/CI 与 `runtime-state`，不得把本文 SHA 当永久真相。
 
+## 2026-09-24 — C 每日研究名单已启用；历史探索完成且不构成产品阻断
+
+- C 产品链已按 #83 → #85 → #86 顺序 squash-merged 进入 master（`fb7b6df` → `464c445` →
+  `6f1720c` 量级；最终 SHA 以实时 origin/master 为准），repository variable
+  `ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1=true` 已设置。C 步骤在 Formal B delivery 成功后运行，
+  具备独立 600s 超时、`continue-on-error` 与 B/C 失败隔离；未开启 #84 私有 Release 后端，
+  #87 保持独立 Draft、未合并。
+- 验收状态：等待下一次正常交易日 schedule run（17:17 BJT primary / 18:17 BJT bounded retry）
+  产生真实 C 报告；未手工 dispatch、未补造已过去交易日的 C 信号，run id/SHA 以实时 GitHub 为准。
+- 历史探索 `C_RAW_T_ANCHOR_LIMITED_EXPLORATION_V1` 完成，终态
+  `C_RAW_T_ANCHOR_EXPLORATION_COMPLETED`：`BALANCED_A` 4,130 事件 / 2,453 episode，
+  `CONSERVATIVE_B` 246 事件 / 127 episode。该结果**不是** `C_QFQ_INPUT_V1` 的正式回测，
+  也不改变 #87 的原始阻断结论；历史 T-known ST、逐 bar vintage、成本模型与成交证据仍缺。
+- 该历史探索**不**阻断 C 每日名单、Formal B 或生产 workflow；研究产物位于独立 C research
+  namespace，独立 Draft PR，未合并且未自动 dispatch。
+
 ## 2026-09-23 — C_VOLUME_OBSERVATION_AND_STORAGE_REUSE_READY_FOR_SOL_AUDIT
 
 - #83 保留 B 冻结逐日 volume 的 RV_T、可形成价格回踩时的 path/方向性及前后半程

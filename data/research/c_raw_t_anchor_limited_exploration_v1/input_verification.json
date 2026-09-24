@@ -1,0 +1,71 @@
+{
+ "schema_version": "C_RAW_T_ANCHOR_INPUT_VERIFICATION_V1",
+ "study_id": "C_RAW_T_ANCHOR_LIMITED_EXPLORATION_V1",
+ "input_identity": "RAW_DAILY_K_DECLARED_T_ANCHOR_V1",
+ "not_the_identity": "C_QFQ_INPUT_V1",
+ "files": {
+  "daily_k": {
+   "logical_path": "data/validation/core_signal_validation/raw/daily_k.parquet",
+   "role": "raw_unadjusted_daily_k",
+   "registry_artifact": "phase2e.raw.daily_k",
+   "bytes": 180203424,
+   "sha256": "61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426",
+   "declared_sha256": "61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426",
+   "status": "HASH_VERIFIED"
+  },
+  "adjustment_factors": {
+   "logical_path": "data/validation/core_signal_validation/raw/adjustment_factors.parquet",
+   "role": "corporate_action_table",
+   "registry_artifact": "phase2e.raw.adjustment_factors",
+   "bytes": 295284,
+   "sha256": "a1b7d63c5826ccd3610dc9bdd949d82eeb0ba84ffad451bfb8bb30ca74962716",
+   "declared_sha256": "a1b7d63c5826ccd3610dc9bdd949d82eeb0ba84ffad451bfb8bb30ca74962716",
+   "status": "HASH_VERIFIED"
+  },
+  "manifest": {
+   "logical_path": "data/validation/core_signal_validation_continuous_parts/core_signal_validation_manifest.json",
+   "role": "frozen_dataset_manifest",
+   "registry_artifact": null,
+   "bytes": 540863,
+   "sha256": "a6bf5150183f6011c762f1eed67c2b236ed2db7e6a5bd878a7419929362ae200",
+   "declared_sha256": "008643a64e0070433f3d63dca8243f8dad294b049a7accb5d49af3597aae17b0",
+   "status": "HASH_VERIFIED",
+   "canonical_text_sha256": "008643a64e0070433f3d63dca8243f8dad294b049a7accb5d49af3597aae17b0",
+   "canonical_text_bytes": 523376,
+   "crlf_normalised": true,
+   "identity_source": "LF-normalised text bytes; Windows checkout stores CRLF (FROZEN_ARTIFACT_POLICY)"
+  }
+ },
+ "declared_contract": {
+  "name": "HISTORICAL_T_ANCHOR_PRICE_RAW_VOLUME",
+  "formula": "(price - dividend_per_share + allotment_price*allotment_ratio)/(1 + per_share_bonus + allotment_ratio)",
+  "event_filter": "date < ex_date <= T",
+  "event_order": "ascending ex_date",
+  "price_fields_adjusted": [
+   "open",
+   "high",
+   "low",
+   "close"
+  ],
+  "volume_semantics": "raw unadjusted volume",
+  "provider_forward_used_as_t_anchor": false
+ },
+ "manifest_provenance": {
+  "known_at_vintage_proof": false,
+  "known_at_limitation": "retrospective official dump has observation dates and acquisition hash, but no per-bar historical vintage timestamp",
+  "acquisition_date": "2026-08-28",
+  "final_oos_read": false,
+  "forbidden_metrics": [
+   "return",
+   "win_rate",
+   "mfe",
+   "mae",
+   "pnl",
+   "expectancy",
+   "profit_factor"
+  ],
+  "return_validation_gate": "READY_FOR_EXPLICIT_SCOPE_REVIEW; NO_RETURN_METRICS_COMPUTED"
+ },
+ "status": "HASH_VERIFIED",
+ "blocking_reasons": []
+}
