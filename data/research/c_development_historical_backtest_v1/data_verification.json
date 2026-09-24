@@ -1,0 +1,176 @@
+{
+  "schema_version": "C_DEVELOPMENT_HISTORICAL_BACKTEST_DATA_VERIFICATION_V1",
+  "study_id": "C_DEVELOPMENT_HISTORICAL_BACKTEST_V1",
+  "observed_at": "2026-09-24 Asia/Shanghai",
+  "decision": "NEEDS_MORE_EVIDENCE",
+  "terminal_status": "C_HISTORICAL_BACKTEST_BLOCKED_BY_VERIFIED_DATA_GAP",
+  "protocol_lock": {
+    "status": "LOCKED_BEFORE_OUTCOME_ACCESS",
+    "commit_sha": "bfa87b38554e01a881326d414a11150f0bc17026",
+    "locked_source_head_sha": "20216bfd9a154ce638e2b9306817a727be732110",
+    "c_rule_code_blob_sha256": "e1307755819b6f542e56b517bc6a01eb37d05301",
+    "c_input_adapter_blob_sha256": "bbdacb40f2c873f93b0aaab65d27cf82a99c2ef2",
+    "rules": [
+      "BALANCED_A",
+      "CONSERVATIVE_B"
+    ],
+    "horizons_xshg_sessions": [
+      3,
+      5,
+      10
+    ],
+    "protocol_file_sha256": "3c0e20eed8b333afd664a9fe87f44d431b82467765e11232e518e1f2a3d3901e"
+  },
+  "live_repository_state": {
+    "origin_master_sha": "a54bce2c34d1c76298b02f2ddc8347fd88757ace",
+    "origin_runtime_state_sha": "bb0feecfc2b13ded2e7a4c40757a9566da715de2",
+    "governance_conflict": "NONE_FOUND_FOR_THIS_TASK",
+    "open_c_prs": [
+      {
+        "number": 81,
+        "state": "OPEN_DRAFT_CLEAN",
+        "base": "master",
+        "base_sha": "a54bce2c34d1c76298b02f2ddc8347fd88757ace",
+        "head": "codex/c-pre-outcome-design-ready-for-sol-audit",
+        "head_sha": "78b723c96a351038fea379284ba52be3bd645b1a",
+        "successful_exact_head_test_runs": [
+          "35817419573",
+          "35817423031"
+        ]
+      },
+      {
+        "number": 83,
+        "state": "OPEN_DRAFT_CLEAN",
+        "base": "codex/c-pre-outcome-design-ready-for-sol-audit",
+        "base_sha": "78b723c96a351038fea379284ba52be3bd645b1a",
+        "head": "codex/c-prospective-capture-v1",
+        "head_sha": "13338db17ae49e63941650922f5883b1ac94b633",
+        "successful_exact_head_test_runs": [
+          "35842419874",
+          "35842422956"
+        ]
+      },
+      {
+        "number": 85,
+        "state": "OPEN_DRAFT_CLEAN",
+        "base": "codex/c-prospective-capture-v1",
+        "base_sha": "13338db17ae49e63941650922f5883b1ac94b633",
+        "head": "codex/c-daily-research-watchlist-shared-b-input-v1",
+        "head_sha": "149bf93f39bbef1e89631006367f13b65c3f9636",
+        "successful_exact_head_test_runs": [
+          "35944560860",
+          "35944564281"
+        ]
+      },
+      {
+        "number": 86,
+        "state": "OPEN_DRAFT_CLEAN",
+        "base": "codex/c-daily-research-watchlist-shared-b-input-v1",
+        "base_sha": "149bf93f39bbef1e89631006367f13b65c3f9636",
+        "head": "codex/c-post-b-delivery-workflow-v1",
+        "head_sha": "20216bfd9a154ce638e2b9306817a727be732110",
+        "successful_exact_head_test_runs": [
+          "35947470928",
+          "35947476052"
+        ]
+      }
+    ]
+  },
+  "requested_c_input": {
+    "identity": "C_QFQ_INPUT_V1",
+    "historical_per_t_snapshot_set": "NOT_FOUND_IN_CHECKED_C_CAPTURE_NAMESPACES",
+    "checked_namespaces": [
+      "data/research/c_prospective_capture_v1",
+      "data/research/c_development_historical_backtest_v1"
+    ],
+    "status": "MISSING_REQUIRED_HISTORICAL_INPUT",
+    "consequence": "No C_QFQ signal replay or return calculation is valid from the available historical file."
+  },
+  "available_frozen_historical_file": {
+    "artifact_identity": "phase2e.raw.daily_k (legacy B frozen historical source; identity remains distinct from C_QFQ_INPUT_V1)",
+    "logical_path": "data/validation/core_signal_validation/raw/daily_k.parquet",
+    "local_copy_scope": "READ_ONLY_COPY_IN_SEPARATE_EXISTING_CHECKOUT; NOT_PRESENT_IN_THIS_RESEARCH_WORKTREE",
+    "present": true,
+    "bytes": 180203424,
+    "declared_sha256": "61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426",
+    "observed_sha256": "61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426",
+    "sha256_match": true,
+    "source": "HiThink Financial-API",
+    "dataset_version": "core-signal-hithink-continuous-2023-06-30-to-2026-08-28-v1",
+    "acquired_at_bjt": "2026-08-28T16:20:26+08:00",
+    "data_date_range": {
+      "start": "2016-08-29",
+      "end": "2026-08-28"
+    },
+    "rows": 10252571,
+    "symbols": 5551,
+    "columns": [
+      "thscode",
+      "currency",
+      "interval",
+      "adjusted",
+      "date_ms",
+      "open_price",
+      "high_price",
+      "low_price",
+      "close_price",
+      "volume",
+      "turnover"
+    ],
+    "observed_adjusted_values": [
+      "none"
+    ],
+    "volume_semantics_in_source_manifest": "raw unadjusted volume",
+    "not_c_qfq_reason": "This is unadjusted historical daily-K data with a separate retrospective corporate-action table; it is not a sequence of per-T frozen PROVIDER_QFQ_SNAPSHOT inputs."
+  },
+  "adjustment_factor_file": {
+    "logical_path": "data/validation/core_signal_validation/raw/adjustment_factors.parquet",
+    "bytes": 295284,
+    "expected_sha256": "a1b7d63c5826ccd3610dc9bdd949d82eeb0ba84ffad451bfb8bb30ca74962716",
+    "observed_sha256": "a1b7d63c5826ccd3610dc9bdd949d82eeb0ba84ffad451bfb8bb30ca74962716",
+    "sha256_match": true,
+    "rows": 57027,
+    "ex_date_min": "1991-02-26",
+    "ex_date_max": "2026-09-07",
+    "known_at_vintage_proof": false,
+    "declared_transform": "HISTORICAL_T_ANCHOR_PRICE_RAW_VOLUME; event filter date < ex_date <= T; not the selected C_QFQ_INPUT_V1 identity",
+    "observed_rows_after_daily_k_end": 42,
+    "future_event_policy": "The pre-existing T-anchor declaration filters date < ex_date <= T; rows with ex_date after the daily-K end are outside any T prefix. No replay was run."
+  },
+  "source_manifest": {
+    "logical_path": "data/validation/core_signal_validation_continuous_parts/core_signal_validation_manifest.json",
+    "observed_file_sha256": "008643a64e0070433f3d63dca8243f8dad294b049a7accb5d49af3597aae17b0",
+    "embedded_content_sha256": "f854d20d470cc4508aed8783416715262d267321d8b61cbb4dd10ec957bbebcb",
+    "acquisition_date_is_not_historical_known_at": true
+  },
+  "evidence_gaps": {
+    "historical_t_known_st_star_st": "UNRESOLVED; no T-dated status source; current names not used",
+    "per_bar_known_at_or_vintage": "MISSING; manifest explicitly says no per-bar historical vintage timestamps",
+    "c_qfq_per_t_price_input": "MISSING; available legacy daily_k says adjusted=none",
+    "suspension_no_trade_limit_tick_intraday": "MISSING_OR_UNAVAILABLE; daily OHLCV does not establish T+1 fill",
+    "actual_execution": "UNAVAILABLE; a T+1 open reference is not proof of fill",
+    "transaction_cost_model": "TRANSACTION_COST_MODEL_NOT_PREEXISTING",
+    "volume_basis_for_c_qfq": "VOLUME_BASIS_UNVERIFIED"
+  },
+  "research_performed": {
+    "c_rule_signals_replayed": false,
+    "c_outcome_prices_read_for_return_calculation": false,
+    "c_returns_or_win_rates_computed": false,
+    "volume_by_c_event_computed": false,
+    "reason": "The exact C_QFQ_INPUT_V1 historical input is missing; the verified legacy source is a different input identity and cannot be substituted as C_QFQ."
+  },
+  "boundaries": {
+    "formal_b_changed": false,
+    "runtime_state_modified": false,
+    "final_oos_read": false,
+    "sealed_oos_or_forbidden_directory_touched": false,
+    "new_full_market_hithink_request": false,
+    "raw_source_copied_or_modified": false
+  },
+  "verification": {
+    "focused_c_and_b_isolation_tests": "82 passed",
+    "full_pytest": "757 passed, 2 skipped, 10 warnings",
+    "compileall": "PASS",
+    "git_diff_check": "PASS"
+  }
+}

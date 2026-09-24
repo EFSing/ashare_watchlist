@@ -1,5 +1,31 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-09-24 — C_DEVELOPMENT_HISTORICAL_BACKTEST_V1 terminal
+
+- Classification: `research question + correctness/provenance gate`, unchanged; terminal
+  `C_HISTORICAL_BACKTEST_BLOCKED_BY_VERIFIED_DATA_GAP`. No C signal replay or return values
+  were computed.
+- Outcome-before protocol lock commit: `bfa87b38554e01a881326d414a11150f0bc17026`; frozen
+  source head `20216bfd9a154ce638e2b9306817a727be732110`. No C rule parameter changed.
+- The existing frozen daily-K artifact was read-only verified at 180,203,424 bytes and SHA-256
+  `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426`; its actual parquet
+  has `adjusted=none` and is not a per-T `C_QFQ_INPUT_V1` snapshot series. Historical C QFQ
+  snapshots are absent in the checked C capture namespaces. Historical T-known ST and per-bar
+  vintage are unresolved; fill/limit/tick and pre-existing cost evidence are unavailable.
+- Report files under `data/research/c_development_historical_backtest_v1/`: protocol SHA-256
+  `3c0e20eed8b333afd664a9fe87f44d431b82467765e11232e518e1f2a3d3901e`; data verification
+  JSON SHA-256 `d942cf9c09dd7f3c3223e36c5026788975a9a90595878a525764c4f0a7872436`; report JSON
+  SHA-256 `f2918b1fae40ace31fd1d5051d20f966d673325925c38222f53e3e09d63ebd48`; HTML SHA-256
+  `16b9d264deac5160b7ff7e10e20e7ae1e0d39d474670f793f130cafb6860f842`.
+- Focused C/B-isolation tests: 82 passed; full pytest: 757 passed, 2 skipped, 10 warnings;
+  compileall passed. The branch is `codex/c-development-historical-backtest-v1`; fetch its live
+  tip and exact-head CI before resuming. Draft PR #87 is OPEN / DRAFT at
+  https://github.com/EFSing/ashare_watchlist/pull/87, based on #86's branch
+  `codex/c-post-b-delivery-workflow-v1`; initial PR head was
+  `cf20d5e358c8c68a3848051a2bbc1a301280a74e`. The handoff update advances the branch;
+  fetch the final head and exact-head CI. No merge.
+- Formal B unchanged; runtime-state not modified; Final OOS remains unread.
+
 ## 2026-09-24 — C_DAILY_REPORT_B_ISOLATION_FINAL_MERGE_READY_FOR_SOL
 
 - Classification: product blocker with correctness boundary, unchanged. Draft #86 on
