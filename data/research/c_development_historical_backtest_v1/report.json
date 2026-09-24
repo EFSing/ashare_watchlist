@@ -1,0 +1,261 @@
+{
+  "schema_version": "C_DEVELOPMENT_HISTORICAL_BACKTEST_REPORT_V1",
+  "study_id": "C_DEVELOPMENT_HISTORICAL_BACKTEST_V1",
+  "generated_at": "2026-09-24 Asia/Shanghai",
+  "terminal_status": "C_HISTORICAL_BACKTEST_BLOCKED_BY_VERIFIED_DATA_GAP",
+  "study_mode": "NOT_ENTERED; required C_QFQ_INPUT_V1 historical inputs were not available",
+  "protocol": {
+    "path": "data/research/c_development_historical_backtest_v1/protocol.md",
+    "commit_sha": "bfa87b38554e01a881326d414a11150f0bc17026",
+    "locked_before_outcome_access": true,
+    "source_code_head_sha": "20216bfd9a154ce638e2b9306817a727be732110",
+    "rules": [
+      "BALANCED_A",
+      "CONSERVATIVE_B"
+    ],
+    "windows_xshg_sessions": [
+      3,
+      5,
+      10
+    ],
+    "execution_reference": "T+1 open; no actual-fill claim",
+    "file_sha256": "3c0e20eed8b333afd664a9fe87f44d431b82467765e11232e518e1f2a3d3901e"
+  },
+  "data_verification_path": "data/research/c_development_historical_backtest_v1/data_verification.json",
+  "input_identity": {
+    "required": "C_QFQ_INPUT_V1",
+    "available_historical_daily_k": "phase2e.raw.daily_k, adjusted=none",
+    "identities_equal": false,
+    "status": "MISSING_REQUIRED_C_QFQ_HISTORICAL_INPUT"
+  },
+  "results": {
+    "rules": [
+      {
+        "rule_id": "BALANCED_A",
+        "status": "NOT_RUN_BLOCKED_BY_MISSING_C_QFQ_HISTORY",
+        "signal_n": null,
+        "valid_return_samples": null,
+        "windows": {
+          "T+3": {
+            "observation_return": {
+              "valid_n": null,
+              "positive_n": null,
+              "positive_rate": null,
+              "mean": null,
+              "median": null,
+              "status": "NOT_COMPUTED_VERIFIED_INPUT_GAP"
+            },
+            "t_plus_one_reference_return": {
+              "valid_n": null,
+              "positive_n": null,
+              "positive_rate": null,
+              "mean": null,
+              "median": null,
+              "status": "NOT_COMPUTED_VERIFIED_INPUT_GAP"
+            },
+            "cost_after_return": {
+              "status": "NOT_COMPUTED_COST_MODEL_NOT_PREEXISTING"
+            },
+            "mfe_mae": {
+              "status": "NOT_COMPUTED_VERIFIED_INPUT_GAP"
+            },
+            "execution_failed_or_uncertain_n": null
+          },
+          "T+5": {
+            "observation_return": {
+              "valid_n": null,
+              "positive_n": null,
+              "positive_rate": null,
+              "mean": null,
+              "median": null,
+              "status": "NOT_COMPUTED_VERIFIED_INPUT_GAP"
+            },
+            "t_plus_one_reference_return": {
+              "valid_n": null,
+              "positive_n": null,
+              "positive_rate": null,
+              "mean": null,
+              "median": null,
+              "status": "NOT_COMPUTED_VERIFIED_INPUT_GAP"
+            },
+            "cost_after_return": {
+              "status": "NOT_COMPUTED_COST_MODEL_NOT_PREEXISTING"
+            },
+            "mfe_mae": {
+              "status": "NOT_COMPUTED_VERIFIED_INPUT_GAP"
+            },
+            "execution_failed_or_uncertain_n": null
+          },
+          "T+10": {
+            "observation_return": {
+              "valid_n": null,
+              "positive_n": null,
+              "positive_rate": null,
+              "mean": null,
+              "median": null,
+              "status": "NOT_COMPUTED_VERIFIED_INPUT_GAP"
+            },
+            "t_plus_one_reference_return": {
+              "valid_n": null,
+              "positive_n": null,
+              "positive_rate": null,
+              "mean": null,
+              "median": null,
+              "status": "NOT_COMPUTED_VERIFIED_INPUT_GAP"
+            },
+            "cost_after_return": {
+              "status": "NOT_COMPUTED_COST_MODEL_NOT_PREEXISTING"
+            },
+            "mfe_mae": {
+              "status": "NOT_COMPUTED_VERIFIED_INPUT_GAP"
+            },
+            "execution_failed_or_uncertain_n": null
+          }
+        }
+      },
+      {
+        "rule_id": "CONSERVATIVE_B",
+        "status": "NOT_RUN_BLOCKED_BY_MISSING_C_QFQ_HISTORY",
+        "signal_n": null,
+        "valid_return_samples": null,
+        "windows": {
+          "T+3": {
+            "observation_return": {
+              "valid_n": null,
+              "positive_n": null,
+              "positive_rate": null,
+              "mean": null,
+              "median": null,
+              "status": "NOT_COMPUTED_VERIFIED_INPUT_GAP"
+            },
+            "t_plus_one_reference_return": {
+              "valid_n": null,
+              "positive_n": null,
+              "positive_rate": null,
+              "mean": null,
+              "median": null,
+              "status": "NOT_COMPUTED_VERIFIED_INPUT_GAP"
+            },
+            "cost_after_return": {
+              "status": "NOT_COMPUTED_COST_MODEL_NOT_PREEXISTING"
+            },
+            "mfe_mae": {
+              "status": "NOT_COMPUTED_VERIFIED_INPUT_GAP"
+            },
+            "execution_failed_or_uncertain_n": null
+          },
+          "T+5": {
+            "observation_return": {
+              "valid_n": null,
+              "positive_n": null,
+              "positive_rate": null,
+              "mean": null,
+              "median": null,
+              "status": "NOT_COMPUTED_VERIFIED_INPUT_GAP"
+            },
+            "t_plus_one_reference_return": {
+              "valid_n": null,
+              "positive_n": null,
+              "positive_rate": null,
+              "mean": null,
+              "median": null,
+              "status": "NOT_COMPUTED_VERIFIED_INPUT_GAP"
+            },
+            "cost_after_return": {
+              "status": "NOT_COMPUTED_COST_MODEL_NOT_PREEXISTING"
+            },
+            "mfe_mae": {
+              "status": "NOT_COMPUTED_VERIFIED_INPUT_GAP"
+            },
+            "execution_failed_or_uncertain_n": null
+          },
+          "T+10": {
+            "observation_return": {
+              "valid_n": null,
+              "positive_n": null,
+              "positive_rate": null,
+              "mean": null,
+              "median": null,
+              "status": "NOT_COMPUTED_VERIFIED_INPUT_GAP"
+            },
+            "t_plus_one_reference_return": {
+              "valid_n": null,
+              "positive_n": null,
+              "positive_rate": null,
+              "mean": null,
+              "median": null,
+              "status": "NOT_COMPUTED_VERIFIED_INPUT_GAP"
+            },
+            "cost_after_return": {
+              "status": "NOT_COMPUTED_COST_MODEL_NOT_PREEXISTING"
+            },
+            "mfe_mae": {
+              "status": "NOT_COMPUTED_VERIFIED_INPUT_GAP"
+            },
+            "execution_failed_or_uncertain_n": null
+          }
+        }
+      }
+    ],
+    "win_rate_denominator": "For each rule/window, observation-return positive rate denominator would be valid observation-return samples; reference-return rate denominator would be valid T+1-reference samples. Neither denominator is available. Actual-trade win rate is unavailable without fill evidence.",
+    "full_comparable_universe": {
+      "count": null,
+      "status": "NOT_COMPUTED_INPUT_IDENTITY_GAP"
+    },
+    "matched_event_sample": {
+      "count_by_rule": null,
+      "status": "NOT_COMPUTED_INPUT_IDENTITY_GAP"
+    },
+    "year_and_market_phase_distribution": {
+      "status": "NOT_COMPUTED_NO_C_SIGNAL_SAMPLE"
+    },
+    "episode_and_symbol_repeat_concentration": {
+      "status": "NOT_COMPUTED_NO_C_SIGNAL_SAMPLE"
+    },
+    "volume_statistics": {
+      "status": "NOT_COMPUTED_NO_C_SIGNAL_SAMPLE",
+      "basis_status": "VOLUME_BASIS_UNVERIFIED"
+    },
+    "actual_trade_win_rate": {
+      "status": "NOT_AVAILABLE_NO_ACTUAL_FILL_EVIDENCE"
+    }
+  },
+  "cost_and_execution": {
+    "cost_model": "TRANSACTION_COST_MODEL_NOT_PREEXISTING",
+    "cost_after_returns": "NOT_COMPUTED",
+    "t_plus_one_reference_price": "Defined as open[T+1] by the locked protocol; no historical C_QFQ event cohort was generated.",
+    "fill_state": "EXECUTION_UNCERTAIN_OR_UNKNOWN; not measured because no accepted cohort or trade-state inputs exist",
+    "suspension_limit_tick_intraday": "MISSING_OR_UNAVAILABLE"
+  },
+  "evidence_limitations": [
+    "The verified legacy daily_k file matches the supplied SHA and byte size, but is adjusted=none and belongs to a different frozen input identity.",
+    "C_QFQ_INPUT_V1 uses same-day frozen provider QFQ snapshots; no historical per-T snapshot series was present in the checked C namespaces.",
+    "Historical T-known ST/*ST state is unresolved; current names were not used.",
+    "Per-bar historical known-at/vintage proof is absent.",
+    "Actual T+1 fills, limit/tick state, intraday sequence and a pre-existing legal cost model are unavailable.",
+    "The adjustment table contains 42 ex-date rows after the daily-K end; the frozen T-anchor declaration filters events to date < ex_date <= T. No signal replay consumed those rows."
+  ],
+  "decision": {
+    "value": "NEEDS_MORE_EVIDENCE",
+    "missing_evidence": [
+      "Historical per-T C_QFQ_INPUT_V1 price snapshots or an explicitly approved, separately identified historical input protocol",
+      "T-known ST/*ST status",
+      "per-bar known-at/vintage evidence",
+      "execution state and an applicable pre-existing cost model"
+    ],
+    "gate_user": "Sol's audit of C development historical evidence; no product promotion is supported by this report.",
+    "paths_that_can_continue": "Formal B and its production flow remain unchanged; the separate C prospective research path may continue under its own evidence and review gates."
+  },
+  "data_verification_sha256": "d942cf9c09dd7f3c3223e36c5026788975a9a90595878a525764c4f0a7872436",
+  "final_oos": "SEALED / UNREAD",
+  "formal_b_changed": false,
+  "runtime_state_modified": false,
+  "new_full_market_hithink_request": false,
+  "verification": {
+    "focused_c_and_b_isolation_tests": "82 passed",
+    "full_pytest": "757 passed, 2 skipped, 10 warnings",
+    "compileall": "PASS",
+    "git_diff_check": "PASS",
+    "exact_head_ci": "SEE_FINAL_LIVE_DRAFT_PR_STATUS"
+  }
+}

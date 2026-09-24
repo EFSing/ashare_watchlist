@@ -1,7 +1,7 @@
 # C_DEVELOPMENT_HISTORICAL_BACKTEST_V1 — outcome 前协议锁定
 
-状态：`LOCKED_BEFORE_OUTCOME_ACCESS`  
-锁定日期：2026-09-24（Asia/Shanghai）  
+状态：`LOCKED_BEFORE_OUTCOME_ACCESS`
+锁定日期：2026-09-24（Asia/Shanghai）
 研究分类：`research question + correctness/provenance gate`；不是 Formal B 或产品晋级任务。
 
 ## 1. 研究问题、重要性、输入与停止条件

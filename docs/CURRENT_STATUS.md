@@ -1,5 +1,32 @@
 # CURRENT STATUS
 
+## 2026-09-24 — C_DEVELOPMENT_HISTORICAL_BACKTEST_V1 blocked by verified input gap
+
+- Classification remains `research question + correctness/provenance gate`; not a product
+  blocker. Terminal: `C_HISTORICAL_BACKTEST_BLOCKED_BY_VERIFIED_DATA_GAP`. Decision:
+  `NEEDS_MORE_EVIDENCE`.
+- Protocol locked before C outcome access at `bfa87b38554e01a881326d414a11150f0bc17026`,
+  based on C workflow head `20216bfd9a154ce638e2b9306817a727be732110`. Both existing rules
+  remain unchanged. No signals, returns, win rates, MFE/MAE, volume-event statistics or
+  year/market-stage results were computed; missing sample counts are `null`, not zero.
+- The declared historical file `phase2e.raw.daily_k` exists in a separate existing checkout and
+  matches the required reference identity: 180,203,424 bytes; SHA-256
+  `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426`. Its actual `adjusted`
+  column is `none`; its frozen input identity is distinct from `C_QFQ_INPUT_V1`. The adjustment
+  file also matches SHA-256
+  `a1b7d63c5826ccd3610dc9bdd949d82eeb0ba84ffad451bfb8bb30ca74962716`. No historical per-T
+  C QFQ snapshots exist in the checked C namespaces.
+- Evidence remains insufficient for strict PIT: no per-bar known-at/vintage, no T-known historical
+  ST/*ST status, no reliable suspension/limit/tick/intraday or actual T+1 fill evidence, and no
+  pre-existing unified transaction-cost model. Volume status remains `VOLUME_BASIS_UNVERIFIED`.
+  Do not use the legacy daily-K as if it were C QFQ or present any inferred performance.
+- Audit artifacts: `data/research/c_development_historical_backtest_v1/protocol.md`,
+  `data_verification.json`, `report.json`, and `report.html`; their SHA-256 identities are
+  recorded in the matching `HANDOFF.md` entry.
+- Verification: C focused and B-isolation regression `82 passed`; full pytest `757 passed,
+  2 skipped, 10 warnings`; `compileall` passed. Formal B and runtime-state were not modified;
+  Final OOS was not read. The independent Draft PR is for Sol audit only; no merge or promotion.
+
 ## 2026-09-24 — C/B workflow failure isolation completed in Draft #86
 
 - C step and its failure-diagnosis follow-up are independently `continue-on-error`; a failed C

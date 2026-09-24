@@ -1,5 +1,23 @@
 # DECISION LOG
 
+## 2026-09-24 — NEEDS_MORE_EVIDENCE for C historical outcome evaluation
+
+- Research decision: `NEEDS_MORE_EVIDENCE`; do not adopt, reject, promote or tune either
+  `BALANCED_A` or `CONSERVATIVE_B` from this attempt. Their frozen definitions and
+  `C_QFQ_INPUT_V1` identity remain unchanged.
+- The byte-verified Phase 2E daily-K file is a legacy input with actual `adjusted=none` and a
+  separate retrospective corporate-action table. It is not a series of per-T frozen
+  `PROVIDER_QFQ_SNAPSHOT` inputs. Substituting it would change input identity; labeling its output
+  as C_QFQ performance would be false. Therefore no C signal cohort or historical return is
+  computed, even in limited mode.
+- The evidence gate for Sol's C development-history audit still lacks historical per-T C QFQ input,
+  T-known ST/*ST status, per-bar known-at/vintage, execution state/fill evidence, and an applicable
+  cost model frozen before outcome access. The missing data and intended audit use are recorded in
+  `data/research/c_development_historical_backtest_v1/`.
+- This decision does not block existing Formal B usability or change B production. A future C
+  research path may continue only with its own prospective evidence and audit; a different
+  historical price identity would require a separate protocol fixed before any outcome is read.
+
 ## 2026-09-24 — Formal B health is independent of C workflow step outcome
 
 - `ADOPT` a C-only `continue-on-error` boundary after Formal B delivery health. Keep C's
