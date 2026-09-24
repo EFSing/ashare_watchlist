@@ -18,7 +18,9 @@ It is NOT ``C_QFQ_INPUT_V1`` (the frozen per-day provider qfq snapshot), NOT a
 Formal B path, NOT the C daily watchlist, and NOT a PIT claim.  It calls no
 provider, writes no canonical state, and never reads Final OOS.
 
-Frozen protocol (written and committed before any outcome access):
+Frozen protocol (content fixed 2026-09-24 12:12:35 +0800, SHA-256
+3aa6ffe2db431574c17a88bfe0b58b85af4a37aa05fb08c3279dc043584e59e3, unchanged since; the
+freeze commit 9616b49 was created 14:01:23 +0800, i.e. after the outcome run):
     docs/research/c_raw_t_anchor_limited_exploration_v1_protocol.md
 """
 

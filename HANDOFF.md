@@ -13,7 +13,10 @@
   `a1b7d63c5826ccd3610dc9bdd949d82eeb0ba84ffad451bfb8bb30ca74962716` (295,284 B)、
   manifest LF-normalised `008643a64e0070433f3d63dca8243f8dad294b049a7accb5d49af3597aae17b0`；
   三份实际字节核验均为 `HASH_VERIFIED`。
-- 协议在读取收益前冻结：`docs/research/c_raw_t_anchor_limited_exploration_v1_protocol.md`；
+- 协议以“内容定稿”在读取收益前冻结（2026-09-24 12:12:35 +0800，SHA-256
+  `3aa6ffe2db431574c17a88bfe0b58b85af4a37aa05fb08c3279dc043584e59e3`；冻结提交 `9616b49`
+  创建于 14:01:23 +0800，**晚于** 13:57:22 的全样本 outcome 运行；详见 protocol 的
+  provenance 段）：`docs/research/c_raw_t_anchor_limited_exploration_v1_protocol.md`；
   报告：`docs/research/c_raw_t_anchor_limited_exploration_v1_report.md`；机器可读产物与
   产物 SHA：`data/research/c_raw_t_anchor_limited_exploration_v1/{summary,events,input_verification,artifact_identity}.json`。
 - 结果：`BALANCED_A` 4,130 事件 / 2,453 episode；`CONSERVATIVE_B` 246 / 127。

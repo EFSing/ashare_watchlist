@@ -2,6 +2,16 @@
 
 状态：`FROZEN_BEFORE_OUTCOME_ACCESS`
 冻结日期：2026-09-24（Asia/Shanghai）
+
+冻结 provenance（事实记录，不属于研究定义）：本文件内容定稿于 2026-09-24 12:12:35 +0800
+（12,272 bytes，SHA-256 `3aa6ffe2db431574c17a88bfe0b58b85af4a37aa05fb08c3279dc043584e59e3`，
+blob `a93e2304d5053092cb430c2eaafdd8f07342c885`），此后到提交为止内容未变；此前先执行过
+60 只股票 smoke run 与一次 fail-closed 阻断的 full run（均未产出本文档的报告数字）；全样本
+outcome 运行产物生成于 13:57:22 +0800；冻结提交 `9616b49` 创建于 14:01:23 +0800，即
+**提交晚于 outcome 运行**。因此本条冻结的含义是“内容在读取收益前固定”，以文件定稿时间与
+未变哈希为据，**不是**“提交早于 outcome”。内容定稿后未改动任何规则、窗口、universe、
+去重口径、分母或成本边界。
+
 研究分类：`research question`；**不是** Formal B、不是 C 每日名单、不是 C 正式回测、
 不是 promotion、不是 Final OOS。
 
