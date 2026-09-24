@@ -1,5 +1,27 @@
 # DECISION LOG
 
+## 2026-09-24 — Formal B health is independent of C workflow step outcome
+
+- `ADOPT` a C-only `continue-on-error` boundary after Formal B delivery health. Keep C's
+  actual failure visible through its step outcome, stage/status diagnostic, Actions warning and
+  best-effort separate summary. This includes reporting-channel failures. Do not infer C success
+  from the Formal B job conclusion.
+- `NEEDS_MORE_EVIDENCE` for a directly rendered online C report URL: GitHub blob shows HTML
+  source and raw serves `text/plain; nosniff`. Until an existing free viewer is verified, offer
+  the small HTML through its GitHub file page for download and local opening, consistent with B's offline HTML attachment.
+
+## 2026-09-24 — B delivery gate and bounded shared-lock C tail
+
+- `ADOPT` the six-step Formal B success gate before C daily research: production result,
+  formal output validation, runtime-state push, report delivery, receipt persistence and
+  delivery-health enforcement must all succeed. A successful canonical B flag alone is
+  insufficient. Manual B runs use the same receipt and time checks.
+- C may occupy B's workflow lock for at most 600 seconds after those steps, with a 360-second
+  child limit and 300-second reserve. Primary/near-schedule/manual time guards skip C when
+  the retry or job deadline would be affected; skip is `C_NOT_STARTED_TIME_BUDGET`.
+  This bounded occupancy supersedes the older separate-job recommendation for this small
+  product report. C outcome never changes Formal B artifacts or delivery state.
+
 ## 2026-09-24 — ADOPT bounded C tail after Formal B delivery
 
 - Sol chose `C_DAILY_RESEARCH_WATCHLIST_V1` as a small, public, independent HTML/JSON report

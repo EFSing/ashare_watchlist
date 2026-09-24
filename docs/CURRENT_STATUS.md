@@ -1,5 +1,31 @@
 # CURRENT STATUS
 
+## 2026-09-24 — C/B workflow failure isolation completed in Draft #86
+
+- C step and its failure-diagnosis follow-up are independently `continue-on-error`; a failed C
+  process, publication, summary or environment write leaves completed Formal B job health intact.
+  C's true step outcome, status and failure stage remain in Actions logs, with a separate summary
+  when writable. Failure-injection tests cover those paths and preserve B bytes and receipt.
+- C HTML remains lightweight and versioned in runtime-state, but GitHub blob displays source and
+  raw serves `text/plain; nosniff`. The Actions link opens the file page to download HTML for local browser opening,
+  like B's existing offline report attachment. No directly rendered online URL is established.
+- Draft #81/#83/#84/#85/#86 remain unmerged; C variable remains off. Shared workflow lock may
+  extend by up to the bounded 600 s C tail when C runs, despite schedule/time guards.
+
+## 2026-09-24 — C daily post-B delivery workflow prepared, disabled
+
+- #85 renders small C-only HTML/manifest and requires the actual Formal B receipt in the
+  runtime-state checkout. Its dependent workflow PR starts C only after six B production and
+  delivery steps succeed, and only when `ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1=true`.
+- Public report destination is `data/reports/c_daily/YYYYMMDD/index.html` plus manifest;
+  SHA-versioned subdirectories preserve retries. The Actions summary independently records C
+  success, skip, timeout or failure. No raw package or provider response enters runtime-state.
+- 3,196 synthetic securities / 6,392 frozen C rule evaluations took 10.757 s locally;
+  child timeout 360 s, C tail 600 s, reserve 300 s. Recent real B run durations of
+  58.2–82.5 min make the workflow lock risk material. The primary run skips C at/after the
+  retry overlap, and manual runs skip near either scheduled B time. Production enablement
+  remains off until user merge and activation decisions.
+
 ## 2026-09-24 — C daily research report path prepared
 
 - Sol selected a bounded same-runner C tail after completed Formal B delivery. #85 now checks

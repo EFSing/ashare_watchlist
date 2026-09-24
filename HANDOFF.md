@@ -1,5 +1,37 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-09-24 — C_DAILY_REPORT_B_ISOLATION_FINAL_MERGE_READY_FOR_SOL
+
+- Classification: product blocker with correctness boundary, unchanged. Draft #86 on
+  `codex/c-post-b-delivery-workflow-v1` depends on Draft #85; fetch live remote heads and CI.
+- C workflow step now uses `continue-on-error: true` after the six Formal B success gates.
+  C failures still produce a failed C step outcome, a stage/status diagnostic file, Actions
+  warning, and best-effort separate summary. Summary or environment-file write failure cannot
+  turn delivered Formal B into a failed job. The 360 s child, 600 s tail and 300 s reserve remain.
+- GitHub's HTML blob shows source; its raw response is `text/plain; nosniff`. The C report
+  link opens the GitHub file page for downloading and local browser viewing, matching B's offline HTML
+  pattern. There is no verified directly rendered online URL. Do not claim one at enablement.
+- No production run, merge, variable enablement, C notification or order. Next: Sol reviews
+  #85/#86 and the report-viewing limitation; user decides merge and enablement separately.
+
+## 2026-09-24 — C_DAILY_REPORT_POST_B_DELIVERY_PR_READY_FOR_SOL_DECISION
+
+- Classification: product blocker with correctness boundaries, unchanged. #85 holds C report
+  generation and C-only runtime-state validation; dependent Draft workflow PR uses branch
+  `codex/c-post-b-delivery-workflow-v1` and bases on live #85. Fetch both live heads and CI.
+- C starts only after B production, formal output validation, runtime-state push, report delivery,
+  receipt persistence, and delivery-health steps all succeed. Repo variable
+  `ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1` defaults off. C reads same-runner frozen package/raw,
+  never calls provider, and publishes only small versioned C HTML/manifest under
+  `data/reports/c_daily/YYYYMMDD/`. Failure stays C-only in Actions summary.
+- Measured 3,196 synthetic securities / 6,392 rule evaluations in 10.757 s locally. The C child
+  has a 360 s timeout; entire C tail is capped at 600 s with 300 s job/next-B reserve.
+  Recent genuine B workflow runs took 58.2–82.5 min; the shared lock risk is real. Primary
+  runs overlapping the 18:17 BJT retry and manual runs near scheduled B times skip C.
+- No real production activation, merge, C notification, order, or formal returns study. Next:
+  Sol reviews #85 and dependent workflow PR; user decides merge order and later enables the
+  variable only after those PRs are merged and operational timing is acceptable.
+
 ## 2026-09-24 — C daily report post-B delivery implementation
 
 - Classification: product blocker with correctness boundaries, unchanged; STRICT PATH.

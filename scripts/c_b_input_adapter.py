@@ -186,6 +186,8 @@ def consume_b_input(package_path: str | Path, *, target_date: str, expected_sha2
                                 "b_package_actual_sha256": None,
                                 "b_acquired_at_bjt": None, "b_persisted_at_bjt": None}
     try:
+        if local_runner_input and now.date().isoformat() != target_date:
+            raise CaptureError("B_HISTORICAL_LOCAL_RUNNER_INPUT", "same-runner C input must be read on T")
         if len(expected_sha256) != 64 or any(c not in "0123456789abcdef" for c in expected_sha256):
             raise CaptureError("B_PACKAGE_SHA_REQUIRED", "expected B package SHA-256 is invalid")
         raw = Path(package_path).read_bytes()

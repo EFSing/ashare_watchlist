@@ -378,6 +378,12 @@ def test_same_runner_reads_exact_frozen_bytes_without_private_handoff(c_root: Pa
     assert record["source"]["handoff"]["mode"] == "SAME_RUNNER_READ_ONLY"
     assert record["source"]["handoff"]["private_persistence"] == "NOT_CLAIMED"
     assert path.read_bytes() == before
+    next_day = adapter.consume_b_input(
+        path, target_date=T, expected_sha256=sha, local_runner_input=True,
+        evidence_root=evidence_root, read_at=datetime(2026, 9, 23, 9, tzinfo=BJT),
+    )
+    assert next_day["status"] == capture.C_CAPTURE_FAILED
+    assert "B_HISTORICAL_LOCAL_RUNNER_INPUT" in next_day["gaps"]
 
 
 def test_price_event_keeps_pullback_volume_without_formal_candidate() -> None:
