@@ -1,5 +1,68 @@
 # DECISION LOG
 
+## 2026-09-24 — ADOPT C daily research list activation; historical exploration keeps its own identity
+
+- `ADOPT` the authorized merge chain #81 → #83 → #85 → #86 and set
+  `ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1=true`. Activation stays gated by the six Formal B success
+  steps, `continue-on-error`, the 360 s child / 600 s tail / 300 s reserve budget and C-only
+  publication under `data/reports/c_daily/YYYYMMDD/`; a C failure never changes Formal B artifacts,
+  delivery state or runtime-state validation.
+- `ADOPT` a distinct identity `C_RAW_T_ANCHOR_LIMITED_EXPLORATION_V1` for evidence-limited
+  historical exploration over the legacy frozen `adjusted=none` daily-K plus the frozen
+  corporate-action table. Its outputs must never be presented as `C_QFQ_INPUT_V1` formal results,
+  and #87's verified input-gap conclusion stays valid for its own identity.
+- `DEFER` the private C Release handoff (#84); the historical evidence gap does not gate the C
+  daily research list.
+
+## 2026-09-24 — Formal B health is independent of C workflow step outcome
+
+- `ADOPT` a C-only `continue-on-error` boundary after Formal B delivery health. Keep C's
+  actual failure visible through its step outcome, stage/status diagnostic, Actions warning and
+  best-effort separate summary. This includes reporting-channel failures. Do not infer C success
+  from the Formal B job conclusion.
+- `NEEDS_MORE_EVIDENCE` for a directly rendered online C report URL: GitHub blob shows HTML
+  source and raw serves `text/plain; nosniff`. Until an existing free viewer is verified, offer
+  the small HTML through its GitHub file page for download and local opening, consistent with B's offline HTML attachment.
+
+## 2026-09-24 — B delivery gate and bounded shared-lock C tail
+
+- `ADOPT` the six-step Formal B success gate before C daily research: production result,
+  formal output validation, runtime-state push, report delivery, receipt persistence and
+  delivery-health enforcement must all succeed. A successful canonical B flag alone is
+  insufficient. Manual B runs use the same receipt and time checks.
+- C may occupy B's workflow lock for at most 600 seconds after those steps, with a 360-second
+  child limit and 300-second reserve. Primary/near-schedule/manual time guards skip C when
+  the retry or job deadline would be affected; skip is `C_NOT_STARTED_TIME_BUDGET`.
+  This bounded occupancy supersedes the older separate-job recommendation for this small
+  product report. C outcome never changes Formal B artifacts or delivery state.
+
+## 2026-09-24 — ADOPT bounded C tail after Formal B delivery
+
+- Sol chose `C_DAILY_RESEARCH_WATCHLIST_V1` as a small, public, independent HTML/JSON report
+  computed in B's existing runner only after Formal B delivery, receipt persistence and
+  delivery-health enforcement succeed. This replaces the earlier separate-runner requirement
+  for this product report; full raw archival is outside this decision.
+- The C tail must be independently switchable, time bounded, and skipped near the next B run
+  or the job deadline. Its failure is recorded as C failure while B's formal success remains
+  intact. The extra lock occupancy is accepted only within the measured execution budget.
+- A daily research list does not verify volume adjustment semantics or create a durable full
+  prospective evidence set. Formal B strategy and C's two existing rule parameters stay fixed.
+
+## 2026-09-23 — ADOPT independent C daily research report; NEEDS_MORE_EVIDENCE for automatic activation
+
+- Product decision: implement `C_DAILY_RESEARCH_WATCHLIST_V1` as an independent, viewable daily
+  research list from the same frozen B qfq package. Both preregistered rules retain separate match
+  and event identities. Price match, computable volume features, unverified volume basis, and formal
+  trading validity remain distinct; volume is diagnostic in the existing price-structure baseline.
+- Use a same-runner read-only input mode for local calculation and keep #84's private Release export
+  disabled. Reuse only its per-request timestamp sidecar change so C can verify T-day provenance.
+  This supports a daily list but does not establish durable prospective research capture.
+- `NEEDS_MORE_EVIDENCE`: before automatic production enablement, prove an isolated C execution path
+  that does not hold B's production lock, has a private and size-validated transfer of frozen
+  package/raw evidence if it changes jobs, and independently persists a lightweight report with
+  tested readback/visibility. The daily report product path may continue through review and local
+  samples without those claims; `PROSPECTIVE_CAPTURED` remains unavailable.
+
 职责：只记录具有长期约束力、未来需要解释“为什么这样设计”的决定（含进入、退出或拒绝
 某项研究/产品决策的理由，以及冻结的契约）；不记录普通 bugfix、测试补充和局部实现细节。
 当前操作接手规则见 [`HANDOFF.md`](../HANDOFF.md)；正式状态见

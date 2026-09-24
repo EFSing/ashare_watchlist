@@ -1,5 +1,74 @@
 # CURRENT STATUS
 
+## 2026-09-24 — C daily research watchlist enabled after authorized merge chain
+
+- Merge order #81 → #83 → #85 → #86 completed as squash merges on `master` (`3e635bd`, `fb7b6df`,
+  `464c445`, `6f1720c`). Each dependent PR was synced with `master` (branch-side resolution of the
+  stacked-squash conflicts) and merged only after exact-head CI success and a `CLEAN` /
+  `MERGEABLE` state. Post-merge `master` correctness runs `35953848215` / `35954210300` /
+  `35954394416` / `35954580331` all `success` (full `pytest`, `compileall`, Cloudflare dispatcher).
+- `ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1=true` is now set on the repository. The C step still starts
+  only after the six Formal B success gates, keeps `continue-on-error`, and holds the shared lock
+  for at most its bounded tail. No production run was dispatched and no past trading day was
+  backfilled; acceptance is the next normal trading-day run.
+- Boundaries unchanged: #84's private Release handoff remains Draft and disabled; #87 remains an
+  independent Draft whose historical block is an input-identity gap, not a C daily-list blocker.
+  Formal B, runtime-state validation and Final OOS (`SEALED / UNREAD`) are unchanged.
+
+## 2026-09-24 — C/B workflow failure isolation completed in Draft #86
+
+- C step and its failure-diagnosis follow-up are independently `continue-on-error`; a failed C
+  process, publication, summary or environment write leaves completed Formal B job health intact.
+  C's true step outcome, status and failure stage remain in Actions logs, with a separate summary
+  when writable. Failure-injection tests cover those paths and preserve B bytes and receipt.
+- C HTML remains lightweight and versioned in runtime-state, but GitHub blob displays source and
+  raw serves `text/plain; nosniff`. The Actions link opens the file page to download HTML for local browser opening,
+  like B's existing offline report attachment. No directly rendered online URL is established.
+- Draft #81/#83/#84/#85/#86 remain unmerged; C variable remains off. Shared workflow lock may
+  extend by up to the bounded 600 s C tail when C runs, despite schedule/time guards.
+
+## 2026-09-24 — C daily post-B delivery workflow prepared, disabled
+
+- #85 renders small C-only HTML/manifest and requires the actual Formal B receipt in the
+  runtime-state checkout. Its dependent workflow PR starts C only after six B production and
+  delivery steps succeed, and only when `ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1=true`.
+- Public report destination is `data/reports/c_daily/YYYYMMDD/index.html` plus manifest;
+  SHA-versioned subdirectories preserve retries. The Actions summary independently records C
+  success, skip, timeout or failure. No raw package or provider response enters runtime-state.
+- 3,196 synthetic securities / 6,392 frozen C rule evaluations took 10.757 s locally;
+  child timeout 360 s, C tail 600 s, reserve 300 s. Recent real B run durations of
+  58.2–82.5 min make the workflow lock risk material. The primary run skips C at/after the
+  retry overlap, and manual runs skip near either scheduled B time. Production enablement
+  remains off until user merge and activation decisions.
+
+## 2026-09-24 — C daily research report path prepared
+
+- Sol selected a bounded same-runner C tail after completed Formal B delivery. #85 now checks
+  the B receipt in the independent runtime-state checkout, renders a small C-only HTML plus
+  manifest, and permits only `reports/c_daily/YYYYMMDD/` HTML/JSON paths in runtime-state
+  validation. The production workflow remains disabled pending its separate Draft PR.
+- Versioned C files keep same-day B package identities distinct; a dated index points to the
+  latest successful C version. Public output contains research matches and source hashes, no
+  raw response or package. `PROSPECTIVE_CAPTURED` remains unproved by a daily report alone.
+
+## 2026-09-23 — C daily research list implementation, activation pending
+
+- Independent C aggregation and self-contained mobile HTML now show each stock's rule matches,
+  price trend/pullback/rebound, support/resistance, RV_T, pullback/reference and first/second-half
+  volume, and up/down-day asymmetry. An empty match set renders an explicit report. Synthetic
+  preview: `docs/examples/c_daily_research_watchlist_synthetic.html`; it is not a real daily result.
+- The same-runner reader checks frozen B package/file/content SHA, qfq identity, raw sidecar SHA,
+  T-day ST/name and per-request timing before calculating C. B input isolation remains a coverage
+  gap. Formal volume confirmation and `entry_candidate` remain false; volume adjustment effect is
+  `UNRESOLVED`. The report does not claim Formal B or `PROSPECTIVE_CAPTURED` status.
+- Automatic daily delivery is **not active**. Current B workflow holds a production concurrency
+  lock for the whole job. A same-job C step would hold it, and a separate job needs a transfer of
+  package/raw evidence. The repository is public; no private, size-validated runner transfer or
+  independent report persistence has been demonstrated. These are product activation blockers.
+- #81/#83/#84 stay Draft and unmerged. This work is stacked on #83; #84's private Release path is
+  unused. The narrow #84 raw request/response timestamp recording is included here directly.
+  Draft PR #85 carries this implementation; merge/activation is not approved.
+
 更新时间：2026-09-23（Asia/Shanghai）
 
 本文件只记录当前有效状态；历史实现过程与旧 checkpoint 以 Git history / PR / CI 为 provenance，

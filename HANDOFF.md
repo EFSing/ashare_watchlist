@@ -3,10 +3,10 @@
 ## 2026-09-24 — C_RAW_T_ANCHOR_LIMITED_EXPLORATION_V1（独立 Draft PR，未合并）
 
 - Classification: `research question`。不改变 Formal B、C 每日研究名单、生产 workflow、
-  runtime-state 或 #87 的原始阻断结论。
+  runtime-state 或 #87 的原始阻断结论；历史探索不构成产品阻断。
 - Recovery branch: `codex/c-raw-t-anchor-limited-exploration-v1`；worktree
-  `D:\dev\ashare-watchlist-c-raw-anchor`（基于 `origin/master@fb7b6df`）。live remote HEAD 与
-  exact-head CI 以实时 GitHub 为准，不写死在本文件。
+  `D:\dev\ashare-watchlist-c-raw-anchor`。live remote HEAD 与 exact-head CI 以实时 GitHub 为准，
+  不写死在本文件。
 - 输入身份 `RAW_DAILY_K_DECLARED_T_ANCHOR_V1`（**不是** `C_QFQ_INPUT_V1`）：
   `daily_k.parquet` `61189a4850e2eb157453e28e5375e502e20d214508bbe70ea71066ca3e05e426`
   (180,203,424 B)、`adjustment_factors.parquet`
@@ -14,14 +14,113 @@
   manifest LF-normalised `008643a64e0070433f3d63dca8243f8dad294b049a7accb5d49af3597aae17b0`；
   三份实际字节核验均为 `HASH_VERIFIED`。
 - 协议在读取收益前冻结：`docs/research/c_raw_t_anchor_limited_exploration_v1_protocol.md`；
-  报告：`docs/research/c_raw_t_anchor_limited_exploration_v1_report.md`；机器可读产物：
-  `data/research/c_raw_t_anchor_limited_exploration_v1/{summary,events,input_verification}.json`。
+  报告：`docs/research/c_raw_t_anchor_limited_exploration_v1_report.md`；机器可读产物与
+  产物 SHA：`data/research/c_raw_t_anchor_limited_exploration_v1/{summary,events,input_verification,artifact_identity}.json`。
+- 结果：`BALANCED_A` 4,130 事件 / 2,453 episode；`CONSERVATIVE_B` 246 / 127。
+  T+3/T+5/T+10 正收益观察比例 A 44.99%/44.07%/45.80%、B 47.97%/43.09%/41.06%；
+  成本后收益 `NOT_CALCULABLE_COST_MODEL_NOT_PREEXISTING`，实际成交胜率
+  `NOT_AVAILABLE_NO_ACTUAL_FILL_EVIDENCE`。样本身份
+  `MAIN_BOARD_ST_UNVERIFIED_CANDIDATE_SAMPLE`，不满足 formal C PIT 样本条件。
 - 复现命令：`python scripts/c_raw_t_anchor_exploration.py --raw-dir <raw> --manifest <manifest>`
   （全量约 4 分钟，需要 `pyarrow`；CI 的 `.[test]` 不含 pyarrow，故模块内延迟导入）。
   仅重绘报告：加 `--render-from <summary.json> --report-path <md>`。
 - 下一步：等待下一次正常交易日 schedule run 的真实 C 报告验收；Sol/用户决定是否为 C 建立
   合法历史输入（T-known ST 历史、逐 bar vintage、成本模型、`C_QFQ_INPUT_V1` 历史快照）。
   无自动合并、无自动 dispatch、未读 Final OOS。
+
+## 2026-09-24 — C_DAILY_ACTIVATION_AND_LIMITED_HISTORY_RESEARCH_V1
+
+- Classification: the C daily research list product blocker is resolved (STRICT PATH). The separate
+  historical exploration below is a research question and never a product blocker.
+- Authorized product merge order completed as squash merges on `master`: #81 `3e635bd`, #83
+  `fb7b6df`, #85 `464c445`, #86 `6f1720c`. Because the PRs were stacked, each dependent branch was
+  first synced with `master` (branch side won; the resolved trees were byte-identical to the branch
+  content) before retargeting, so each merged diff contained only its own changes. Every merge
+  required exact-head CI success and a `CLEAN` / `MERGEABLE` state. Post-merge `master` correctness
+  runs `35953848215`, `35954210300`, `35954394416`, `35954580331` are all `success`.
+- Activation: repository variable `ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1=true`, set after the chain
+  landed and after confirming no queued/in-progress run (last `daily-t-close` run `35878426562`
+  completed 2026-09-23; next schedule 17:17 BJT). No production dispatch and no backfill of past
+  trading days: acceptance is the next normal trading-day run.
+- Unchanged isolation: C starts only after the six Formal B success gates with
+  `continue-on-error`, 360 s child / 600 s C tail / 300 s reserve, and C-only publication under
+  `data/reports/c_daily/YYYYMMDD/`. #84's private Release backend stays Draft and unenabled; #87
+  stays an independent Draft and its `C_HISTORICAL_BACKTEST_BLOCKED_BY_VERIFIED_DATA_GAP`
+  conclusion is retained verbatim.
+- Historical exploration: new identity `C_RAW_T_ANCHOR_LIMITED_EXPLORATION_V1` on branch
+  `codex/c-raw-t-anchor-limited-exploration-v1`, protocol frozen before outcome access; its results
+  are evidence-limited and must never be reported as `C_QFQ_INPUT_V1` formal results.
+- Next: verify the first real C daily report after the next normal trading day, then review the
+  research Draft PR. Final OOS remains `SEALED / UNREAD`.
+
+## 2026-09-24 — C_DAILY_REPORT_B_ISOLATION_FINAL_MERGE_READY_FOR_SOL
+
+- Classification: product blocker with correctness boundary, unchanged. Draft #86 on
+  `codex/c-post-b-delivery-workflow-v1` depends on Draft #85; fetch live remote heads and CI.
+- C workflow step now uses `continue-on-error: true` after the six Formal B success gates.
+  C failures still produce a failed C step outcome, a stage/status diagnostic file, Actions
+  warning, and best-effort separate summary. Summary or environment-file write failure cannot
+  turn delivered Formal B into a failed job. The 360 s child, 600 s tail and 300 s reserve remain.
+- GitHub's HTML blob shows source; its raw response is `text/plain; nosniff`. The C report
+  link opens the GitHub file page for downloading and local browser viewing, matching B's offline HTML
+  pattern. There is no verified directly rendered online URL. Do not claim one at enablement.
+- No production run, merge, variable enablement, C notification or order. Next: Sol reviews
+  #85/#86 and the report-viewing limitation; user decides merge and enablement separately.
+
+## 2026-09-24 — C_DAILY_REPORT_POST_B_DELIVERY_PR_READY_FOR_SOL_DECISION
+
+- Classification: product blocker with correctness boundaries, unchanged. #85 holds C report
+  generation and C-only runtime-state validation; dependent Draft workflow PR uses branch
+  `codex/c-post-b-delivery-workflow-v1` and bases on live #85. Fetch both live heads and CI.
+- C starts only after B production, formal output validation, runtime-state push, report delivery,
+  receipt persistence, and delivery-health steps all succeed. Repo variable
+  `ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1` defaults off. C reads same-runner frozen package/raw,
+  never calls provider, and publishes only small versioned C HTML/manifest under
+  `data/reports/c_daily/YYYYMMDD/`. Failure stays C-only in Actions summary.
+- Measured 3,196 synthetic securities / 6,392 rule evaluations in 10.757 s locally. The C child
+  has a 360 s timeout; entire C tail is capped at 600 s with 300 s job/next-B reserve.
+  Recent genuine B workflow runs took 58.2–82.5 min; the shared lock risk is real. Primary
+  runs overlapping the 18:17 BJT retry and manual runs near scheduled B times skip C.
+- No real production activation, merge, C notification, order, or formal returns study. Next:
+  Sol reviews #85 and dependent workflow PR; user decides merge order and later enables the
+  variable only after those PRs are merged and operational timing is acceptable.
+
+## 2026-09-24 — C daily report post-B delivery implementation
+
+- Classification: product blocker with correctness boundaries, unchanged; STRICT PATH.
+  Draft #85 branch `codex/c-daily-research-watchlist-shared-b-input-v1` is stacked on #83/#81.
+  Fetch its live head and exact-head CI. Formal B and #84 remain unchanged.
+- Sol chose bounded C work in the same runner after B delivery health succeeds. This supersedes
+  the earlier requirement below for C to avoid B's workflow lock. The separate workflow wiring
+  will be an additional Draft PR based on #85, disabled by default and subject to time guards.
+- C now requires a locally valid B delivery receipt whose exact bytes are in the runtime-state
+  checkout. Public C output is only small HTML and manifest JSON under
+  `data/reports/c_daily/YYYYMMDD/`, with immutable version subdirectories; the dated index is
+  the latest successful C version. B's formal report, watchlist, checkpoint and receipt are untouched.
+- Next: review the dependent workflow PR and exact-head CI, then decide merge and separate enablement.
+  No production execution, C notification, order, or formal returns study has occurred.
+
+## 2026-09-23 — C_DAILY_RESEARCH_WATCHLIST_SHARED_B_INPUT_V1 review checkpoint
+
+- Classification: product blocker with correctness boundaries, unchanged; STRICT PATH. Work branch
+  `codex/c-daily-research-watchlist-shared-b-input-v1` is stacked on Draft #83 (which is stacked
+  on Draft #81). Draft PR #85: https://github.com/EFSing/ashare_watchlist/pull/85.
+  Implementation commit `aff7f6c982bdaca50de27ea7f1bc4959129cfdb2`; fetch live remote HEAD/CI
+  before continuing. Draft #84 remains separate and disabled.
+- Added same-runner read-only C input mode, independent two-rule daily research list and mobile HTML;
+  synthetic preview is `docs/examples/c_daily_research_watchlist_synthetic.html`. C keeps price-rule
+  match and volume research values separate from formal volume confirmation/entry candidate.
+- Reused the narrow #84 per-request HiThink start/receive sidecar timestamps, without importing its
+  private Release export or modifying its PR. No provider call, production run, merge, or Final OOS read.
+- **Activation remains closed:** workflow-level production concurrency covers the entire B job; a C
+  tail step would hold B's lock. A separate job loses runner-local package/raw bytes, while the repo
+  is public and has no verified private transfer for that large input. Do not add a public raw artifact
+  or claim daily automatic reports until isolation, privacy, size, and persistence are demonstrated.
+- Next: review this bounded Draft PR and its exact-head CI; design a verified isolated C execution
+  path that consumes the same package without holding B's lock or publishing raw evidence. Then test
+  a real same-day daily report and decide merge/enable. `PROSPECTIVE_CAPTURED` remains unproven.
+- Local verification: focused 26 passed; full 740 passed, 2 skipped, 10 warnings; compileall,
+  workflow YAML parse, and staged diff check passed. No real daily C capture was run.
 
 ## 2026-09-23 — C_VOLUME_OBSERVATION_AND_EXISTING_STORAGE_REUSE_V1
 
