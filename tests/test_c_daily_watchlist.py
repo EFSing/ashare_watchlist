@@ -279,20 +279,19 @@ def test_post_b_c_failure_and_publish_failure_leave_b_success(tmp_path: Path, mo
 
 
 def test_workflow_c_gate_is_after_all_b_success_steps() -> None:
-    import yaml
-    workflow = yaml.safe_load((Path(__file__).resolve().parents[1] / ".github/workflows/daily_t_close.yml").read_text(encoding="utf-8"))
-    steps = workflow["jobs"]["daily"]["steps"]
-    ids = {step.get("id"): index for index, step in enumerate(steps) if step.get("id")}
+    workflow = (Path(__file__).resolve().parents[1] / ".github/workflows/daily_t_close.yml").read_text(encoding="utf-8")
+    ids = {name: workflow.index(f"        id: {name}\n") for name in (
+        "b_production", "b_output_validation", "b_state_push", "b_delivery",
+        "b_receipt_persist", "delivery_health", "c_daily")}
     assert ids["b_production"] < ids["b_output_validation"] < ids["b_state_push"]
     assert ids["b_state_push"] < ids["b_delivery"] < ids["b_receipt_persist"] < ids["delivery_health"] < ids["c_daily"]
-    c_step = steps[ids["c_daily"]]
-    condition = c_step["if"]
+    c_step = workflow[ids["c_daily"]:workflow.index("      - name:", ids["c_daily"])]
     for gate in ("b_production", "b_output_validation", "b_state_push", "b_delivery",
                  "b_receipt_persist", "delivery_health"):
-        assert f"steps.{gate}.outcome == 'success'" in condition
-    assert "ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1" in condition
-    assert "timeout --signal=TERM --kill-after=10s 600s" in c_step["run"]
-    assert "C status:" in c_step["run"] and "Formal B delivery health: SUCCESS" in c_step["run"]
+        assert f"steps.{gate}.outcome == 'success'" in c_step
+    assert "ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1" in c_step
+    assert "timeout --signal=TERM --kill-after=10s 600s" in c_step
+    assert "C status:" in c_step and "Formal B delivery health: SUCCESS" in c_step
 
 
 def test_same_day_retry_keeps_both_c_package_versions(tmp_path: Path) -> None:
