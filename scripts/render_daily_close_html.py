@@ -2145,10 +2145,11 @@ def render_html(model: ReportModel) -> str:
   --warning: #a56700;
   --accent: #28658a;
   --radius: 7px;
+  --section-nav-height: 46px;
 }}
 * {{ box-sizing: border-box; }}
-html {{ max-width: 100%; overflow-x: hidden; scroll-behavior: smooth; }}
-body {{ max-width: 100%; margin: 0; overflow-x: hidden; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; line-height: 1.45; }}
+html {{ max-width: 100%; overflow-x: clip; scroll-behavior: smooth; }}
+body {{ max-width: 100%; margin: 0; overflow-x: clip; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; line-height: 1.45; }}
 main {{ width: min(1440px, 100%); min-width: 0; margin: 0 auto; padding: 18px 24px 34px; }}
 h1, h2, h3, p {{ margin-top: 0; }}
 h1 {{ margin-bottom: 4px; font-size: clamp(24px, 3vw, 32px); letter-spacing: -.02em; }}
@@ -2169,10 +2170,12 @@ h3 {{ margin-bottom: 0; font-size: 15px; }}
 .status-pill.positive strong {{ color: var(--positive); }}
 .status-pill.warning {{ border-color: #e4c990; color: var(--warning); }}
 .status-pill.warning strong {{ color: var(--warning); }}
-.section-nav {{ position: sticky; top: 0; z-index: 10; display: flex; gap: 2px; min-width: 0; overflow-x: auto; overscroll-behavior-inline: contain; -webkit-overflow-scrolling: touch; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--bg) 94%, transparent); backdrop-filter: blur(8px); }}
-.section-nav a {{ display: inline-flex; flex: 0 0 auto; align-items: center; min-height: 40px; padding: 9px 12px; color: var(--muted); font-size: 13px; text-decoration: none; white-space: nowrap; }}
+.section-nav {{ position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: nowrap; gap: 2px; min-width: 0; overflow-x: auto; overscroll-behavior-inline: contain; -webkit-overflow-scrolling: touch; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--bg); }}
+.section-nav a {{ display: inline-flex; flex: 0 0 auto; align-items: center; min-height: var(--section-nav-height); padding: 9px 12px; color: var(--muted); font-size: 13px; text-decoration: none; white-space: nowrap; }}
 .section-nav a:hover, .section-nav a:focus {{ color: var(--accent); background: var(--surface); outline: none; }}
+.section-nav a[aria-current="location"] {{ color: var(--accent); background: var(--surface); box-shadow: inset 0 -2px 0 var(--accent); }}
 section {{ min-width: 0; margin: 18px 0; padding: 18px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }}
+section[id], details[id] {{ scroll-margin-top: var(--section-nav-height); }}
 .toolbar {{ display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0; }}
 input[type=search] {{ width: min(360px, 100%); padding: 8px 10px; border: 1px solid #b7c3cb; border-radius: 5px; background: var(--surface); color: var(--text); font: inherit; font-size: 13px; }}
 .section-head {{ display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; min-width: 0; margin-bottom: 14px; }}
@@ -2411,36 +2414,37 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
     {_status_pill('云端', '已验证' if cloud_verified else '仅本地', 'positive' if cloud_verified else 'neutral')}
     {_status_pill('输入覆盖', metadata.get('input_coverage_status', 'UNVERIFIED'), 'warning' if metadata.get('input_coverage_status') == 'DEGRADED' else 'positive' if metadata.get('input_coverage_status') == 'COMPLETE' else 'neutral')}
   </div>
-  <nav class="section-nav" aria-label="报告章节导航">
-    <a href="#overview">总览</a><a href="#trade-performance">绩效</a><a href="#tomorrow-watchlist">新名单</a><a href="#shadow-monitor">Shadow Monitor</a><a href="#daily-review">复盘</a><a href="#formal-review">节点研究</a><a href="#anomalies">数据质量</a>
-  </nav>
 </header>
 
+<nav class="section-nav" aria-label="报告章节导航">
+  <a href="#overview">总览</a><a href="#tomorrow-watchlist">新名单</a><a href="#trade-performance">绩效</a><a href="#shadow-monitor">Shadow Monitor</a><a href="#daily-review">复盘</a><a href="#formal-review">节点研究</a><a href="#anomalies">数据质量</a>
+</nav>
+
 <section id="overview">
-  <div class="section-head"><div><p class="section-kicker">01 · OVERVIEW</p><h2>今日总览</h2><p class="section-subtitle">先看行动信息，再看交易结果；技术细节收纳在审计区。</p></div><span class="badge {_status_class(data_state)}">数据状态：{_esc(data_state)}</span></div>
+  <div class="section-head"><div><p class="section-kicker">OVERVIEW</p><h2>今日总览</h2><p class="section-subtitle">先看行动信息，再看交易结果；技术细节收纳在审计区。</p></div><span class="badge {_status_class(data_state)}">数据状态：{_esc(data_state)}</span></div>
   <div class="overview-grid"><div class="overview-lead"><span class="eyebrow">当前阅读重点</span><strong>{_esc(visible_review_note)}</strong><p>策略规则绩效按 canonical trigger / stop / target 与历史 daily OHLC 理论复算；不代表真实成交。</p></div><div class="overview-facts"><div><span>名单日期</span><strong>{_esc(metadata.get('list_date'))}</strong></div><div><span>最早执行</span><strong>{_esc(metadata.get('earliest_execution'))}</strong></div><div><span>候选数量</span><strong>{_esc(_integer(watchlist_count, '0'))}</strong></div></div></div>
   <div class="review-callout{review_callout_class}">{_esc(visible_review_note)}</div>
   {_input_coverage_html(metadata)}
 </section>
 
-<section id="trade-performance">
-  <div class="section-head"><div><p class="section-kicker">02 · PERFORMANCE · 交易绩效</p><h2>策略规则绩效</h2><p class="section-subtitle">假设每个信号严格按 trigger 入场、stop / target 规则价退出；买入当日不可卖出，遵守 A 股 T+1。规则价模拟不代表用户真实成交。</p></div></div>
-  {_trade_performance_html(trade_performance, new_signal_count=watchlist_count, list_date=metadata.get('list_date', '—'), earliest_execution=metadata.get('earliest_execution', '—'))}
-</section>
-
 <section id="tomorrow-watchlist">
-  <div class="section-head"><div><p class="section-kicker">03 · WATCHLIST</p><h2>今日新名单 · {watchlist_count}</h2><p class="section-subtitle">按 Score 从高到低；触发、止损、目标和 RR 为计划参数。</p></div></div>
+  <div class="section-head"><div><p class="section-kicker">WATCHLIST</p><h2>今日新名单 · {watchlist_count}</h2><p class="section-subtitle">按 Score 从高到低；触发、止损、目标和 RR 为计划参数。</p></div></div>
   <div class="toolbar"><label for="watchlist-search" class="note">搜索名单：</label><input id="watchlist-search" type="search" placeholder="输入代码、名称或行业" autocomplete="off"></div>
   {_watchlist_table(model.watchlist_rows, metadata.get('earliest_execution'))}
 </section>
 
+<section id="trade-performance">
+  <div class="section-head"><div><p class="section-kicker">PERFORMANCE · 交易绩效</p><h2>策略规则绩效</h2><p class="section-subtitle">假设每个信号严格按 trigger 入场、stop / target 规则价退出；买入当日不可卖出，遵守 A 股 T+1。规则价模拟不代表用户真实成交。</p></div></div>
+  {_trade_performance_html(trade_performance, new_signal_count=watchlist_count, list_date=metadata.get('list_date', '—'), earliest_execution=metadata.get('earliest_execution', '—'))}
+</section>
+
 <section id="shadow-monitor">
-  <div class="section-head"><div><p class="section-kicker">04 · PROSPECTIVE SHADOW MONITOR</p><h2>Prospective Shadow Monitor</h2><p class="section-subtitle">仅记录 prospective shadow 样本与后续结果；不参与正式名单、评分、排序或交易参数。</p></div></div>
+  <div class="section-head"><div><p class="section-kicker">PROSPECTIVE SHADOW MONITOR</p><h2>Prospective Shadow Monitor</h2><p class="section-subtitle">仅记录 prospective shadow 样本与后续结果；不参与正式名单、评分、排序或交易参数。</p></div></div>
   {shadow_html}
 </section>
 
 <section id="daily-review">
-  <div class="section-head"><div><p class="section-kicker">05 · REVIEW</p><h2>昨日 / 活跃信号复盘</h2><p class="section-subtitle">优先显示今日新触发、止盈、止损、持仓与等待事项。</p></div></div>
+  <div class="section-head"><div><p class="section-kicker">REVIEW</p><h2>昨日 / 活跃信号复盘</h2><p class="section-subtitle">优先显示今日新触发、止盈、止损、持仓与等待事项。</p></div></div>
   <p class="section-summary">昨日名单今日表现 · {_esc(metadata.get('previous_date'))} · 共 {_esc(_integer(summary.get('previous_total'), '0'))} 个信号</p>
   <h3>昨日名单今日表现 · {_esc(metadata.get('previous_date'))}</h3>
   {_daily_table(model.previous_signals)}
@@ -2450,13 +2454,13 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
 </section>
 
 <section id="formal-review">
-  <div class="section-head"><div><p class="section-kicker">06 · RESEARCH</p><h2>固定节点研究</h2><p class="section-subtitle">T+3 / T+5 / T+10 为研究快照，不等同于真实交易盈亏。</p></div></div>
+  <div class="section-head"><div><p class="section-kicker">RESEARCH</p><h2>固定节点研究</h2><p class="section-subtitle">T+3 / T+5 / T+10 为研究快照，不等同于真实交易盈亏。</p></div></div>
   <div class="research-panels">{research_panels}</div>
   <details class="metric-details"><summary>查看节点覆盖</summary>{_rolling_review_html(rolling_review)}</details>
 </section>
 
 <section id="anomalies">
-  <div class="section-head"><div><p class="section-kicker">07 · DATA QUALITY</p><h2>数据质量</h2><p class="section-subtitle">只显示需要关注的异常；正常采集状态合并为单一提示。</p></div></div>
+  <div class="section-head"><div><p class="section-kicker">DATA QUALITY</p><h2>数据质量</h2><p class="section-subtitle">只显示需要关注的异常；正常采集状态合并为单一提示。</p></div></div>
   {_quality_table(quality_rows, performance=trade_performance, audit_performance=audit_performance, summary=summary, acquisition_status=overview.get('acquisition_status', _UNVERIFIED), review_status=model.review_status, shadow_monitor=shadow_monitor)}
 </section>
 
@@ -2483,6 +2487,54 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
     const query = search.value.trim().toLowerCase();
     rows().forEach(function (row) {{ row.hidden = query !== '' && !(row.dataset.search || '').includes(query); }});
   }});
+}})();
+</script>
+<script>
+(function () {{
+  const nav = document.querySelector('.section-nav');
+  if (!nav) return;
+  const links = Array.from(nav.querySelectorAll('a[href^="#"]'));
+  const targets = links
+    .map(function (link) {{ return document.getElementById(link.getAttribute('href').slice(1)); }})
+    .filter(Boolean);
+  if (!targets.length) return;
+  let active = '';
+  const activate = function (id) {{
+    if (id === active) return;
+    active = id;
+    links.forEach(function (link) {{
+      const current = link.getAttribute('href') === '#' + id;
+      if (current) {{ link.setAttribute('aria-current', 'location'); }} else {{ link.removeAttribute('aria-current'); }}
+      if (current) {{
+        // Scroll the navigation strip itself; scrollIntoView() on a link inside the
+        // sticky bar would also scroll the page back to the bar's static position.
+        const offset = link.offsetLeft - (nav.clientWidth - link.offsetWidth) / 2;
+        if (typeof nav.scrollTo === 'function') {{
+          nav.scrollTo({{ left: Math.max(0, offset), behavior: 'smooth' }});
+        }} else {{
+          nav.scrollLeft = Math.max(0, offset);
+        }}
+      }}
+    }});
+  }};
+  const reading = function () {{
+    const line = nav.getBoundingClientRect().height + 8;
+    const atEnd = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+    let id = targets[0].id;
+    targets.forEach(function (target) {{
+      if (atEnd || target.getBoundingClientRect().top <= line) id = target.id;
+    }});
+    return id;
+  }};
+  const refresh = function () {{ activate(reading()); }};
+  if (typeof IntersectionObserver === 'function') {{
+    const observer = new IntersectionObserver(refresh, {{ rootMargin: '-48px 0px -60% 0px', threshold: 0 }});
+    targets.forEach(function (target) {{ observer.observe(target); }});
+  }}
+  window.addEventListener('scroll', refresh, {{ passive: true }});
+  window.addEventListener('resize', refresh);
+  window.addEventListener('hashchange', refresh);
+  refresh();
 }})();
 </script>
 </body>

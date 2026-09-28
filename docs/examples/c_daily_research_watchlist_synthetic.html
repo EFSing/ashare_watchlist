@@ -1,34 +1,78 @@
 <!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>C 每日研究名单 · 2026-04-23</title><style>
-:root{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#202c3a;background:#f4f7fa}*{box-sizing:border-box}
-body{margin:0}main{max-width:1000px;margin:auto;padding:20px}header{background:#123047;color:white;padding:24px;border-radius:16px}
-h1{margin:0 0 8px}h2,h3,h4{margin-bottom:8px}p{line-height:1.6}.card{background:white;border:1px solid #dce5eb;border-radius:14px;padding:18px;margin:18px 0;overflow-wrap:anywhere}
-.rule{border-top:1px solid #dce5eb;margin-top:16px}.badge{font-size:.76em;background:#e5f1ec;color:#176247;padding:4px 8px;border-radius:8px}
-.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.metrics div{background:#f4f7fa;padding:12px;border-radius:10px}small{display:block;line-height:1.5;margin-top:5px}
-.muted{color:#536579;font-size:.92em}code{overflow-wrap:anywhere}@media(max-width:640px){main{padding:10px}header{padding:18px}.metrics{grid-template-columns:1fr}.card{padding:14px}}
-</style></head><body><main><header><h1>C 每日研究名单 · 合成示例</h1><p>合成测试数据，仅用于界面审阅；不是任何交易日的真实选股。</p><p>信号日期 2026-04-23 · 独立研究观察，非 Formal B 名单或买入建议</p>
-<p>BALANCED_A 匹配 1 · CONSERVATIVE_B 匹配 0 · 去重股票 1</p></header>
-<article class='card'><h3>600000 浦发银行</h3><p>匹配规则：BALANCED_A</p><section class="rule"><h4>BALANCED_A <span class="badge">价格结构研究匹配；量能口径待核验</span></h4>
-      <p>事件身份：<code>C_PULLBACK_EPISODE_ID_V1:b466f6fcd0fe58e1faa1021b430927b43886dffb7fd94d1d917ac6ac2322b4f3</code></p>
-      <p>趋势：OK；均线顺序 True；收盘高于快线 True；趋势合格 True。</p>
-      <p>回踩：OK；前高 135.00；两处低点 123.00 / 124.00；深度 0.09。</p>
-      <p>反弹确认：True；支撑参考 123.00–124.00；前高阻力 135.00；支撑判定 True。</p>
-      <div class="metrics"><div><b>确认日 RV_T 1.37×</b><small>T 日成交量相对之前基准期中位量；只描述确认日。</small></div>
-      <div><b>回踩/基准量 0.78×</b><small>回踩期与此前基准期成交量中位数之比。</small></div>
-      <div><b>回踩后半/前半量 1.31×</b><small>回踩后半程日成交量中位数约为前半程的 131%，显示量能增加。</small></div>
-      <div><b>上涨日/下跌日量 1.07×</b><small>回踩期上涨日与下跌日成交量中位数之比；不足天数时不计算。上涨日 5 天，下跌日 5 天。</small></div></div>
-      <p class="muted">规则数据质量：PARTIAL_UNVERIFIED；判定原因：TREND_PULLBACK_REBOUND_SUPPORT_MATCH; VOLUME_BASIS_UNVERIFIED。量能特征：VOLUME_FEATURE_COMPUTED；口径：VOLUME_BASIS_UNVERIFIED；正式量价确认：false。诊断值不证明机构行为或未来收益。</p>
-    </section><section class="rule"><h4>CONSERVATIVE_B <span class="badge">数据待核验</span></h4>
-      <p>事件身份：<code>—</code></p>
-      <p>趋势：INSUFFICIENT_HISTORY；均线顺序 —；收盘高于快线 —；趋势合格 —。</p>
-      <p>回踩：INSUFFICIENT_HISTORY；前高 —；两处低点 — / —；深度 —。</p>
-      <p>反弹确认：—；支撑参考 —–—；前高阻力 —；支撑判定 —。</p>
-      <div class="metrics"><div><b>确认日 RV_T 1.37×</b><small>T 日成交量相对之前基准期中位量；只描述确认日。</small></div>
-      <div><b>回踩/基准量 —</b><small>回踩期与此前基准期成交量中位数之比。</small></div>
-      <div><b>回踩后半/前半量 —</b><small>样本不足，无法比较回踩前后半程。</small></div>
-      <div><b>上涨日/下跌日量 —</b><small>回踩期上涨日与下跌日成交量中位数之比；不足天数时不计算。上涨日 — 天，下跌日 — 天。</small></div></div>
-      <p class="muted">规则数据质量：PARTIAL_UNVERIFIED；判定原因：INSUFFICIENT_HISTORY。量能特征：VOLUME_FEATURE_COMPUTED；口径：VOLUME_BASIS_UNVERIFIED；正式量价确认：false。诊断值不证明机构行为或未来收益。</p>
-    </section><p class='muted'>来源：B 同次冻结 HiThink 历史行情；qfq 价格；volume 单位为股，调整影响未核验。ST 名称响应：—；价格响应：—。逐票 K 线 SHA：<code>bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb</code></p></article><section class='card'><h2>市场覆盖与数据质量</h2><p>只覆盖 B 冻结输入中实际评估且 C 时间、ST 证据合格的证券，不代表完整主板股票池。</p>
-<p>输入状态：PRICE_OBSERVATION_VOLUME_UNVERIFIED；覆盖：PARTIAL_UNVERIFIED；BALANCED_A 数据待核验 0；CONSERVATIVE_B 数据待核验 1；缺口：VOLUME_ADJUSTMENT_SEMANTICS_UNRESOLVED</p>
-<p>package SHA：<code>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</code></p>
-<p>量能研究数值可查看，volume 前复权影响仍为 VOLUME_BASIS_UNVERIFIED，正式量价确认保持关闭。每日名单可查看不等于完整永久前瞻证据集。</p></section></main></body></html>
+<title>C 策略研究名单 · 2026-04-23</title>
+<style>
+:root { color-scheme: light; --bg: #f3f5f7; --surface: #ffffff; --surface-2: #f7f9fa; --text: #18232d; --muted: #667581; --border: #d9e0e5; --accent: #28658a; --warning: #a56700; --radius: 7px; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; line-height: 1.45; }
+main { width: min(1440px, 100%); margin: 0 auto; padding: 18px 24px 34px; }
+main > section { min-width: 0; padding: 18px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+h2 { margin: 0; font-size: 20px; letter-spacing: -.01em; }
+h3 { margin: 0; font-size: 15px; }
+p { margin-top: 0; }
+summary { cursor: pointer; color: var(--accent); font-size: 12px; }
+.badge { display: inline-block; border: 1px solid currentColor; border-radius: 999px; padding: 2px 7px; color: var(--muted); font-size: 11px; line-height: 1.35; white-space: nowrap; }
+.badge.warning { color: var(--warning); }
+.badge.positive { color: #23825a; }
+.badge.neutral { color: #61727f; }
+.section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; min-width: 0; margin-bottom: 14px; }
+.section-kicker { margin: 0 0 2px; color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.section-subtitle { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+@media (max-width: 760px) {
+  main { padding: 12px 10px 24px; }
+  main > section { padding: 13px; }
+  .section-head { display: block; }
+}
+</style>
+</head><body><main><style data-c-daily-inline-style>
+#c-daily-research { min-width: 0; }
+#c-daily-research, #c-daily-research * { box-sizing: border-box; }
+#c-daily-research .c-research-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 14px 0 0; }
+#c-daily-research .c-research-summary > div { min-width: 0; padding: 9px 11px; border: 1px solid var(--border, #d9e0e5); background: var(--surface-2, #f7f9fa); }
+#c-daily-research .c-research-summary span { display: block; color: var(--muted, #667581); font-size: 12px; }
+#c-daily-research .c-research-summary strong { display: block; margin-top: 4px; font-size: 18px; font-variant-numeric: tabular-nums; }
+#c-daily-research .c-stock-card { min-width: 0; margin: 9px 0 0; padding: 13px; border: 1px solid var(--border, #d9e0e5); border-left: 3px solid var(--accent, #28658a); background: var(--surface, #ffffff); }
+#c-daily-research .c-stock-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; min-width: 0; }
+#c-daily-research .c-stock-symbol, #c-daily-research .c-stock-name { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+#c-daily-research .c-stock-name { min-width: 0; overflow-wrap: anywhere; }
+#c-daily-research .c-stock-summary { margin: 8px 0 0; color: var(--muted, #667581); font-size: 13px; overflow-wrap: anywhere; }
+#c-daily-research .c-stock-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; margin: 11px 0 0; }
+#c-daily-research .c-metric { min-width: 0; padding: 9px 10px; border: 1px solid var(--border, #d9e0e5); background: var(--surface-2, #f7f9fa); }
+#c-daily-research .c-metric span { display: block; color: var(--muted, #667581); font-size: 12px; }
+#c-daily-research .c-metric strong { display: block; margin-top: 3px; font-size: 16px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+#c-daily-research .c-metric small { display: block; margin-top: 3px; color: var(--muted, #667581); font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
+#c-daily-research details { margin-top: 11px; border-top: 1px solid var(--border, #d9e0e5); }
+#c-daily-research .c-audit-body { margin: 6px 0 0; color: var(--muted, #667581); font-size: 12px; overflow-wrap: anywhere; }
+#c-daily-research .c-audit-body p { margin: 0 0 6px; }
+#c-daily-research .c-research-notice { margin: 14px 0 0; padding: 11px 13px; border: 1px solid var(--border, #d9e0e5); border-left: 3px solid var(--warning, #a56700); background: var(--surface-2, #f7f9fa); font-size: 13px; }
+#c-daily-research .c-research-empty { border-style: dashed; }
+#c-daily-research code { overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+  #c-daily-research .c-stock-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  #c-daily-research .c-stock-card { padding: 11px; }
+  #c-daily-research .c-research-summary, #c-daily-research .c-stock-metrics { grid-template-columns: 1fr; }
+}
+</style>
+<section id="c-daily-research" class="c-research-section">
+  <div class="section-head">
+    <div><p class="section-kicker">C RESEARCH · 独立研究观察</p><h2>C 策略研究名单 · 1 只</h2>
+      <p class="section-subtitle">合成示例，仅用于界面审阅，不是任何交易日的真实选股 · 信号日期 2026-04-23 · 独立研究观察，不属于 Formal B 正式名单，不构成买入建议。</p></div>
+    <span class="badge warning">量能口径待核验</span>
+  </div>
+  <div class="c-research-summary">
+    <div><span>命中股票</span><strong>1</strong></div>
+    <div><span>BALANCED_A</span><strong>1</strong></div>
+    <div><span>CONSERVATIVE_B</span><strong>0</strong></div>
+  </div>
+  <article class="c-stock-card"><div class="c-stock-head"><span class="c-stock-symbol">600000</span><strong class="c-stock-name">浦发银行</strong><span class="badge positive">BALANCED_A</span></div><p class="c-stock-summary">价格结构匹配 · 反弹确认成立 · 回踩整体缩量 · 后半程量能抬升 · 上涨日量能高于下跌日</p><div class="c-stock-metrics"><div class="c-metric"><span>前高</span><strong>135.00</strong><small>回踩前的参考高点。</small></div><div class="c-metric"><span>回踩低点</span><strong>123.00 / 124.00</strong><small>回踩过程中确认的两处低点。</small></div><div class="c-metric"><span>确认状态</span><strong>已确认</strong><small>反弹确认条件是否成立。</small></div><div class="c-metric"><span>确认日 RV_T</span><strong>1.37×</strong><small>确认日成交量相对此前基准期中位量。</small></div><div class="c-metric"><span>回踩/基准量</span><strong>0.78×</strong><small>回踩期与此前基准期成交量中位数之比。</small></div><div class="c-metric"><span>回踩后半/前半量</span><strong>1.31×</strong><small>约为前半程的 131%，显示量能增加。</small></div><div class="c-metric"><span>上涨日/下跌日量</span><strong>1.07×</strong><small>回踩期上涨日 5 天、下跌日 5 天；取两类的成交量中位数之比。</small></div></div><details class="c-rule-other"><summary>其他规则详情 · CONSERVATIVE_B · 未匹配</summary><div class="c-audit-body"><p><strong>CONSERVATIVE_B · 未匹配</strong>；原因 PRICE_STRUCTURE_RULE_NOT_SATISFIED。事件身份 <code>—</code></p></div></details><details class="c-stock-audit"><summary>技术审计详情</summary><div class="c-audit-body"><p>事件身份与判定：</p><p><strong>BALANCED_A</strong> · 事件身份 <code>C_PULLBACK_EPISODE_ID_V1:b466f6fcd0fe58e1faa1021b430927b43886dffb7fd94d1d917ac6ac2322b4f3</code></p><p>判定 PRICE_STRUCTURE_MATCH_VOLUME_GATE_UNVERIFIED；原因 TREND_PULLBACK_REBOUND_SUPPORT_MATCH; VOLUME_BASIS_UNVERIFIED；规则数据质量 PARTIAL_UNVERIFIED。</p><p>趋势：OK；均线顺序 True；收盘高于快线 True；趋势合格 True。</p><p>回踩：OK；前高 135.00；两处低点 123.00 / 124.00；深度 0.09。</p><p>反弹确认：True；支撑参考 123.00–124.00；前高阻力 135.00；支撑判定 True。</p><p>量能：确认日 RV_T 1.37×；回踩/基准量 0.78×；回踩后半/前半量 1.31×；上涨日/下跌日量 1.07×。</p><p>量能诊断：特征 VOLUME_FEATURE_COMPUTED；口径 VOLUME_BASIS_UNVERIFIED；正式量价确认 False。诊断值不证明机构行为或未来收益。</p><p><strong>CONSERVATIVE_B</strong> · 事件身份 <code>—</code></p><p>判定 PRICE_STRUCTURE_RULE_NOT_SATISFIED；原因 PRICE_STRUCTURE_RULE_NOT_SATISFIED；规则数据质量 PARTIAL_UNVERIFIED。</p><p>趋势：INSUFFICIENT_HISTORY；均线顺序 —；收盘高于快线 —；趋势合格 —。</p><p>回踩：INSUFFICIENT_HISTORY；前高 —；两处低点 — / —；深度 —。</p><p>反弹确认：—；支撑参考 —–—；前高阻力 —；支撑判定 —。</p><p>量能：确认日 RV_T 1.37×；回踩/基准量 —；回踩后半/前半量 —；上涨日/下跌日量 —。</p><p>量能诊断：特征 VOLUME_FEATURE_COMPUTED；口径 VOLUME_BASIS_UNVERIFIED；正式量价确认 False。诊断值不证明机构行为或未来收益。</p><p>来源：B 同次冻结 HiThink 历史行情；qfq 价格；volume 单位为股，调整影响未核验。ST 名称响应：—；价格响应：—。逐票 K 线 SHA：<code>bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb</code>。</p></div></details></article>
+  <details class="c-research-audit"><summary>研究与数据质量详情</summary>
+  <div class="c-audit-body">
+    <p>只覆盖 B 冻结输入中实际评估且 C 时间、ST 证据合格的证券，不代表完整主板股票池。C 状态：C_SUCCESS_WITH_MATCHES。</p>
+    <p>输入状态 PRICE_OBSERVATION_VOLUME_UNVERIFIED；覆盖 PARTIAL_UNVERIFIED；B 已评估 1；B 输入隔离 9；C ST/规则排除 0；C ST 证据待核验 0；C 价格请求时间待核验 0。</p>
+    <p>BALANCED_A 数据待核验 0；CONSERVATIVE_B 数据待核验 0；缺口：VOLUME_ADJUSTMENT_SEMANTICS_UNRESOLVED</p>
+    <p>量能前复权影响仍为 VOLUME_BASIS_UNVERIFIED，正式量价确认关闭；formal_b_signal=false；prospective_captured=false。每日名单可查看不等于完整永久前瞻证据集。</p>
+    <p>package SHA：<code>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</code><br>generation fingerprint：<code>generation</code></p>
+  </div>
+</details>
+</section></main></body></html>

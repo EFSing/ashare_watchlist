@@ -1,5 +1,49 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-09-28 — C_DAILY_B_PLUS_C_READING_UX (same PR #92 branch)
+
+- Classification: presentation / UX 修复（FAST PATH；不改变任何 B/C 语义）。Branch unchanged:
+  `codex/c-daily-single-file-delivery-v1` (PR #92), based on live
+  `origin/master=790af3ec8384583c22cba1bc63c831f0d2040187`. The entry below is the earlier
+  checkpoint of this same PR; this entry supersedes its verification numbers.
+- Root cause of the unusable module navigation: `overflow-x: hidden` on `html`/`body` made the
+  body a scroll container, which disables `position: sticky` for descendants; the bar was also
+  nested inside the short `<header>`. Both are fixed (`overflow-x: clip`, nav moved to be a direct
+  child of `main`), so the bar stays at the top of the viewport for the whole page and at both
+  desktop and phone widths.
+- Presentation changes: reading order is now 总览 → 新名单 → C研究 → 绩效 → Shadow → 复盘 →
+  节点研究 → 数据质量; the composite injects the `C研究` tab and places the C module directly
+  after the Formal B new list; every nav target carries `scroll-margin-top:
+  var(--section-nav-height)`; a small IntersectionObserver + passive scroll script sets
+  `aria-current="location"` and centres the active tab inside the bar (plain `<a href>` anchors
+  still work with JavaScript disabled). Section kickers no longer carry fixed ordinals, because C
+  is present in the delivered composite but not in the canonical Formal B artifact.
+- C module: presented as one module of the same daily report (shared `section-head` / `badge` /
+  design tokens; C CSS scoped to `#c-daily-research` under `c-stock-*` / `c-metric` / `c-rule-*`
+  names, with no global `body`/`main`/`header`/`section`/`table` rules). One compact summary line,
+  one card per stock, matched rules in the body, unmatched rules collapsed to a single
+  `其他规则详情 · <RULE> · 未匹配` line, one short mechanical structure sentence plus seven labelled
+  metrics, and collapsed `技术审计详情` / `研究与数据质量详情` for identity, SHAs, provider
+  timestamps and raw status codes. No C selection logic, B strategy, threshold, scoring or
+  calculation was changed; the 2026-09-24 acceptance sample is still
+  `matched_stock_count=2`, `BALANCED_A=2`, `CONSERVATIVE_B=0` with `600019 宝钢股份` and
+  `601598 中国外运`.
+- Verification: focused `tests/test_c_daily_watchlist.py` + `tests/test_daily_close_html.py`
+  `78 passed`; full `pytest` `769 passed, 2 skipped, 1 baseline environment failure, 10 warnings`,
+  where the failure is the pre-existing metadata-only assertion
+  `test_c_pre_outcome_design::test_data_check_is_metadata_only_and_marks_missing_pit_evidence`
+  (it expects the ignored local `data/validation/.../daily_k.parquet` to be absent and is unrelated
+  to this diff); `python -m compileall -q scripts tests` and `git diff --check` pass. The
+  read-only 2026-09-24 preview was rebuilt from `origin/runtime-state` Formal B bytes plus the
+  published C values and measured in headless Chrome: `navTop=0` at every scroll depth and at both
+  `1440x900` and `390x844`, anchor jumps place the section title exactly at the nav height, the
+  active tab follows the section, no element overflows horizontally, and
+  `documentElement.scrollWidth == viewport` at both widths. The synthetic C preview
+  `docs/examples/c_daily_research_watchlist_synthetic.html` was regenerated with the new renderer.
+- Next: user merge decision on PR #92 after exact-head CI and mergeability are re-read (do not
+  auto-merge). No production dispatch, historical backfill, runtime-state mutation, receipt
+  change, order, promotion, or Final OOS read in this task.
+
 ## 2026-09-28 — C_DAILY_SINGLE_FILE_DELIVERY_PR_READY_FOR_USER_MERGE_DECISION
 
 - Classification: product blocker plus correctness/provenance boundary; STRICT PATH. PR #91 is

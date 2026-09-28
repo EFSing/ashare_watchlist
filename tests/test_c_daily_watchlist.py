@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -304,7 +305,7 @@ def test_success_composite_contains_c_once_without_external_dependencies(tmp_pat
     html = Path(prepared["delivery_report_path"]).read_text(encoding="utf-8")
     assert prepared["c_status"] == "C_SUCCESS_WITH_MATCHES"
     assert html.count('id="c-daily-research"') == 1
-    assert "600000 浦发银行" in html
+    assert "600000" in html and "浦发银行" in html
     assert "BALANCED_A" in html and "CONSERVATIVE_B" in html
     assert "VOLUME_BASIS_UNVERIFIED" in html and "formal_b_signal" in html
     assert "c_daily/" not in html and "iframe" not in html and "fetch(" not in html
@@ -540,6 +541,116 @@ def test_real_b_serializer_to_c_html_uses_only_frozen_bytes(tmp_path: Path, monk
                                        read_at=datetime(2026, 8, 27, 19, tzinfo=tz(timedelta(hours=8))))
     assert observed["observation_count"] == 1
     report = write_report(capture.C_OUTPUT_ROOT / observed["record"], tmp_path / "c-report")
-    assert "C 每日研究名单" in Path(report["path"]).read_text(encoding="utf-8")
+    assert "C 策略研究名单" in Path(report["path"]).read_text(encoding="utf-8")
     assert report["html_bytes"] < 2_000_000
     assert hashlib.sha256(persisted.path.read_bytes()).hexdigest() == sha
+
+
+_B_SHELL = (
+    '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><style>'
+    '.section-nav { position: sticky; top: 0; z-index: 20; }</style></head><body><main>'
+    '<header class="site-header"><h1>测试日报</h1>\n'
+    '<nav class="section-nav" aria-label="报告章节导航">'
+    '<a href="#overview">总览</a><a href="#tomorrow-watchlist">新名单</a>'
+    '<a href="#trade-performance">绩效</a></nav>\n</header>\n'
+    '<section id="overview">总览内容</section>\n'
+    '<section id="tomorrow-watchlist">新名单内容</section>\n'
+    '<section id="trade-performance">绩效内容</section>\n'
+    '<details id="audit"><summary>技术与审计信息</summary></details>\n'
+    '</main></body></html>'
+)
+
+
+def _single_match_watchlist() -> dict:
+    record = _record(double=True)
+    rule = record["observations"][0]["rules"]["CONSERVATIVE_B"]
+    rule["price_structure_match"] = False
+    rule["research_match_status"] = "PRICE_STRUCTURE_RULE_NOT_SATISFIED"
+    rule["research_match_reason"] = "PRICE_STRUCTURE_RULE_NOT_SATISFIED"
+    rule["price_structure_event_identity"] = None
+    return build_watchlist(record)
+
+
+def test_composite_places_c_module_after_new_list_with_nav_entry() -> None:
+    from c_daily_watchlist import compose_delivery_html, render_section
+
+    watchlist = _single_match_watchlist()
+    section = render_section(watchlist)
+    html = compose_delivery_html(_B_SHELL, section).decode("utf-8")
+
+    assert html.count('id="c-daily-research"') == 1
+    assert '<a href="#tomorrow-watchlist">新名单</a><a href="#c-daily-research">C研究</a>' in html
+    assert (html.index('<section id="tomorrow-watchlist"') < html.index('<section id="c-daily-research"')
+            < html.index('<section id="trade-performance"'))
+    assert "c_daily/" not in html and "iframe" not in html
+    # The presentation copy differs from the canonical Formal B bytes only by the
+    # added navigation entry and the inline C module.
+    restored = html.replace(f"\n{section}\n", "").replace(
+        '<a href="#c-daily-research">C研究</a>', "")
+    assert restored == _B_SHELL
+
+
+def test_c_module_first_layer_is_compact_and_technical_detail_is_collapsed() -> None:
+    from c_daily_watchlist import render_section
+
+    watchlist = _single_match_watchlist()
+    assert watchlist["matched_stock_count"] == 1
+    assert watchlist["matched_by_rule"] == {"BALANCED_A": 1, "CONSERVATIVE_B": 0}
+    html = render_section(watchlist)
+    card = html.split('<article class="c-stock-card">', 1)[1]
+    visible = card.split("<details", 1)[0]
+
+    assert "<h2>C 策略研究名单 · 1 只</h2>" in html
+    assert "<span>命中股票</span><strong>1</strong>" in html
+    assert "<span>BALANCED_A</span><strong>1</strong>" in html
+    assert "<span>CONSERVATIVE_B</span><strong>0</strong>" in html
+    assert "600000" in visible and "浦发银行" in visible
+    assert '<span class="badge positive">BALANCED_A</span>' in visible
+    assert "价格结构匹配" in visible
+    for label in ("前高", "回踩低点", "确认状态", "确认日 RV_T", "回踩/基准量",
+                  "回踩后半/前半量", "上涨日/下跌日量"):
+        assert label in visible
+    # The unmatched rule is one collapsed line, not a second full-size block.
+    assert "CONSERVATIVE_B" not in visible
+    assert ('<details class="c-rule-other"><summary>其他规则详情 · CONSERVATIVE_B · 未匹配</summary>'
+            in html)
+    assert '<details class="c-stock-audit"><summary>技术审计详情</summary>' in html
+    assert '<details class="c-stock-audit" open' not in html
+    assert '<details class="c-rule-other" open' not in html
+    # Machine detail is still reachable: identity, SHAs and raw status codes.
+    assert "事件身份" in html
+    assert "VOLUME_BASIS_UNVERIFIED" in html and "formal_b_signal=false" in html
+    assert "B 输入隔离 9" in html and "package SHA" in html
+
+
+def test_c_module_style_is_scoped_and_reuses_formal_b_tokens() -> None:
+    from c_daily_watchlist import render_section
+
+    html = render_section(_single_match_watchlist())
+    style = html.split("<style data-c-daily-inline-style>", 1)[1].split("</style>", 1)[0]
+    for unscoped in ("html", "body", "main", "header", "section", "table", "th", "td",
+                     ".badge", "h2", "h3", "p"):
+        assert not re.search(rf"(?:^|}})\s*{re.escape(unscoped)}\s*[{{,]", style), unscoped
+    for token in ("var(--border", "var(--muted", "var(--surface-2", "var(--accent",
+                  "var(--surface", "var(--warning"):
+        assert token in style
+    section = html.split("</style>", 1)[1]
+    for shared_class in ('class="section-head"', 'class="section-kicker"',
+                         'class="section-subtitle"', 'class="badge warning"'):
+        assert shared_class in section
+    assert "grid-template-columns: 1fr" in style
+
+
+def test_c_module_result_values_come_from_the_computed_watchlist() -> None:
+    from c_daily_watchlist import render_section
+
+    watchlist = build_watchlist(_record(double=True))
+    assert watchlist["matched_by_rule"] == {"BALANCED_A": 1, "CONSERVATIVE_B": 1}
+    html = render_section(watchlist)
+    assert "<span>命中股票</span><strong>1</strong>" in html
+    assert "<span>BALANCED_A</span><strong>1</strong>" in html
+    assert "<span>CONSERVATIVE_B</span><strong>1</strong>" in html
+    assert '<span class="badge positive">BALANCED_A</span>' in html
+    assert '<span class="badge positive">CONSERVATIVE_B</span>' in html
+    # A double match keeps both rule events reachable without a second visible block.
+    assert html.count("independent-b-event") == 1

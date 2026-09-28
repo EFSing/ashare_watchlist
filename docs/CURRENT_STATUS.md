@@ -1,5 +1,38 @@
 # CURRENT STATUS
 
+## 2026-09-28 — C single-file B+C reading UX on the same PR #92 branch
+
+- Classification: presentation / UX only (FAST PATH); B strategy, C rules, thresholds, scoring and
+  every calculation are unchanged, and the merged #91 behaviour is untouched. The live baseline is
+  still `origin/master=790af3ec8384583c22cba1bc63c831f0d2040187` with
+  `origin/runtime-state=e6399431ad999c6ba1579afac7f5812bc1e3f033`; work continues on
+  `codex/c-daily-single-file-delivery-v1` (PR #92).
+- Daily reading is now 总览 → 新名单 → C研究 → 绩效 → Shadow → 复盘 → 节点研究 → 数据质量. The module
+  navigation is a real full-page sticky bar: it is a direct child of `main` (not inside the short
+  header) and `html`/`body` use `overflow-x: clip` instead of `overflow-x: hidden`, which had made
+  the body a scroll container and silently disabled `position: sticky`. Every anchor target has
+  `scroll-margin-top: var(--section-nav-height)`, a small IntersectionObserver + passive scroll
+  script marks the current module with `aria-current="location"` and centres the active tab, and
+  plain `<a href>` navigation still works with JavaScript disabled.
+- The composite deliverable now presents C as one module of the same report: compact
+  `C 策略研究名单 · N 只` summary, one card per stock, matched rules visible in the body, unmatched
+  rules collapsed to a single line, a short mechanical structure sentence plus a small metric set,
+  and collapsed technical/audit detail for identity, SHAs, provider timestamps and raw status
+  codes. C CSS stays scoped to `#c-daily-research`; no second global `body`/`main`/`header`/
+  `section`/`table` block is emitted.
+- Read-only acceptance for 2026-09-24 is unchanged: `matched_stock_count=2`, `BALANCED_A=2`,
+  `CONSERVATIVE_B=0`, `600019 宝钢股份`, `601598 中国外运`; no historical artifact, receipt or
+  runtime-state ref was modified.
+- Verification: focused C/B/HTML suites `78 passed`; full `pytest` `769 passed, 2 skipped,
+  1 baseline environment failure, 10 warnings`, the failure being the pre-existing local
+  `data/validation/.../daily_k.parquet` presence assertion unrelated to this diff; `compileall` and
+  `git diff --check` pass. Headless-Chrome measurement of the rebuilt 2026-09-24 preview shows the
+  sticky bar at the viewport top at every scroll depth for `1440x900` and `390x844`, section titles
+  landing exactly at the nav height on anchor jumps, the correct active tab per section, and no
+  horizontal overflow.
+- Next action: the user's merge decision on PR #92 once exact-head CI and mergeability are re-read;
+  no auto-merge, production dispatch, backfill, order, promotion, or Final OOS read.
+
 ## 2026-09-28 — C single-file B+C delivery correction PR #92 ready
 
 - Classification: product blocker plus correctness/provenance boundary; STRICT PATH. The live
