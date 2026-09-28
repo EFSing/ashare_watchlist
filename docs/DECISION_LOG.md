@@ -1,5 +1,26 @@
 # DECISION LOG
 
+## 2026-09-28 — ADOPT immutable Formal B plus single-file B+C user delivery
+
+- `ADOPT` the two-layer delivery contract: `data/reports/daily_close_YYYYMMDD.html` remains the
+  immutable Formal B canonical artifact for SHA, checkpoint, provenance and runtime-state identity;
+  C read-only computation may run only after that canonical B persistence and only to construct a
+  temporary self-contained B+C presentation for the user-facing attachment.
+- `ADOPT` the execution order B production → output validation → canonical runtime-state push →
+  one bounded C computation/composite build → Email/Bark → receipt persistence → delivery health →
+  independent C publication/readback. C failure, timeout, pending data or not-run status must not
+  gate Formal B delivery; the attachment must instead contain full B plus an explicit C unavailable
+  state. Same-day completed retries may use an explicit `C_NOT_RUN` fallback when no C result is
+  available.
+- `ADOPT` receipt compatibility: `report_sha256` continues to mean Formal B canonical SHA. When a
+  composite is actually attached, optional `delivery_report_sha256` and
+  `delivery_report_kind=B_PLUS_C_PRESENTATION_V1` identify the delivered bytes. Historical receipts
+  without those fields remain valid and readable. The temporary composite is not durable canonical
+  state and is not added to the runtime-state allowlist.
+- `REJECT` a Formal B relative link to `c_daily/YYYYMMDD/index.html` as the final product shape;
+  the user must receive one offline/mobile-readable HTML file with B and C inline. This is a
+  forward correction to merged #91, not a history rewrite or revert.
+
 ## 2026-09-24 — ADOPT C daily research list activation; historical exploration keeps its own identity
 
 - `ADOPT` the authorized merge chain #81 → #83 → #85 → #86 and set

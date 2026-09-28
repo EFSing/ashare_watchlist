@@ -568,6 +568,38 @@ def test_delivery_success_creates_sha_bound_receipt(tmp_path, monkeypatch):
     assert receipt["email_sent_at_bjt"].startswith("2026-09-14T17:31:42+08:00")
 
 
+def test_delivery_attaches_composite_but_receipt_keeps_formal_b_sha(tmp_path, monkeypatch):
+    root = _data_root(tmp_path)
+    composite = tmp_path / "delivery-report" / "delivery_daily_20260914.html"
+    composite.parent.mkdir(parents=True)
+    composite.write_text(
+        "<!doctype html><html><body><main>formal B bytes plus inline C</main></body></html>\n",
+        encoding="utf-8",
+    )
+    counts, messages, _bark = _capture_transports(monkeypatch)
+
+    result = delivery.deliver_production(
+        root,
+        DATE,
+        result=_success_result(),
+        delivery_report_path=composite,
+        env=_env(),
+        now_bjt=NOW,
+        sleep_fn=lambda _seconds: None,
+    )
+
+    receipt = delivery.load_delivery_receipt(root, DATE)
+    attachment = next(part for part in messages[0].walk() if part.get_content_disposition() == "attachment")
+    assert result["status"] == delivery.DELIVERY_SUCCESS
+    assert counts == {"email": 1, "bark": 1}
+    assert receipt is not None
+    assert receipt["report_sha256"] == delivery.file_sha256(root / "reports" / "daily_close_20260914.html")
+    assert receipt["delivery_report_sha256"] == delivery.file_sha256(composite)
+    assert receipt["delivery_report_kind"] == "B_PLUS_C_PRESENTATION_V1"
+    assert attachment.get_payload(decode=True) == composite.read_bytes()
+    assert not (root / "reports" / "delivery_daily_20260914.html").exists()
+
+
 def test_same_report_with_two_successful_channels_is_already_delivered(tmp_path, monkeypatch):
     root = _data_root(tmp_path)
     counts, _messages, _bark = _capture_transports(monkeypatch)

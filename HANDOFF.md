@@ -1,5 +1,37 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-09-28 — C_DAILY_SINGLE_FILE_DELIVERY_INDEPENDENT_FIX_IN_PROGRESS
+
+- Classification: product blocker plus correctness/provenance boundary; STRICT PATH. PR #91 is
+  already merged and untouched. Work continues only on `codex/c-daily-single-file-delivery-v1`,
+  based on live `origin/master=790af3ec8384583c22cba1bc63c831f0d2040187`.
+- Root cause: #91 placed a relative `c_daily/YYYYMMDD/index.html` entry in Formal B, which made
+  the user-facing report depend on a second file/directory. The forward fix removes that entry
+  from the Formal B renderer and creates a temporary, self-contained B+C presentation after
+  canonical B runtime-state persistence and before Email/Bark delivery.
+- Contract now enforced: Formal B `data/reports/daily_close_YYYYMMDD.html` bytes/SHA remain the
+  canonical identity; the attachment is `delivery_daily_YYYYMMDD.html` under `RUNNER_TEMP` and
+  is not in the runtime-state allowlist. Receipts retain `report_sha256` for Formal B and may add
+  `delivery_report_sha256` plus `delivery_report_kind=B_PLUS_C_PRESENTATION_V1`. Old receipts stay
+  readable. C is computed once in a bounded child; `C_TIMEOUT`, `C_FAILED`, `C_DATA_PENDING` and
+  `C_NOT_RUN` still produce an explicit fallback section without fabricating zero matches.
+- Workflow order is B production → validation → canonical state push → C/composite preparation →
+  Email/Bark → receipt persistence → delivery health → independent C publication/readback.
+  Post-delivery publication reuses the precomputed C result and never reruns C. Same-day completed
+  retries use an explicit `C_NOT_RUN` presentation fallback.
+- Verification: focused delivery/C/Formal-B suite `105 passed, 1 warning`; short-path full-suite
+  rerun `763 passed, 2 skipped, 1 deselected, 10 warnings`. The one deselected test is an
+  environment-only assertion that expects the ignored local `data/validation/.../daily_k.parquet`
+  to be absent; the full run without deselection reports that single baseline failure, and the
+  current diff does not touch that code or artifact. YAML parse, `compileall`, and
+  `git diff --check` pass. Read-only live evidence remains
+  `origin/runtime-state=e6399431ad999c6ba1579afac7f5812bc1e3f033`; the local 2026-09-24 preview
+  contains `600019 宝钢股份`, `601598 中国外运`, `BALANCED_A=2`, `CONSERVATIVE_B=0`.
+- Next: run full pytest, inspect the final diff, commit and push this branch, create the independent
+  PR titled `fix(c): deliver B and C in one self-contained daily HTML`, verify exact-head CI and
+  `CLEAN`/`MERGEABLE`, attach the PR, and stop for the user's merge decision. No production
+  dispatch, historical backfill, runtime-state mutation, order, promotion, or Final OOS read.
+
 ## 2026-09-28 — C_DAILY_USER_VISIBLE_ENTRY_PR_READY_FOR_USER_MERGE_DECISION
 
 - Classification: product/display blocker; FAST PATH. The 2026-09-24 C research report was

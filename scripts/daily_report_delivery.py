@@ -34,6 +34,7 @@ from watchlist_schema import INPUT_COVERAGE_DEGRADED, validate_input_coverage
 _BJT = timezone(timedelta(hours=8))
 DEFAULT_BARK_SERVER_URL = "https://api.day.app"
 RECEIPT_SCHEMA_VERSION = "DAILY_REPORT_DELIVERY_RECEIPT_V1"
+DELIVERY_REPORT_KIND = "B_PLUS_C_PRESENTATION_V1"
 FAILURE_NOTICE_SCHEMA_VERSION = "DAILY_FAILURE_NOTICE_V1"
 DELIVERY_SUCCESS = "DELIVERY_SUCCESS"
 DELIVERY_DEGRADED = "DELIVERY_DEGRADED"
@@ -71,6 +72,8 @@ _RECEIPT_KEYS = {
     "schema_version",
     "report_date",
     "report_sha256",
+    "delivery_report_sha256",
+    "delivery_report_kind",
     "candidate_count",
     "review_status",
     "shadow_status",
@@ -114,6 +117,13 @@ class DeliveryReceiptIdentityConflict(DeliveryError):
         super().__init__("DELIVERY_RECEIPT_REPORT_IDENTITY_CONFLICT")
 
 
+class DeliveryReceiptPresentationIdentityConflict(DeliveryError):
+    """The receipt is bound to different user-facing delivery bytes."""
+
+    def __init__(self) -> None:
+        super().__init__("DELIVERY_RECEIPT_DELIVERY_IDENTITY_CONFLICT")
+
+
 class SecretsRequired(DeliveryError):
     """The requested test delivery cannot run without configured secrets."""
 
@@ -144,6 +154,9 @@ class ReportContext:
     shadow_status: str
     report_path: Path
     report_sha256: str
+    delivery_report_path: Path
+    delivery_report_sha256: str
+    delivery_report_kind: str
     degraded_reasons: tuple[str, ...]
     input_coverage: dict[str, Any] | None = None
 
@@ -363,6 +376,15 @@ def validate_delivery_receipt(
         raise DeliveryError("DELIVERY_RECEIPT_DATE_CONFLICT")
     if not isinstance(receipt.get("report_sha256"), str) or not _SHA256.fullmatch(receipt["report_sha256"]):
         raise DeliveryError("DELIVERY_RECEIPT_INVALID")
+    delivery_sha = receipt.get("delivery_report_sha256")
+    delivery_kind = receipt.get("delivery_report_kind")
+    if delivery_sha is not None:
+        if not isinstance(delivery_sha, str) or not _SHA256.fullmatch(delivery_sha):
+            raise DeliveryError("DELIVERY_RECEIPT_INVALID")
+        if delivery_kind != DELIVERY_REPORT_KIND:
+            raise DeliveryError("DELIVERY_RECEIPT_INVALID")
+    elif delivery_kind is not None:
+        raise DeliveryError("DELIVERY_RECEIPT_INVALID")
     candidate_count = receipt.get("candidate_count")
     if isinstance(candidate_count, bool) or not isinstance(candidate_count, int) or candidate_count < 0:
         raise DeliveryError("DELIVERY_RECEIPT_INVALID")
@@ -571,6 +593,7 @@ def load_report_context(
     report_date: date | datetime | str,
     *,
     result: Mapping[str, Any] | None = None,
+    delivery_report_path: str | Path | None = None,
 ) -> ReportContext:
     normalized_date = normalize_date(report_date)
     token = _date_token(normalized_date)
@@ -579,6 +602,13 @@ def load_report_context(
     report_path = root / "reports" / f"daily_close_{token}.html"
     if not watchlist_path.is_file() or not report_path.is_file() or report_path.stat().st_size == 0:
         raise DeliveryError("REPORT_NOT_READY")
+    presentation_path = (
+        report_path
+        if delivery_report_path is None
+        else Path(delivery_report_path).expanduser().resolve()
+    )
+    if not presentation_path.is_file() or presentation_path.stat().st_size == 0:
+        raise DeliveryError("DELIVERY_REPORT_NOT_READY")
     watchlist = _read_json(watchlist_path, "WATCHLIST_READ_FAILED")
     candidates = watchlist.get("candidates")
     if not isinstance(candidates, list):
@@ -611,6 +641,11 @@ def load_report_context(
         shadow_status=shadow_status,
         report_path=report_path,
         report_sha256=file_sha256(report_path),
+        delivery_report_path=presentation_path,
+        delivery_report_sha256=file_sha256(presentation_path),
+        delivery_report_kind=(
+            DELIVERY_REPORT_KIND if presentation_path != report_path else "FORMAL_B_CANONICAL_V1"
+        ),
         degraded_reasons=tuple(degraded_reasons),
         input_coverage=input_coverage,
     )
@@ -931,7 +966,7 @@ def _attempt(
 
 
 def _base_receipt(context: ReportContext, now: datetime) -> dict[str, Any]:
-    return {
+    receipt = {
         "schema_version": RECEIPT_SCHEMA_VERSION,
         "report_date": context.report_date,
         "report_sha256": context.report_sha256,
@@ -946,6 +981,14 @@ def _base_receipt(context: ReportContext, now: datetime) -> dict[str, Any]:
         "email_error_summary": None,
         "bark_error_summary": None,
     }
+    if context.delivery_report_kind == DELIVERY_REPORT_KIND:
+        receipt.update(
+            {
+                "delivery_report_sha256": context.delivery_report_sha256,
+                "delivery_report_kind": DELIVERY_REPORT_KIND,
+            }
+        )
+    return receipt
 
 
 def _overall_delivery_status(receipt: Mapping[str, Any]) -> str:
@@ -985,7 +1028,7 @@ def _channel_result(
                 ),
                 recipient=settings.report_email_to,
                 sender=settings.smtp_from,
-                attachment_path=context.report_path,
+                attachment_path=context.delivery_report_path,
                 attachment_filename=success_attachment_filename(context.report_date),
             )
             operation = lambda: send_email_message(message, settings)
@@ -1017,13 +1060,30 @@ def deliver_production(
     now_bjt: datetime | str | None = None,
     max_attempts: int = 3,
     sleep_fn: Callable[[float], None] = time.sleep,
+    delivery_report_path: str | Path | None = None,
 ) -> dict[str, Any]:
     environ = os.environ if env is None else env
     now = _now_bjt(now_bjt)
-    context = load_report_context(data_root, report_date, result=result)
+    context = load_report_context(
+        data_root,
+        report_date,
+        result=result,
+        delivery_report_path=delivery_report_path,
+    )
     existing = load_delivery_receipt(data_root, context.report_date)
     if existing is not None and existing["report_sha256"] != context.report_sha256:
         raise DeliveryReceiptIdentityConflict()
+    existing_delivery_sha = existing.get("delivery_report_sha256") if existing is not None else None
+    if existing_delivery_sha is not None and existing_delivery_sha != context.delivery_report_sha256:
+        raise DeliveryReceiptPresentationIdentityConflict()
+    if (
+        existing is not None
+        and existing["email_status"] == "SUCCESS"
+        and existing["bark_status"] == "SUCCESS"
+        and context.delivery_report_kind == DELIVERY_REPORT_KIND
+        and existing_delivery_sha is None
+    ):
+        raise DeliveryReceiptPresentationIdentityConflict()
     if existing is not None and (
         existing["email_status"] == "SUCCESS" and existing["bark_status"] == "SUCCESS"
     ):
@@ -1031,6 +1091,8 @@ def deliver_production(
             "status": ALREADY_DELIVERED,
             "report_date": context.report_date,
             "report_sha256": context.report_sha256,
+            "delivery_report_sha256": existing.get("delivery_report_sha256"),
+            "delivery_report_kind": existing.get("delivery_report_kind"),
             "candidate_count": context.candidate_count,
             "review_status": context.review_status,
             "shadow_status": context.shadow_status,
@@ -1052,6 +1114,13 @@ def deliver_production(
             "last_attempt_at_bjt": _timestamp(now),
         }
     )
+    if context.delivery_report_kind == DELIVERY_REPORT_KIND:
+        receipt.update(
+            {
+                "delivery_report_sha256": context.delivery_report_sha256,
+                "delivery_report_kind": DELIVERY_REPORT_KIND,
+            }
+        )
     attempted: list[str] = []
     results: dict[str, dict[str, Any]] = {}
     for channel in ("email", "bark"):
@@ -1083,6 +1152,8 @@ def deliver_production(
         "status": _overall_delivery_status(receipt),
         "report_date": context.report_date,
         "report_sha256": context.report_sha256,
+        "delivery_report_sha256": receipt.get("delivery_report_sha256"),
+        "delivery_report_kind": receipt.get("delivery_report_kind"),
         "candidate_count": context.candidate_count,
         "review_status": context.review_status,
         "shadow_status": context.shadow_status,
@@ -1449,6 +1520,7 @@ def _parser() -> argparse.ArgumentParser:
     deliver = sub.add_parser("deliver")
     deliver.add_argument("--mode", choices=["production"], default="production")
     deliver.add_argument("--data-root", type=Path, required=True)
+    deliver.add_argument("--delivery-report-path", type=Path, default=None)
     _common_delivery_parser(deliver)
     deliver.add_argument("--runtime-state-persisted", choices=["YES", "NO"], default="YES")
     deliver.add_argument("--result-file", type=Path, default=None)
@@ -1494,6 +1566,7 @@ def main(argv: list[str] | None = None) -> int:
                 runtime_state_persisted=args.runtime_state_persisted,
                 now_bjt=args.now_bjt,
                 max_attempts=args.max_attempts,
+                delivery_report_path=args.delivery_report_path,
             )
             print(json.dumps(result, ensure_ascii=False, sort_keys=True))
             return 0

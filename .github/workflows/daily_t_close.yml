@@ -68,6 +68,7 @@ jobs:
       DISPATCH_AS_OF_DATE: ${{ github.event_name == 'workflow_dispatch' && inputs.as_of_date || '' }}
       DISPATCH_TRIGGER_SOURCE: ${{ github.event_name == 'workflow_dispatch' && inputs.trigger_source || 'manual' }}
       DISPATCH_ALLOW_WEEKEND_BACKFILL: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_weekend_backfill || false }}
+      ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1: ${{ vars.ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1 || 'false' }}
       PRODUCTION_CANONICAL_READY: "0"
       RUNTIME_STATE_PERSISTED: "NO"
       PRODUCTION_FAILURE_STAGE: "NOT_STARTED"
@@ -466,9 +467,58 @@ jobs:
           echo "market-data provider calls = 0" >> "$GITHUB_STEP_SUMMARY"
           echo "runtime-state mutation = NO" >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Prepare self-contained B+C delivery HTML
+        id: c_pre_delivery
+        if: always() && env.RUN_MODE == 'production' && env.PRODUCTION_CANONICAL_READY == '1' && (env.ASHARE_SKIP_PRODUCTION == '1' || (steps.b_production.outcome == 'success' && steps.b_output_validation.outcome == 'success' && steps.b_state_push.outcome == 'success'))
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          output="$RUNNER_TEMP/c-pre-delivery.json"
+          if [[ "$ASHARE_SKIP_PRODUCTION" == "1" ]]; then
+            python scripts/run_c_daily_watchlist.py --prepare-fallback \
+              --as-of-date "$AS_OF_DATE" \
+              --formal-report-path "$ASHARE_DATA_ROOT/reports/daily_close_${AS_OF_DATE//-/}.html" \
+              --delivery-root "$RUNNER_TEMP/delivery-report" > "$output"
+          else
+            args=(
+              --prepare-delivery
+              --b-result "$PRODUCTION_RESULT"
+              --data-root "$ASHARE_DATA_ROOT"
+              --state-root "$GITHUB_WORKSPACE/runtime-state"
+              --evidence-root "$ASHARE_EVIDENCE_ROOT"
+              --report-root "$RUNNER_TEMP/c-daily-report"
+              --delivery-root "$RUNNER_TEMP/delivery-report"
+              --job-started-at-utc "$JOB_STARTED_AT_UTC"
+              --schedule-cron "$SCHEDULE_CRON"
+            )
+            if [[ "${ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1,,}" == "true" ]]; then
+              args+=(--enable-c)
+            fi
+            python scripts/run_c_daily_watchlist.py "${args[@]}" > "$output"
+          fi
+          rc=$?
+          echo "C_PRE_DELIVERY_RESULT=$output" >> "$GITHUB_ENV"
+          if [[ -f "$output" ]]; then
+            delivery_path="$(python - "$output" <<'PY'
+          import json, sys
+          try:
+              value = json.loads(open(sys.argv[1], encoding="utf-8").read().splitlines()[-1])
+              print(value.get("delivery_report_path", ""))
+          except (OSError, ValueError, IndexError):
+              print("")
+          PY
+          )"
+            if [[ -n "$delivery_path" && -f "$delivery_path" ]]; then
+              echo "C_DELIVERY_REPORT=$delivery_path" >> "$GITHUB_ENV"
+            fi
+            cat "$output"
+          fi
+          exit "$rc"
+
       - name: Deliver production report by Email and Bark
         id: b_delivery
-        if: always() && env.RUN_MODE == 'production' && env.PRODUCTION_CANONICAL_READY == '1'
+        if: always() && env.RUN_MODE == 'production' && env.PRODUCTION_CANONICAL_READY == '1' && (env.ASHARE_SKIP_PRODUCTION == '1' || (steps.b_production.outcome == 'success' && steps.b_output_validation.outcome == 'success' && steps.b_state_push.outcome == 'success'))
         shell: bash
         run: |
           set +e
@@ -478,12 +528,19 @@ jobs:
           if [[ -n "$result_file" && -f "$result_file" ]]; then
             result_args+=(--result-file "$result_file")
           fi
+          delivery_args=()
+          if [[ -z "${C_DELIVERY_REPORT:-}" || ! -f "$C_DELIVERY_REPORT" ]]; then
+            echo "self-contained B+C delivery report is missing"
+            exit 1
+          fi
+          delivery_args+=(--delivery-report-path "$C_DELIVERY_REPORT")
           python scripts/daily_report_delivery.py deliver \
             --mode production \
             --date "$AS_OF_DATE" \
             --data-root "$ASHARE_DATA_ROOT" \
             --runtime-state-persisted "$RUNTIME_STATE_PERSISTED" \
             --run-url "$ACTIONS_RUN_URL" \
+            "${delivery_args[@]}" \
             "${result_args[@]}" > "$output"
           rc=$?
           set -e
@@ -577,86 +634,66 @@ jobs:
               ;;
           esac
 
-      - name: Run bounded C research report after B delivery
+      - name: Publish bounded C research report after B delivery
         id: c_daily
-        if: env.RUN_MODE == 'production' && env.ASHARE_SKIP_PRODUCTION != '1' && vars.ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1 == 'true' && steps.b_production.outcome == 'success' && steps.b_output_validation.outcome == 'success' && steps.b_state_push.outcome == 'success' && steps.b_delivery.outcome == 'success' && steps.b_receipt_persist.outcome == 'success' && steps.delivery_health.outcome == 'success'
+        if: always() && env.RUN_MODE == 'production' && env.ASHARE_SKIP_PRODUCTION != '1' && env.PRODUCTION_CANONICAL_READY == '1' && steps.b_production.outcome == 'success' && steps.b_output_validation.outcome == 'success' && steps.b_state_push.outcome == 'success' && steps.b_delivery.outcome == 'success' && steps.b_receipt_persist.outcome == 'success' && steps.delivery_health.outcome == 'success' && steps.c_pre_delivery.outcome == 'success'
         continue-on-error: true
         shell: bash
         run: |
-          set -euo pipefail
+          set +e
           output="$RUNNER_TEMP/c-daily-result.json"
-          stage="PREPARE_C_RESULT"
-          trap 'printf "%s\n" "$stage" > "$RUNNER_TEMP/c-daily-step-failure.txt" || true; echo "::warning::C daily step failed at $stage"' ERR
-          if [[ -z "${PRODUCTION_RESULT:-}" || -z "${DELIVERY_RESULT:-}" ]]; then
-            printf '{"status":"C_NOT_STARTED_B_FORMAL_GATE_INCOMPLETE"}\n' > "$output"
+          if [[ -z "${PRODUCTION_RESULT:-}" || -z "${DELIVERY_RESULT:-}" || -z "${C_PRE_DELIVERY_RESULT:-}" ]]; then
+            printf '{"status":"C_NOT_STARTED_C_RESULT_UNAVAILABLE"}\n' > "$output"
           else
-            if timeout --signal=TERM --kill-after=10s 600s \
-              python scripts/run_c_daily_watchlist.py --post-b \
-                --b-result "$PRODUCTION_RESULT" \
-                --delivery-result "$DELIVERY_RESULT" \
-                --data-root "$ASHARE_DATA_ROOT" \
-                --state-root "$GITHUB_WORKSPACE/runtime-state" \
-                --evidence-root "$ASHARE_EVIDENCE_ROOT" \
-                --report-root "$RUNNER_TEMP/c-daily-report" \
-                --job-started-at-utc "$JOB_STARTED_AT_UTC" \
-                --schedule-cron "$SCHEDULE_CRON" > "$output"; then
-              :
-            else
-              rc=$?
-              printf '{"status":"C_FAILED_B_UNCHANGED","stage":"C_TAIL_PROCESS","exit_code":%s}\n' "$rc" > "$output"
+            python scripts/run_c_daily_watchlist.py --post-b \
+              --b-result "$PRODUCTION_RESULT" \
+              --delivery-result "$DELIVERY_RESULT" \
+              --prepared-result "$C_PRE_DELIVERY_RESULT" \
+              --data-root "$ASHARE_DATA_ROOT" \
+              --state-root "$GITHUB_WORKSPACE/runtime-state" > "$output"
+            rc=$?
+            if (( rc != 0 )); then
+              printf '{"status":"C_REPORT_PUBLISH_FAILED_B_UNCHANGED","stage":"C_POST_DELIVERY_PROCESS","exit_code":%s}\n' "$rc" > "$output"
             fi
           fi
-          stage="ACTIONS_SUMMARY"
+          echo "C_DAILY_RESULT=$output" >> "$GITHUB_ENV"
           python - "$output" <<'PY' >> "$GITHUB_STEP_SUMMARY"
           import json, sys
           try:
               result = json.loads(open(sys.argv[1], encoding="utf-8").read().splitlines()[-1])
           except (OSError, ValueError, IndexError):
-              result = {"status": "C_FAILED_B_UNCHANGED", "stage": "RESULT_PARSE"}
+              result = {"status": "C_REPORT_PUBLISH_FAILED_B_UNCHANGED"}
           print("## C daily research report (independent of Formal B)")
-          print("C status: " + str(result.get("status", "C_FAILED_B_UNCHANGED")))
+          print("C status: " + str(result.get("status", "C_REPORT_PUBLISH_FAILED_B_UNCHANGED")))
           print("Formal B delivery health: SUCCESS")
           if result.get("paths"):
               path = result["paths"][-2]
-              print("C HTML: [open file page, download HTML, then view locally](https://github.com/${{ github.repository }}/blob/runtime-state/" + path + ")")
+              print("C HTML: [download HTML and open locally](https://github.com/${{ github.repository }}/blob/runtime-state/" + path + ")")
           if result.get("matched_stock_count") is not None:
               print("C research matches: " + str(result["matched_stock_count"]))
           PY
-          stage="GITHUB_ENV"
-          echo "C_DAILY_RESULT=$output" >> "$GITHUB_ENV"
-          stage="C_STATUS"
-          python - "$output" <<'PY'
-          import json, sys
-          try:
-              status = json.loads(open(sys.argv[1], encoding="utf-8").read().splitlines()[-1]).get("status", "C_FAILED_B_UNCHANGED")
-          except (OSError, ValueError, IndexError):
-              status = "C_FAILED_B_UNCHANGED"
-          if status not in {"C_DAILY_REPORT_PUBLISHED", "C_NOT_STARTED_TIME_BUDGET"}:
-              print("::warning::C daily outcome: " + str(status))
-              raise SystemExit(1)
-          PY
 
       - name: Preserve C failure diagnosis without changing Formal B health
-        if: always() && steps.c_daily.outcome == 'failure'
+        if: always() && steps.c_pre_delivery.outcome == 'failure' || always() && steps.c_daily.outcome == 'failure'
         continue-on-error: true
         shell: bash
         run: |
-          output="$RUNNER_TEMP/c-daily-result.json"
           status="C_FAILED_B_UNCHANGED"
-          if [[ -f "$output" ]]; then
-            status="$(python - "$output" <<'PY'
+          for output in "$RUNNER_TEMP/c-pre-delivery.json" "$RUNNER_TEMP/c-daily-result.json"; do
+            if [[ -f "$output" ]]; then
+              status="$(python - "$output" <<'PY'
           import json, sys
           try:
               result = json.loads(open(sys.argv[1], encoding="utf-8").read().splitlines()[-1])
-              print(str(result.get("status", "C_FAILED_B_UNCHANGED")) + " stage=" + str(result.get("stage", "UNKNOWN")))
+              print(str(result.get("status", "C_FAILED_B_UNCHANGED")))
           except (OSError, ValueError, IndexError):
-              print("C_FAILED_B_UNCHANGED stage=RESULT_PARSE")
+              print("C_FAILED_B_UNCHANGED")
           PY
-          )"
-          fi
-          stage="$(cat "$RUNNER_TEMP/c-daily-step-failure.txt" 2>/dev/null || echo UNKNOWN)"
-          echo "::warning::C daily step failed after Formal B delivery at $stage: $status"
-          printf '## C daily research report\nC step outcome: failure at %s; %s\nFormal B delivery health: SUCCESS\n' "$stage" "$status" >> "$GITHUB_STEP_SUMMARY" || true
+              )"
+            fi
+          done
+          echo "::warning::C presentation/publication failed after Formal B delivery: $status"
+          printf '## C daily research report\nC presentation/publication outcome: %s\nFormal B delivery health: SUCCESS\n' "$status" >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Checkout clean runtime-state for failure notice
         if: always() && env.RUN_MODE == 'production' && env.AS_OF_DATE != '' && env.ASHARE_SKIP_PRODUCTION != '1' && env.PRODUCTION_CANONICAL_READY != '1'

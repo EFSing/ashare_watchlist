@@ -1,5 +1,33 @@
 # CURRENT STATUS
 
+## 2026-09-28 — C single-file B+C delivery correction in independent PR
+
+- Classification: product blocker plus correctness/provenance boundary; STRICT PATH. The live
+  baseline is `origin/master=790af3ec8384583c22cba1bc63c831f0d2040187`; `origin/runtime-state`
+  is `e6399431ad999c6ba1579afac7f5812bc1e3f033`. PR #91 is merged and is not modified or reverted.
+- The #91 external `c_daily/YYYYMMDD/index.html` entry is removed from the Formal B renderer.
+  Formal B remains the immutable canonical artifact and runtime-state identity. After the canonical
+  B push, C reads the same frozen B input once and writes a temporary inline presentation HTML for
+  the user-facing attachment; the composite is deliberately outside the runtime-state allowlist.
+- Production order is now canonical B production/validation/state push, pre-delivery C/composite
+  preparation, Email/Bark, receipt persistence, delivery health, then independent C publication
+  and remote readback. C failure, timeout, data-pending, or not-run produces an explicit inline
+  C state while preserving full B delivery; only an explicit successful zero result can display
+  `今日无 C 研究匹配`.
+- Delivery receipt semantics remain compatible: `report_sha256` is Formal B's SHA; a composite
+  delivery may add optional `delivery_report_sha256` and
+  `delivery_report_kind=B_PLUS_C_PRESENTATION_V1`. Existing receipts remain readable. Same-day
+  completed retries use a `C_NOT_RUN` fallback presentation when no full B result is available.
+- Read-only acceptance evidence for 2026-09-24 remains `matched_stock_count=2`, `BALANCED_A=2`,
+  `CONSERVATIVE_B=0`, including `600019 宝钢股份` and `601598 中国外运`; no historical artifact,
+  receipt, or runtime-state ref was changed. No production dispatch, backfill, order, promotion,
+  or Final OOS read occurred.
+- Focused verification passes `105` tests with one pre-existing warning. A short-path full-suite
+  rerun passes `763` tests with `2` skips and `10` warnings after deselecting one environment-only
+  assertion that expects the ignored local `data/validation/.../daily_k.parquet` to be absent; the
+  unfiltered run reports only that same baseline failure. Final branch push, exact-head PR CI and
+  mergeability remain the next handoff checks.
+
 ## 2026-09-28 — C daily report user-visible entry prepared in PR #91
 
 - The live 2026-09-24 C report is present and valid as independent research output
