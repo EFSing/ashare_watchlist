@@ -1,7 +1,58 @@
 # CURRENT STATUS
 
+## 2026-09-28 — HiThink ticker-list list_date drift: universe eligibility V2 with 2026-09-28 incident record
+
+- Classification: correctness blocker (STRICT PATH). Live intake resolved a
+  `PROJECT_GOVERNANCE_STATE_CONFLICT`: persisted entries still described PR #92 as awaiting a merge
+  decision on `origin/master=790af3ec8384583c22cba1bc63c831f0d2040187`, while live GitHub shows PR
+  #92 merged as `5f4734c24ac1049487ec2b3fc081d2582d67cff6` (also live `origin/master`) with
+  `origin/runtime-state=34815fc605823ffcf28466126f5ae4742693f2a1`.
+- Incident: production `daily-t-close` run `36403471538` (`workflow_dispatch`, head
+  `5f4734c24ac1049487ec2b3fc081d2582d67cff6`, target 2026-09-28, retrieved 17:26 BJT) ended
+  `NO_VALID_INPUT` with `raw_symbol_count=5578`, `sh_sz_scope_count=5227`,
+  `main_board_count=3197`, `eligible_count=0` and qualification reasons
+  `UNIVERSE_LIST_DATE_MISSING=3197`, `UNIVERSE_NON_MAIN_BOARD=2030`,
+  `UNIVERSE_OUT_OF_SCOPE_EXCHANGE=351`. No Formal watchlist, checkpoint or delivery receipt was
+  created; runtime-state persisted only
+  `data/diagnostics/daily_input_diagnostic_20260928.json` plus the diagnostic
+  `data/reports/daily_close_20260928.html`.
+- Root cause: `scripts/live_acquisition.py::_build_universe` required the ticker-list `list_date`
+  column and treated a null/empty value as "not proven listed" for every Main Board symbol, so a
+  provider contract where `list_date` is absent or null removed the entire current-day Main Board
+  pool. PR #91 and PR #92 changed only C delivery/presentation/HTML, tests and governance files;
+  neither touched `scripts/live_acquisition.py` or the Main Board policy.
+- Fix (branch `codex/hithink-current-roster-list-date-drift-20260928`, PR #93 under user merge
+  decision): `list_date` is optional roster metadata (the column may be absent and the key may be
+  null). Same-calendar-date production runs the `CURRENT_ROSTER_SAME_DAY` eligibility mode, which
+  admits current SH/SZ Main Board roster members and relies on the unchanged target-day K-line,
+  OHLCV, quote/trade-state and per-symbol fail-soft validation; historical/authorized-backfill runs
+  keep `LIST_DATE_HISTORICAL_REQUIRED` and stay fail-closed without explicit `list_date` evidence.
+  Universe diagnostics and provenance now carry `eligibility_mode`, `list_date_present_count`,
+  `list_date_missing_count` and `target_day_bar_validation_required`, and same-day missing
+  `list_date` is an observation instead of an exclusion reason.
+- Unchanged boundaries: Formal B strategy/spec, C rules and delivery, Main Board policy, AkShare
+  outside the critical path, T/T+1 semantics, delivery-receipt contract and runtime-state
+  allowlist. Provider production calls `0`, production dispatch `0`, backfill `0`, runtime-state
+  remote mutation `0`, Final OOS `SEALED / UNREAD`.
+- Verification on this branch: `tests/test_live_acquisition.py` `132 passed`;
+  `tests/test_cloud_runtime_state.py` `31 passed`; full `pytest` `779 passed, 2 skipped,
+  10 warnings`; `python -m compileall -q scripts tests` and `git diff --check` pass. The
+  2026-09-24 evidence and artifacts are untouched, and a list_date-present roster keeps identical
+  retention in both eligibility modes.
+- Delivery evidence: independent PR https://github.com/EFSing/ashare_watchlist/pull/93 with
+  implementation head `70225f8d3d1ad723305c42376ab4135bbd18bf85`, exact-head push CI
+  `36406304072` `success`, exact-head PR CI `36406389420` `success`, and GitHub reporting
+  `mergeable=true` / `mergeable_state=clean` against live `origin/master=5f4734c`. Re-read the live
+  PR head and exact-head CI at merge-decision time.
+- Next action: the user's merge decision on PR #93 (no auto-merge). The 2026-09-28 same-day
+  production rerun is a separate user authorization; when it succeeds the pipeline replaces
+  `daily_close_20260928.html` with the formal report while the diagnostic JSON remains as audit
+  evidence.
+
 ## 2026-09-28 — C single-file B+C reading UX on the same PR #92 branch
 
+- Superseded by the 2026-09-28 list_date-drift entry: PR #92 was merged as
+  `5f4734c24ac1049487ec2b3fc081d2582d67cff6`.
 - Classification: presentation / UX only (FAST PATH); B strategy, C rules, thresholds, scoring and
   every calculation are unchanged, and the merged #91 behaviour is untouched. The live baseline is
   still `origin/master=790af3ec8384583c22cba1bc63c831f0d2040187` with
@@ -35,6 +86,8 @@
 
 ## 2026-09-28 — C single-file B+C delivery correction PR #92 ready
 
+- Superseded by the 2026-09-28 list_date-drift entry: PR #92 was merged as
+  `5f4734c24ac1049487ec2b3fc081d2582d67cff6`.
 - Classification: product blocker plus correctness/provenance boundary; STRICT PATH. The live
   baseline is `origin/master=790af3ec8384583c22cba1bc63c831f0d2040187`; `origin/runtime-state`
   is `e6399431ad999c6ba1579afac7f5812bc1e3f033`. PR #91 is merged and is not modified or reverted.
@@ -595,7 +648,9 @@ suspension/seasoning policy，AkShare roster production calls=`0`。
 
 独立 branch/worktree 为 `codex/hithink-list-date-universe-eligibility-v1` /
 `ashare_watchlist-hithink-list-date-universe-eligibility-v1`，基于 live `origin/master`。新增
-`HITHINK_LIST_DATE_ELIGIBILITY_V1` 的 policy、target、source、counts 与 fingerprint，并纳入
+`HITHINK_LIST_DATE_ELIGIBILITY_V1`（已由现行
+`HITHINK_CURRENT_ROSTER_SAME_DAY_OR_LIST_DATE_ELIGIBILITY_V2` supersede）的 policy、target、
+source、counts 与 fingerprint，并纳入
 generation identity；Tencent quote/Kline fallback、stale isolation、Formal B、provider contract
 未改变。
 

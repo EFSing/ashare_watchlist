@@ -861,14 +861,13 @@ def _listing_date_row(symbol, exchange="SZ", *, name="测试股份", list_date="
 @pytest.mark.parametrize(
     ("candidate_list_date", "expected_symbols", "not_listed_count", "future_count"),
     [
-        ("2026-09-16", ("000001", "600519"), 0, 0),
         ("2026-09-17", ("000001", "600519"), 0, 0),
         ("2026-09-18", ("600519",), 0, 1),
-        (None, ("600519",), 1, 0),
-        ("", ("600519",), 1, 0),
+        (None, ("000001", "600519"), 0, 0),
+        ("", ("000001", "600519"), 0, 0),
     ],
 )
-def test_hithink_list_date_eligibility_is_target_date_aware(
+def test_hithink_same_day_roster_eligibility_uses_current_membership(
     candidate_list_date, expected_symbols, not_listed_count, future_count
 ):
     universe, _, quality = live._build_universe(
@@ -884,7 +883,9 @@ def test_hithink_list_date_eligibility_is_target_date_aware(
 
     assert universe.symbols == expected_symbols
     audit = quality["list_date_eligibility"]
-    assert audit["policy_version"] == live.HITHINK_LIST_DATE_ELIGIBILITY_V1
+    assert audit["policy_version"] == live.HITHINK_UNIVERSE_ELIGIBILITY_V2
+    assert audit["eligibility_mode"] == live.UNIVERSE_ELIGIBILITY_MODE_CURRENT_ROSTER_SAME_DAY
+    assert audit["target_day_bar_validation_required"] is True
     assert audit["target_date"] == "2026-09-17"
     assert audit["source"] == "HiThink ticker list"
     assert audit["input_count"] == 2
@@ -892,8 +893,70 @@ def test_hithink_list_date_eligibility_is_target_date_aware(
     assert audit["eligible_count"] == len(expected_symbols)
     assert audit["excluded_not_listed_count"] == not_listed_count
     assert audit["excluded_future_list_date_count"] == future_count
+    assert audit["list_date_present_count"] + audit["list_date_missing_count"] == 2
     assert audit["status"] == "PASS"
     assert len(audit["audit_sha256"]) == 64
+    assert quality["selection_rule"] == live.HITHINK_UNIVERSE_SELECTION_RULE_SAME_DAY
+
+
+@pytest.mark.parametrize("candidate_list_date", [None, ""])
+def test_hithink_historical_eligibility_still_requires_list_date_evidence(candidate_list_date):
+    universe, _, quality = live._build_universe(
+        FakeFrame(
+            [
+                _listing_date_row("600519", "SH", list_date="2001-08-23"),
+                _listing_date_row("000001", "SZ", list_date=candidate_list_date),
+            ]
+        ),
+        "2026-09-17",
+        "2026-09-19T09:05:00+08:00",
+    )
+
+    assert universe.symbols == ("600519",)
+    audit = quality["list_date_eligibility"]
+    assert audit["policy_version"] == live.HITHINK_UNIVERSE_ELIGIBILITY_V2
+    assert (
+        audit["eligibility_mode"]
+        == live.UNIVERSE_ELIGIBILITY_MODE_LIST_DATE_HISTORICAL
+    )
+    assert audit["excluded_not_listed_count"] == 1
+    assert audit["list_date_missing_count"] == 1
+    assert audit["list_date_present_count"] == 1
+    assert quality["selection_rule"] == live.HITHINK_UNIVERSE_SELECTION_RULE
+
+
+def test_list_date_present_universe_keeps_identical_retention_in_both_modes():
+    rows = [
+        _listing_date_row("600519", "SH", list_date="2001-08-23"),
+        _listing_date_row("000001", "SZ", list_date="2026-09-18"),
+        _listing_date_row("002731", "SZ", name="*ST萃华", list_date="2012-12-07"),
+        _listing_date_row("300001", "SZ", list_date="2010-08-20"),
+    ]
+
+    same_day, _, same_day_quality = live._build_universe(
+        FakeFrame(rows),
+        "2026-09-17",
+        "2026-09-17T15:05:00+08:00",
+    )
+    historical, _, historical_quality = live._build_universe(
+        FakeFrame(rows),
+        "2026-09-17",
+        "2026-09-19T09:05:00+08:00",
+    )
+
+    assert same_day.symbols == historical.symbols == ("002731", "600519")
+    same_day_audit = same_day_quality["list_date_eligibility"]
+    historical_audit = historical_quality["list_date_eligibility"]
+    for field_name in (
+        "input_count",
+        "main_board_count",
+        "eligible_count",
+        "excluded_not_listed_count",
+        "excluded_future_list_date_count",
+        "list_date_present_count",
+        "list_date_missing_count",
+    ):
+        assert same_day_audit[field_name] == historical_audit[field_name]
 
 
 def test_hithink_malformed_non_null_list_date_fails_closed():
@@ -933,21 +996,33 @@ def test_hithink_malformed_list_date_isolated_when_another_symbol_is_valid():
     assert exclusions[0]["reason"] == live.UNIVERSE_LIST_DATE_INVALID
 
 
-def test_hithink_missing_list_date_column_fails_closed():
+def test_hithink_missing_list_date_column_is_optional_roster_metadata():
     row = _listing_date_row("600519", "SH")
     row.pop("list_date")
+
+    universe, _, quality = live._build_universe(
+        FakeFrame([row]),
+        "2026-09-17",
+        "2026-09-17T15:05:00+08:00",
+    )
+
+    assert universe.symbols == ("600519",)
+    audit = quality["list_date_eligibility"]
+    assert audit["eligibility_mode"] == live.UNIVERSE_ELIGIBILITY_MODE_CURRENT_ROSTER_SAME_DAY
+    assert audit["list_date_present_count"] == 0
+    assert audit["list_date_missing_count"] == 1
 
     with pytest.raises(live.LiveAcquisitionError) as caught:
         live._build_universe(
             FakeFrame([row]),
             "2026-09-17",
-            "2026-09-17T15:05:00+08:00",
+            "2026-09-19T09:05:00+08:00",
         )
 
-    assert caught.value.status == live.PROVIDER_FAILURE
+    assert caught.value.status == INCOMPLETE_COVERAGE
 
 
-def test_001246_is_excluded_before_quote_stage_by_null_list_date():
+def test_same_day_null_list_date_main_board_symbol_reaches_per_symbol_acquisition():
     target_date = "2026-09-17"
     calls = []
     hithink = FakeHiThink(
@@ -972,24 +1047,36 @@ def test_001246_is_excluded_before_quote_stage_by_null_list_date():
         ),
     )
 
-    assert package.generation_input_manifest.universe.symbols == ("600519",)
-    assert all("001246" not in call for call in calls)
-    assert all(symbol != "001246.SZ" for symbol, _index in hithink.kline_calls)
+    assert package.generation_input_manifest.universe.symbols == ("001246", "600519")
+    assert [item.symbol for item in package.generation_input_manifest.stock_klines] == [
+        "001246",
+        "600519",
+    ]
+    assert hithink.snapshot_calls == [["001246.SZ", "600519.SH"]]
+    assert {thscode for thscode, index in hithink.kline_calls if not index} == {
+        "001246.SZ",
+        "600519.SH",
+    }
     audit = package.provenance["universe_quality"]["list_date_eligibility"]
-    assert audit["excluded_not_listed_count"] == 1
+    assert audit["excluded_not_listed_count"] == 0
+    assert audit["list_date_missing_count"] == 1
     assert package.provenance["quality_checks"]["universe_listing_eligibility"] == "PASS"
     assert ak.roster_calls == []
 
 
-def test_empty_list_date_filtered_universe_fails_closed_before_quote():
+def test_historical_null_list_date_universe_fails_closed_before_provider_calls():
     calls = []
     ak = FakeAkShare()
+    hithink = FakeHiThink(
+        universe=[_listing_date_row("001246", "SZ", name="力勤资源", list_date=None)]
+    )
 
     with pytest.raises(live.LiveAcquisitionError) as caught:
         _acquire(
-            hithink_client=FakeHiThink(
-                universe=[_listing_date_row("001246", "SZ", name="力勤资源", list_date=None)]
-            ),
+            as_of_date="2026-09-18",
+            now_bjt="2026-09-20T15:05:00+08:00",
+            allow_weekend_backfill=True,
+            hithink_client=hithink,
             akshare_module=ak,
             request_get=_request_get(calls=calls),
         )
@@ -1001,8 +1088,13 @@ def test_empty_list_date_filtered_universe_fails_closed_before_quote():
     assert qualification["source_row_count"] == 1
     assert qualification["main_board_count"] == 1
     assert qualification["eligible_count"] == 0
+    assert qualification["eligibility_mode"] == live.UNIVERSE_ELIGIBILITY_MODE_LIST_DATE_HISTORICAL
+    assert qualification["list_date_present_count"] == 0
+    assert qualification["list_date_missing_count"] == 1
     assert qualification["reason_counts"] == {live.UNIVERSE_LIST_DATE_MISSING: 1}
     assert qualification["reason_samples"] == {live.UNIVERSE_LIST_DATE_MISSING: ["001246"]}
+    assert hithink.snapshot_calls == []
+    assert hithink.kline_calls == []
     assert ak.definition_calls == 0
     assert calls == []
 
@@ -1020,7 +1112,7 @@ def test_no_valid_universe_diagnostic_separates_board_scope_and_date_eligibility
                 ]
             ),
             "2026-09-17",
-            "2026-09-17T15:05:00+08:00",
+            "2026-09-19T09:05:00+08:00",
             include_exclusions=True,
         )
 
@@ -1034,6 +1126,9 @@ def test_no_valid_universe_diagnostic_separates_board_scope_and_date_eligibility
     assert qualification["sh_sz_scope_count"] == 4
     assert qualification["main_board_count"] == 2
     assert qualification["eligible_count"] == 0
+    assert qualification["eligibility_mode"] == live.UNIVERSE_ELIGIBILITY_MODE_LIST_DATE_HISTORICAL
+    assert qualification["list_date_present_count"] == 1
+    assert qualification["list_date_missing_count"] == 1
     assert qualification["reason_counts"] == {
         live.UNIVERSE_LIST_DATE_FUTURE: 1,
         live.UNIVERSE_LIST_DATE_MISSING: 1,
@@ -1062,6 +1157,155 @@ def test_no_valid_universe_diagnostic_reports_malformed_list_dates_as_input_anom
     assert diagnostic["universe_qualification"]["reason_counts"] == {
         live.UNIVERSE_LIST_DATE_INVALID: 2
     }
+
+
+INCIDENT_TARGET_DATE = "2026-09-28"
+INCIDENT_NOW = "2026-09-28T17:26:47+08:00"
+
+
+def _list_date_drift_universe_rows(*, include_list_date_key: bool):
+    """Minimal representative shape of the 2026-09-28 HiThink ticker list."""
+
+    rows = [
+        ("600519.SH", "600519", "贵州茅台", "SH"),
+        ("000001.SZ", "000001", "平安银行", "SZ"),
+        ("601398.SH", "601398", "工商银行", "SH"),
+        ("300001.SZ", "300001", "特锐德", "SZ"),
+        ("920002.BJ", "920002", "万达轴承", "BJ"),
+    ]
+    universe: list[dict[str, object]] = []
+    for thscode, ticker, name, exchange in rows:
+        row: dict[str, object] = {
+            "thscode": thscode,
+            "ticker": ticker,
+            "name": name,
+            "exchange": exchange,
+            "asset_type": "a-share",
+        }
+        if include_list_date_key:
+            row["list_date"] = None
+        universe.append(row)
+    return universe
+
+
+@pytest.mark.parametrize("include_list_date_key", [True, False])
+def test_same_day_hithink_list_date_drift_regression_20260928(include_list_date_key):
+    """The 2026-09-28 outage must not leave an empty Main Board candidate pool."""
+
+    hithink = FakeHiThink(
+        universe=_list_date_drift_universe_rows(
+            include_list_date_key=include_list_date_key
+        ),
+        bars_by_thscode={
+            "600519.SH": _bars(last_date=INCIDENT_TARGET_DATE),
+            "000001.SZ": _bars(last_date="2026-09-25"),
+            "601398.SH": _bars(last_date=INCIDENT_TARGET_DATE),
+        },
+        index_bars=_bars(last_date=INCIDENT_TARGET_DATE),
+    )
+
+    package = _acquire(
+        as_of_date=INCIDENT_TARGET_DATE,
+        now_bjt=INCIDENT_NOW,
+        hithink_client=hithink,
+        akshare_module=FakeAkShare(),
+        request_get=_request_get(
+            quote_date=INCIDENT_TARGET_DATE,
+            bars=_bars(last_date=INCIDENT_TARGET_DATE),
+        ),
+    )
+
+    quality = package.provenance["universe_quality"]
+    assert quality["retained_symbols"] == ["000001", "600519", "601398"]
+    audit = quality["list_date_eligibility"]
+    assert audit["eligibility_mode"] == live.UNIVERSE_ELIGIBILITY_MODE_CURRENT_ROSTER_SAME_DAY
+    assert audit["list_date_present_count"] == 0
+    assert audit["list_date_missing_count"] == 3
+    assert audit["eligible_count"] == 3
+    assert audit["excluded_not_listed_count"] == 0
+    assert audit["target_day_bar_validation_required"] is True
+    assert hithink.snapshot_calls == [["000001.SZ", "600519.SH", "601398.SH"]]
+    coverage = package.provenance["input_coverage"]
+    assert coverage["coverage_status"] == "DEGRADED"
+    assert coverage["evaluated_symbol_count"] == 2
+    assert coverage["excluded_symbol_count"] == 1
+    assert coverage["excluded_symbols"][0]["symbol"] == "000001"
+    assert coverage["excluded_symbols"][0]["reason"] == live.TARGET_DAY_HISTORICAL_STALE
+    assert package.generation_input_manifest.universe.symbols == ("600519", "601398")
+
+
+@pytest.mark.parametrize("include_list_date_key", [True, False])
+def test_same_day_list_date_drift_still_fails_closed_without_valid_inputs(
+    include_list_date_key,
+):
+    hithink = FakeHiThink(
+        universe=_list_date_drift_universe_rows(
+            include_list_date_key=include_list_date_key
+        ),
+        bars_by_thscode={
+            code: _bars(last_date="2026-09-25")
+            for code in ("600519.SH", "000001.SZ", "601398.SH")
+        },
+        index_bars=_bars(last_date=INCIDENT_TARGET_DATE),
+    )
+
+    with pytest.raises(live.NoValidInputError) as caught:
+        _acquire(
+            as_of_date=INCIDENT_TARGET_DATE,
+            now_bjt=INCIDENT_NOW,
+            hithink_client=hithink,
+            akshare_module=FakeAkShare(),
+            request_get=_request_get(quote_date=INCIDENT_TARGET_DATE),
+        )
+
+    assert caught.value.status == live.NO_VALID_INPUT
+    coverage = caught.value.diagnostics["input_coverage"]
+    assert coverage["coverage_status"] == "NO_VALID_INPUT"
+    assert coverage["evaluated_symbol_count"] == 0
+    assert [item["symbol"] for item in caught.value.diagnostics["exclusions"]] == [
+        "000001",
+        "600519",
+        "601398",
+    ]
+    assert caught.value.diagnostics["formal_result_valid"] is False
+
+
+def test_universe_without_any_main_board_symbol_is_still_no_valid_input():
+    with pytest.raises(live.NoValidInputError) as caught:
+        live._build_universe(
+            FakeFrame(
+                [
+                    _listing_date_row("300001", "SZ", list_date=None),
+                    _listing_date_row("688001", "SH", list_date=None),
+                    _listing_date_row("920002", "BJ", list_date=None),
+                ]
+            ),
+            INCIDENT_TARGET_DATE,
+            INCIDENT_NOW,
+            include_exclusions=True,
+        )
+
+    assert caught.value.status == live.NO_VALID_INPUT
+    qualification = caught.value.diagnostics["universe_qualification"]
+    assert qualification["main_board_count"] == 0
+    assert qualification["eligible_count"] == 0
+    assert qualification["eligibility_mode"] == live.UNIVERSE_ELIGIBILITY_MODE_CURRENT_ROSTER_SAME_DAY
+    assert qualification["reason_counts"] == {
+        live.UNIVERSE_NON_MAIN_BOARD: 2,
+        live.UNIVERSE_OUT_OF_SCOPE_EXCHANGE: 1,
+    }
+    assert live.UNIVERSE_LIST_DATE_MISSING not in qualification["reason_counts"]
+
+
+def test_missing_core_roster_column_still_fails_closed_without_list_date():
+    rows = _list_date_drift_universe_rows(include_list_date_key=False)
+    for row in rows:
+        row.pop("exchange")
+
+    with pytest.raises(live.LiveAcquisitionError) as caught:
+        live._build_universe(FakeFrame(rows), INCIDENT_TARGET_DATE, INCIDENT_NOW)
+
+    assert caught.value.status == live.PROVIDER_FAILURE
 
 
 def test_listed_suspended_st_symbol_is_retained_before_final_user_eligibility():

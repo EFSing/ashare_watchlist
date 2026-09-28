@@ -1,5 +1,47 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-09-28 — HITHINK_SAME_DAY_LIST_DATE_DRIFT_FIX (PR ready for user merge decision)
+
+- Classification: correctness blocker; STRICT PATH. Live intake resolved the persisted
+  `PROJECT_GOVERNANCE_STATE_CONFLICT` that still showed PR #92 awaiting a merge decision: live
+  `origin/master=5f4734c24ac1049487ec2b3fc081d2582d67cff6` is PR #92 merged, and live
+  `origin/runtime-state=34815fc605823ffcf28466126f5ae4742693f2a1`. The entries below keep the
+  older #92 branch state as history only.
+- Incident: production run `36403471538` (`workflow_dispatch`, head `5f4734c`, target 2026-09-28,
+  retrieved 17:26 BJT) ended `NO_VALID_INPUT`: `raw_symbol_count=5578`, `sh_sz_scope_count=5227`,
+  `main_board_count=3197`, `eligible_count=0`, reasons `UNIVERSE_LIST_DATE_MISSING=3197`,
+  `UNIVERSE_NON_MAIN_BOARD=2030`, `UNIVERSE_OUT_OF_SCOPE_EXCHANGE=351`. No Formal
+  watchlist/checkpoint/receipt was created; runtime-state kept only
+  `data/diagnostics/daily_input_diagnostic_20260928.json` and the diagnostic
+  `data/reports/daily_close_20260928.html`.
+- Root cause: `scripts/live_acquisition.py::_build_universe` required the HiThink ticker-list
+  `list_date` column and treated null/empty as "not proven listed" for every Main Board symbol, so
+  a provider contract delivering absent/null `list_date` removed the whole current-day Main Board
+  pool. `#91`/`#92` never touched live acquisition or the Main Board policy.
+- Fix: branch `codex/hithink-current-roster-list-date-drift-20260928` (worktree
+  `D:\dev\ashare-watchlist-hithink-current-roster-20260928`), independent PR #93 against live
+  `master`: https://github.com/EFSing/ashare_watchlist/pull/93
+  `list_date` is now optional roster metadata. Same-calendar-date production uses the
+  `CURRENT_ROSTER_SAME_DAY` eligibility mode (current roster membership admits a candidate; the
+  unchanged target-day K-line freshness/OHLCV, quote/trade-state and per-symbol fail-soft checks
+  still decide the evaluated universe), while historical/authorized-backfill runs keep
+  `LIST_DATE_HISTORICAL_REQUIRED` and stay fail-closed without explicit evidence. New identity
+  `HITHINK_CURRENT_ROSTER_SAME_DAY_OR_LIST_DATE_ELIGIBILITY_V2`; universe diagnostics and
+  provenance carry `eligibility_mode`, `list_date_present_count`, `list_date_missing_count` and
+  `target_day_bar_validation_required`.
+- Verification: `tests/test_live_acquisition.py` `132 passed`; `tests/test_cloud_runtime_state.py`
+  `31 passed`; full `pytest` `779 passed, 2 skipped, 10 warnings`; `python -m compileall -q scripts
+  tests` and `git diff --check` pass. Provider production calls `0`, production dispatch `0`,
+  runtime-state remote mutation `0`, Final OOS `SEALED / UNREAD`.
+- Delivery evidence: implementation head `70225f8d3d1ad723305c42376ab4135bbd18bf85`; exact-head push
+  CI `36406304072` `success`; exact-head PR CI `36406389420` `success`; GitHub reported PR #93
+  `open`, `mergeable=true`, `mergeable_state=clean` against live `origin/master=5f4734c`. Re-read
+  the live PR head, exact-head CI and mergeability at merge-decision time.
+- Next action: user merge decision on PR #93. Do not auto-merge and do not dispatch production. The
+  2026-09-28 same-day rerun is a separate user authorization; once it succeeds the pipeline
+  replaces `daily_close_20260928.html` with the formal report while the diagnostic JSON stays as
+  audit evidence.
+
 ## 2026-09-28 — C_DAILY_B_PLUS_C_READING_UX (same PR #92 branch)
 
 - Classification: presentation / UX 修复（FAST PATH；不改变任何 B/C 语义）。Branch unchanged:
