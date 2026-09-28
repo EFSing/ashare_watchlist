@@ -413,8 +413,8 @@ def test_report_information_architecture_has_overview_yesterday_new_list_quality
     ):
         assert marker in text
     assert (
-        text.index('id="overview"') < text.index('id="trade-performance"')
-        < text.index('id="tomorrow-watchlist"') < text.index('id="daily-review"')
+        text.index('id="overview"') < text.index('id="tomorrow-watchlist"')
+        < text.index('id="trade-performance"') < text.index('id="daily-review"')
         < text.index('id="formal-review"') < text.index('id="anomalies"')
         < text.index('id="audit"')
     )
@@ -423,7 +423,7 @@ def test_report_information_architecture_has_overview_yesterday_new_list_quality
     assert current["candidates"][0]["signal_id"] in text
 
 
-def test_daily_entry_exposes_date_bound_c_report_without_merging_it_into_formal_b(tmp_path):
+def test_formal_b_renderer_has_no_external_c_daily_dependency(tmp_path):
     watchlist = _write_watchlist(tmp_path, "20260910", [_candidate("600019", "C 入口测试", 70)])
     watchlist_path = tmp_path / "data" / "watchlist_20260910.json"
     watchlist_before = watchlist_path.read_bytes()
@@ -434,15 +434,9 @@ def test_daily_entry_exposes_date_bound_c_report_without_merging_it_into_formal_
     model = renderer.build_report_model("20260910", paths=_paths(tmp_path), calendar=CALENDAR)
     text = renderer.render_html(model)
 
-    assert 'id="c-daily-research"' in text
-    assert 'href="c_daily/20260910/index.html"' in text
-    assert "C 策略研究名单" in text
-    assert "独立研究观察，不属于 Formal B 正式名单" in text
-    assert "不构成买入建议" in text
-    assert "报告尚未发布或数据待核验时" in text
-    assert "matched_stock_count=0" in text
-    assert "今日无 C 研究匹配" not in text
-    assert text.index('id="overview"') < text.index('id="c-daily-research"') < text.index('id="trade-performance"')
+    assert 'id="c-daily-research"' not in text
+    assert "c_daily/" not in text
+    assert "C 策略研究名单" not in text
     assert watchlist_path.read_bytes() == watchlist_before
     assert tracker_path.read_bytes() == tracker_before
 
@@ -853,8 +847,8 @@ def test_presentation_regression_has_compact_sections_and_collapsed_technical_de
     audit = text.split('<details id="audit">', 1)[1]
 
     assert len(re.findall(r'<article class="kpi-card primary-kpi"', text)) == 6
-    assert text.index('id="trade-performance"') < text.index('id="tomorrow-watchlist"')
-    assert text.index('id="tomorrow-watchlist"') < text.index('id="daily-review"') < text.index('id="formal-review"')
+    assert text.index('id="tomorrow-watchlist"') < text.index('id="trade-performance"')
+    assert text.index('id="trade-performance"') < text.index('id="daily-review"') < text.index('id="formal-review"')
     assert '<details id="unverified-excluded"' in text
     assert '<details class="research-detail"><summary>查看 T+3 明细' in text
     assert text.count('sample=0') <= 1
@@ -888,7 +882,8 @@ def test_mobile_responsive_css_preserves_core_fields_and_wide_table_fallback(tmp
         assert re.search(rf'{re.escape(selector)}\s*\{{[^}}]*{re.escape(declaration)}', mobile_css)
 
     assert '<meta name="viewport" content="width=device-width, initial-scale=1">' in text
-    assert 'overflow-x: hidden' in css
+    assert 'overflow-x: clip' in css
+    assert 'overflow-x: hidden' not in css
     assert 'env(safe-area-inset-left' in mobile_css
     assert 'env(safe-area-inset-right' in mobile_css
     assert 'env(safe-area-inset-bottom' in mobile_css
@@ -903,7 +898,6 @@ def test_mobile_responsive_css_preserves_core_fields_and_wide_table_fallback(tmp
     assert_mobile_rule('.action-facts', 'grid-template-columns: repeat(2, minmax(0, 1fr));')
     assert_mobile_rule('.research-panels', 'grid-template-columns: 1fr;')
     assert_mobile_rule('.quality-grid', 'grid-template-columns: 1fr;')
-    assert_mobile_rule('.c-daily-link', 'width: 100%;')
     assert 'min-height: 44px' in mobile_css
     assert '.table-scroll' in css
     assert 'overflow-x: auto' in css
@@ -934,3 +928,56 @@ def test_entered_unverified_paths_are_marked_in_the_compact_funnel():
         'execution_unverified': 70,
     }
     assert '21*' in renderer._performance_funnel(performance)
+
+
+def test_module_navigation_stays_sticky_for_the_whole_page(tmp_path):
+    watchlist = _write_watchlist(tmp_path, '20260910', [_candidate('600018', '导航信号', 70)])
+    _write_tracker(tmp_path, watchlist)
+    model, dated, _latest = renderer.render_daily_close('20260910', paths=_paths(tmp_path), calendar=CALENDAR)
+    text = dated.read_text(encoding='utf-8')
+    css = text.split('<style>', 1)[1].split('</style>', 1)[0]
+    script = text.split('<script>', 2)[2]
+
+    # The bar must not live inside the header, whose height would bound sticky scrolling.
+    header = text.split('<header class="site-header">', 1)[1].split('</header>', 1)[0]
+    assert '<nav' not in header
+    nav = text.split('<nav class="section-nav"', 1)[1].split('</nav>', 1)[0]
+    anchors = re.findall(r'href="#([^"]+)"', nav)
+    assert anchors == [
+        'overview', 'tomorrow-watchlist', 'trade-performance', 'shadow-monitor',
+        'daily-review', 'formal-review', 'anomalies',
+    ]
+    body_start = text.index('</header>')
+    assert body_start < text.index('<nav class="section-nav"')
+    assert text.index('<nav class="section-nav"') < text.index('<section id="overview">')
+    for anchor in anchors:
+        assert f'id="{anchor}"' in text
+    # scrollIntoView() on a link inside the sticky bar would scroll the page back to
+    # the bar's static position; the active tab scrolls the bar's own overflow box.
+    assert 'nav.scrollTo({' in script
+    assert 'link.scrollIntoView' not in script
+
+    nav_rule = re.search(r'\.section-nav\s*\{[^}]*\}', css).group(0)
+    assert 'position: sticky' in nav_rule and 'top: 0' in nav_rule
+    assert 'flex-wrap: nowrap' in nav_rule and 'overflow-x: auto' in nav_rule
+    assert 'z-index: 20' in nav_rule and 'background: var(--bg)' in nav_rule
+    # overflow-x: hidden makes body a scroll container and disables descendant sticky.
+    assert 'overflow-x: clip' in css
+    assert 'overflow-x: hidden' not in css
+    assert '--section-nav-height:' in css
+    assert re.search(r'section\[id\], details\[id\]\s*\{[^}]*scroll-margin-top: var\(--section-nav-height\)', css)
+
+
+def test_scroll_spy_uses_plain_dom_and_keeps_anchor_navigation_working(tmp_path):
+    watchlist = _write_watchlist(tmp_path, '20260910', [_candidate('600018', '导航信号', 70)])
+    _write_tracker(tmp_path, watchlist)
+    model, dated, _latest = renderer.render_daily_close('20260910', paths=_paths(tmp_path), calendar=CALENDAR)
+    text = dated.read_text(encoding='utf-8')
+    script = text.split('<script>', 2)[2]
+
+    assert 'IntersectionObserver' in script
+    assert 'aria-current' in script
+    assert '<script src=' not in text
+    assert 'import ' not in script
+    # Anchors stay plain, so navigation works with JavaScript disabled.
+    assert text.count('<a href="#overview">总览</a>') == 1

@@ -1,5 +1,69 @@
 # CURRENT STATUS
 
+## 2026-09-28 — C single-file B+C reading UX on the same PR #92 branch
+
+- Classification: presentation / UX only (FAST PATH); B strategy, C rules, thresholds, scoring and
+  every calculation are unchanged, and the merged #91 behaviour is untouched. The live baseline is
+  still `origin/master=790af3ec8384583c22cba1bc63c831f0d2040187` with
+  `origin/runtime-state=e6399431ad999c6ba1579afac7f5812bc1e3f033`; work continues on
+  `codex/c-daily-single-file-delivery-v1` (PR #92).
+- Daily reading is now 总览 → 新名单 → C研究 → 绩效 → Shadow → 复盘 → 节点研究 → 数据质量. The module
+  navigation is a real full-page sticky bar: it is a direct child of `main` (not inside the short
+  header) and `html`/`body` use `overflow-x: clip` instead of `overflow-x: hidden`, which had made
+  the body a scroll container and silently disabled `position: sticky`. Every anchor target has
+  `scroll-margin-top: var(--section-nav-height)`, a small IntersectionObserver + passive scroll
+  script marks the current module with `aria-current="location"` and centres the active tab, and
+  plain `<a href>` navigation still works with JavaScript disabled.
+- The composite deliverable now presents C as one module of the same report: compact
+  `C 策略研究名单 · N 只` summary, one card per stock, matched rules visible in the body, unmatched
+  rules collapsed to a single line, a short mechanical structure sentence plus a small metric set,
+  and collapsed technical/audit detail for identity, SHAs, provider timestamps and raw status
+  codes. C CSS stays scoped to `#c-daily-research`; no second global `body`/`main`/`header`/
+  `section`/`table` block is emitted.
+- Read-only acceptance for 2026-09-24 is unchanged: `matched_stock_count=2`, `BALANCED_A=2`,
+  `CONSERVATIVE_B=0`, `600019 宝钢股份`, `601598 中国外运`; no historical artifact, receipt or
+  runtime-state ref was modified.
+- Verification: focused C/B/HTML suites `78 passed`; full `pytest` `769 passed, 2 skipped,
+  1 baseline environment failure, 10 warnings`, the failure being the pre-existing local
+  `data/validation/.../daily_k.parquet` presence assertion unrelated to this diff; `compileall` and
+  `git diff --check` pass. Headless-Chrome measurement of the rebuilt 2026-09-24 preview shows the
+  sticky bar at the viewport top at every scroll depth for `1440x900` and `390x844`, section titles
+  landing exactly at the nav height on anchor jumps, the correct active tab per section, and no
+  horizontal overflow.
+- Next action: the user's merge decision on PR #92 once exact-head CI and mergeability are re-read;
+  no auto-merge, production dispatch, backfill, order, promotion, or Final OOS read.
+
+## 2026-09-28 — C single-file B+C delivery correction PR #92 ready
+
+- Classification: product blocker plus correctness/provenance boundary; STRICT PATH. The live
+  baseline is `origin/master=790af3ec8384583c22cba1bc63c831f0d2040187`; `origin/runtime-state`
+  is `e6399431ad999c6ba1579afac7f5812bc1e3f033`. PR #91 is merged and is not modified or reverted.
+- The #91 external `c_daily/YYYYMMDD/index.html` entry is removed from the Formal B renderer.
+  Formal B remains the immutable canonical artifact and runtime-state identity. After the canonical
+  B push, C reads the same frozen B input once and writes a temporary inline presentation HTML for
+  the user-facing attachment; the composite is deliberately outside the runtime-state allowlist.
+- Production order is now canonical B production/validation/state push, pre-delivery C/composite
+  preparation, Email/Bark, receipt persistence, delivery health, then independent C publication
+  and remote readback. C failure, timeout, data-pending, or not-run produces an explicit inline
+  C state while preserving full B delivery; only an explicit successful zero result can display
+  `今日无 C 研究匹配`.
+- Delivery receipt semantics remain compatible: `report_sha256` is Formal B's SHA; a composite
+  delivery may add optional `delivery_report_sha256` and
+  `delivery_report_kind=B_PLUS_C_PRESENTATION_V1`. Existing receipts remain readable. Same-day
+  completed retries use a `C_NOT_RUN` fallback presentation when no full B result is available.
+- Read-only acceptance evidence for 2026-09-24 remains `matched_stock_count=2`, `BALANCED_A=2`,
+  `CONSERVATIVE_B=0`, including `600019 宝钢股份` and `601598 中国外运`; no historical artifact,
+  receipt, or runtime-state ref was changed. No production dispatch, backfill, order, promotion,
+  or Final OOS read occurred.
+- Focused verification passes `105` tests with one pre-existing warning. A short-path full-suite
+  rerun passes `763` tests with `2` skips and `10` warnings after deselecting one environment-only
+  assertion that expects the ignored local `data/validation/.../daily_k.parquet` to be absent; the
+  unfiltered run reports only that same baseline failure. Final branch push, exact-head PR CI and
+  mergeability are complete: PR #92 is open at
+  https://github.com/EFSing/ashare_watchlist/pull/92; exact-head CI is green for the pushed
+  implementation/documentation checkpoints and GitHub reports `mergeable=true`. Stop for the
+  user's merge decision; do not auto-merge.
+
 ## 2026-09-28 — C daily report user-visible entry prepared in PR #91
 
 - The live 2026-09-24 C report is present and valid as independent research output

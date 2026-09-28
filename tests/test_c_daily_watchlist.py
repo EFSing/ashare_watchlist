@@ -1,18 +1,23 @@
 from __future__ import annotations
 
 import json
-import os
-import shutil
+import re
 import subprocess
-import textwrap
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 import pytest
 
 from c_b_input_adapter import _price_only_observation
-from c_daily_watchlist import build_watchlist, publish_report, render_html, write_report
-from run_c_daily_watchlist import b_is_complete, post_b, run, time_budget_status
+from c_daily_watchlist import build_watchlist, classify_c_status, publish_report, render_html, write_report
+from run_c_daily_watchlist import (
+    build_composite_delivery,
+    b_is_complete,
+    post_b,
+    prepare_fallback_delivery,
+    run,
+    time_budget_status,
+)
 from test_c_pre_outcome_design import _synthetic_entry_bars
 
 
@@ -56,16 +61,30 @@ def test_research_match_keeps_volume_and_formal_signal_separate() -> None:
     html = render_html(result)
     assert "确认日 RV_T" in html and "回踩后半/前半量" in html
     assert "上涨日/下跌日量" in html and "VOLUME_BASIS_UNVERIFIED" in html
-    assert "非 Formal B 名单" in html
+    assert "不属于 Formal B 正式名单" in html
     assert "B 输入隔离 9" in html
-    assert "grid-template-columns:1fr" in html
+    assert "grid-template-columns: 1fr" in html
 
 
 def test_no_match_still_has_readable_report() -> None:
     result = build_watchlist(_record(matched=False))
     assert result["matched_stock_count"] == 0
     assert result["data_pending_by_rule"]["CONSERVATIVE_B"] == 1
-    assert "今日无 C 研究匹配" in render_html(result)
+    html = render_html(result)
+    assert "当前结果不能解释为零匹配" in html
+    assert "matched_stock_count</span><strong>0" not in html
+
+
+def test_explicit_zero_result_uses_success_no_match_status() -> None:
+    record = _record(double=True)
+    for rule in record["observations"][0]["rules"].values():
+        rule["price_structure_match"] = False
+        rule["research_match_status"] = "PRICE_STRUCTURE_NO_MATCH"
+    result = build_watchlist(record)
+    assert classify_c_status(result) == "C_SUCCESS_NO_MATCH"
+    html = render_html(result)
+    assert "今日无 C 研究匹配" in html
+    assert "C_SUCCESS_NO_MATCH" in html
 
 
 def test_double_match_keeps_two_rule_events() -> None:
@@ -136,9 +155,11 @@ def _b_result(tmp_path: Path) -> tuple[dict, dict]:
     from daily_report_delivery import RECEIPT_SCHEMA_VERSION, delivery_receipt_path
     data = tmp_path / "data"
     (data / "reports").mkdir(parents=True)
-    paths = [data / "input.json", data / "watchlist.json", data / "reports" / "daily_close_20260922.html"]
+    paths = [data / "input.json", data / "watchlist_20260922.json", data / "reports" / "daily_close_20260922.html"]
     for path in paths:
-        path.write_text("formal B bytes", encoding="utf-8")
+        content = ("<!doctype html><html><body><main>formal B bytes</main></body></html>"
+                   if path.suffix == ".html" else "formal B bytes")
+        path.write_text(content, encoding="utf-8")
     receipt = {"schema_version": RECEIPT_SCHEMA_VERSION, "report_date": "2026-09-22",
                "report_sha256": sha256(paths[2].read_bytes()).hexdigest(), "candidate_count": 0,
                "review_status": "READY", "shadow_status": "READY", "email_status": "SUCCESS",
@@ -151,6 +172,17 @@ def _b_result(tmp_path: Path) -> tuple[dict, dict]:
     persisted = tmp_path / "runtime-state" / "data" / "delivery" / receipt_path.name
     persisted.parent.mkdir(parents=True)
     persisted.write_bytes(receipt_path.read_bytes())
+    for source, relative in (
+        (paths[1], Path("watchlist_20260922.json")),
+        (paths[2], Path("reports/daily_close_20260922.html")),
+        (data / "reports" / "latest.html", Path("reports/latest.html")),
+    ):
+        source.parent.mkdir(parents=True, exist_ok=True)
+        if relative.name == "latest.html":
+            source.write_text("formal B latest bytes", encoding="utf-8")
+        destination = tmp_path / "runtime-state" / "data" / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(source.read_bytes())
     result = {"status": "T_CLOSE_EVIDENCE_PACKAGE_AND_WATCHLIST_PERSISTED", "as_of_date": "2026-09-22",
               "input_package": {"path": str(paths[0]), "file_sha256": sha256(paths[0].read_bytes()).hexdigest()},
               "watchlist": {"path": str(paths[1]), "file_sha256": sha256(paths[1].read_bytes()).hexdigest()},
@@ -161,20 +193,23 @@ def _b_result(tmp_path: Path) -> tuple[dict, dict]:
     return result, {"status": "DELIVERY_SUCCESS", "receipt_status": "PERSISTED"}
 
 
-def test_b_failure_modes_never_start_c(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_b_formal_gate_is_independent_of_delivery_receipt(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     result, delivery = _b_result(tmp_path)
     data = tmp_path / "data"
     state = tmp_path / "runtime-state"
     assert b_is_complete(result, delivery, data, state)
+    from run_c_daily_watchlist import b_formal_is_complete
+    assert b_formal_is_complete(result, data, state)
     monkeypatch.setattr("run_c_daily_watchlist.consume_b_input", lambda *a, **k: pytest.fail("C started"))
     cases = [({**result, "status": "NO_VALID_INPUT"}, delivery),
-             ({**result, "daily_close_bundle": {**result["daily_close_bundle"], "renderer": {"status": "FAILED"}}}, delivery),
-             (result, {"status": "DELIVERY_FAILED"})]
+             ({**result, "daily_close_bundle": {**result["daily_close_bundle"], "renderer": {"status": "FAILED"}}}, delivery)]
     for b_result, b_delivery in cases:
         assert run(b_result, b_delivery, data_root=data, state_root=state, evidence_root=tmp_path, report_root=tmp_path)["status"] == "C_NOT_STARTED_B_FORMAL_GATE_INCOMPLETE"
     (state / "data" / "delivery" / "daily_delivery_20260922.json").unlink()
-    assert run(result, delivery, data_root=data, state_root=state, evidence_root=tmp_path,
-               report_root=tmp_path)["status"] == "C_NOT_STARTED_B_FORMAL_GATE_INCOMPLETE"
+    assert b_formal_is_complete(result, data, state)
+    monkeypatch.setattr("run_c_daily_watchlist.consume_b_input", lambda *a, **k: (_ for _ in ()).throw(TimeoutError("C")))
+    assert run(result, {"status": "DELIVERY_FAILED"}, data_root=data, state_root=state,
+               evidence_root=tmp_path, report_root=tmp_path)["status"] == "C_FAILED_B_UNCHANGED"
 
 
 def test_c_exception_is_isolated_from_b_bytes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -223,32 +258,104 @@ def test_primary_run_may_start_c_once_b_completed_the_target_date() -> None:
                                   b_complete_for_target_date=complete)["reason"] == "JOB_DEADLINE"
 
 
-def test_post_b_attempts_c_on_primary_run_after_the_retry_slot(tmp_path: Path,
-                                                              monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prepare_delivery_builds_inline_composite_and_fallback_on_c_timeout(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    result, _delivery = _b_result(tmp_path)
+    b_result = tmp_path / "b-result.json"
+    b_result.write_text(json.dumps(result), encoding="utf-8")
+    formal_path = Path(result["daily_close_bundle"]["dated_html"])
+    formal_before = formal_path.read_bytes()
+
+    monkeypatch.setattr(
+        "run_c_daily_watchlist._run_c_child",
+        lambda *a, **k: (_ for _ in ()).throw(subprocess.TimeoutExpired("c", 1)),
+    )
+    prepared = __import__("run_c_daily_watchlist").prepare_delivery(
+        b_result=b_result,
+        data_root=tmp_path / "data",
+        state_root=tmp_path / "runtime-state",
+        evidence_root=tmp_path / "evidence",
+        report_root=tmp_path / "rendered",
+        delivery_root=tmp_path / "delivery-report",
+        started_at=datetime(2026, 9, 24, 11, tzinfo=timezone.utc),
+        now=datetime(2026, 9, 24, 11, 1, tzinfo=timezone.utc),
+    )
+    assert prepared["status"] == "C_DELIVERY_READY"
+    assert prepared["c_status"] == "C_TIMEOUT"
+    composite = Path(prepared["delivery_report_path"])
+    text = composite.read_text(encoding="utf-8")
+    assert "C_TIMEOUT" in text
+    assert "C 研究结果今日未完成" in text
+    assert "formal_b_signal" in text and "false" in text
+    assert formal_path.read_bytes() == formal_before
+
+
+def test_success_composite_contains_c_once_without_external_dependencies(tmp_path: Path) -> None:
+    result, _delivery = _b_result(tmp_path)
+    observation = tmp_path / "observation.json"
+    observation.write_text(json.dumps(_record(double=True), ensure_ascii=False), encoding="utf-8")
+    report = write_report(observation, tmp_path / "rendered")
+    prepared = build_composite_delivery(
+        result,
+        {"status": "C_DAILY_RESEARCH_REPORT_READY", "c_status": report["c_status"], "report": report},
+        delivery_root=tmp_path / "delivery-report",
+    )
+
+    html = Path(prepared["delivery_report_path"]).read_text(encoding="utf-8")
+    assert prepared["c_status"] == "C_SUCCESS_WITH_MATCHES"
+    assert html.count('id="c-daily-research"') == 1
+    assert "600000" in html and "浦发银行" in html
+    assert "BALANCED_A" in html and "CONSERVATIVE_B" in html
+    assert "VOLUME_BASIS_UNVERIFIED" in html and "formal_b_signal" in html
+    assert "c_daily/" not in html and "iframe" not in html and "fetch(" not in html
+    assert Path(result["daily_close_bundle"]["dated_html"]).read_bytes() == (
+        b"<!doctype html><html><body><main>formal B bytes</main></body></html>"
+    )
+
+
+def test_already_completed_retry_gets_explicit_c_not_run_composite(tmp_path: Path) -> None:
+    result, _delivery = _b_result(tmp_path)
+    prepared = prepare_fallback_delivery(
+        report_date=result["as_of_date"],
+        formal_report_path=Path(result["daily_close_bundle"]["dated_html"]),
+        delivery_root=tmp_path / "delivery-report",
+    )
+    html = Path(prepared["delivery_report_path"]).read_text(encoding="utf-8")
+    assert prepared["status"] == "C_DELIVERY_READY"
+    assert prepared["c_status"] == "C_NOT_RUN"
+    assert "C_NOT_RUN" in html and "C 研究结果今日未完成" in html
+    assert "matched_stock_count=0" not in html
+
+
+def test_post_b_reuses_precomputed_c_result_without_rerunning_c(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     result, delivery = _b_result(tmp_path)
     b_result = tmp_path / "b-result.json"
     delivery_result = tmp_path / "delivery-result.json"
     b_result.write_text(json.dumps(result), encoding="utf-8")
     delivery_result.write_text(json.dumps(delivery), encoding="utf-8")
-    attempts: list[list[str]] = []
-
-    def timeout_child(command: list[str]) -> dict:
-        attempts.append(command)
-        raise subprocess.TimeoutExpired(command, 360)
-
-    monkeypatch.setattr("run_c_daily_watchlist._run_c_child", timeout_child)
-    formal_paths = [Path(result["input_package"]["path"]), Path(result["watchlist"]["path"]),
-                    Path(result["daily_close_bundle"]["dated_html"]),
-                    tmp_path / "data/delivery/daily_delivery_20260922.json"]
-    original = {str(path): path.read_bytes() for path in formal_paths}
-    started = datetime(2026, 9, 24, 9, 20, tzinfo=timezone.utc)
-    outcome = post_b(b_result=b_result, delivery_result=delivery_result, data_root=tmp_path / "data",
-                     state_root=tmp_path / "runtime-state", evidence_root=tmp_path / "evidence",
-                     report_root=tmp_path / "rendered", started_at=started,
-                     now=datetime(2026, 9, 24, 10, 20, tzinfo=timezone.utc), schedule_cron="17 9 * * 1-5")
-    assert attempts, "the primary run must attempt C once Formal B completed the target date"
-    assert outcome["status"] == "C_TIMEOUT_B_UNCHANGED"
-    assert {str(path): path.read_bytes() for path in formal_paths} == original
+    observation = tmp_path / "observation.json"
+    observation.write_text(json.dumps(_record(), ensure_ascii=False), encoding="utf-8")
+    report = write_report(observation, tmp_path / "rendered")
+    prepared = tmp_path / "prepared.json"
+    prepared.write_text(json.dumps({
+        "status": "C_DELIVERY_READY",
+        "c_status": report["c_status"],
+        "c_result": {"status": "C_DAILY_RESEARCH_REPORT_READY", "c_status": report["c_status"], "report": report},
+    }), encoding="utf-8")
+    _init_c_state_repo(tmp_path / "runtime-state", tmp_path / "remote.git")
+    monkeypatch.setattr("run_c_daily_watchlist.consume_b_input", lambda *a, **k: pytest.fail("C reran"))
+    outcome = post_b(
+        b_result=b_result,
+        delivery_result=delivery_result,
+        prepared_result=prepared,
+        data_root=tmp_path / "data",
+        state_root=tmp_path / "runtime-state",
+    )
+    assert outcome["status"] == "C_DAILY_REPORT_PUBLISHED"
+    assert outcome["c_status"] == report["c_status"]
 
 
 def _init_c_state_repo(state: Path, remote: Path) -> None:
@@ -279,8 +386,12 @@ def test_post_b_publishes_only_c_files_with_real_git_readback(tmp_path: Path, mo
     observation = tmp_path / "observation.json"
     observation.write_text(json.dumps(_record(matched=matched), ensure_ascii=False), encoding="utf-8")
     report = write_report(observation, tmp_path / "rendered")
-    monkeypatch.setattr("run_c_daily_watchlist._run_c_child",
-                        lambda command: {"status": "C_DAILY_RESEARCH_REPORT_READY", "report": report})
+    prepared = tmp_path / "prepared.json"
+    prepared.write_text(json.dumps({
+        "status": "C_DELIVERY_READY",
+        "c_status": report["c_status"],
+        "c_result": {"status": "C_DAILY_RESEARCH_REPORT_READY", "c_status": report["c_status"], "report": report},
+    }), encoding="utf-8")
     if fail_stage:
         import run_c_daily_watchlist as runner
         original_git = runner._git
@@ -295,10 +406,8 @@ def test_post_b_publishes_only_c_files_with_real_git_readback(tmp_path: Path, mo
                     Path(result["daily_close_bundle"]["dated_html"]),
                     state / "data" / "delivery" / "daily_delivery_20260922.json"]
     original = {str(path): path.read_bytes() for path in formal_paths}
-    started = datetime(2026, 9, 24, 11, tzinfo=timezone.utc)
-    outcome = post_b(b_result=b_result, delivery_result=delivery_result, data_root=tmp_path / "data",
-                     state_root=state, evidence_root=tmp_path / "evidence", report_root=tmp_path / "rendered",
-                     started_at=started, now=started + timedelta(minutes=1), schedule_cron="17 10 * * 1-5")
+    outcome = post_b(b_result=b_result, delivery_result=delivery_result, prepared_result=prepared,
+                     data_root=tmp_path / "data", state_root=state)
     assert outcome["status"] == ("C_REPORT_PUBLISH_FAILED_B_UNCHANGED" if fail_stage else "C_DAILY_REPORT_PUBLISHED")
     if fail_stage:
         assert outcome["stage"] == ("PUSH_C_REPORT" if fail_stage == "push" else "REMOTE_READBACK")
@@ -306,7 +415,9 @@ def test_post_b_publishes_only_c_files_with_real_git_readback(tmp_path: Path, mo
         assert outcome["matched_stock_count"] == (1 if matched else 0)
         assert all(path.startswith("data/reports/c_daily/") for path in outcome["paths"])
     assert {str(path): path.read_bytes() for path in formal_paths} == original
-    assert not (state / "data" / "reports" / "latest.html").exists()
+    assert (state / "data" / "reports" / "latest.html").read_bytes() == (
+        tmp_path / "data" / "reports" / "latest.html"
+    ).read_bytes()
     if not fail_stage:
         assert subprocess.run(["git", "--git-dir", str(remote), "show", "runtime-state:" + outcome["paths"][-2]],
                               check=True, capture_output=True).stdout == (state / outcome["paths"][-2]).read_bytes()
@@ -318,87 +429,52 @@ def test_post_b_c_failure_and_publish_failure_leave_b_success(tmp_path: Path, mo
     delivery_result = tmp_path / "delivery-result.json"
     b_result.write_text(json.dumps(result), encoding="utf-8")
     delivery_result.write_text(json.dumps(delivery), encoding="utf-8")
-    started = datetime(2026, 9, 24, 11, tzinfo=timezone.utc)
-    kwargs = dict(b_result=b_result, delivery_result=delivery_result, data_root=tmp_path / "data",
-                  state_root=tmp_path / "runtime-state", evidence_root=tmp_path / "evidence",
-                  report_root=tmp_path / "rendered", started_at=started,
-                  now=started + timedelta(minutes=1), schedule_cron="17 10 * * 1-5")
-    formal_paths = [Path(result["input_package"]["path"]), Path(result["watchlist"]["path"]),
-                    Path(result["daily_close_bundle"]["dated_html"]),
-                    tmp_path / "data/delivery/daily_delivery_20260922.json"]
-    original = {str(path): path.read_bytes() for path in formal_paths}
-    monkeypatch.setattr("run_c_daily_watchlist._run_c_child", lambda command: {"status": "C_FAILED_B_UNCHANGED"})
-    assert post_b(**kwargs)["status"] == "C_FAILED_B_UNCHANGED"
-    def nonzero(command):
-        raise subprocess.CalledProcessError(2, command)
-    monkeypatch.setattr("run_c_daily_watchlist._run_c_child", nonzero)
-    assert post_b(**kwargs) == {"status": "C_FAILED_B_UNCHANGED", "reason": "C_PROCESS_FAILED"}
-    def timeout(command):
-        raise subprocess.TimeoutExpired(command, 360)
-    monkeypatch.setattr("run_c_daily_watchlist._run_c_child", timeout)
-    assert post_b(**kwargs)["status"] == "C_TIMEOUT_B_UNCHANGED"
-    monkeypatch.setattr("run_c_daily_watchlist._run_c_child",
-                        lambda command: {"status": "C_DAILY_RESEARCH_REPORT_READY", "report": {"status": "C_DAILY_REPORT_READY"}})
-    assert post_b(**kwargs)["status"] == "C_REPORT_PUBLISH_FAILED_B_UNCHANGED"
+    prepared = tmp_path / "prepared.json"
+    prepared.write_text(json.dumps({"status": "C_DELIVERY_READY", "c_status": "C_FAILED",
+                                    "c_result": {"status": "C_FAILED_B_UNCHANGED"}}), encoding="utf-8")
+    assert post_b(b_result=b_result, delivery_result=delivery_result, prepared_result=prepared,
+                  data_root=tmp_path / "data", state_root=tmp_path / "runtime-state")["status"] == "C_NOT_PUBLISHED_C_UNAVAILABLE"
     assert delivery["status"] == "DELIVERY_SUCCESS"
-    assert {str(path): path.read_bytes() for path in formal_paths} == original
 
 
-def test_workflow_c_gate_is_after_all_b_success_steps() -> None:
+def test_workflow_prepares_composite_before_delivery_and_publishes_c_after_health() -> None:
     workflow = (Path(__file__).resolve().parents[1] / ".github/workflows/daily_t_close.yml").read_text(encoding="utf-8")
     ids = {name: workflow.index(f"        id: {name}\n") for name in (
-        "b_production", "b_output_validation", "b_state_push", "b_delivery",
+        "b_production", "b_output_validation", "b_state_push", "c_pre_delivery", "b_delivery",
         "b_receipt_persist", "delivery_health", "c_daily")}
     assert ids["b_production"] < ids["b_output_validation"] < ids["b_state_push"]
-    assert ids["b_state_push"] < ids["b_delivery"] < ids["b_receipt_persist"] < ids["delivery_health"] < ids["c_daily"]
+    assert ids["b_state_push"] < ids["c_pre_delivery"] < ids["b_delivery"] < ids["b_receipt_persist"] < ids["delivery_health"] < ids["c_daily"]
+    pre_step = workflow[ids["c_pre_delivery"]:workflow.index("      - name:", ids["c_pre_delivery"])]
     c_step = workflow[ids["c_daily"]:workflow.index("      - name:", ids["c_daily"])]
     for gate in ("b_production", "b_output_validation", "b_state_push", "b_delivery",
                  "b_receipt_persist", "delivery_health"):
-        assert f"steps.{gate}.outcome == 'success'" in c_step
-    assert "ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1" in c_step
+        if gate == "b_delivery" or gate == "b_receipt_persist" or gate == "delivery_health":
+            assert f"steps.{gate}.outcome == 'success'" in c_step
+        else:
+            assert f"steps.{gate}.outcome == 'success'" in pre_step or gate == "b_production"
+    assert "ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1" in pre_step
+    assert "--prepare-delivery" in pre_step and "--delivery-root" in pre_step
+    assert "--prepare-fallback" in pre_step
+    assert "--delivery-report-path" in workflow
+    assert "steps.c_pre_delivery.outcome == 'success'" in c_step
+    assert "--prepared-result" in c_step
     assert "continue-on-error: true" in c_step
-    assert "timeout --signal=TERM --kill-after=10s 600s" in c_step
     assert "C status:" in c_step and "Formal B delivery health: SUCCESS" in c_step
     fallback = workflow[workflow.index("      - name: Preserve C failure diagnosis") :]
+    assert "steps.c_pre_delivery.outcome == 'failure'" in fallback
     assert "steps.c_daily.outcome == 'failure'" in fallback
     assert "continue-on-error: true" in fallback
-    assert "::warning::C daily step failed after Formal B delivery at $stage" in fallback
+    assert "C presentation/publication outcome:" in fallback
 
 
-@pytest.mark.parametrize("failed_file", ["summary", "env"])
-def test_workflow_c_file_write_failures_keep_b_success(tmp_path: Path, failed_file: str) -> None:
-    bash = shutil.which("bash") or r"C:\Program Files\Git\bin\bash.exe"
-    if not Path(bash).is_file() and not shutil.which("bash"):
-        pytest.skip("bash unavailable")
-    workflow = (Path(__file__).resolve().parents[1] / ".github/workflows/daily_t_close.yml").read_text(encoding="utf-8")
-    step = workflow[workflow.index("        id: c_daily\n"):workflow.index("      - name: Preserve C failure diagnosis")]
-    fallback_step = workflow[workflow.index("      - name: Preserve C failure diagnosis"):workflow.index("      - name: Checkout clean runtime-state for failure notice")]
-    script = textwrap.dedent(step.split("        run: |\n", 1)[1])
-    fallback_script = textwrap.dedent(fallback_step.split("        run: |\n", 1)[1])
-    summary = tmp_path / "summary"
-    env_file = tmp_path / "env"
-    if failed_file == "summary":
-        summary.mkdir()
-    else:
-        env_file.mkdir()
-    variables = dict(os.environ, RUNNER_TEMP=tmp_path.as_posix(),
-                     GITHUB_STEP_SUMMARY=summary.as_posix(), GITHUB_ENV=env_file.as_posix())
-    completed = subprocess.run([bash, "-c", script], cwd=tmp_path, env=variables,
-                               text=True, capture_output=True, timeout=30)
-    assert completed.returncode != 0
-    assert json.loads((tmp_path / "c-daily-result.json").read_text(encoding="utf-8"))["status"] == "C_NOT_STARTED_B_FORMAL_GATE_INCOMPLETE"
-    assert (tmp_path / "c-daily-step-failure.txt").read_text(encoding="utf-8").strip() == (
-        "ACTIONS_SUMMARY" if failed_file == "summary" else "GITHUB_ENV")
-    fallback = subprocess.run([bash, "-c", fallback_script], cwd=tmp_path, env=variables,
-                              text=True, capture_output=True, timeout=30)
-    assert fallback.returncode == 0
-    assert "C daily step failed after Formal B delivery at " in fallback.stdout
-    if failed_file == "env":
-        assert "C step outcome: failure at GITHUB_ENV" in summary.read_text(encoding="utf-8")
-    # Both file-write failures are contained by the workflow's C-only continue-on-error;
-    # the Formal B receipt and production steps are upstream of this isolated step.
-    assert "continue-on-error: true" in step
-    assert not (tmp_path / "data").exists()
+def test_c_unavailable_presentation_never_fabricates_zero_match() -> None:
+    from c_daily_watchlist import render_unavailable_section
+
+    for status in ("C_TIMEOUT", "C_FAILED", "C_NOT_RUN", "C_DATA_PENDING"):
+        html = render_unavailable_section("2026-09-24", status)
+        assert "formal_b_signal" in html and "false" in html
+        assert "matched_stock_count=0" not in html
+        assert "今日无 C 研究匹配" not in html
 
 
 def test_same_day_retry_keeps_both_c_package_versions(tmp_path: Path) -> None:
@@ -465,6 +541,116 @@ def test_real_b_serializer_to_c_html_uses_only_frozen_bytes(tmp_path: Path, monk
                                        read_at=datetime(2026, 8, 27, 19, tzinfo=tz(timedelta(hours=8))))
     assert observed["observation_count"] == 1
     report = write_report(capture.C_OUTPUT_ROOT / observed["record"], tmp_path / "c-report")
-    assert "C 每日研究名单" in Path(report["path"]).read_text(encoding="utf-8")
+    assert "C 策略研究名单" in Path(report["path"]).read_text(encoding="utf-8")
     assert report["html_bytes"] < 2_000_000
     assert hashlib.sha256(persisted.path.read_bytes()).hexdigest() == sha
+
+
+_B_SHELL = (
+    '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><style>'
+    '.section-nav { position: sticky; top: 0; z-index: 20; }</style></head><body><main>'
+    '<header class="site-header"><h1>测试日报</h1>\n'
+    '<nav class="section-nav" aria-label="报告章节导航">'
+    '<a href="#overview">总览</a><a href="#tomorrow-watchlist">新名单</a>'
+    '<a href="#trade-performance">绩效</a></nav>\n</header>\n'
+    '<section id="overview">总览内容</section>\n'
+    '<section id="tomorrow-watchlist">新名单内容</section>\n'
+    '<section id="trade-performance">绩效内容</section>\n'
+    '<details id="audit"><summary>技术与审计信息</summary></details>\n'
+    '</main></body></html>'
+)
+
+
+def _single_match_watchlist() -> dict:
+    record = _record(double=True)
+    rule = record["observations"][0]["rules"]["CONSERVATIVE_B"]
+    rule["price_structure_match"] = False
+    rule["research_match_status"] = "PRICE_STRUCTURE_RULE_NOT_SATISFIED"
+    rule["research_match_reason"] = "PRICE_STRUCTURE_RULE_NOT_SATISFIED"
+    rule["price_structure_event_identity"] = None
+    return build_watchlist(record)
+
+
+def test_composite_places_c_module_after_new_list_with_nav_entry() -> None:
+    from c_daily_watchlist import compose_delivery_html, render_section
+
+    watchlist = _single_match_watchlist()
+    section = render_section(watchlist)
+    html = compose_delivery_html(_B_SHELL, section).decode("utf-8")
+
+    assert html.count('id="c-daily-research"') == 1
+    assert '<a href="#tomorrow-watchlist">新名单</a><a href="#c-daily-research">C研究</a>' in html
+    assert (html.index('<section id="tomorrow-watchlist"') < html.index('<section id="c-daily-research"')
+            < html.index('<section id="trade-performance"'))
+    assert "c_daily/" not in html and "iframe" not in html
+    # The presentation copy differs from the canonical Formal B bytes only by the
+    # added navigation entry and the inline C module.
+    restored = html.replace(f"\n{section}\n", "").replace(
+        '<a href="#c-daily-research">C研究</a>', "")
+    assert restored == _B_SHELL
+
+
+def test_c_module_first_layer_is_compact_and_technical_detail_is_collapsed() -> None:
+    from c_daily_watchlist import render_section
+
+    watchlist = _single_match_watchlist()
+    assert watchlist["matched_stock_count"] == 1
+    assert watchlist["matched_by_rule"] == {"BALANCED_A": 1, "CONSERVATIVE_B": 0}
+    html = render_section(watchlist)
+    card = html.split('<article class="c-stock-card">', 1)[1]
+    visible = card.split("<details", 1)[0]
+
+    assert "<h2>C 策略研究名单 · 1 只</h2>" in html
+    assert "<span>命中股票</span><strong>1</strong>" in html
+    assert "<span>BALANCED_A</span><strong>1</strong>" in html
+    assert "<span>CONSERVATIVE_B</span><strong>0</strong>" in html
+    assert "600000" in visible and "浦发银行" in visible
+    assert '<span class="badge positive">BALANCED_A</span>' in visible
+    assert "价格结构匹配" in visible
+    for label in ("前高", "回踩低点", "确认状态", "确认日 RV_T", "回踩/基准量",
+                  "回踩后半/前半量", "上涨日/下跌日量"):
+        assert label in visible
+    # The unmatched rule is one collapsed line, not a second full-size block.
+    assert "CONSERVATIVE_B" not in visible
+    assert ('<details class="c-rule-other"><summary>其他规则详情 · CONSERVATIVE_B · 未匹配</summary>'
+            in html)
+    assert '<details class="c-stock-audit"><summary>技术审计详情</summary>' in html
+    assert '<details class="c-stock-audit" open' not in html
+    assert '<details class="c-rule-other" open' not in html
+    # Machine detail is still reachable: identity, SHAs and raw status codes.
+    assert "事件身份" in html
+    assert "VOLUME_BASIS_UNVERIFIED" in html and "formal_b_signal=false" in html
+    assert "B 输入隔离 9" in html and "package SHA" in html
+
+
+def test_c_module_style_is_scoped_and_reuses_formal_b_tokens() -> None:
+    from c_daily_watchlist import render_section
+
+    html = render_section(_single_match_watchlist())
+    style = html.split("<style data-c-daily-inline-style>", 1)[1].split("</style>", 1)[0]
+    for unscoped in ("html", "body", "main", "header", "section", "table", "th", "td",
+                     ".badge", "h2", "h3", "p"):
+        assert not re.search(rf"(?:^|}})\s*{re.escape(unscoped)}\s*[{{,]", style), unscoped
+    for token in ("var(--border", "var(--muted", "var(--surface-2", "var(--accent",
+                  "var(--surface", "var(--warning"):
+        assert token in style
+    section = html.split("</style>", 1)[1]
+    for shared_class in ('class="section-head"', 'class="section-kicker"',
+                         'class="section-subtitle"', 'class="badge warning"'):
+        assert shared_class in section
+    assert "grid-template-columns: 1fr" in style
+
+
+def test_c_module_result_values_come_from_the_computed_watchlist() -> None:
+    from c_daily_watchlist import render_section
+
+    watchlist = build_watchlist(_record(double=True))
+    assert watchlist["matched_by_rule"] == {"BALANCED_A": 1, "CONSERVATIVE_B": 1}
+    html = render_section(watchlist)
+    assert "<span>命中股票</span><strong>1</strong>" in html
+    assert "<span>BALANCED_A</span><strong>1</strong>" in html
+    assert "<span>CONSERVATIVE_B</span><strong>1</strong>" in html
+    assert '<span class="badge positive">BALANCED_A</span>' in html
+    assert '<span class="badge positive">CONSERVATIVE_B</span>' in html
+    # A double match keeps both rule events reachable without a second visible block.
+    assert html.count("independent-b-event") == 1
