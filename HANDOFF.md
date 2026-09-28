@@ -19,7 +19,8 @@
   a provider contract delivering absent/null `list_date` removed the whole current-day Main Board
   pool. `#91`/`#92` never touched live acquisition or the Main Board policy.
 - Fix: branch `codex/hithink-current-roster-list-date-drift-20260928` (worktree
-  `D:\dev\ashare-watchlist-hithink-current-roster-20260928`), PR opened against live `master`.
+  `D:\dev\ashare-watchlist-hithink-current-roster-20260928`), independent PR #93 against live
+  `master`: https://github.com/EFSing/ashare_watchlist/pull/93
   `list_date` is now optional roster metadata. Same-calendar-date production uses the
   `CURRENT_ROSTER_SAME_DAY` eligibility mode (current roster membership admits a candidate; the
   unchanged target-day K-line freshness/OHLCV, quote/trade-state and per-symbol fail-soft checks
@@ -29,14 +30,17 @@
   provenance carry `eligibility_mode`, `list_date_present_count`, `list_date_missing_count` and
   `target_day_bar_validation_required`.
 - Verification: `tests/test_live_acquisition.py` `132 passed`; `tests/test_cloud_runtime_state.py`
-  `31 passed`; full `pytest` `778 passed, 2 skipped, 10 warnings`; `python -m compileall -q scripts
+  `31 passed`; full `pytest` `779 passed, 2 skipped, 10 warnings`; `python -m compileall -q scripts
   tests` and `git diff --check` pass. Provider production calls `0`, production dispatch `0`,
   runtime-state remote mutation `0`, Final OOS `SEALED / UNREAD`.
-- Next action: re-read the live PR head, exact-head push/PR CI and mergeability, then stop for the
-  user's merge decision. Do not auto-merge and do not dispatch production. The 2026-09-28 same-day
-  rerun is a separate user authorization; once it succeeds the pipeline replaces
-  `daily_close_20260928.html` with the formal report while the diagnostic JSON stays as audit
-  evidence.
+- Delivery evidence: implementation head `70225f8d3d1ad723305c42376ab4135bbd18bf85`; exact-head push
+  CI `36406304072` `success`; exact-head PR CI `36406389420` `success`; GitHub reported PR #93
+  `open`, `mergeable=true`, `mergeable_state=clean` against live `origin/master=5f4734c`. Re-read
+  the live PR head, exact-head CI and mergeability at merge-decision time.
+- Next action: user merge decision on PR #93. Do not auto-merge and do not dispatch production. The
+  2026-09-28 same-day rerun is a separate user authorization; once it succeeds the pipeline
+  replaces `daily_close_20260928.html` with the formal report while the diagnostic JSON stays as
+  audit evidence.
 
 ## 2026-09-28 — C_DAILY_B_PLUS_C_READING_UX (same PR #92 branch)
 

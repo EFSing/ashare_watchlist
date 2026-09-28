@@ -21,7 +21,7 @@
   provider contract where `list_date` is absent or null removed the entire current-day Main Board
   pool. PR #91 and PR #92 changed only C delivery/presentation/HTML, tests and governance files;
   neither touched `scripts/live_acquisition.py` or the Main Board policy.
-- Fix (branch `codex/hithink-current-roster-list-date-drift-20260928`, PR under user merge
+- Fix (branch `codex/hithink-current-roster-list-date-drift-20260928`, PR #93 under user merge
   decision): `list_date` is optional roster metadata (the column may be absent and the key may be
   null). Same-calendar-date production runs the `CURRENT_ROSTER_SAME_DAY` eligibility mode, which
   admits current SH/SZ Main Board roster members and relies on the unchanged target-day K-line,
@@ -35,11 +35,16 @@
   allowlist. Provider production calls `0`, production dispatch `0`, backfill `0`, runtime-state
   remote mutation `0`, Final OOS `SEALED / UNREAD`.
 - Verification on this branch: `tests/test_live_acquisition.py` `132 passed`;
-  `tests/test_cloud_runtime_state.py` `31 passed`; full `pytest` `778 passed, 2 skipped,
+  `tests/test_cloud_runtime_state.py` `31 passed`; full `pytest` `779 passed, 2 skipped,
   10 warnings`; `python -m compileall -q scripts tests` and `git diff --check` pass. The
   2026-09-24 evidence and artifacts are untouched, and a list_date-present roster keeps identical
   retention in both eligibility modes.
-- Next action: the user's merge decision on the fix PR (no auto-merge). The 2026-09-28 same-day
+- Delivery evidence: independent PR https://github.com/EFSing/ashare_watchlist/pull/93 with
+  implementation head `70225f8d3d1ad723305c42376ab4135bbd18bf85`, exact-head push CI
+  `36406304072` `success`, exact-head PR CI `36406389420` `success`, and GitHub reporting
+  `mergeable=true` / `mergeable_state=clean` against live `origin/master=5f4734c`. Re-read the live
+  PR head and exact-head CI at merge-decision time.
+- Next action: the user's merge decision on PR #93 (no auto-merge). The 2026-09-28 same-day
   production rerun is a separate user authorization; when it succeeds the pipeline replaces
   `daily_close_20260928.html` with the formal report while the diagnostic JSON remains as audit
   evidence.
