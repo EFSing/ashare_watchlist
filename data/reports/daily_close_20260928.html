@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>A股输入诊断 2026-09-28</title>
+<style>body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;margin:2rem;color:#202124}
+.warning{border-left:4px solid #b42318;background:#fff3f2;padding:1rem}
+table{border-collapse:collapse;width:100%;margin-top:1rem}th,td{border:1px solid #d0d5dd;padding:.45rem;text-align:left;vertical-align:top}
+th{background:#f2f4f7}code{white-space:pre-wrap}</style></head>
+<body><h1>A股每日收盘输入诊断</h1>
+<div class="warning"><strong>NO_VALID_INPUT：本次没有任何可供 Formal B 评估的有效股票输入。</strong>
+<p>不得将本页解释为正式空名单；本次未生成正式 watchlist、checkpoint 或 delivery receipt。最近一次正式成功结果仍保持权威。</p></div>
+<h2>运行摘要</h2><table>
+<tr><th>目标交易日</th><td>2026-09-28</td></tr>
+<tr><th>实际获取时间</th><td>2026-09-28T17:26:47.265176+08:00</td></tr>
+<tr><th>运行类型</th><td>SAME_CALENDAR_DATE</td></tr>
+<tr><th>原始股票数</th><td>5578</td></tr>
+<tr><th>通过资格检查数</th><td>0</td></tr>
+<tr><th>有效评估数</th><td>0</td></tr>
+<tr><th>隔离数</th><td>0</td></tr>
+<tr><th>候选数</th><td>0</td></tr>
+<tr><th>数据覆盖</th><td>NO_VALID_INPUT</td></tr>
+<tr><th>正式结果有效</th><td>NO</td></tr>
+<tr><th>单股票异常按原因统计</th><td><code>{}</code></td></tr>
+</table>
+
+<h2>股票池资格过滤诊断</h2><table>
+<tr><th>HiThink 原始记录</th><td>5578</td></tr>
+<tr><th>沪深范围记录</th><td>5227</td></tr>
+<tr><th>主板记录</th><td>3197</td></tr>
+<tr><th>通过上市日期与主板资格</th><td>0</td></tr>
+</table>
+<table><thead><tr><th>资格分类</th><th>数量</th><th>样例股票（最多 20 条）</th></tr></thead>
+<tbody><tr><td>UNIVERSE_LIST_DATE_MISSING</td><td>3197</td><td>000001, 000002, 000006, 000007, 000008, 000009, 000010, 000011, 000012, 000014, 000016, 000017, 000019, 000020, 000021, 000025, 000026, 000027, 000028, 000029</td></tr><tr><td>UNIVERSE_NON_MAIN_BOARD</td><td>2030</td><td>300001, 300002, 300003, 300004, 300005, 300006, 300007, 300008, 300009, 300010, 300011, 300012, 300013, 300014, 300015, 300016, 300017, 300018, 300019, 300020</td></tr><tr><td>UNIVERSE_OUT_OF_SCOPE_EXCHANGE</td><td>351</td><td>920002, 920008, 920016, 920019, 920029, 920060, 920066, 920068, 920082, 920088, 920098, 920099, 920106, 920108, 920111, 920116, 920118, 920128, 920167, 920445</td></tr></tbody></table>
+
+<h2>全局故障</h2><ul><li>无</li></ul>
+<h2>典型单股票异常（最多 20 条）</h2>
+<table><thead><tr><th>股票</th><th>原因</th><th>原始状态</th><th>详情</th></tr></thead><tbody><tr><td colspan="4">无可归属的单股票异常记录；请查看 global_failures。</td></tr></tbody></table>
+<p>完整 exclusion record：<code>/home/runner/work/_temp/ashare_data/diagnostics/daily_input_diagnostic_20260928.json</code></p>
+<p>报告生成时间（北京时间）：2026-09-28T17:26:50.194666+08:00</p>
+</body></html>
