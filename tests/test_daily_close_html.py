@@ -423,6 +423,30 @@ def test_report_information_architecture_has_overview_yesterday_new_list_quality
     assert current["candidates"][0]["signal_id"] in text
 
 
+def test_daily_entry_exposes_date_bound_c_report_without_merging_it_into_formal_b(tmp_path):
+    watchlist = _write_watchlist(tmp_path, "20260910", [_candidate("600019", "C 入口测试", 70)])
+    watchlist_path = tmp_path / "data" / "watchlist_20260910.json"
+    watchlist_before = watchlist_path.read_bytes()
+    _write_tracker(tmp_path, watchlist)
+    tracker_path = tmp_path / "data" / "perf_tracker.json"
+    tracker_before = tracker_path.read_bytes()
+
+    model = renderer.build_report_model("20260910", paths=_paths(tmp_path), calendar=CALENDAR)
+    text = renderer.render_html(model)
+
+    assert 'id="c-daily-research"' in text
+    assert 'href="c_daily/20260910/index.html"' in text
+    assert "C 策略研究名单" in text
+    assert "独立研究观察，不属于 Formal B 正式名单" in text
+    assert "不构成买入建议" in text
+    assert "报告尚未发布或数据待核验时" in text
+    assert "matched_stock_count=0" in text
+    assert "今日无 C 研究匹配" not in text
+    assert text.index('id="overview"') < text.index('id="c-daily-research"') < text.index('id="trade-performance"')
+    assert watchlist_path.read_bytes() == watchlist_before
+    assert tracker_path.read_bytes() == tracker_before
+
+
 def test_report_keeps_full_audit_details_collapsed_after_review_sections(tmp_path):
     watchlist = _write_watchlist(tmp_path, "20260910", [_candidate("600018", "审计信号", 60)])
     _write_tracker(tmp_path, watchlist)
@@ -879,6 +903,7 @@ def test_mobile_responsive_css_preserves_core_fields_and_wide_table_fallback(tmp
     assert_mobile_rule('.action-facts', 'grid-template-columns: repeat(2, minmax(0, 1fr));')
     assert_mobile_rule('.research-panels', 'grid-template-columns: 1fr;')
     assert_mobile_rule('.quality-grid', 'grid-template-columns: 1fr;')
+    assert_mobile_rule('.c-daily-link', 'width: 100%;')
     assert 'min-height: 44px' in mobile_css
     assert '.table-scroll' in css
     assert 'overflow-x: auto' in css

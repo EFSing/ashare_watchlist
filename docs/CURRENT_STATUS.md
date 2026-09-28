@@ -1,5 +1,20 @@
 # CURRENT STATUS
 
+## 2026-09-28 — C daily report user-visible entry prepared in PR #91
+
+- The live 2026-09-24 C report is present and valid as independent research output
+  (`BALANCED_A=2`, `CONSERVATIVE_B=0`, `matched_stock_count=2`), but the Formal B daily report
+  previously exposed no C entry. PR #91 adds a date-bound `C 研究` section/link to the existing
+  daily renderer and responsive coverage; it does not merge C into Formal B or change any
+  strategy, ranking, filtering, workflow gate, receipt, or C research semantics.
+- Live refs used for reconciliation: `origin/master=5a920b46f5d505824ade170903f852cb9fc3ef86`;
+  `origin/runtime-state=e6399431ad999c6ba1579afac7f5812bc1e3f033`; repository variable
+  `ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1=true`. The display fix is ready for user merge decision
+  after exact-head PR CI and `CLEAN` / `MERGEABLE` confirmation.
+- Verification: focused C/B tests `69 passed`; full pytest `760 passed, 2 skipped, 10 warnings`;
+  `compileall` and `git diff --check` passed. No provider/production dispatch, runtime-state
+  write, order, promotion, or Final OOS read occurred.
+
 ## 2026-09-24 — C daily research watchlist enabled after authorized merge chain
 
 - Merge order #81 → #83 → #85 → #86 completed as squash merges on `master` (`3e635bd`, `fb7b6df`,

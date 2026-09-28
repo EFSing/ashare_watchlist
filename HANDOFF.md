@@ -1,5 +1,22 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-09-28 — C_DAILY_USER_VISIBLE_ENTRY_PR_READY_FOR_USER_MERGE_DECISION
+
+- Classification: product/display blocker; FAST PATH. The 2026-09-24 C research report was
+  generated under `data/reports/c_daily/20260924/` but the Formal B daily report had no user-facing
+  C entry. PR #91 (`codex/c-daily-user-visible-entry-v1`) adds only a date-bound C report link and
+  responsive display styles/tests; Formal B ranking, filtering, strategy, receipt, workflow gates,
+  and C semantics are unchanged.
+- Live intake reconciled against `origin/master=5a920b46f5d505824ade170903f852cb9fc3ef86` and
+  `origin/runtime-state=e6399431ad999c6ba1579afac7f5812bc1e3f033`. Runtime evidence for
+  2026-09-24 is real C output: `matched_stock_count=2`, `BALANCED_A=2`, `CONSERVATIVE_B=0`,
+  `coverage_status=PARTIAL_UNVERIFIED`, `formal_b_signal=false`; the Formal B report/latest had
+  no C navigation or entry. Repository variable `ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1=true`.
+- Verification before the documentation checkpoint: focused C/B tests `69 passed`; full pytest
+  `760 passed, 2 skipped, 10 warnings`; `compileall` and `git diff --check` passed. The next
+  action is user merge decision after exact-head PR CI and mergeability are checked. No provider
+  call, production dispatch, runtime-state mutation, order, promotion, or Final OOS read.
+
 ## 2026-09-24 — C_DAILY_ACTIVATION_AND_LIMITED_HISTORY_RESEARCH_V1
 
 - Classification: the C daily research list product blocker is resolved (STRICT PATH). The separate
