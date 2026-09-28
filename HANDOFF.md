@@ -1,6 +1,6 @@
 # HANDOFF — 跨设备最小恢复入口
 
-## 2026-09-28 — C_DAILY_SINGLE_FILE_DELIVERY_INDEPENDENT_FIX_IN_PROGRESS
+## 2026-09-28 — C_DAILY_SINGLE_FILE_DELIVERY_PR_READY_FOR_USER_MERGE_DECISION
 
 - Classification: product blocker plus correctness/provenance boundary; STRICT PATH. PR #91 is
   already merged and untouched. Work continues only on `codex/c-daily-single-file-delivery-v1`,
@@ -27,10 +27,11 @@
   `git diff --check` pass. Read-only live evidence remains
   `origin/runtime-state=e6399431ad999c6ba1579afac7f5812bc1e3f033`; the local 2026-09-24 preview
   contains `600019 宝钢股份`, `601598 中国外运`, `BALANCED_A=2`, `CONSERVATIVE_B=0`.
-- Next: run full pytest, inspect the final diff, commit and push this branch, create the independent
-  PR titled `fix(c): deliver B and C in one self-contained daily HTML`, verify exact-head CI and
-  `CLEAN`/`MERGEABLE`, attach the PR, and stop for the user's merge decision. No production
-  dispatch, historical backfill, runtime-state mutation, order, promotion, or Final OOS read.
+- Independent PR #92 is open at https://github.com/EFSing/ashare_watchlist/pull/92 with head
+  `1af6b4a673a71603e168ee3b010ea6fdcf920ed4`; exact-head correctness run `36391917441` passed,
+  and GitHub reports the PR `open` and `mergeable=true`. It is attached to the current task and
+  must not be auto-merged. The next action is the user's merge decision. No production dispatch,
+  historical backfill, runtime-state mutation, order, promotion, or Final OOS read.
 
 ## 2026-09-28 — C_DAILY_USER_VISIBLE_ENTRY_PR_READY_FOR_USER_MERGE_DECISION
 

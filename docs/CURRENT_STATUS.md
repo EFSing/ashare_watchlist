@@ -1,6 +1,6 @@
 # CURRENT STATUS
 
-## 2026-09-28 — C single-file B+C delivery correction in independent PR
+## 2026-09-28 — C single-file B+C delivery correction PR #92 ready
 
 - Classification: product blocker plus correctness/provenance boundary; STRICT PATH. The live
   baseline is `origin/master=790af3ec8384583c22cba1bc63c831f0d2040187`; `origin/runtime-state`
@@ -26,7 +26,10 @@
   rerun passes `763` tests with `2` skips and `10` warnings after deselecting one environment-only
   assertion that expects the ignored local `data/validation/.../daily_k.parquet` to be absent; the
   unfiltered run reports only that same baseline failure. Final branch push, exact-head PR CI and
-  mergeability remain the next handoff checks.
+  mergeability are complete: PR #92 is open at
+  https://github.com/EFSing/ashare_watchlist/pull/92, head is
+  `1af6b4a673a71603e168ee3b010ea6fdcf920ed4`, correctness run `36391917441` passed, and GitHub
+  reports `mergeable=true`. Stop for the user's merge decision; do not auto-merge.
 
 ## 2026-09-28 — C daily report user-visible entry prepared in PR #91
 
