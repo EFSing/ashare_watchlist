@@ -2114,6 +2114,15 @@ def render_html(model: ReportModel) -> str:
         _research_panel('T+5', '主评价', model.review_sections['T+5']),
         _research_panel('T+10', '延伸观察', model.review_sections['T+10']),
     ])
+    c_signal_date = str(metadata.get('list_date') or metadata.get('review_date') or '—')
+    c_daily_href = f"c_daily/{_date_token(c_signal_date)}/index.html"
+    c_daily_entry = f"""
+<section id="c-daily-research" class="c-daily-entry">
+  <div class="section-head"><div><p class="section-kicker">INDEPENDENT RESEARCH · C</p><h2>C 策略研究名单</h2><p class="section-subtitle">独立研究观察，不属于 Formal B 正式名单；不构成买入建议。</p></div><span class="badge neutral">独立报告</span></div>
+  <div class="c-daily-facts"><span>同一 signal date：<strong>{_esc(c_signal_date)}</strong></span><a class="c-daily-link" href="{_esc(c_daily_href)}">打开当日 C 独立报告</a></div>
+  <p class="c-daily-note">状态以独立 C 报告为准：报告已发布即可查看；报告尚未发布或数据待核验时，不把未发布解释为没有匹配。只有 manifest 明确记录 <code>matched_stock_count=0</code>，才可把 C 标记为无匹配。</p>
+</section>
+"""
 
     coverage_meta_tag = ""
     if isinstance(metadata.get("input_coverage"), Mapping):
@@ -2179,6 +2188,13 @@ input[type=search] {{ width: min(360px, 100%); padding: 8px 10px; border: 1px so
 .section-head {{ display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; min-width: 0; margin-bottom: 14px; }}
 .section-kicker {{ margin: 0 0 2px; }}
 .section-subtitle, .note {{ margin: 5px 0 0; color: var(--muted); font-size: 13px; }}
+.c-daily-entry {{ border-color: #b7cfdc; background: #f8fbfd; }}
+.c-daily-entry .section-head {{ margin-bottom: 8px; }}
+.c-daily-facts {{ display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin-top: 11px; color: var(--muted); font-size: 13px; }}
+.c-daily-facts strong {{ color: var(--text); font-variant-numeric: tabular-nums; }}
+.c-daily-link {{ display: inline-flex; align-items: center; min-height: 40px; max-width: 100%; padding: 8px 12px; border: 1px solid #9ebdcd; border-radius: 5px; background: var(--surface); color: var(--accent); font-weight: 650; text-decoration: none; overflow-wrap: anywhere; }}
+.c-daily-link:hover, .c-daily-link:focus {{ background: var(--surface-2); outline: 2px solid #9bc0d6; outline-offset: 1px; }}
+.c-daily-note {{ margin: 11px 0 0; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }}
 .overview-grid {{ display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(340px, 1fr); gap: 1px; min-width: 0; border: 1px solid var(--border); background: var(--border); }}
 .overview-lead, .overview-facts {{ min-width: 0; padding: 16px; background: var(--surface-2); }}
 .overview-lead strong {{ display: block; margin: 2px 0 4px; font-size: 20px; }}
@@ -2392,6 +2408,8 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   .research-panels {{ grid-template-columns: 1fr; }}
   .research-stats {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
   .quality-grid {{ grid-template-columns: 1fr; }}
+  .c-daily-facts {{ align-items: stretch; }}
+  .c-daily-link {{ width: 100%; justify-content: center; text-align: center; }}
 }}
 </style>
 </head>
@@ -2413,7 +2431,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
     {_status_pill('输入覆盖', metadata.get('input_coverage_status', 'UNVERIFIED'), 'warning' if metadata.get('input_coverage_status') == 'DEGRADED' else 'positive' if metadata.get('input_coverage_status') == 'COMPLETE' else 'neutral')}
   </div>
   <nav class="section-nav" aria-label="报告章节导航">
-    <a href="#overview">总览</a><a href="#trade-performance">绩效</a><a href="#tomorrow-watchlist">新名单</a><a href="#shadow-monitor">Shadow Monitor</a><a href="#daily-review">复盘</a><a href="#formal-review">节点研究</a><a href="#anomalies">数据质量</a>
+    <a href="#overview">总览</a><a href="#c-daily-research">C 研究</a><a href="#trade-performance">绩效</a><a href="#tomorrow-watchlist">新名单</a><a href="#shadow-monitor">Shadow Monitor</a><a href="#daily-review">复盘</a><a href="#formal-review">节点研究</a><a href="#anomalies">数据质量</a>
   </nav>
 </header>
 
@@ -2423,6 +2441,8 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   <div class="review-callout{review_callout_class}">{_esc(visible_review_note)}</div>
   {_input_coverage_html(metadata)}
 </section>
+
+{c_daily_entry}
 
 <section id="trade-performance">
   <div class="section-head"><div><p class="section-kicker">02 · PERFORMANCE · 交易绩效</p><h2>策略规则绩效</h2><p class="section-subtitle">假设每个信号严格按 trigger 入场、stop / target 规则价退出；买入当日不可卖出，遵守 A 股 T+1。规则价模拟不代表用户真实成交。</p></div></div>
