@@ -27,11 +27,11 @@
   `git diff --check` pass. Read-only live evidence remains
   `origin/runtime-state=e6399431ad999c6ba1579afac7f5812bc1e3f033`; the local 2026-09-24 preview
   contains `600019 宝钢股份`, `601598 中国外运`, `BALANCED_A=2`, `CONSERVATIVE_B=0`.
-- Independent PR #92 is open at https://github.com/EFSing/ashare_watchlist/pull/92 with head
-  `1af6b4a673a71603e168ee3b010ea6fdcf920ed4`; exact-head correctness run `36391917441` passed,
-  and GitHub reports the PR `open` and `mergeable=true`. It is attached to the current task and
-  must not be auto-merged. The next action is the user's merge decision. No production dispatch,
-  historical backfill, runtime-state mutation, order, promotion, or Final OOS read.
+- Independent PR #92 is open at https://github.com/EFSing/ashare_watchlist/pull/92; the pushed
+  branch is attached to the current task and GitHub reports the PR `open` and `mergeable=true`.
+  Exact-head CI is green for the pushed implementation/documentation checkpoints. It must not be
+  auto-merged; the next action is the user's merge decision. No production dispatch, historical
+  backfill, runtime-state mutation, order, promotion, or Final OOS read.
 
 ## 2026-09-28 — C_DAILY_USER_VISIBLE_ENTRY_PR_READY_FOR_USER_MERGE_DECISION
 

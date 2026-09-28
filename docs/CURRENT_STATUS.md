@@ -27,9 +27,9 @@
   assertion that expects the ignored local `data/validation/.../daily_k.parquet` to be absent; the
   unfiltered run reports only that same baseline failure. Final branch push, exact-head PR CI and
   mergeability are complete: PR #92 is open at
-  https://github.com/EFSing/ashare_watchlist/pull/92, head is
-  `1af6b4a673a71603e168ee3b010ea6fdcf920ed4`, correctness run `36391917441` passed, and GitHub
-  reports `mergeable=true`. Stop for the user's merge decision; do not auto-merge.
+  https://github.com/EFSing/ashare_watchlist/pull/92; exact-head CI is green for the pushed
+  implementation/documentation checkpoints and GitHub reports `mergeable=true`. Stop for the
+  user's merge decision; do not auto-merge.
 
 ## 2026-09-28 — C daily report user-visible entry prepared in PR #91
 
