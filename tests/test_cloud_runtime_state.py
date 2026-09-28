@@ -295,6 +295,57 @@ def test_no_valid_input_diagnostic_is_allowlisted_and_persisted_without_formal_w
     assert validate_state_tree(state_root)["raw_persisted"] is False
 
 
+def test_same_day_rerun_replaces_the_failure_report_and_keeps_the_diagnostic_record(tmp_path):
+    """A successful same-day rerun replaces the diagnostic HTML only."""
+
+    token = DATE.replace("-", "")
+    state_root = tmp_path / "runtime-state"
+    _marker(state_root)
+
+    incident_root = tmp_path / "incident-data"
+    (incident_root / "diagnostics").mkdir(parents=True)
+    (incident_root / "reports").mkdir(parents=True)
+    incident_diagnostic = incident_root / "diagnostics" / f"daily_input_diagnostic_{token}.json"
+    incident_diagnostic.write_text(
+        json.dumps(
+            {
+                "schema_version": "DAILY_INPUT_DIAGNOSTIC_V1",
+                "target_date": DATE,
+                "coverage_status": "NO_VALID_INPUT",
+                "formal_result_valid": False,
+                "exclusions": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (incident_root / "reports" / f"daily_close_{token}.html").write_text(
+        f"<html>NO_VALID_INPUT {DATE}</html>\n",
+        encoding="utf-8",
+    )
+
+    persist_input_diagnostic(state_root, incident_root, DATE)
+
+    state_data = state_root / "data"
+    assert completed_run_status(state_data, DATE)["status"] == INCOMPLETE_SAME_DAY_STATE
+
+    success_root, _payload, _tracker = _fixture(tmp_path)
+    formal_report = (
+        DataPaths(success_root).reports_dir() / f"daily_close_{token}.html"
+    ).read_text(encoding="utf-8")
+
+    persisted = persist_allowlist(state_root, success_root)
+
+    state_report = state_data / "reports" / f"daily_close_{token}.html"
+    assert state_report.read_text(encoding="utf-8") == formal_report
+    assert "NO_VALID_INPUT" not in state_report.read_text(encoding="utf-8")
+    state_diagnostic = state_data / "diagnostics" / f"daily_input_diagnostic_{token}.json"
+    assert state_diagnostic.read_text(encoding="utf-8") == incident_diagnostic.read_text(
+        encoding="utf-8"
+    )
+    assert f"data/reports/daily_close_{token}.html" in persisted["copied"]
+    assert completed_run_status(state_data, DATE)["status"] == ALREADY_COMPLETED
+
+
 def test_no_valid_input_actions_summary_marks_diagnostic_not_formal_success(tmp_path):
     data_root = tmp_path / "summary-data"
     report_path = data_root / "reports" / f"daily_close_{DATE.replace('-', '')}.html"

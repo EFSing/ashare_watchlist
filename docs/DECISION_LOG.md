@@ -1,5 +1,25 @@
 # DECISION LOG
 
+## 2026-09-28 — ADOPT current-roster same-day universe eligibility; historical listing stays fail-closed
+
+- `ADOPT` identity `HITHINK_CURRENT_ROSTER_SAME_DAY_OR_LIST_DATE_ELIGIBILITY_V2` (replacing
+  `HITHINK_LIST_DATE_ELIGIBILITY_V1`). The HiThink `/api/meta/tickers/list` response is a
+  *current* roster: it can prove current-day membership, but it cannot prove that a symbol was
+  already listed on an arbitrary historical target date. Its `list_date` field is documented as
+  `string | null`, and the 2026-09-28 production run returned null for all 3197 Main Board rows.
+- Same-calendar-date production (`target_date == actual acquisition calendar date`) therefore
+  admits current SH/SZ Main Board roster members whose `list_date` metadata is absent, null or
+  empty. Roster membership is only admission into acquisition: target-day K-line freshness and
+  OHLCV structure validation, quote/trade-state evidence and the existing per-symbol fail-soft
+  checks still decide the evaluated universe. If no symbol survives those checks the run is still
+  `NO_VALID_INPUT`; an empty Formal watchlist is never substituted for it.
+- Historical and authorized-backfill runs (`target_date != actual acquisition calendar date`) keep
+  requiring explicit `list_date` evidence and stay fail-closed without it. The current roster must
+  never be used to infer that a symbol was already listed on a historical target date.
+- `REJECT` filling missing dates with a sentinel (`0`, `1990-01-01`), assuming every current roster
+  symbol was listed historically, reusing a previous day's qualified universe as the current-day
+  pool, or reintroducing AkShare into the production critical path.
+
 ## 2026-09-28 — ADOPT immutable Formal B plus single-file B+C user delivery
 
 - `ADOPT` the two-layer delivery contract: `data/reports/daily_close_YYYYMMDD.html` remains the
