@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>A股输入诊断 2026-09-30</title>
+<style>body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;margin:2rem;color:#202124}
+.warning{border-left:4px solid #b42318;background:#fff3f2;padding:1rem}
+table{border-collapse:collapse;width:100%;margin-top:1rem}th,td{border:1px solid #d0d5dd;padding:.45rem;text-align:left;vertical-align:top}
+th{background:#f2f4f7}code{white-space:pre-wrap}</style></head>
+<body><h1>A股每日收盘输入诊断</h1>
+<div class="warning"><strong>NO_VALID_INPUT：本次没有任何可供 Formal B 评估的有效股票输入。</strong>
+<p>不得将本页解释为正式空名单；本次未生成正式 watchlist、checkpoint 或 delivery receipt。最近一次正式成功结果仍保持权威。</p></div>
+<h2>运行摘要</h2><table>
+<tr><th>目标交易日</th><td>2026-09-30</td></tr>
+<tr><th>实际获取时间</th><td>2026-09-30T23:56:20.676406+08:00</td></tr>
+<tr><th>运行类型</th><td>SAME_CALENDAR_DATE</td></tr>
+<tr><th>原始股票数</th><td>5578</td></tr>
+<tr><th>通过资格检查数</th><td>3198</td></tr>
+<tr><th>有效评估数</th><td>0</td></tr>
+<tr><th>隔离数</th><td>6</td></tr>
+<tr><th>候选数</th><td>0</td></tr>
+<tr><th>数据覆盖</th><td>NO_VALID_INPUT</td></tr>
+<tr><th>正式结果有效</th><td>NO</td></tr>
+<tr><th>单股票异常按原因统计</th><td><code>{&quot;HISTORICAL_PROVIDER_FAILURE&quot;: 3, &quot;TARGET_DAY_HISTORICAL_STALE&quot;: 3}</code></td></tr>
+</table>
+
+<h2>全局故障</h2><ul><li>{&#x27;status&#x27;: &#x27;PROVIDER_FAILURE&#x27;, &#x27;stage&#x27;: &#x27;stock_kline&#x27;, &#x27;provider&#x27;: &#x27;HiThink Financial-API&#x27;, &#x27;reason&#x27;: &#x27;REPEATED_SYSTEM_FAILURE_FAST_FAIL&#x27;, &#x27;symbols_seen&#x27;: [&#x27;000001&#x27;, &#x27;000002&#x27;, &#x27;000006&#x27;], &#x27;detail&#x27;: &#x27;the same provider failure repeated; remaining stock requests were not attempted&#x27;}</li></ul>
+<h2>典型单股票异常（最多 20 条）</h2>
+<table><thead><tr><th>股票</th><th>原因</th><th>原始状态</th><th>详情</th></tr></thead><tbody><tr><td>000016</td><td>TARGET_DAY_HISTORICAL_STALE</td><td>INPUT_DATE_MISMATCH</td><td>INPUT_DATE_MISMATCH: HiThink historical latest bar for 000016.SZ is 2026-09-03 != 2026-09-30</td></tr><tr><td>000564</td><td>TARGET_DAY_HISTORICAL_STALE</td><td>INPUT_DATE_MISMATCH</td><td>INPUT_DATE_MISMATCH: HiThink historical latest bar for 000564.SZ is 2026-09-29 != 2026-09-30</td></tr><tr><td>000565</td><td>TARGET_DAY_HISTORICAL_STALE</td><td>INPUT_DATE_MISMATCH</td><td>INPUT_DATE_MISMATCH: HiThink historical latest bar for 000565.SZ is 2026-09-29 != 2026-09-30</td></tr><tr><td>001381</td><td>HISTORICAL_PROVIDER_FAILURE</td><td>PROVIDER_FAILURE</td><td>PROVIDER_FAILURE: HiThink historical acquisition failed for 001381.SZ: ValueError</td></tr><tr><td>002058</td><td>HISTORICAL_PROVIDER_FAILURE</td><td>PROVIDER_FAILURE</td><td>PROVIDER_FAILURE: HiThink historical acquisition failed for 002058.SZ: ValueError</td></tr><tr><td>002096</td><td>HISTORICAL_PROVIDER_FAILURE</td><td>PROVIDER_FAILURE</td><td>PROVIDER_FAILURE: HiThink historical acquisition failed for 002096.SZ: ValueError</td></tr></tbody></table>
+<p>完整 exclusion record：<code>/home/runner/work/_temp/ashare_data/diagnostics/daily_input_diagnostic_20260930.json</code></p>
+<p>报告生成时间（北京时间）：2026-10-01T00:11:31.249008+08:00</p>
+</body></html>
