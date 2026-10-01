@@ -333,24 +333,81 @@ def test_cloud_rule_performance_reconstructs_missing_history_in_memory_only(monk
     assert item == before
 
 
-def test_cloud_rule_performance_provider_failure_is_not_silently_downgraded(monkeypatch, tmp_path):
+def test_cloud_rule_performance_provider_gap_is_explicit_and_other_rows_continue(monkeypatch, tmp_path):
     import live_acquisition as live
 
     class FakeHiThink:
         def __init__(self, *, capture_store=None):
             self.read_attempts = []
 
-    def fail_resolve(*_args, **_kwargs):
-        raise RuntimeError("provider unavailable")
+    def resolve(_client, code, **_kwargs):
+        if code == "600519":
+            raise live.LiveAcquisitionError(live.PROVIDER_FAILURE, "provider unavailable for 600519")
+        return [
+            bar("2026-09-04", opening=100, high=101, low=99, close=100),
+            bar("2026-09-07", opening=110, high=111, low=109, close=110),
+        ], {"provider": "HiThink Financial-API", "source": "historical endpoint"}
 
     monkeypatch.setenv(EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION_ENV, "1")
     monkeypatch.setattr(live, "HiThinkClient", FakeHiThink)
-    monkeypatch.setattr(live, "_resolve_market_bars", fail_resolve)
+    monkeypatch.setattr(live, "_resolve_market_bars", resolve)
 
-    with pytest.raises(ValueError, match=EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION):
+    signals = [signal(code="600519"), signal(code="000001")]
+    before = copy.deepcopy(signals)
+    history, provenance = load_strategy_rule_historical_ohlc(
+        signals, "2026-09-07", paths=DataPaths(tmp_path / "data"), calendar=CALENDAR,
+    )
+    assert set(history) == {"000001"}
+    missing = provenance["by_code"]["600519"]
+    assert missing["status"] == "MISSING_OR_INVALID"
+    assert missing["source"] == EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION
+    assert "provider unavailable" in missing["reason"]
+    assert "600519" in provenance["__meta__"]["errors"][0]
+    assert provenance["__meta__"]["provider_calls"] == 2
+    result = build_strategy_rule_performance(
+        signals, history, "2026-09-07", calendar=CALENDAR, historical_provenance=provenance,
+    )
+    row = result["performance_data_incomplete_rows"][0]
+    assert row["code"] == "600519" and row["status"] == PERFORMANCE_DATA_INCOMPLETE
+    assert row["entry_price"] is None and row["realized_return_pct"] is None
+    assert row["historical_provenance"] == missing
+    assert result["confirmed_closed_count"] == result["resolved_target"] == 1
+    assert result["avg_return_pct"] == 10 and result["win_rate"] == 100
+    assert result["closed_trades"][0]["code"] == "000001"
+    assert signals == before and list((tmp_path / "data").rglob("*")) == []
+
+
+@pytest.mark.parametrize("status", ["INPUT_CONFLICT", "INPUT_DATE_MISMATCH", "FUTURE_DATA_DETECTED", "UNKNOWN"])
+def test_cloud_rule_performance_integrity_failure_still_raises(monkeypatch, tmp_path, status):
+    import live_acquisition as live
+
+    def fail(*args, **kwargs):
+        raise live.LiveAcquisitionError(status, "structural historical error")
+
+    monkeypatch.setenv(EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION_ENV, "1")
+    monkeypatch.setattr(live, "HiThinkClient", lambda **kwargs: object())
+    monkeypatch.setattr(live, "_resolve_market_bars", fail)
+    with pytest.raises(live.LiveAcquisitionError, match=status):
         load_strategy_rule_historical_ohlc(
-            [signal(signal_date="2026-09-03")],
-            "2026-09-07",
-            paths=DataPaths(tmp_path / "data"),
-            calendar=CALENDAR,
+            [signal()], "2026-09-07", paths=DataPaths(tmp_path / "data"), calendar=CALENDAR,
         )
+
+
+@pytest.mark.parametrize("status", ["FUTURE_DATA_DETECTED", "PERSISTENCE_CONFLICT"])
+def test_rule_history_cache_integrity_error_cannot_be_repaired_by_refetch(monkeypatch, tmp_path, status):
+    import live_acquisition as live
+
+    def fail(*args, **kwargs):
+        raise live.LiveAcquisitionError(status, "invalid cached evidence")
+
+    def forbidden_refetch(*args, **kwargs):
+        raise AssertionError("structural cache errors must not trigger provider reconstruction")
+
+    paths = DataPaths(tmp_path / "data")
+    (paths.root / "t_close_evidence").mkdir(parents=True)
+    monkeypatch.setenv(EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION_ENV, "1")
+    monkeypatch.setattr(live, "HiThinkClient", lambda **kwargs: object())
+    monkeypatch.setattr(live, "_load_captured_market_bars", fail)
+    monkeypatch.setattr(live, "_resolve_market_bars", forbidden_refetch)
+    with pytest.raises(live.LiveAcquisitionError, match=status):
+        load_strategy_rule_historical_ohlc([signal()], "2026-09-07", paths=paths, calendar=CALENDAR)

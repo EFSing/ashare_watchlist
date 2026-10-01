@@ -26,6 +26,17 @@ SYMBOL = "600519"
 INDEX_SYMBOL = "sh000001"
 
 
+def test_hithink_historical_response_identity_conflict_keeps_its_error_type(monkeypatch):
+    client = live.HiThinkClient(api_key="synthetic-test-key")
+    monkeypatch.setattr(client, "_read", lambda *args, **kwargs: {"thscode": "000001.SZ"})
+    with pytest.raises(live.LiveAcquisitionError, match=live.INPUT_CONFLICT):
+        live._resolve_market_bars(
+            client, SYMBOL, requested_count=260, minimum_acceptable_history=1,
+            as_of_date=AS_OF, timeout=1, request_get=None, retries=1,
+            index=False, allow_tencent_fallback=False, allow_stale_as_of=False,
+        )
+
+
 class FakeFrame:
     def __init__(self, rows):
         self._rows = list(rows)

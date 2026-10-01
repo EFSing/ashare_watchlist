@@ -308,6 +308,138 @@ def test_run_daily_review_marks_provider_failure_as_incomplete(monkeypatch):
     assert point["reason"] == REVIEW_OBSERVATION_INCOMPLETE
 
 
+@pytest.mark.parametrize("failure", ["provider", "missing", "stale", "none"])
+def test_partial_hithink_review_cli_preserves_good_signals_and_checkpoint(monkeypatch, tmp_path, failure):
+    import live_acquisition as live
+    from test_watchlist_schema import candidate, payload
+    from upload_daily_checkpoint import file_sha256
+
+    paths = DataPaths(tmp_path / "data")
+    paths.root.mkdir()
+    # Repeated code on two signal dates must keep two independent obligations.
+    for day, codes in (("2026-09-03", ["000001", "600519"]),
+                       ("2026-09-04", ["600519"]), (TARGET, ["600520"])):
+        watchlist = payload(date=day, strategy_version=track_perf.CURRENT_PROSPECTIVE_STRATEGY,
+                            candidates=[candidate(code=code, setup="B_BREAKOUT_RETEST") for code in codes])
+        paths.watchlist_file(day).write_text(json.dumps(watchlist), encoding="utf-8")
+    before_lists = {path: path.read_bytes() for path in paths.watchlist_files()}
+    calls = []
+
+    class FakeHiThink:
+        def __init__(self, **kwargs):
+            assert kwargs.get("capture_store") is None
+
+        def historical_bars(self, thscode, **kwargs):
+            calls.append(thscode)
+            if thscode == "600519.SH" and failure == "provider":
+                raise live.LiveAcquisitionError(live.PROVIDER_FAILURE, "symbol history unavailable")
+            days = ["2026-09-03", "2026-09-04", "2026-09-07", TARGET]
+            if thscode == "600519.SH" and failure == "missing":
+                return []
+            if thscode == "600519.SH" and failure == "stale":
+                days.pop()
+            return [{"date": day, "open": 122.0, "high": 125.0, "low": 119.0,
+                     "close": 123.0, "volume": 100.0} for day in days]
+
+    monkeypatch.setattr(live, "HiThinkClient", FakeHiThink)
+    monkeypatch.setattr(live, "HITHINK_STALE_RETRY_BACKOFF_SECONDS", 0)
+    monkeypatch.setenv(track_perf.EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION_ENV, "1")
+    monkeypatch.setenv(t_close_runner.DISABLE_DRIVE_CHECKPOINT_ENV, "1")
+    monkeypatch.setattr(track_perf, "PATHS", paths)
+    monkeypatch.setattr(track_perf, "TRACK_FILE", paths.perf_tracker_file())
+    monkeypatch.setattr(track_perf, "REPORT_FILE", paths.reports_dir() / "perf_report.md")
+    monkeypatch.setattr(track_perf, "default_calendar", lambda: CALENDAR)
+
+    assert track_perf.main(["all", "--date", TARGET]) == 0
+    tracker = track_perf.load_tracker()
+    good = next(s for s in tracker["signals"].values() if s["code"] == "000001")
+    affected = [s for s in tracker["signals"].values() if s["code"] == "600519"]
+    coverage = tracker["review_coverage"]
+    assert [o["date"] for o in good["observations"]] == [TARGET]
+    assert good["review_points"]["T+3"]["status"] == track_perf.REVIEW_POINT_CAPTURED
+    assert coverage["execution_captured"] == (3 if failure == "none" else 1)
+    assert coverage["execution_missing"] == (0 if failure == "none" else 2)
+    assert coverage["status"] == ("READY" if failure == "none" else REVIEW_OBSERVATION_INCOMPLETE)
+    if failure != "none":
+        assert all(s["observations"] == [] and s["entry_price"] is None for s in affected)
+        assert set(coverage["execution_missing_reasons"]) == {s["signal_id"] for s in affected}
+        assert all("600519" in reason for reason in coverage["execution_missing_reasons"].values())
+        point = next(s for s in affected if s["date"] == "2026-09-03")["review_points"]["T+3"]
+        assert point["status"] == track_perf.REVIEW_POINT_NOT_CAPTURED
+        assert "600519" in point["reason"]
+        assert all(point[key] is None for key in ("price", "open", "high", "low", "quote_date", "return_pct"))
+    same_day = next(s for s in tracker["signals"].values() if s["code"] == "600520")
+    assert same_day["observations"] == [] and "600520.SH" not in calls
+    assert all(path.read_bytes() == original for path, original in before_lists.items())
+
+    # A successful child with explicit gaps can render and hash the real tracker.
+    model, dated, latest = renderer.render_daily_close(TARGET, paths=paths, calendar=CALENDAR)
+    assert model.review_status == coverage["status"]
+    assert dated.read_bytes() == latest.read_bytes()
+    checkpoint = t_close_runner._daily_cloud_checkpoint(TARGET, paths.root, tracker_failure=None)
+    assert checkpoint["status"] == t_close_runner.DRIVE_CHECKPOINT_DISABLED
+    manifest = json.loads(Path(checkpoint["manifest_path"]).read_text(encoding="utf-8"))
+    assert manifest["perf_tracker"]["sha256"] == file_sha256(paths.perf_tracker_file())
+
+
+@pytest.mark.parametrize("bad_bar", ["future", "duplicate", "ohlc"])
+def test_tracker_historical_integrity_errors_remain_fatal(monkeypatch, bad_bar):
+    import live_acquisition as live
+
+    class FakeHiThink:
+        def historical_bars(self, *args, **kwargs):
+            bars = [{"date": day, "open": 122, "high": 125, "low": 119,
+                     "close": 123, "volume": 100} for day in ("2026-09-07", TARGET)]
+            if bad_bar == "future":
+                bars[-1]["date"] = "2026-09-09"
+            elif bad_bar == "duplicate":
+                bars[-1]["date"] = bars[0]["date"]
+            else:
+                bars[-1]["low"] = 126
+            return bars
+
+    monkeypatch.setattr(live, "HiThinkClient", FakeHiThink)
+    tracker = new_tracker()
+    signal = _signal_from_candidate(
+        {"date": "2026-09-03", "strategy_version": track_perf.CURRENT_PROSPECTIVE_STRATEGY},
+        _minimal_candidate(), CALENDAR,
+    )
+    tracker["signals"][signal["signal_id"]] = signal
+    with pytest.raises(live.LiveAcquisitionError):
+        run_daily_review(tracker, today=TARGET, calendar=CALENDAR)
+    assert signal["observations"] == []
+
+
+def test_tracker_same_date_missing_point_can_retry_without_later_backfill(monkeypatch):
+    tracker = new_tracker()
+    signal = _signal_from_candidate(
+        {"date": "2026-09-03", "strategy_version": track_perf.CURRENT_PROSPECTIVE_STRATEGY},
+        _minimal_candidate(), CALENDAR,
+    )
+    signal["status"] = "expired"  # Only the due horizon requires a quote.
+    tracker["signals"][signal["signal_id"]] = signal
+
+    def missing(codes, expected_date, quote_errors):
+        quote_errors["600519"] = "HiThink historical unavailable for 600519"
+        return {}
+
+    monkeypatch.setattr(track_perf, "fetch_quotes", missing)
+    run_daily_review(tracker, today=TARGET, calendar=CALENDAR)
+    assert signal["review_points"]["T+3"]["status"] == track_perf.REVIEW_POINT_NOT_CAPTURED
+    track_perf.update(tracker, quotes={"600519": {
+        "quote_date": TARGET, "open": 122, "price": 123, "high": 125, "low": 119,
+    }}, today=TARGET, calendar=CALENDAR)
+    assert signal["review_points"]["T+3"]["status"] == track_perf.REVIEW_POINT_CAPTURED
+    assert signal["observations"] == []
+    # Restore a missing point; a later legal quote must not recover its old price.
+    signal["review_points"]["T+3"].update(status=track_perf.REVIEW_POINT_NOT_CAPTURED, price=None,
+                                         quote_date=None, reason="provider missing")
+    track_perf.update(tracker, quotes={"600519": {
+        "quote_date": "2026-09-10", "open": 122, "price": 123, "high": 125, "low": 119,
+    }}, today="2026-09-10", calendar=CALENDAR)
+    assert signal["review_points"]["T+3"]["price"] is None
+
+
 def test_verify_review_coverage_requires_exact_observation_date():
     calendar = TradingCalendar(holidays=set())
     tracker = new_tracker()

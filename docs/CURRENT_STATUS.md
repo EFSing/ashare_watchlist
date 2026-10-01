@@ -1,6 +1,33 @@
 # CURRENT STATUS
 
-## 2026-09-28 — HiThink ticker-list list_date drift: universe eligibility V2 with 2026-09-28 incident record
+## 2026-10-01 — Formal B 2026-09-30 tracker failure; bounded repair in progress
+
+- `PROJECT_GOVERNANCE_STATE_CONFLICT` resolved: PR #93 is merged as
+  `5ea04a288da9c75e5c35135bde82a173ac81a924`, also live master at intake. Its older
+  awaiting-user-merge entry below is historical provenance, not the current objective.
+- Product blocker with correctness boundary (STRICT PATH): production run `36696014010`,
+  target `2026-09-30`, source SHA above, passed preflight and the canonical
+  `T_CLOSE_EVIDENCE_PACKAGE_AND_WATCHLIST_PERSISTED` gate. `_run_daily_close_reporting()`
+  then reported tracker execution FAILED; workflow stopped at `tracker failed: FAILED`.
+  Canonical output validation/state push, Formal B delivery/receipt and C were skipped.
+  This failure is in reporting/tracker, not acquisition NO_VALID_INPUT, #93 list_date,
+  Cloudflare or delivery.
+- The actual child error was only in `production.json` / `track_perf.detail` on the ephemeral
+  runner, not printed or persisted; no Actions artifact exists. Detailed error/symbol and the
+  first failing tracker path cannot be recovered. Do not infer them from current provider data.
+- Runtime-state incident notice commit `820cfa2826cc12b46752aca624319a1366eb2e52` is followed
+  by live intake HEAD `d6ab781b338b69cff508ad8c8674102e6ce1d08d`, which persisted a separate
+  later run `36740425996`'s NO_VALID_INPUT diagnostic/HTML. Neither establishes 9/30 Formal B
+  completion; the later diagnostic does not change the earlier tracker incident's root-cause chain.
+- Independent repair branch `codex/tracker-partial-observation-recovery-20260930` uses exactly
+  live master above. Reuse REVIEW_OBSERVATION_INCOMPLETE / NOT_CAPTURED and
+  PERFORMANCE_DATA_INCOMPLETE; keep structural errors and checkpoint gates fail-closed.
+  Formal B/C strategy, selection/thresholds/scores/T/T+1 and runtime-state allowlist remain fixed.
+- No production rerun/dispatch, provider production call, remote runtime-state mutation or
+  prospective backfill. Final OOS SEALED / UNREAD. Finish with independent PR and exact-head CI;
+  user merge decision and any later 9/30 rerun authorization remain separate.
+
+## Historical pre-merge — 2026-09-28 — HiThink ticker-list list_date drift: universe eligibility V2 with 2026-09-28 incident record
 
 - Classification: correctness blocker (STRICT PATH). Live intake resolved a
   `PROJECT_GOVERNANCE_STATE_CONFLICT`: persisted entries still described PR #92 as awaiting a merge
