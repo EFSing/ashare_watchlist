@@ -1,5 +1,23 @@
 # CURRENT STATUS
 
+## 2026-10-01 — 2026-09-30 Formal B close recovery delivered
+
+- Product recovery completed under the user's new authorization, using the original B evaluator,
+  report renderer/checkpoint pipeline and unchanged cloud delivery workflow. Minimal independent
+  recovery PR #96 remains open: https://github.com/EFSing/ashare_watchlist/pull/96.
+- 9/30 watchlist contains 9 candidates; SHA
+  `3f97702d45828287eb5328f0a2a0ac7c62a5149f8055ecb2310df6cab918bdc6`.
+  Canonical state commit `831ca7b37cd445db8a344cb673abcc09b98e9329`; final receipt/state commit
+  `ab6297d8b565b0942508b4adb1459d3a277f4cb1`. Email and Bark SUCCESS in run
+  https://github.com/EFSing/ashare_watchlist/actions/runs/36887924125, with production acquisition
+  skipped by ALREADY_COMPLETED. Report and receipt report_date remain 2026-09-30.
+- Status is REVIEW_OBSERVATION_INCOMPLETE_REPORT_READY; 9 new pending tracker signals have no
+  observations or future horizon returns. All 201 old tracker signals and historical prospective
+  evidence are unchanged. 3,198 captured historical series have maximum market date 9/30.
+- Input coverage remains DEGRADED (3,117 evaluated, 81 excluded under existing validators).
+  No prospective shadow/volume backfill or C research run; no new strategy, scoring, thresholds,
+  candidate algorithm or audit/replay framework. Relevant tests 160 passed; implementation CI passed.
+
 ## 2026-10-01 — Formal B 2026-09-30 tracker failure; PR #94 merged
 
 - Current state: user-authorized PR #94 squash merge completed at

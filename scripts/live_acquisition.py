@@ -2026,10 +2026,10 @@ UNIVERSE_ELIGIBILITY_MODE_CLOSE_REPORT_RECOVERY = "CURRENT_ROSTER_HOLIDAY_RECOVE
 def _hithink_universe_eligibility_mode(as_of_date: str, retrieved_at_bjt: str) -> str:
     """Return the universe eligibility mode for one acquisition run.
 
-    Only a same-calendar-date production run may treat the HiThink ticker list
-    as current membership evidence.  Any other target/retrieval date
-    combination is a historical or authorized-backfill run whose listing
-    eligibility must be proven by explicit list_date evidence.
+    Normal production requires same-calendar-date membership evidence.
+    The explicitly authorized 9/30 holiday recovery keeps that roster policy
+    with a distinct provenance mode and unchanged target-bar validation.
+    Other historical runs still require explicit list_date evidence.
     """
 
     if close_report_recovery_enabled(as_of_date, retrieved_at_bjt):

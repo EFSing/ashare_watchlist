@@ -1,5 +1,37 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-10-01 — 2026-09-30 close report recovery completed
+
+- User explicitly authorized this production recovery after PR #94 merged. Classification:
+  product blocker with correctness boundaries / STRICT PATH; unchanged. This supersedes the
+  earlier audit-only stop for this new request; no audit/replay framework was added.
+- Independent PR #96: https://github.com/EFSing/ashare_watchlist/pull/96,
+  branch `codex/close-report-recovery-20260930`. Acquisition source commit:
+  `d161da01ee4fa87668f9bfaea1a367dd77454b11`; later documentation commits do not change
+  the recovered artifact identity. PR remains open; no automatic merge.
+- Command: `AS_OF_DATE=2026-09-30 python scripts/t_close_runner.py --as-of-date 2026-09-30
+  --recover-close-20260930 --data-root C:/temp/ashare-close-20260930` with the normal cloud
+  Drive-disabled and ephemeral rule-performance flags. The existing backfill acquisition
+  is bounded to the 10/1–10/7 holiday with no intervening XSHG session; retrieval time is truthful.
+- Formal B: 9 candidates; watchlist SHA
+  `3f97702d45828287eb5328f0a2a0ac7c62a5149f8055ecb2310df6cab918bdc6`.
+  Canonical runtime commit `831ca7b37cd445db8a344cb673abcc09b98e9329`; checkpoint,
+  `daily_close_20260930.html`, `perf_report.md`, and initial tracker are persisted.
+- Delivery used unchanged master workflow `daily_t_close.yml`, production/manual, explicit
+  as_of_date=2026-09-30. Run https://github.com/EFSing/ashare_watchlist/actions/runs/36887924125
+  succeeded; ALREADY_COMPLETED skipped provider production. Email and Bark SUCCESS;
+  receipt commit / final runtime-state `ab6297d8b565b0942508b4adb1459d3a277f4cb1`.
+- Verification: all 3,198 captured historical series end no later than 9/30; no future market
+  data/results. Original 201 tracker signals and 59 restored historical files are unchanged.
+  New signals pending, empty observations, null returns at all T+3/T+5/T+10 nodes. Report
+  uses the same seven sections as normal close reports. Local composite HTML matches receipt SHA.
+- Honest limitations: input DEGRADED (3,117 evaluated; 81 exclusions under unchanged guards),
+  REVIEW_OBSERVATION_INCOMPLETE_REPORT_READY (no historical prospective observations backfilled).
+  Volume/shadow captures remain NOT_CAPTURED; C retry presentation is C_NOT_RUN. Actual Email/Bark
+  sending happened on 10/1, while report_date is 9/30. No strategy/score/threshold change.
+- Relevant tests: 160 passed / one existing warning; exact implementation-head push and PR CI
+  succeeded. Next: user may review PR #96; recovered signals enter the normal future tracker.
+
 ## 2026-10-01 — Tracker partial-observation repair implemented; PR #94 user merge decision
 
 - Classification: product blocker with correctness/data-integrity boundary; STRICT PATH.
