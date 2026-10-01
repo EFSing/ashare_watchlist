@@ -1,5 +1,26 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-10-01 — Historical 9/30 recovery feasibility: STOP at input audit
+
+- Branch: `codex/recovery-asof-20260930-input-audit`, based on live master
+  `c7d2feac99e48fb840e36785a0c0866035d18355` after PR #94 merged. Classification:
+  correctness blocker / STRICT PATH, unchanged. See the first CURRENT_STATUS entry for
+  per-input source/as_of_date/future-risk evidence.
+- Requested target/identity: `2026-09-30` / `RECOVERY_RUN_AS_OF_20260930`.
+  **NOT_REPRODUCIBLE_WITH_CURRENT_DATA**: current-only universe/quote/Sina-sector readers,
+  unverified historical QFQ vintage, and absent original package/raw bytes violate the user's
+  all-inputs-as-of prerequisite. Failed run `36696014010` has zero Actions artifacts;
+  incident/current runtime-state trees and expected local paths have no original 9/30 inputs.
+- Scope stops at documentation and existing regression verification. No replay entry added,
+  provider call, production dispatch, tracker observation, T+3/T+5/T+10 result, output editing,
+  recovery watchlist/HTML/diagnostic/receipt, runtime-state write or Final OOS access.
+- Next: user merge decision on this audit-only PR. Reopen recovery only with the original
+  complete date-proven frozen package/raw capture or verified PIT evidence for all inputs.
+  PR-ready marker describes the audit PR only; it does not assert a runnable/successful replay.
+- Verification: relevant existing suites 215 passed / 1 existing warning; diff check passed.
+  Python runtime used: `ashare_watchlist/.venv`, UTF-8, short fresh basetemp. No replay tests
+  or code entry were added after the user's mandatory STOP condition was established.
+
 ## 2026-10-01 — Tracker partial-observation repair implemented; PR #94 user merge decision
 
 - Classification: product blocker with correctness/data-integrity boundary; STRICT PATH.
