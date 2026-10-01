@@ -10,6 +10,7 @@ again on a later signal date.
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import math
 import os
@@ -2752,9 +2753,15 @@ def main(argv: list[str] | None = None) -> int:
         help="Mark target-date observations as authorized post-session backfill provenance",
     )
     parser.add_argument("--evidence-root", type=Path, default=None, help=argparse.SUPPRESS)
+    parser.add_argument("--initialize-close-20260930", action="store_true",
+                        help="Initialize 9/30 signals without changing existing observations")
     args = parser.parse_args(argv)
     tracker: dict[str, Any] | None = None
     try:
+        if args.initialize_close_20260930 and (
+            args.action != "all" or not args.date or parse_date(args.date).isoformat() != "2026-09-30"
+        ):
+            raise ValueError("close recovery initialization requires all --date 2026-09-30")
         if args.authorized_weekend_backfill:
             if args.action not in ("update", "all"):
                 raise ValueError("authorized weekend backfill provenance requires update or all")
@@ -2782,12 +2789,18 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(result, ensure_ascii=False, sort_keys=True))
             return 0
 
-        plan = cleanup_current_tracker(tracker)
+        plan = (current_tracker_cleanup_plan(tracker) if args.initialize_close_20260930
+                else cleanup_current_tracker(tracker))
         if plan['REMOVE_FROM_CURRENT_TRACKER']:
             print('[cleanup] ' + json.dumps(plan, ensure_ascii=False, sort_keys=True), flush=True)
         if args.action in ("ingest", "all"):
             print(f"[ingest] 新增入库 {ingest(tracker)} 个信号", flush=True)
-        if args.action in ("update", "all"):
+        if args.initialize_close_20260930:
+            tracker["review_coverage"] = verify_review_coverage(
+                tracker, args.date, failure_reason="CLOSE_REPORT_RECOVERY_INITIALIZATION_ONLY"
+            )
+            tracker["updated"] = "2026-09-30"
+        elif args.action in ("update", "all"):
             source_mode = (
                 SOURCE_MODE_AUTHORIZED_WEEKEND_BACKFILL
                 if args.authorized_weekend_backfill
@@ -2817,7 +2830,9 @@ def main(argv: list[str] | None = None) -> int:
             )
         text = None
         if args.action in ("report", "all"):
-            text = report(tracker, as_of=args.date)
+            # Rendering may fill absent legacy review fields; retain historical bytes.
+            text = report(copy.deepcopy(tracker) if args.initialize_close_20260930 else tracker,
+                          as_of=args.date)
             print(text)
             REPORT_FILE.parent.mkdir(parents=True, exist_ok=True)
             REPORT_FILE.write_text(text, encoding="utf-8")
