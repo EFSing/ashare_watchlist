@@ -1,6 +1,12 @@
 # CURRENT STATUS
 
-## 2026-10-01 — Formal B 2026-09-30 tracker failure; repair delivered in PR #94
+## 2026-10-01 — Formal B 2026-09-30 tracker failure; PR #94 merged
+
+- Current state: user-authorized PR #94 squash merge completed at
+  `2b1975d27f05615ed1f377f3f974d2be4818e91b` on master, from exact head
+  `c959fdae38e3b52ab6bb3608cd1298e169499508`; exact-head push CI `36877866961` and
+  PR CI `36877876474` both succeeded. The repair is now on master; production acceptance
+  remains NOT_RUN_BY_THIS_TASK, and the lost 9/30 observations remain missing.
 
 - `PROJECT_GOVERNANCE_STATE_CONFLICT` resolved: PR #93 is merged as
   `5ea04a288da9c75e5c35135bde82a173ac81a924`, also live master at intake. Its older
@@ -19,8 +25,8 @@
   by live intake HEAD `d6ab781b338b69cff508ad8c8674102e6ce1d08d`, which persisted a separate
   later run `36740425996`'s NO_VALID_INPUT diagnostic/HTML. Neither establishes 9/30 Formal B
   completion; the later diagnostic does not change the earlier tracker incident's root-cause chain.
-- Independent repair branch `codex/tracker-partial-observation-recovery-20260930` uses exactly
-  live master above. Reuse REVIEW_OBSERVATION_INCOMPLETE / NOT_CAPTURED and
+- Independent repair branch `codex/tracker-partial-observation-recovery-20260930` was based on
+  the intake master above. Reuse REVIEW_OBSERVATION_INCOMPLETE / NOT_CAPTURED and
   PERFORMANCE_DATA_INCOMPLETE; keep structural errors and checkpoint gates fail-closed.
   Formal B/C strategy, selection/thresholds/scores/T/T+1 and runtime-state allowlist remain fixed.
 - Implemented in PR #94 https://github.com/EFSing/ashare_watchlist/pull/94, implementation
@@ -40,9 +46,10 @@
   confirmed-performance exclusion and structural-error boundaries are covered with synthetic data.
   Classification unchanged; DECISION_LOG unchanged (bugfix restoring existing missing-data semantics).
 - No production rerun/dispatch, provider production call, remote runtime-state mutation or
-  prospective backfill. Final OOS SEALED / UNREAD. Final tip/exact-head push and PR CI plus
-  mergeability are live GitHub delivery checks; stop at PR_READY_FOR_USER_MERGE_DECISION after
-  those checks. User merge decision and any later 9/30 rerun authorization remain separate.
+  prospective backfill. Final OOS SEALED / UNREAD. PR #94's merge decision is complete;
+  next acceptance evidence comes from a future normal scheduled run. Any 9/30 rerun still
+  requires separate user authorization after merge. This post-merge synchronization changes
+  only CURRENT_STATUS; no new Decision Log entry.
 
 ## Historical pre-merge — 2026-09-28 — HiThink ticker-list list_date drift: universe eligibility V2 with 2026-09-28 incident record
 
