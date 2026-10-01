@@ -49,6 +49,10 @@ bar-date cutoff does not establish an acquisition/adjustment-vintage cutoff.
   only HANDOFF/CURRENT_STATUS changed. Used the existing project venv, UTF-8 and a short fresh
   temporary test directory: system-Python dependency metadata and Windows long-path failures
   in earlier attempts were environment issues, resolved without code changes.
+- Audit-only [PR #95](https://github.com/EFSing/ashare_watchlist/pull/95), branch
+  `codex/recovery-asof-20260930-input-audit`, awaits user merge decision. Requested terminal
+  marker `RECOVERY_REPLAY_PR_READY_FOR_USER_MERGE_DECISION` describes this audit PR only;
+  recovery is blocked and no replay implementation or successful output is claimed.
 
 ## 2026-10-01 — Formal B 2026-09-30 tracker failure; PR #94 merged
 

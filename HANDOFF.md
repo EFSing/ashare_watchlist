@@ -20,6 +20,11 @@
 - Verification: relevant existing suites 215 passed / 1 existing warning; diff check passed.
   Python runtime used: `ashare_watchlist/.venv`, UTF-8, short fresh basetemp. No replay tests
   or code entry were added after the user's mandatory STOP condition was established.
+- Audit-only PR #95: https://github.com/EFSing/ashare_watchlist/pull/95 (base master).
+  Remote recovery checkpoint branch is the branch above; first audit commit `0efd341` is
+  persisted provenance, not a permanent tip invariant. This PR-link update advances the tip.
+  Re-read live PR head/upstream/CI and mergeability at decision time. Terminal state:
+  `RECOVERY_REPLAY_PR_READY_FOR_USER_MERGE_DECISION` for the audit-only PR; do not auto-merge.
 
 ## 2026-10-01 — Tracker partial-observation repair implemented; PR #94 user merge decision
 
