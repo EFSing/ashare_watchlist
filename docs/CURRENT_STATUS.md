@@ -1,5 +1,59 @@
 # CURRENT STATUS
 
+## 2026-10-01 — 9/30 historical recovery input audit: STOP / NOT_REPRODUCIBLE_WITH_CURRENT_DATA
+
+- Classification: correctness blocker (STRICT PATH), unchanged. Requested identity:
+  `RECOVERY_RUN_AS_OF_20260930`, target `2026-09-30`. This is an input feasibility audit;
+  no recovery run occurred and no recovery output/receipt was created. PR #94 is merged.
+  Code inspected at `c7d2feac99e48fb840e36785a0c0866035d18355` (master at intake).
+- **Decision: STOP before implementation/acquisition.** The user's prerequisite that every
+  input can be strictly acquired as of 9/30 is unmet. Do not bypass the close-window guard,
+  spoof `now_bjt`, reuse weekend backfill, substitute current data, or manufacture a watchlist.
+  No new replay parameter/framework, strategy/scoring/threshold/candidate/execution change.
+
+Each row separates requested `as_of_date` from the available evidence. A target label or
+bar-date cutoff does not establish an acquisition/adjustment-vintage cutoff.
+
+| Input | Source in existing system | as_of_date / cutoff evidence | Future-information risk / conclusion |
+| --- | --- | --- | --- |
+| Stock daily OHLCV | HiThink `/api/a-share/prices/historical`, `adjust=forward` | Requested 2026-09-30; `_historical_window` sets `end` to that date and `_validate_historical_bars` rejects later bars. No retained 9/30 capture/package or verified adjustment-factor vintage. | UNRESOLVED: a later forward-adjusted response may incorporate later corporate actions/revisions despite bar dates <= T. Strict as-of recovery NOT PROVEN; do not call current provider. |
+| Index daily OHLCV | HiThink `/api/a-share-index/prices/historical`, unadjusted `000001.SH` | Requested 2026-09-30; same end-date/future-bar guard. No retained 9/30 bytes. | Historical bar-date capability exists; original acquisition cutoff/vintage NOT PROVEN. No future factor adjustment, but historical-response revisions are not verified. |
+| Universe / display names / listing eligibility | HiThink `/api/meta/tickers/list`, existing Main Board policy | Requested 2026-09-30; endpoint accepts exchange/asset_type/limit/offset, no as-of parameter. Actual available roster is current at retrieval; 9/30 snapshot absent. | YES: later listings/delistings/name changes and survivorship. `list_date <= T` cannot reconstruct all past roster membership; absent list dates fail closed in historical mode. |
+| Feature calculation inputs | Frozen `GenerationInputManifest` stock K-lines plus HiThink `/api/a-share/prices/snapshot` quote/trade-state inputs | Requested 2026-09-30; quote endpoint uses thscodes/limit/offset, no as-of parameter. Frozen package absent. | YES/UNRESOLVED: current quote/trade-state plus forward-adjustment vintage. Recomputing features cannot repair input provenance. |
+| B strategy inputs / market environment | Full manifest above, index-derived market_env, exact Sina `stock_sector_spot` / `stock_sector_detail` sector rank/change/membership | Requested 2026-09-30; Sina readers take indicator/sector only, no historical date. 9/30 sector bytes/status and complete B package absent. | YES: latest industry rank/change/membership can change B gates. Do not replace missing historical sector evidence with today's values or the missing-sector default; original failure/default status is unknown. |
+| C research inputs (only if included) | `c_b_input_adapter.consume_b_input`: SHA-verified same-day full B package and raw `hithink_kline` captures (`C_QFQ_INPUT_V1`) | Requested 2026-09-30; reader verifies target date, acquisition timing, hashes and raw metadata. Source B package/raw absent; failed workflow skipped C. | Inherits B/QFQ gaps. C cannot be strictly rebuilt; it is optional to the requested B recovery and supplies no substitute B evidence. |
+
+- There is no new financial/fundamental acquisition in this B/C path. Do not add latest
+  financial data, October bars, current adjustment factors or any other substitute.
+- Retention evidence (read-only GitHub/Git): failed production run
+  [36696014010](https://github.com/EFSing/ashare_watchlist/actions/runs/36696014010), created
+  `2026-09-30T09:25:26Z`, source `5ea04a288da9c75e5c35135bde82a173ac81a924`, has Actions
+  `total_count=0`, `artifacts=[]`. The production workflow places inputs/evidence in
+  `RUNNER_TEMP`; `cloud_runtime_state.py` explicitly excludes raw/prospective inputs.
+  Incident notice tree `820cfa2826cc12b46752aca624319a1366eb2e52` has no 9/30 watchlist,
+  report, checkpoint, prospective package or raw capture. Runtime-state intake tree
+  `d6ab781b338b69cff508ad8c8674102e6ce1d08d` has only the later NO_VALID_INPUT diagnostic
+  and diagnostic HTML for 9/30, no 9/30 Formal B watchlist/checkpoint/input/raw tree.
+  No 9/30 package/raw/watchlist was found at the expected paths in local project checkouts.
+  These are metadata/path checks, not reads of future market inputs or sealed Final OOS.
+- Recovery remains `NOT_REPRODUCIBLE_WITH_CURRENT_DATA`. The missing evidence is the original
+  complete 9/30 frozen package/raw capture with acquisition cutoff <= T, or a verified PIT
+  source for every required input including historical universe, sector and QFQ vintage.
+  Only that evidence can reopen the feasibility check. Normal future production remains
+  enabled under its existing guards; this audit does not authorize dispatch or runtime-state writes.
+- Verification: existing generation-contract, live-acquisition, T-close-runner and runtime-state
+  suites: **215 passed, 1 existing legacy-watchlist warning**. Covers rejection of current
+  observations for past T, future stock bars, historical live universe/sector, missing historical
+  listing evidence, and normal production/report/checkpoint behavior. No replay-specific test
+  exists because implementation was stopped at its input prerequisite. `git diff --check` passes;
+  only HANDOFF/CURRENT_STATUS changed. Used the existing project venv, UTF-8 and a short fresh
+  temporary test directory: system-Python dependency metadata and Windows long-path failures
+  in earlier attempts were environment issues, resolved without code changes.
+- Audit-only [PR #95](https://github.com/EFSing/ashare_watchlist/pull/95), branch
+  `codex/recovery-asof-20260930-input-audit`, awaits user merge decision. Requested terminal
+  marker `RECOVERY_REPLAY_PR_READY_FOR_USER_MERGE_DECISION` describes this audit PR only;
+  recovery is blocked and no replay implementation or successful output is claimed.
+
 ## 2026-10-01 — Formal B 2026-09-30 tracker failure; PR #94 merged
 
 - Current state: user-authorized PR #94 squash merge completed at
