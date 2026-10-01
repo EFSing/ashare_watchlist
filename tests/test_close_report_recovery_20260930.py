@@ -56,7 +56,7 @@ def test_initialization_preserves_old_signals_and_leaves_future_reviews_pending(
 
 
 def test_report_restores_volume_and_yesterday_ohlc_without_durable_observations(monkeypatch, tmp_path):
-    from datetime import date, timedelta
+    from datetime import date
     import render_daily_close_html as renderer
     from test_volume_observation import _bars
     paths = DataPaths(tmp_path)

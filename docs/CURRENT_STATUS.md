@@ -1,5 +1,16 @@
 # CURRENT STATUS
 
+## 2026-10-02 — 9/30 volume and previous-session display corrected
+
+- Final corrected report/receipt state: `43215e72037b12a46c748875d0ad031d4b9808d7`, from report revision
+  `54c51217e9607344b15b5e83ef6c198502852800`. Run 36890608286 succeeded; Email/Bark SUCCESS.
+- Existing captured 9/30 histories now populate 9 volume cards and 18/19 yesterday signal OHLC rows;
+  9 triggered, 9 pending; 603183 has no valid 9/30 bar. Two short-window volume cards retain partial
+  metrics. These are explicitly report-only historical views, not prospective captures or executions.
+- Formal B SHA and durable tracker are unchanged. Prior version is retained in Git at ab6297d.
+  Corrected renderer source d564ed5; 64 renderer regressions and implementation-head CI passed.
+  PR #96 remains open. No strategy/score/threshold changes or market data after 9/30.
+
 ## 2026-10-01 — 2026-09-30 Formal B close recovery delivered
 
 - Product recovery completed under the user's new authorization, using the original B evaluator,

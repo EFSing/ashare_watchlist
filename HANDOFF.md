@@ -1,5 +1,27 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-10-02 — 9/30 report display corrected and redelivered
+
+- Latest final runtime-state: `43215e72037b12a46c748875d0ad031d4b9808d7`; corrected report/checkpoint
+  commit `54c51217e9607344b15b5e83ef6c198502852800`. Run
+  https://github.com/EFSing/ashare_watchlist/actions/runs/36890608286 succeeded; Email/Bark SUCCESS.
+  report_date remains 2026-09-30; actual redelivery time is 2026-10-02 00:15:52 BJT.
+- PR #96 additionally repairs display-only data consumption: renderer flag
+  `--recover-close-20260930` reads captured 9/30 stock K-lines for all 9 volume cards and
+  yesterday's 19 signal identities. 18 have 9/30 OHLC (9 triggered, 9 pending under existing T+1);
+  603183 has no target-day bar, latest 9/29, explicitly missing. 603755/600886 keep legitimate
+  insufficient-window metric reasons. No provider calls during this correction.
+- Source for corrected renderer: `d564ed5f9d77af0d4a86cdd1462feddb07979406`. Watchlist SHA is
+  unchanged; durable tracker SHA remains `1ec378f7f9d4c2672c5b3603496e4f7e987ccbfb76d5adc880c3ffa6c52ad7a1`.
+  Historical report-only rows are computed on copies; no prospective evidence/horizon result writes.
+- Prior report/checkpoint/receipt remain recoverable at `ab6297d8b565b0942508b4adb1459d3a277f4cb1`
+  and in local `_initial` copies. Only this explicit report revision replaced the 9/30 checkpoint,
+  HTML and receipt; earlier dates are unchanged. Corrected formal HTML SHA:
+  `b2b0b899bd7bf9ed7084902bebd8a5042606c8b3eb1fa187b7ae187578e1671e`.
+- Renderer regressions: 64 passed / one existing warning; renderer implementation push/PR CI passed.
+  Local deliverables are in `../recovery-20260930`. PR stays open for user review; normal strategy
+  and production paths are unchanged. Classification remains product blocker / STRICT PATH.
+
 ## 2026-10-01 — 2026-09-30 close report recovery completed
 
 - User explicitly authorized this production recovery after PR #94 merged. Classification:
