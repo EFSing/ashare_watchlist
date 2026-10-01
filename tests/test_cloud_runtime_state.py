@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
+import sys
 from datetime import date
 from html import escape
 from pathlib import Path
@@ -743,6 +745,47 @@ def test_workflow_declares_linux_schedule_token_permissions_and_no_broad_stage()
     assert 'git add .' not in workflow
     assert 'git add -A' not in workflow
     assert 'C:\\Users\\' not in workflow
+
+
+@pytest.mark.parametrize("failure", ["tracker", "renderer", "checkpoint", "bundle", "production", None, "partial"])
+def test_production_validation_logs_bounded_redacted_detail_and_preserves_gates(tmp_path, failure):
+    body = _workflow_step_body(_workflow_path().read_text(encoding="utf-8"),
+                               "Run genuine XSHG T-close production chain")
+    snippet = body.rsplit('python - "$output" <<\'PY\'', 1)[1].split("\nPY", 1)[0]
+    bundle = {
+        "status": "REVIEW_OBSERVATION_INCOMPLETE_REPORT_READY" if failure == "partial" else "READY",
+        "track_perf": {"status": "SUCCESS", "detail": "600519 provider fault test-api-key test-smtp test-bark " + "x" * 5000},
+        "renderer": {"status": "SUCCESS", "detail": "renderer diagnostic"},
+        "cloud_checkpoint": {"status": "DRIVE_CHECKPOINT_DISABLED_FOR_CLOUD", "reason": "checkpoint diagnostic"},
+    }
+    result = {"status": "T_CLOSE_EVIDENCE_PACKAGE_AND_WATCHLIST_PERSISTED", "daily_close_bundle": bundle}
+    if failure == "tracker":
+        bundle["track_perf"]["status"] = "FAILED"
+    elif failure == "renderer":
+        bundle["renderer"]["status"] = "FAILED"
+    elif failure == "checkpoint":
+        bundle["cloud_checkpoint"]["status"] = "FAILED"
+    elif failure == "bundle":
+        bundle["status"] = "UNEXPECTED"
+    elif failure == "production":
+        result["status"] = "FAILED"
+    path = tmp_path / "production.json"
+    path.write_text(json.dumps(result), encoding="utf-8")
+    env = {**os.environ, "HITHINK_FINANCE_API_KEY": "test-api-key", "SMTP_PASSWORD": "test-smtp",
+           "BARK_DEVICE_KEY": "test-bark"}
+    completed = subprocess.run([sys.executable, "-c", snippet, str(path)], env=env,
+                               capture_output=True, text=True, check=False)
+    if failure in (None, "partial"):
+        assert completed.returncode == 0
+        assert completed.stdout.strip() == "production canonical chain verified"
+    else:
+        assert completed.returncode != 0
+        assert "track_perf.detail=" in completed.stdout and "600519 provider fault" in completed.stdout
+        detail = json.loads(completed.stdout.splitlines()[0].split("=", 1)[1])
+        assert len(detail) == 1000
+        assert "[REDACTED]" in detail
+        assert all(secret not in completed.stdout + completed.stderr for secret in ("test-api-key", "test-smtp", "test-bark"))
+        assert len(completed.stdout) < 1500
 
 
 def test_runtime_state_commit_gate_preserves_allowlist_idempotency_and_delivery_order():

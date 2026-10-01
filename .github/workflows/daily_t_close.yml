@@ -342,6 +342,7 @@ jobs:
           fi
           python - "$output" <<'PY'
           import json
+          import os
           import sys
 
           lines = open(sys.argv[1], encoding="utf-8").read().strip().splitlines()
@@ -350,16 +351,39 @@ jobs:
           tracker = bundle.get("track_perf") or {}
           renderer = bundle.get("renderer") or {}
           checkpoint = bundle.get("cloud_checkpoint") or {}
+
+          def bounded_detail(value):
+              text = value if isinstance(value, str) else ""
+              # Redact configured credentials before truncating. Never emit the environment
+              # or arbitrary production payloads; only the existing detail/reason fields.
+              secret_values = {
+                  value for name, value in os.environ.items() if value and (
+                      any(part in name.upper() for part in ("KEY", "TOKEN", "SECRET", "PASSWORD", "SMTP", "BARK"))
+                      or name == "REPORT_EMAIL_TO"
+                  )
+              }
+              for secret in sorted(secret_values, key=len, reverse=True):
+                  text = text.replace(secret, "[REDACTED]")
+              return text[:1000]
+
+          def fail(message):
+              for name, stage in (("track_perf", tracker), ("renderer", renderer),
+                                  ("cloud_checkpoint", checkpoint), ("daily_close_bundle", bundle)):
+                  detail = bounded_detail(stage.get("detail") or stage.get("reason"))
+                  if detail:
+                      print(f"{name}.detail=" + json.dumps(detail, ensure_ascii=False), flush=True)
+              raise SystemExit(bounded_detail(message))
+
           if result.get("status") != "T_CLOSE_EVIDENCE_PACKAGE_AND_WATCHLIST_PERSISTED":
-              raise SystemExit(f"production status is not successful: {result.get('status')}")
+              fail(f"production status is not successful: {result.get('status')}")
           if tracker.get("status") != "SUCCESS":
-              raise SystemExit(f"tracker failed: {tracker.get('status')}")
+              fail(f"tracker failed: {tracker.get('status')}")
           if renderer.get("status") != "SUCCESS":
-              raise SystemExit(f"renderer failed: {renderer.get('status')}")
+              fail(f"renderer failed: {renderer.get('status')}")
           if checkpoint.get("status") != "DRIVE_CHECKPOINT_DISABLED_FOR_CLOUD":
-              raise SystemExit(f"unexpected cloud checkpoint status: {checkpoint.get('status')}")
-          if bundle.get("status") in {"REPORT_FAILED", "REVIEW_FAILED_REPORT_READY"}:
-              raise SystemExit(f"daily report bundle failed: {bundle.get('status')}")
+              fail(f"unexpected cloud checkpoint status: {checkpoint.get('status')}")
+          if bundle.get("status") not in {"READY", "REVIEW_OBSERVATION_INCOMPLETE_REPORT_READY"}:
+              fail(f"daily report bundle failed: {bundle.get('status')}")
           print("production canonical chain verified")
           PY
 

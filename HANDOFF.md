@@ -1,6 +1,50 @@
 # HANDOFF — 跨设备最小恢复入口
 
-## 2026-09-28 — HITHINK_SAME_DAY_LIST_DATE_DRIFT_FIX (PR ready for user merge decision)
+## 2026-10-01 — Tracker partial-observation repair implemented; PR #94 user merge decision
+
+- Classification: product blocker with correctness/data-integrity boundary; STRICT PATH.
+  `PROJECT_GOVERNANCE_STATE_CONFLICT` reconciled: PR #93 is MERGED (2026-09-28),
+  merge/source/live master SHA `5ea04a288da9c75e5c35135bde82a173ac81a924`. Its older
+  awaiting-merge record below is historical only.
+- Independent branch: `codex/tracker-partial-observation-recovery-20260930`, based exactly on
+  that live master; PR #94 https://github.com/EFSing/ashare_watchlist/pull/94 (base master).
+  Pushed implementation checkpoint `327552f3843afc987419d3d089afcc1005eda47d`; this handoff
+  update advances the tip. Recover via the remote branch and require live HEAD==upstream==PR head;
+  re-read final exact-head push/PR CI and mergeability, not the checkpoint SHA as current truth.
+- Incident: `daily-t-close` run `36696014010`, target `2026-09-30`, source SHA above.
+  Preflight passed (`POST_CLOSE_DIAGNOSTIC_READY`). The workflow passed the canonical
+  `T_CLOSE_EVIDENCE_PACKAGE_AND_WATCHLIST_PERSISTED` status gate, then failed with
+  `tracker failed: FAILED` in daily reporting. Output validation, canonical state copy/push,
+  Formal B delivery/receipt and C were skipped. Canonical inputs/list existed only in the
+  runner's ephemeral data root; this incident is not NO_VALID_INPUT or a list_date/delivery/
+  Cloudflare failure.
+- Detailed tracker inner error was in `daily_close_bundle.track_perf.detail` inside ephemeral
+  `production.json`, which was neither logged nor persisted (Actions artifacts count=0).
+  It is not recoverable from retained evidence: offending symbol and whether daily review or
+  ephemeral performance reconstruction failed first remain UNRESOLVED.
+- Incident failure-notice runtime-state SHA:
+  `820cfa2826cc12b46752aca624319a1366eb2e52`. Live runtime-state at intake has advanced to
+  `d6ab781b338b69cff508ad8c8674102e6ce1d08d` (a separate later run `36740425996` persisted
+  NO_VALID_INPUT diagnostics for the same target). Do not conflate the two failures or treat
+  the diagnostic HTML as a Formal B completion.
+- Scope: reuse existing incomplete review/performance states, retain structural fail-closed
+  errors and tracker/checkpoint gates, add bounded secret-redacted workflow failure details.
+  No new state machine or Decision is needed for this bugfix.
+- Implemented: per-code quote errors feed only affected execution missing reasons and due
+  NOT_CAPTURED points; valid signals continue. Ephemeral performance gaps retain provenance
+  and PERFORMANCE_DATA_INCOMPLETE rows; structural cache/provider errors propagate.
+  HiThink returned-symbol conflicts keep INPUT_CONFLICT instead of a generic provider error.
+  Existing tracker SUCCESS + incomplete coverage -> REVIEW_OBSERVATION_INCOMPLETE_REPORT_READY
+  -> renderer/checkpoint succeeds; real execution failure still blocks completion. Validation
+  prints credential-redacted detail/reason fields, each at most 1000 characters, before failure.
+- Verification: focused 258 passed / 2 skipped; full pytest 801 passed / 2 skipped / 11 warnings;
+  compileall, git diff --check and CI-equivalent Node dispatcher 3 passed. Skips are the existing
+  uncommitted large exact-date evidence fixtures. Diff contains no data or strategy/allowlist changes.
+- Next: final exact-head CI/readback, then user merge decision only; terminal marker after those
+  checks is PR_READY_FOR_USER_MERGE_DECISION. No merge, production dispatch/rerun/provider call,
+  runtime-state mutation or prospective backfill is authorized. Final OOS stays SEALED / UNREAD.
+
+## Historical pre-merge — 2026-09-28 — HITHINK_SAME_DAY_LIST_DATE_DRIFT_FIX
 
 - Classification: correctness blocker; STRICT PATH. Live intake resolved the persisted
   `PROJECT_GOVERNANCE_STATE_CONFLICT` that still showed PR #92 awaiting a merge decision: live

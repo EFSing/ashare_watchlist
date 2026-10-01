@@ -160,17 +160,19 @@ def fetch_quotes(
     timeout: float = 15.0,
     retries: int = 3,
     request_get: Any | None = None,
+    quote_errors: dict[str, str] | None = None,
     **_ignored: Any,
 ) -> dict[str, dict[str, Any]]:
     """Fetch daily tracker observations from HiThink historical bars only.
 
     The name is retained because the tracker tests and call sites inject a
     function with this seam.  It is no longer a Tencent adapter and does not
-    synthesize turnover-rate fields.
+    synthesize turnover-rate fields. Missing per-symbol data is omitted and
+    its reason is returned through ``quote_errors``; integrity errors still raise.
     """
 
     del retries, request_get, _ignored
-    from live_acquisition import HiThinkClient, _resolve_market_bars
+    from live_acquisition import HiThinkClient, LiveAcquisitionError, _resolve_market_bars
 
     target = parse_date(expected_date).isoformat()
     normalized_codes = [str(code).strip().lower().zfill(6) for code in codes]
@@ -191,15 +193,12 @@ def fetch_quotes(
                 allow_tencent_fallback=False,
                 allow_stale_as_of=False,
             )
-        except Exception as exc:
-            raise QuoteDataError(
-                f"HiThink tracker historical quote unavailable for {code}: {type(exc).__name__}: {exc}"
-            ) from exc
-        if not bars or bars[-1].get("date") != target:
-            latest = bars[-1].get("date") if bars else None
-            raise QuoteDataError(
-                f"HiThink tracker historical quote for {code} is stale: {latest} != {target}"
-            )
+        except LiveAcquisitionError as exc:
+            if not _is_per_symbol_history_gap(exc):
+                raise
+            if quote_errors is not None:
+                quote_errors[code] = f"HiThink historical quote unavailable for {code}: {exc}"
+            continue
         current = bars[-1]
         previous = bars[-2]
         quote = {
@@ -227,6 +226,19 @@ def fetch_quotes(
         )
         quotes[code] = quote
     return quotes
+
+
+def _is_per_symbol_history_gap(exc: Any) -> bool:
+    """Only provider/missing-history errors and explicitly classified stale are gaps."""
+
+    from live_acquisition import (
+        INCOMPLETE_COVERAGE, INPUT_DATE_MISMATCH, PROVIDER_FAILURE, TARGET_DAY_HISTORICAL_STALE,
+    )
+
+    return exc.status in {PROVIDER_FAILURE, INCOMPLETE_COVERAGE} or (
+        exc.status == INPUT_DATE_MISMATCH
+        and exc.diagnostics.get("classification") == TARGET_DAY_HISTORICAL_STALE
+    )
 
 
 def trading_days_after(
@@ -707,7 +719,7 @@ def _capture_review_points(
     for point in points.values():
         if point["status"] != REVIEW_POINT_PENDING and not (
             point["status"] == REVIEW_POINT_NOT_CAPTURED
-            and point.get("reason") == REVIEW_OBSERVATION_INCOMPLETE
+            and parse_date(point["scheduled_date"]) == today_date
         ):
             continue
         scheduled = parse_date(point["scheduled_date"])
@@ -1894,6 +1906,7 @@ def load_strategy_rule_historical_ohlc(
             ALLOW_TENCENT_KLINE_FALLBACK,
             DEFAULT_STOCK_BAR_COUNT,
             HiThinkClient,
+            LiveAcquisitionError,
             TCloseEvidenceStore,
             _resolve_market_bars,
             _history_capture_spec,
@@ -1962,7 +1975,9 @@ def load_strategy_rule_historical_ohlc(
                         as_of_date=report_date.isoformat(),
                         require_last_bar_date=False,
                     )
-                except Exception as exc:
+                except LiveAcquisitionError as exc:
+                    if not _is_per_symbol_history_gap(exc):
+                        raise
                     last_error = f"{type(exc).__name__}: {str(exc)[:240]}"
                     break
                 if result is None:
@@ -2006,36 +2021,42 @@ def load_strategy_rule_historical_ohlc(
                     allow_tencent_fallback=ALLOW_TENCENT_KLINE_FALLBACK,
                     allow_stale_as_of=False,
                 )
-            except Exception as exc:
-                raise TrackerSchemaError(
+            except LiveAcquisitionError as exc:
+                if not _is_per_symbol_history_gap(exc):
+                    raise
+                last_error = (
                     f"{EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION}: "
                     f"historical bars unavailable for {code}: "
                     f"{type(exc).__name__}: {exc}"
-                ) from exc
-            bars_by_code[code] = bars
-            provenance_by_code[code] = {
-                "status": "COMPLETE",
-                "source": EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION,
-                "source_identity": resolution.get("source"),
-                "provider_source": resolution.get("source"),
-                "provider": resolution.get("provider"),
-                "adjustment_mode": resolution.get("adjustment_mode"),
-                "selection": resolution.get("selection"),
-                "target_date": report_date.isoformat(),
-                "read_only": True,
-                "persisted": False,
-                "bars_persisted": False,
-                "prospective_tracker_mutated": False,
-                "cache": EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION,
-                "provenance_contract": EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION,
-            }
+                )
+            else:
+                bars_by_code[code] = bars
+                provenance_by_code[code] = {
+                    "status": "COMPLETE",
+                    "source": EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION,
+                    "source_identity": resolution.get("source"),
+                    "provider_source": resolution.get("source"),
+                    "provider": resolution.get("provider"),
+                    "adjustment_mode": resolution.get("adjustment_mode"),
+                    "selection": resolution.get("selection"),
+                    "target_date": report_date.isoformat(),
+                    "read_only": True,
+                    "persisted": False,
+                    "bars_persisted": False,
+                    "prospective_tracker_mutated": False,
+                    "cache": EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION,
+                    "provenance_contract": EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION,
+                }
+                loaded = True
             provider_calls += 1
-            loaded = True
         if not loaded:
             cache_misses += 1
             provenance_by_code[code] = {
                 "status": "MISSING_OR_INVALID",
-                "source": "T_CLOSE_IMMUTABLE_KLINE_CAPTURE",
+                "source": (
+                    EPHEMERAL_RULE_PERFORMANCE_RECONSTRUCTION
+                    if ephemeral_enabled else "T_CLOSE_IMMUTABLE_KLINE_CAPTURE"
+                ),
                 "reason": last_error or "no matching immutable daily K-line capture",
             }
             if last_error:
@@ -2334,6 +2355,7 @@ def verify_review_coverage(
     *,
     expected: dict[str, Any] | None = None,
     failure_reason: str | None = None,
+    quote_errors: Mapping[str, str] | None = None,
     calendar: TradingCalendar | None = None,
 ) -> dict[str, Any]:
     """Verify that every pre-update obligation has a same-date result."""
@@ -2403,6 +2425,10 @@ def verify_review_coverage(
         "execution_expected_signal_ids": list(expected.get("execution_signal_ids", [])),
         "execution_captured_signal_ids": execution_captured,
         "execution_missing_signal_ids": execution_missing,
+        "execution_missing_reasons": {
+            signal_id: (quote_errors or {}).get(signals[signal_id]["code"], REVIEW_OBSERVATION_INCOMPLETE)
+            for signal_id in execution_missing
+        },
         "horizon_expected": len(expected.get("horizon_point_ids", [])),
         "horizon_captured": len(horizon_captured),
         "horizon_missing": len(horizon_missing),
@@ -2427,6 +2453,7 @@ def run_daily_review(
     cal = calendar or default_calendar()
     report_date = parse_date(today or datetime.now().date())
     expected = expected_review_set(tracker, report_date, cal)
+    quote_errors: dict[str, str] = {}
     try:
         changed = update(
             tracker,
@@ -2435,6 +2462,7 @@ def run_daily_review(
             calendar=cal,
             source_mode=source_mode,
             provenance=provenance,
+            quote_errors=quote_errors,
         )
     except Exception as exc:
         _mark_expected_horizon_failures(tracker, expected)
@@ -2448,7 +2476,9 @@ def run_daily_review(
         tracker["review_coverage"] = coverage
         tracker["updated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         raise
-    coverage = verify_review_coverage(tracker, report_date, expected=expected, calendar=cal)
+    coverage = verify_review_coverage(
+        tracker, report_date, expected=expected, quote_errors=quote_errors, calendar=cal,
+    )
     tracker["review_coverage"] = coverage
     return changed, coverage
 
@@ -2461,6 +2491,7 @@ def update(
     *,
     source_mode: str = SOURCE_MODE_LIVE_DAILY_TRACKER_QUOTE,
     provenance: dict[str, Any] | None = None,
+    quote_errors: dict[str, str] | None = None,
 ) -> int:
     """Update signals and due XSHG review points with validated quote data."""
 
@@ -2487,7 +2518,9 @@ def update(
         if parse_date(signal['date']) < today_date
         and (signal["status"] in ("pending", "triggered")
         or any(
-            point["status"] == REVIEW_POINT_PENDING
+            (point["status"] == REVIEW_POINT_PENDING
+             or (point["status"] == REVIEW_POINT_NOT_CAPTURED
+                 and today_date == parse_date(point["scheduled_date"])))
             and today_date >= parse_date(point["scheduled_date"])
             for point in signal["review_points"].values()
         ))
@@ -2495,17 +2528,27 @@ def update(
     if not due_or_active:
         return 0
     codes = list(dict.fromkeys(signal["code"] for signal in due_or_active))
+    quote_errors = quote_errors if quote_errors is not None else {}
+    quote_errors.clear()
     if quotes is None:
-        quotes = fetch_quotes(codes, expected_date=today_date)
-    else:
-        _validate_tracker_quotes(
-            quotes,
-            expected_codes=codes,
-            expected_date=today_date,
-        )
+        quotes = fetch_quotes(codes, expected_date=today_date, quote_errors=quote_errors)
+    # Only explicitly recorded provider gaps may reduce coverage. Injected
+    # quotes and every usable observation retain the original strict validator.
+    _validate_tracker_quotes(
+        quotes,
+        expected_codes=[code for code in codes if code not in quote_errors],
+        expected_date=today_date,
+    )
 
     changed = 0
     for signal in due_or_active:
+        if signal["code"] in quote_errors:
+            for point in signal["review_points"].values():
+                if point["status"] != REVIEW_POINT_CAPTURED and point["scheduled_date"] == today_date.isoformat():
+                    point["status"] = REVIEW_POINT_NOT_CAPTURED
+                    point["reason"] = quote_errors[signal["code"]]
+                    changed += 1
+            continue
         quote = quotes[signal["code"]]
         if signal["status"] in ("pending", "triggered"):
             changed += _apply_execution_bar(

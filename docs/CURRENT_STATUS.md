@@ -1,6 +1,50 @@
 # CURRENT STATUS
 
-## 2026-09-28 — HiThink ticker-list list_date drift: universe eligibility V2 with 2026-09-28 incident record
+## 2026-10-01 — Formal B 2026-09-30 tracker failure; repair delivered in PR #94
+
+- `PROJECT_GOVERNANCE_STATE_CONFLICT` resolved: PR #93 is merged as
+  `5ea04a288da9c75e5c35135bde82a173ac81a924`, also live master at intake. Its older
+  awaiting-user-merge entry below is historical provenance, not the current objective.
+- Product blocker with correctness boundary (STRICT PATH): production run `36696014010`,
+  target `2026-09-30`, source SHA above, passed preflight and the canonical
+  `T_CLOSE_EVIDENCE_PACKAGE_AND_WATCHLIST_PERSISTED` gate. `_run_daily_close_reporting()`
+  then reported tracker execution FAILED; workflow stopped at `tracker failed: FAILED`.
+  Canonical output validation/state push, Formal B delivery/receipt and C were skipped.
+  This failure is in reporting/tracker, not acquisition NO_VALID_INPUT, #93 list_date,
+  Cloudflare or delivery.
+- The actual child error was only in `production.json` / `track_perf.detail` on the ephemeral
+  runner, not printed or persisted; no Actions artifact exists. Detailed error/symbol and the
+  first failing tracker path cannot be recovered. Do not infer them from current provider data.
+- Runtime-state incident notice commit `820cfa2826cc12b46752aca624319a1366eb2e52` is followed
+  by live intake HEAD `d6ab781b338b69cff508ad8c8674102e6ce1d08d`, which persisted a separate
+  later run `36740425996`'s NO_VALID_INPUT diagnostic/HTML. Neither establishes 9/30 Formal B
+  completion; the later diagnostic does not change the earlier tracker incident's root-cause chain.
+- Independent repair branch `codex/tracker-partial-observation-recovery-20260930` uses exactly
+  live master above. Reuse REVIEW_OBSERVATION_INCOMPLETE / NOT_CAPTURED and
+  PERFORMANCE_DATA_INCOMPLETE; keep structural errors and checkpoint gates fail-closed.
+  Formal B/C strategy, selection/thresholds/scores/T/T+1 and runtime-state allowlist remain fixed.
+- Implemented in PR #94 https://github.com/EFSing/ashare_watchlist/pull/94, implementation
+  checkpoint `327552f3843afc987419d3d089afcc1005eda47d` (not a permanent PR-tip invariant).
+  Quote gaps record per-signal execution reasons / due NOT_CAPTURED points while good quotes
+  continue. Ephemeral reconstruction gaps retain MISSING_OR_INVALID provenance and produce
+  PERFORMANCE_DATA_INCOMPLETE rows outside confirmed metrics. Future/identity/date/OHLC conflicts,
+  structural cache errors and schema errors still fail closed; response-symbol identity keeps
+  INPUT_CONFLICT. Existing reporting/checkpoint status contracts need no runner change.
+- Workflow still requires tracker SUCCESS, renderer SUCCESS and the existing checkpoint status.
+  READY / REVIEW_OBSERVATION_INCOMPLETE_REPORT_READY remain valid; unexpected bundles fail.
+  Failure logs emit only credential-redacted detail/reason strings, at most 1000 characters per
+  stage, including track_perf.detail. No artifact subsystem or new registry/state machine.
+- Verification: focused 258 passed / 2 skipped; full 801 passed / 2 skipped / 11 warnings;
+  compileall, diff check and Node dispatcher 3 passed. The existing large exact-date fixture skips
+  remain. Normal full-success, partial-data CLI/report/checkpoint SHA, no fake prices/backfill,
+  confirmed-performance exclusion and structural-error boundaries are covered with synthetic data.
+  Classification unchanged; DECISION_LOG unchanged (bugfix restoring existing missing-data semantics).
+- No production rerun/dispatch, provider production call, remote runtime-state mutation or
+  prospective backfill. Final OOS SEALED / UNREAD. Final tip/exact-head push and PR CI plus
+  mergeability are live GitHub delivery checks; stop at PR_READY_FOR_USER_MERGE_DECISION after
+  those checks. User merge decision and any later 9/30 rerun authorization remain separate.
+
+## Historical pre-merge — 2026-09-28 — HiThink ticker-list list_date drift: universe eligibility V2 with 2026-09-28 incident record
 
 - Classification: correctness blocker (STRICT PATH). Live intake resolved a
   `PROJECT_GOVERNANCE_STATE_CONFLICT`: persisted entries still described PR #92 as awaiting a merge

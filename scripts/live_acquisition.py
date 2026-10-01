@@ -1518,7 +1518,7 @@ class HiThinkClient:
         data = self._read(path, path, params, timeout=timeout)
         returned_symbol = data.get("thscode")
         if returned_symbol is not None and str(returned_symbol).strip().upper() != thscode.upper():
-            raise ValueError(f"HiThink historical response symbol mismatch for {thscode}")
+            _fail(INPUT_CONFLICT, f"HiThink historical response symbol mismatch for {thscode}")
         raw_bars = data.get("item")
         if not isinstance(raw_bars, list) or not raw_bars:
             raise ValueError(f"HiThink historical bars are empty for {thscode}")

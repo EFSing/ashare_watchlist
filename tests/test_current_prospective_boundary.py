@@ -234,7 +234,7 @@ def test_34_same_day_noop_then_t_plus_1_fetch(tmp_path, monkeypatch):
     perf.ingest(tracker, paths, CAL)
     before = deepcopy(tracker)
     calls = []
-    def fetch(codes, expected_date):
+    def fetch(codes, expected_date, **kwargs):
         calls.append((codes, expected_date))
         assert expected_date.isoformat() == '2026-09-09'
         result = {}
