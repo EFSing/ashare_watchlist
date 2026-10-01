@@ -1,6 +1,6 @@
 # CURRENT STATUS
 
-## 2026-10-01 — Formal B 2026-09-30 tracker failure; bounded repair in progress
+## 2026-10-01 — Formal B 2026-09-30 tracker failure; repair delivered in PR #94
 
 - `PROJECT_GOVERNANCE_STATE_CONFLICT` resolved: PR #93 is merged as
   `5ea04a288da9c75e5c35135bde82a173ac81a924`, also live master at intake. Its older
@@ -23,9 +23,26 @@
   live master above. Reuse REVIEW_OBSERVATION_INCOMPLETE / NOT_CAPTURED and
   PERFORMANCE_DATA_INCOMPLETE; keep structural errors and checkpoint gates fail-closed.
   Formal B/C strategy, selection/thresholds/scores/T/T+1 and runtime-state allowlist remain fixed.
+- Implemented in PR #94 https://github.com/EFSing/ashare_watchlist/pull/94, implementation
+  checkpoint `327552f3843afc987419d3d089afcc1005eda47d` (not a permanent PR-tip invariant).
+  Quote gaps record per-signal execution reasons / due NOT_CAPTURED points while good quotes
+  continue. Ephemeral reconstruction gaps retain MISSING_OR_INVALID provenance and produce
+  PERFORMANCE_DATA_INCOMPLETE rows outside confirmed metrics. Future/identity/date/OHLC conflicts,
+  structural cache errors and schema errors still fail closed; response-symbol identity keeps
+  INPUT_CONFLICT. Existing reporting/checkpoint status contracts need no runner change.
+- Workflow still requires tracker SUCCESS, renderer SUCCESS and the existing checkpoint status.
+  READY / REVIEW_OBSERVATION_INCOMPLETE_REPORT_READY remain valid; unexpected bundles fail.
+  Failure logs emit only credential-redacted detail/reason strings, at most 1000 characters per
+  stage, including track_perf.detail. No artifact subsystem or new registry/state machine.
+- Verification: focused 258 passed / 2 skipped; full 801 passed / 2 skipped / 11 warnings;
+  compileall, diff check and Node dispatcher 3 passed. The existing large exact-date fixture skips
+  remain. Normal full-success, partial-data CLI/report/checkpoint SHA, no fake prices/backfill,
+  confirmed-performance exclusion and structural-error boundaries are covered with synthetic data.
+  Classification unchanged; DECISION_LOG unchanged (bugfix restoring existing missing-data semantics).
 - No production rerun/dispatch, provider production call, remote runtime-state mutation or
-  prospective backfill. Final OOS SEALED / UNREAD. Finish with independent PR and exact-head CI;
-  user merge decision and any later 9/30 rerun authorization remain separate.
+  prospective backfill. Final OOS SEALED / UNREAD. Final tip/exact-head push and PR CI plus
+  mergeability are live GitHub delivery checks; stop at PR_READY_FOR_USER_MERGE_DECISION after
+  those checks. User merge decision and any later 9/30 rerun authorization remain separate.
 
 ## Historical pre-merge — 2026-09-28 — HiThink ticker-list list_date drift: universe eligibility V2 with 2026-09-28 incident record
 

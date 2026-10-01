@@ -1,13 +1,16 @@
 # HANDOFF — 跨设备最小恢复入口
 
-## 2026-10-01 — Tracker partial-observation incident repair in progress
+## 2026-10-01 — Tracker partial-observation repair implemented; PR #94 user merge decision
 
 - Classification: product blocker with correctness/data-integrity boundary; STRICT PATH.
   `PROJECT_GOVERNANCE_STATE_CONFLICT` reconciled: PR #93 is MERGED (2026-09-28),
   merge/source/live master SHA `5ea04a288da9c75e5c35135bde82a173ac81a924`. Its older
   awaiting-merge record below is historical only.
 - Independent branch: `codex/tracker-partial-observation-recovery-20260930`, based exactly on
-  that live master; recover via its remote branch and re-read HEAD/upstream/PR/exact-head CI.
+  that live master; PR #94 https://github.com/EFSing/ashare_watchlist/pull/94 (base master).
+  Pushed implementation checkpoint `327552f3843afc987419d3d089afcc1005eda47d`; this handoff
+  update advances the tip. Recover via the remote branch and require live HEAD==upstream==PR head;
+  re-read final exact-head push/PR CI and mergeability, not the checkpoint SHA as current truth.
 - Incident: `daily-t-close` run `36696014010`, target `2026-09-30`, source SHA above.
   Preflight passed (`POST_CLOSE_DIAGNOSTIC_READY`). The workflow passed the canonical
   `T_CLOSE_EVIDENCE_PACKAGE_AND_WATCHLIST_PERSISTED` status gate, then failed with
@@ -27,8 +30,18 @@
 - Scope: reuse existing incomplete review/performance states, retain structural fail-closed
   errors and tracker/checkpoint gates, add bounded secret-redacted workflow failure details.
   No new state machine or Decision is needed for this bugfix.
-- Next: implement and test locally, push an independent PR, verify exact-head CI and stop for
-  user merge decision. No merge, production dispatch/rerun/provider production call,
+- Implemented: per-code quote errors feed only affected execution missing reasons and due
+  NOT_CAPTURED points; valid signals continue. Ephemeral performance gaps retain provenance
+  and PERFORMANCE_DATA_INCOMPLETE rows; structural cache/provider errors propagate.
+  HiThink returned-symbol conflicts keep INPUT_CONFLICT instead of a generic provider error.
+  Existing tracker SUCCESS + incomplete coverage -> REVIEW_OBSERVATION_INCOMPLETE_REPORT_READY
+  -> renderer/checkpoint succeeds; real execution failure still blocks completion. Validation
+  prints credential-redacted detail/reason fields, each at most 1000 characters, before failure.
+- Verification: focused 258 passed / 2 skipped; full pytest 801 passed / 2 skipped / 11 warnings;
+  compileall, git diff --check and CI-equivalent Node dispatcher 3 passed. Skips are the existing
+  uncommitted large exact-date evidence fixtures. Diff contains no data or strategy/allowlist changes.
+- Next: final exact-head CI/readback, then user merge decision only; terminal marker after those
+  checks is PR_READY_FOR_USER_MERGE_DECISION. No merge, production dispatch/rerun/provider call,
   runtime-state mutation or prospective backfill is authorized. Final OOS stays SEALED / UNREAD.
 
 ## Historical pre-merge — 2026-09-28 — HITHINK_SAME_DAY_LIST_DATE_DRIFT_FIX
