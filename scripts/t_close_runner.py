@@ -306,6 +306,8 @@ def _run_daily_close_reporting(
     ]
     if tracker_failure:
         renderer_command.extend(["--review-failure", tracker_failure])
+    if close_report_recovery_enabled(as_of_date):
+        renderer_command.append('--recover-close-20260930')
     try:
         renderer_run = subprocess.run(
             renderer_command,

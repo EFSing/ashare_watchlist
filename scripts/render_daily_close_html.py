@@ -28,6 +28,7 @@ from b_shadow_monitor import ShadowMonitorError, build_report_view, load_store
 from volume_observation import (
     VOLUME_OBSERVATION_STORE_SCHEMA,
     load_volume_observation_store,
+    calculate_stock_volume_observation,
 )
 from track_perf import (
     REVIEW_HORIZONS,
@@ -54,6 +55,7 @@ from track_perf import (
     PATH_UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH,
     SOURCE_MODE_AUTHORIZED_WEEKEND_BACKFILL,
     SOURCE_MODE_EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1,
+    _apply_execution_bar,
 )
 from trading_calendar import TradingCalendar, default_calendar, previous_trading_day
 from universe_policy import policy_display_label
@@ -628,13 +630,15 @@ def _review_rows(
     return sections, issues, missing_count
 
 
-def _daily_collections(tracker, report_date, previous_date, paths, failures):
-    """Join yesterday's complete identities; use only dated tracker evidence.
+def _daily_collections(tracker, report_date, previous_date, paths, failures, recovery_history=None):
+    """Join yesterday's identities with dated tracker evidence or recovery display bars.
 
     Earlier signals closed today remain visible in their own section. They must
     not disappear merely because today's tracker update made them terminal.
     """
     signals = dict(tracker.get('signals', {})) if tracker else {}
+    if recovery_history is not None:
+        signals = copy.deepcopy(signals)
     previous_path = paths.watchlist_file(previous_date)
     if previous_path.exists():
         try:
@@ -652,11 +656,28 @@ def _daily_collections(tracker, report_date, previous_date, paths, failures):
         if list_date >= report_date:
             continue
         observation = _observation_for_date(signal, report_date)
+        recovered = False
+        if observation is None and recovery_history is not None:
+            bars = recovery_history.get(str(signal.get('code')), [])
+            bar = next((item for item in bars if item['date'] == report_date), None)
+            prior = [item for item in bars if item['date'] < report_date]
+            if bar is not None:
+                observation = {'quote_date': report_date, 'date': report_date,
+                               'code': signal['code'], 'open': bar['open'], 'high': bar['high'],
+                               'low': bar['low'], 'price': bar['close'],
+                               'change_pct': (bar['close'] / prior[-1]['close'] - 1) * 100 if prior else None,
+                               'source_mode': 'HISTORICAL_REPORT_ONLY_20260930'}
+                # Only yesterday's new signals have a complete one-session path.
+                # Apply existing T+1 rules to this display copy, never the durable tracker.
+                if list_date == previous_date and signal.get('status') in {'pending', 'triggered'}:
+                    _apply_execution_bar(signal, observation, parse_date(report_date), default_calendar(),
+                                         source_mode='HISTORICAL_REPORT_ONLY_20260930')
+                recovered = True
         raw_status = signal.get('status')
         # A later terminal/entry state cannot be asserted for an earlier report.
         future_state = any(signal.get(key) and signal[key] > report_date
                            for key in ('close_date', 'first_trigger_date'))
-        verified = observation is not None and not future_state
+        verified = observation is not None and not future_state and (not recovered or list_date == previous_date)
         status = raw_status if verified else _MISSING
         closed_today = verified and signal.get('close_date') == report_date
         ambiguity_reason = signal.get('ambiguity_reason')
@@ -708,6 +729,13 @@ def _daily_collections(tracker, report_date, previous_date, paths, failures):
         }
         if row['observation_source'] == '已恢复（不可变证据）' and verified:
             row['note'] = '当日不可变证据恢复；按原有路径规则展示'
+        if recovered:
+            row.update({'observation_source': '9/30 历史行情恢复（非前瞻）',
+                        'observation_status': '历史行情恢复', 'historical_report_only': True})
+        elif recovery_history is not None and observation is None:
+            bars = recovery_history.get(str(signal.get('code')), [])
+            latest = bars[-1]['date'] if bars else '不可用'
+            row['observation_source'] = f'9/30 无有效 K 线；最新日期 {latest}，未补值'
         if list_date == previous_date:
             groups[0].append(row)
         elif raw_status in {'pending', 'triggered'}:
@@ -738,11 +766,14 @@ def build_report_model(
     review_failure: str | None = None,
     generated_at: datetime | None = None,
     calendar: TradingCalendar | None = None,
+    recover_close_20260930: bool = False,
 ) -> ReportModel:
     """Load canonical inputs and build a report without writing any files."""
 
     resolver = paths or DataPaths.from_env()
     normalized_date = _normalize_date(report_date)
+    if recover_close_20260930 and normalized_date != '2026-09-30':
+        raise ValueError('report history recovery is limited to 2026-09-30')
     watchlist_path = resolver.watchlist_file(normalized_date)
     watchlist_bytes = watchlist_path.read_bytes()
     watchlist = load_watchlist(watchlist_path)
@@ -774,6 +805,22 @@ def build_report_model(
     volume_observations, volume_observation_status = _load_volume_observations(
         resolver, normalized_date, watchlist,
     )
+    if recover_close_20260930:
+        from live_acquisition import (TCloseEvidenceStore, DEFAULT_STOCK_BAR_COUNT,
+                                      _history_capture_spec, _load_captured_market_bars)
+        store = TCloseEvidenceStore(resolver.root / 't_close_evidence', normalized_date)
+        volume_observations = {}
+        for candidate in watchlist['candidates']:
+            code = candidate['code']
+            identity, symbol, _, _ = _history_capture_spec(
+                code, requested_count=DEFAULT_STOCK_BAR_COUNT, as_of_date=normalized_date, index=False)
+            captured = _load_captured_market_bars(store, identity, symbol,
+                minimum_acceptable_history=1, as_of_date=normalized_date, require_last_bar_date=True)
+            bars = captured[0] if captured is not None else None
+            observation = calculate_stock_volume_observation(bars, normalized_date, code=code)
+            observation['source_mode'] = 'HISTORICAL_REPORT_ONLY_20260930'
+            volume_observations[candidate['signal_id']] = observation
+        volume_observation_status = 'HISTORICAL_REPORT_ONLY_20260930'
     execution_audit = build_trade_performance_summary(
         performance_tracker,
         normalized_date,
@@ -789,7 +836,8 @@ def build_report_model(
     )
     previous_date = _normalize_date(previous_trading_day(normalized_date, cal))
     previous_signals, active_signals, closed_today = _daily_collections(
-        tracker, normalized_date, previous_date, resolver, review_failures
+        tracker, normalized_date, previous_date, resolver, review_failures,
+        historical_ohlc if recover_close_20260930 else None,
     )
     watchlist_rows = _watchlist_rows(
         watchlist,
@@ -827,9 +875,10 @@ def build_report_model(
         review_status = REVIEW_OBSERVATION_INCOMPLETE
     else:
         review_status = "READY"
-    previous_triggered = sum(row['raw_status'] == 'triggered' for row in previous_signals)
-    previous_pending = sum(row['raw_status'] == 'pending' for row in previous_signals)
-    previous_ambiguous = sum(row['raw_status'] == 'AMBIGUOUS_SAME_BAR' for row in previous_signals)
+    previous_verified = [row for row in previous_signals if row['observed'] or not recover_close_20260930]
+    previous_triggered = sum(row['raw_status'] == 'triggered' for row in previous_verified)
+    previous_pending = sum(row['raw_status'] == 'pending' for row in previous_verified)
+    previous_ambiguous = sum(row['raw_status'] == 'AMBIGUOUS_SAME_BAR' for row in previous_verified)
     today_t1_pending = sum(row.get('observation_status') == _T1_PENDING for row in watchlist_rows)
     unverified_count = review_issues.count(_UNVERIFIED)
     ambiguity_dates: dict[str, int] = {}
@@ -988,8 +1037,10 @@ def build_report_model(
         'quality_exception_count': quality_exception_count,
     }
     summary_text = (
-        f"昨日 {previous_date} 共 {previous_triggered + previous_pending + previous_ambiguous} 个信号："
+        f"昨日 {previous_date} 共 {len(previous_signals)} 个信号："
         f"triggered {previous_triggered}、pending {previous_pending}、same-bar {previous_ambiguous}。"
+        + (f"当日行情待核验 {len(previous_signals) - len(previous_verified)} 个。" if recover_close_20260930 else '')
+        +
         f"今日新信号 {today_t1_pending} 个，正常等待下一交易日 observation。"
         f"历史数据质量例外 {quality_exception_count} 个；"
         f"acquisition={acquisition_status}、review={review_status}、cloud={cloud_checkpoint_status}、"
@@ -1021,6 +1072,7 @@ def build_report_model(
         "candidate_count": len(watchlist_rows),
         "report_generated_at": generated.isoformat(),
         "volume_observation_status": volume_observation_status,
+        "close_report_recovery": recover_close_20260930,
         **coverage_metadata,
     }
     if review_coverage:
@@ -1483,6 +1535,8 @@ def _watchlist_table(rows, earliest_execution=None):
 def _daily_note(row: Mapping[str, Any]) -> str:
     raw_status = row.get('raw_status')
     if not row.get('observed'):
+        if row.get('historical_report_only'):
+            return '当日行情已恢复；历史执行路径仍待核验'
         return '当日观察缺失，暂不作交易结论'
     if raw_status == 'AMBIGUOUS_SAME_BAR':
         return '同日触及条件，先后顺序无法确认'
@@ -2400,6 +2454,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
 <body>
 <main>
 <header class="site-header">
+  {'<p class="note">9/30 收盘日报恢复：量能与昨日复盘使用截止 9/30 的历史行情，仅用于本页展示；未补写前瞻跟踪记录。</p>' if metadata.get('close_report_recovery') else ''}
   <div class="eyebrow">A 股策略复盘</div>
   <div class="header-main">
     <div><h1>{_esc(metadata.get('review_date'))} · {_esc(metadata.get('strategy'))}</h1>
@@ -2744,6 +2799,7 @@ def render_daily_close(
     review_failure: str | None = None,
     generated_at: datetime | None = None,
     calendar: TradingCalendar | None = None,
+    recover_close_20260930: bool = False,
 ) -> tuple[ReportModel, Path, Path]:
     """Build and atomically write the dated report and complete latest copy."""
 
@@ -2754,6 +2810,7 @@ def render_daily_close(
         review_failure=review_failure,
         generated_at=generated_at,
         calendar=calendar,
+        recover_close_20260930=recover_close_20260930,
     )
     content = render_html(model)
     date_path = resolver.reports_dir() / f"daily_close_{_date_token(model.metadata['list_date'])}.html"
@@ -2766,6 +2823,8 @@ def render_daily_close(
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--date", required=True, help="canonical watchlist/report date, YYYYMMDD or YYYY-MM-DD")
+    parser.add_argument('--recover-close-20260930', action='store_true',
+                        help='Show 9/30 historical volume and yesterday review without tracker writes')
     parser.add_argument(
         "--review-failure",
         default=None,
@@ -2780,6 +2839,7 @@ def main(argv: list[str] | None = None) -> int:
         model, dated, latest = render_daily_close(
             args.date,
             review_failure=args.review_failure,
+            recover_close_20260930=args.recover_close_20260930,
         )
     except Exception as exc:
         print(f"DAILY_CLOSE_RENDER_FAILED: {type(exc).__name__}: {exc}")
