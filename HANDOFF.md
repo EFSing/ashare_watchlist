@@ -1,5 +1,85 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-10-03 — Complete 9/30 report reconciliation delivered
+
+- Current final runtime-state `1a0a1fa8331cd88ce9e4a16673a60ea3624af761`; report/checkpoint/Markdown
+  commit `08c414a84855d041e352661bf5315001fea24d40`. Delivery run 37123185262 succeeded,
+  Email/Bark SUCCESS, report_date=2026-09-30; actual send 2026-10-03 20:32:41 BJT.
+- Renderer source `ac52055ac757f8647f039f1d471be51df97ab492`, standalone PR #96 remains open.
+  Full suite 808 passed / 2 existing local-fixture skips / 11 warnings; implementation-head CI passed.
+- Whole report now uses one disposable dated history view and existing execution/return rules:
+  T+3 9 prices / 7 calculable / 2 untriggered / mean +1.67%; T+5 16 prices / 7 calculable /
+  9 untriggered / mean -3.25%; T+10 no 9/30 maturity, next 10/8, no future results.
+- Recovered 21 missing legacy-symbol histories and reconciled 11 QFQ-vintage conflicts with
+  same-provider unadjusted histories matched to original signal closes and recorded OHLC.
+  All 3,230 captured series are bounded to 9/30. Original dated observations take priority;
+  incompatible prices are never silently mixed. No strategy, scores, thresholds or candidates changed.
+- Daily coverage 79/80; the only current market-bar gap is 603183 (latest 9/29). Active 69 means
+  triggered 40 + waiting 29, not 69 holdings. Original prospective coverage is labelled separately.
+  Two volume cards retain genuine short-window missing reasons. Markdown/HTML/diagnostics agree.
+- Watchlist SHA stays `3f97702d45828287eb5328f0a2a0ac7c62a5149f8055ecb2310df6cab918bdc6`;
+  durable tracker stays `1ec378f7f9d4c2672c5b3603496e4f7e987ccbfb76d5adc880c3ffa6c52ad7a1`.
+  Formal HTML SHA `4ec8c8169a4642906630c1e54b82a5eb4a797bcdd55557e86d3e97ae2c8f5c92`;
+  delivery SHA `3ea8737c132aeaf891269145db8478b23f1ffcec797097b32eb78f5061879718`.
+- Independently checked XSHG session offsets, every due-node return denominator/date, daily
+  changes, closed-trade return/mean/win-rate and sample funnels; validation PASS. Prior versions
+  remain in Git, including 43215e7. Current files and validation are in `../recovery-20260930`.
+  Classification unchanged: product blocker with correctness boundary / STRICT PATH; recovery complete.
+
+## 2026-10-02 — 9/30 report display corrected and redelivered
+
+- Latest final runtime-state: `43215e72037b12a46c748875d0ad031d4b9808d7`; corrected report/checkpoint
+  commit `54c51217e9607344b15b5e83ef6c198502852800`. Run
+  https://github.com/EFSing/ashare_watchlist/actions/runs/36890608286 succeeded; Email/Bark SUCCESS.
+  report_date remains 2026-09-30; actual redelivery time is 2026-10-02 00:15:52 BJT.
+- PR #96 additionally repairs display-only data consumption: renderer flag
+  `--recover-close-20260930` reads captured 9/30 stock K-lines for all 9 volume cards and
+  yesterday's 19 signal identities. 18 have 9/30 OHLC (9 triggered, 9 pending under existing T+1);
+  603183 has no target-day bar, latest 9/29, explicitly missing. 603755/600886 keep legitimate
+  insufficient-window metric reasons. No provider calls during this correction.
+- Source for corrected renderer: `d564ed5f9d77af0d4a86cdd1462feddb07979406`. Watchlist SHA is
+  unchanged; durable tracker SHA remains `1ec378f7f9d4c2672c5b3603496e4f7e987ccbfb76d5adc880c3ffa6c52ad7a1`.
+  Historical report-only rows are computed on copies; no prospective evidence/horizon result writes.
+- Prior report/checkpoint/receipt remain recoverable at `ab6297d8b565b0942508b4adb1459d3a277f4cb1`
+  and in local `_initial` copies. Only this explicit report revision replaced the 9/30 checkpoint,
+  HTML and receipt; earlier dates are unchanged. Corrected formal HTML SHA:
+  `b2b0b899bd7bf9ed7084902bebd8a5042606c8b3eb1fa187b7ae187578e1671e`.
+- Renderer regressions: 64 passed / one existing warning; renderer implementation push/PR CI passed.
+  Local deliverables are in `../recovery-20260930`. PR stays open for user review; normal strategy
+  and production paths are unchanged. Classification remains product blocker / STRICT PATH.
+
+## 2026-10-01 — 2026-09-30 close report recovery completed
+
+- User explicitly authorized this production recovery after PR #94 merged. Classification:
+  product blocker with correctness boundaries / STRICT PATH; unchanged. This supersedes the
+  earlier audit-only stop for this new request; no audit/replay framework was added.
+- Independent PR #96: https://github.com/EFSing/ashare_watchlist/pull/96,
+  branch `codex/close-report-recovery-20260930`. Acquisition source commit:
+  `d161da01ee4fa87668f9bfaea1a367dd77454b11`; later documentation commits do not change
+  the recovered artifact identity. PR remains open; no automatic merge.
+- Command: `AS_OF_DATE=2026-09-30 python scripts/t_close_runner.py --as-of-date 2026-09-30
+  --recover-close-20260930 --data-root C:/temp/ashare-close-20260930` with the normal cloud
+  Drive-disabled and ephemeral rule-performance flags. The existing backfill acquisition
+  is bounded to the 10/1–10/7 holiday with no intervening XSHG session; retrieval time is truthful.
+- Formal B: 9 candidates; watchlist SHA
+  `3f97702d45828287eb5328f0a2a0ac7c62a5149f8055ecb2310df6cab918bdc6`.
+  Canonical runtime commit `831ca7b37cd445db8a344cb673abcc09b98e9329`; checkpoint,
+  `daily_close_20260930.html`, `perf_report.md`, and initial tracker are persisted.
+- Delivery used unchanged master workflow `daily_t_close.yml`, production/manual, explicit
+  as_of_date=2026-09-30. Run https://github.com/EFSing/ashare_watchlist/actions/runs/36887924125
+  succeeded; ALREADY_COMPLETED skipped provider production. Email and Bark SUCCESS;
+  receipt commit / final runtime-state `ab6297d8b565b0942508b4adb1459d3a277f4cb1`.
+- Verification: all 3,198 captured historical series end no later than 9/30; no future market
+  data/results. Original 201 tracker signals and 59 restored historical files are unchanged.
+  New signals pending, empty observations, null returns at all T+3/T+5/T+10 nodes. Report
+  uses the same seven sections as normal close reports. Local composite HTML matches receipt SHA.
+- Honest limitations: input DEGRADED (3,117 evaluated; 81 exclusions under unchanged guards),
+  REVIEW_OBSERVATION_INCOMPLETE_REPORT_READY (no historical prospective observations backfilled).
+  Volume/shadow captures remain NOT_CAPTURED; C retry presentation is C_NOT_RUN. Actual Email/Bark
+  sending happened on 10/1, while report_date is 9/30. No strategy/score/threshold change.
+- Relevant tests: 160 passed / one existing warning; exact implementation-head push and PR CI
+  succeeded. Next: user may review PR #96; recovered signals enter the normal future tracker.
+
 ## 2026-10-01 — Tracker partial-observation repair implemented; PR #94 user merge decision
 
 - Classification: product blocker with correctness/data-integrity boundary; STRICT PATH.

@@ -42,6 +42,7 @@ from live_acquisition import (
     PROVIDER_UNAVAILABLE,
     _validate_close_window,
     acquire_live_generation_inputs,
+    close_report_recovery_enabled,
     persist_live_input_package,
 )
 from trading_calendar import CalendarUnavailable, default_calendar
@@ -252,7 +253,9 @@ def _run_daily_close_reporting(
         "--date",
         str(as_of_date),
     ]
-    if skip_shadow_capture:
+    if close_report_recovery_enabled(as_of_date):
+        tracker_command.append("--initialize-close-20260930")
+    elif skip_shadow_capture:
         tracker_command.append("--authorized-weekend-backfill")
     try:
         tracker_run = subprocess.run(
@@ -303,6 +306,8 @@ def _run_daily_close_reporting(
     ]
     if tracker_failure:
         renderer_command.extend(["--review-failure", tracker_failure])
+    if close_report_recovery_enabled(as_of_date):
+        renderer_command.append('--recover-close-20260930')
     try:
         renderer_run = subprocess.run(
             renderer_command,
@@ -742,6 +747,8 @@ def _parser() -> argparse.ArgumentParser:
         help="Explicitly authorize an immediately-following non-trading-day acquisition for the target session",
     )
     parser.add_argument("--preflight", action="store_true", help="Validate the scheduled execution context without provider calls")
+    parser.add_argument("--recover-close-20260930", action="store_true",
+                        help="Recover the 9/30 close during the 10/1-10/7 holiday; initialize tracker only")
     return parser
 
 
@@ -750,6 +757,10 @@ def main(argv: list[str] | None = None) -> int:
     data_root = (args.data_root or DataPaths.from_env().root).expanduser().resolve()
     evidence_root = (args.evidence_root or data_root / "t_close_evidence").expanduser().resolve()
     try:
+        if args.recover_close_20260930:
+            os.environ["ASHARE_CLOSE_REPORT_RECOVERY_DATE"] = "2026-09-30"
+            close_report_recovery_enabled(args.as_of_date, datetime.now(_BJT).isoformat())
+            args.allow_weekend_backfill = True
         result = (
             _preflight(
                 args.as_of_date,

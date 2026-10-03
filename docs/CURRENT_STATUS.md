@@ -1,5 +1,47 @@
 # CURRENT STATUS
 
+## 2026-10-03 — Complete 9/30 report validated and delivered
+
+- Final runtime-state `1a0a1fa8331cd88ce9e4a16673a60ea3624af761`; run 37123185262 succeeded,
+  Email/Bark SUCCESS; report_date stays 9/30. Source ac52055, PR #96 open, exact implementation CI passed.
+- T+3: 9 prices / 7 returns / mean +1.67%; T+5: 16 prices / 7 returns / mean -3.25%; T+10 no
+  maturity on 9/30, next 10/8. No untriggered sample is counted as a zero return; no future result.
+- 21 legacy-symbol histories restored; 11 price-vintage conflicts reconciled against dated original
+  records using verified same-provider raw histories. All 3,230 series end no later than 9/30.
+  Nodes, daily review, performance, Markdown and diagnostics share the same bounded data view.
+- Original watchlist SHA and durable tracker bytes unchanged. Only 603183 lacks the target-date bar;
+  short-window volume reasons remain explicit. Raw prospective and Shadow records were not rewritten.
+  Full tests 808 passed / 2 existing fixture skips; independent numeric validation and browser QA passed.
+
+## 2026-10-02 — 9/30 volume and previous-session display corrected
+
+- Final corrected report/receipt state: `43215e72037b12a46c748875d0ad031d4b9808d7`, from report revision
+  `54c51217e9607344b15b5e83ef6c198502852800`. Run 36890608286 succeeded; Email/Bark SUCCESS.
+- Existing captured 9/30 histories now populate 9 volume cards and 18/19 yesterday signal OHLC rows;
+  9 triggered, 9 pending; 603183 has no valid 9/30 bar. Two short-window volume cards retain partial
+  metrics. These are explicitly report-only historical views, not prospective captures or executions.
+- Formal B SHA and durable tracker are unchanged. Prior version is retained in Git at ab6297d.
+  Corrected renderer source d564ed5; 64 renderer regressions and implementation-head CI passed.
+  PR #96 remains open. No strategy/score/threshold changes or market data after 9/30.
+
+## 2026-10-01 — 2026-09-30 Formal B close recovery delivered
+
+- Product recovery completed under the user's new authorization, using the original B evaluator,
+  report renderer/checkpoint pipeline and unchanged cloud delivery workflow. Minimal independent
+  recovery PR #96 remains open: https://github.com/EFSing/ashare_watchlist/pull/96.
+- 9/30 watchlist contains 9 candidates; SHA
+  `3f97702d45828287eb5328f0a2a0ac7c62a5149f8055ecb2310df6cab918bdc6`.
+  Canonical state commit `831ca7b37cd445db8a344cb673abcc09b98e9329`; final receipt/state commit
+  `ab6297d8b565b0942508b4adb1459d3a277f4cb1`. Email and Bark SUCCESS in run
+  https://github.com/EFSing/ashare_watchlist/actions/runs/36887924125, with production acquisition
+  skipped by ALREADY_COMPLETED. Report and receipt report_date remain 2026-09-30.
+- Status is REVIEW_OBSERVATION_INCOMPLETE_REPORT_READY; 9 new pending tracker signals have no
+  observations or future horizon returns. All 201 old tracker signals and historical prospective
+  evidence are unchanged. 3,198 captured historical series have maximum market date 9/30.
+- Input coverage remains DEGRADED (3,117 evaluated, 81 excluded under existing validators).
+  No prospective shadow/volume backfill or C research run; no new strategy, scoring, thresholds,
+  candidate algorithm or audit/replay framework. Relevant tests 160 passed; implementation CI passed.
+
 ## 2026-10-01 — Formal B 2026-09-30 tracker failure; PR #94 merged
 
 - Current state: user-authorized PR #94 squash merge completed at

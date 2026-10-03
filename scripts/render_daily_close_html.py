@@ -28,6 +28,7 @@ from b_shadow_monitor import ShadowMonitorError, build_report_view, load_store
 from volume_observation import (
     VOLUME_OBSERVATION_STORE_SCHEMA,
     load_volume_observation_store,
+    calculate_stock_volume_observation,
 )
 from track_perf import (
     REVIEW_HORIZONS,
@@ -54,6 +55,11 @@ from track_perf import (
     PATH_UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH,
     SOURCE_MODE_AUTHORIZED_WEEKEND_BACKFILL,
     SOURCE_MODE_EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1,
+    rebuild_execution_state_from_observations,
+    _apply_rebuilt_execution_state,
+    _snapshot_return_pct,
+    verify_review_coverage,
+    expected_review_set,
 )
 from trading_calendar import TradingCalendar, default_calendar, previous_trading_day
 from universe_policy import policy_display_label
@@ -76,6 +82,7 @@ _REVIEW_FAILURE = "REVIEW_FAILED"
 _T1_PENDING = "T_PLUS_1_OBSERVATION_PENDING"
 _CLOUD_VERIFIED = "CLOUD_CHECKPOINT_VERIFIED"
 _HORIZON_OFFSETS = dict(REVIEW_HORIZONS)
+_HISTORICAL_REPORT_SOURCE = 'HISTORICAL_REPORT_ONLY_20260930'
 
 
 @dataclass(frozen=True)
@@ -597,9 +604,13 @@ def _review_rows(
                 snapshot_source = "已恢复（不可变证据）"
             elif source_mode == SOURCE_MODE_AUTHORIZED_WEEKEND_BACKFILL:
                 snapshot_source = "授权周末补跑（非前瞻）"
+            elif source_mode == _HISTORICAL_REPORT_SOURCE:
+                snapshot_source = '历史日线复盘（非前瞻）'
+                snapshot_status = '历史节点已恢复'
             else:
                 snapshot_source = "已记录"
-            if captured and return_value is None:
+            no_entry = source_mode == _HISTORICAL_REPORT_SOURCE and point.get('reason') == 'NO_ENTRY_BY_REVIEW_DATE'
+            if captured and return_value is None and not no_entry:
                 issues.append(_UNVERIFIED)
             if status == REVIEW_POINT_NOT_CAPTURED:
                 issues.append(_MISSING)
@@ -621,6 +632,9 @@ def _review_rows(
                     "node_close": point.get("price"),
                     "snapshot_source": snapshot_source,
                     "source_mode": source_mode,
+                    "entry_basis_price": point.get('entry_basis_price'),
+                    "entry_basis_date": point.get('entry_basis_date'),
+                    "return_reason": '节点时尚未触发' if no_entry else point.get('reason'),
                 }
             )
     for rows in sections.values():
@@ -628,13 +642,15 @@ def _review_rows(
     return sections, issues, missing_count
 
 
-def _daily_collections(tracker, report_date, previous_date, paths, failures):
-    """Join yesterday's complete identities; use only dated tracker evidence.
+def _daily_collections(tracker, report_date, previous_date, paths, failures, recovery_history=None):
+    """Join yesterday's identities with dated tracker evidence or recovery display bars.
 
     Earlier signals closed today remain visible in their own section. They must
     not disappear merely because today's tracker update made them terminal.
     """
     signals = dict(tracker.get('signals', {})) if tracker else {}
+    if recovery_history is not None:
+        signals = copy.deepcopy(signals)
     previous_path = paths.watchlist_file(previous_date)
     if previous_path.exists():
         try:
@@ -652,11 +668,14 @@ def _daily_collections(tracker, report_date, previous_date, paths, failures):
         if list_date >= report_date:
             continue
         observation = _observation_for_date(signal, report_date)
+        recovered = bool(observation and observation.get('source_mode') == _HISTORICAL_REPORT_SOURCE)
         raw_status = signal.get('status')
         # A later terminal/entry state cannot be asserted for an earlier report.
         future_state = any(signal.get(key) and signal[key] > report_date
                            for key in ('close_date', 'first_trigger_date'))
         verified = observation is not None and not future_state
+        if recovered and signal.get('execution_verification_status') == UNVERIFIED_MISSING_EXECUTION_OBSERVATION:
+            verified = False
         status = raw_status if verified else _MISSING
         closed_today = verified and signal.get('close_date') == report_date
         ambiguity_reason = signal.get('ambiguity_reason')
@@ -678,6 +697,7 @@ def _daily_collections(tracker, report_date, previous_date, paths, failures):
             'today_low': observation.get('low') if observation else None,
             'today_close': observation.get('price') if observation else None,
             'daily_change_pct': observation.get('change_pct') if observation else None,
+            'change_reference_price': observation.get('change_reference_price') if observation else None,
             'observation_source_mode': observation.get('source_mode') if observation else None,
             'source_mode': observation.get('source_mode') if observation else None,
             'observation_source': (
@@ -708,6 +728,13 @@ def _daily_collections(tracker, report_date, previous_date, paths, failures):
         }
         if row['observation_source'] == '已恢复（不可变证据）' and verified:
             row['note'] = '当日不可变证据恢复；按原有路径规则展示'
+        if recovered:
+            row.update({'observation_source': '9/30 历史行情恢复（非前瞻）',
+                        'observation_status': '历史行情恢复', 'historical_report_only': True})
+        elif recovery_history is not None and observation is None:
+            bars = recovery_history.get(str(signal.get('code')), [])
+            latest = bars[-1]['date'] if bars else '不可用'
+            row['observation_source'] = f'9/30 无有效 K 线；最新日期 {latest}，未补值'
         if list_date == previous_date:
             groups[0].append(row)
         elif raw_status in {'pending', 'triggered'}:
@@ -731,6 +758,112 @@ def _daily_collections(tracker, report_date, previous_date, paths, failures):
     return groups
 
 
+def _historical_report_view(tracker, watchlists, history, report_date, calendar, target_quotes=None, raw_history=None, restored_price_codes=None):
+    """Reuse the execution/return rules on a disposable, date-bounded report copy.
+
+    Actual dated records override restated QFQ bars. A known price-basis conflict
+    cannot use unrecorded older restated prices to fill an execution gap.
+    """
+    view = copy.deepcopy(tracker)
+    prior_view = copy.deepcopy(tracker)
+    by_code = {code: {bar['date']: dict(bar) for bar in bars} for code, bars in history.items()}
+    actual = {}
+    conflicts = set()
+    for watchlist in watchlists:
+        for candidate in watchlist['candidates']:
+            bar = by_code.get(candidate['code'], {}).get(watchlist['date'])
+            if bar and round(float(bar['close']), 2) != round(float(candidate['price']), 2):
+                conflicts.add(candidate['code'])
+    for signal in tracker.get('signals', {}).values():
+        records = list(signal.get('observations', []))
+        records += [dict(point, date=point.get('quote_date')) for point in signal.get('review_points', {}).values()
+                    if point.get('status') == REVIEW_POINT_CAPTURED]
+        for record in records:
+            day = record.get('date')
+            if not day or day > report_date or any(record.get(key) is None for key in ('open', 'high', 'low', 'price')):
+                continue
+            bar = {'date': day, 'open': record['open'], 'high': record['high'],
+                   'low': record['low'], 'close': record['price']}
+            previous = actual.setdefault(signal['code'], {}).get(day)
+            if previous and any(round(float(previous[key]), 6) != round(float(bar[key]), 6)
+                                for key in ('open', 'high', 'low', 'close')):
+                raise ValueError(f"conflicting original dated OHLC for {signal['code']} {day}")
+            actual[signal['code']][day] = bar
+            restated = by_code.get(signal['code'], {}).get(day)
+            if restated and any(round(float(restated[key]), 2) != round(float(bar[key]), 2)
+                                for key in ('open', 'high', 'low', 'close')):
+                conflicts.add(signal['code'])
+    for code in set(by_code) | set(actual):
+        bars = by_code.setdefault(code, {})
+        if code in conflicts:
+            raw = {bar['date']: dict(bar) for bar in (raw_history or {}).get(code, [])}
+            anchors = [(w['date'], c['price']) for w in watchlists for c in w['candidates'] if c['code'] == code]
+            compatible = bool(raw) and all(
+                day in raw and round(float(raw[day]['close']), 2) == round(float(price), 2)
+                for day, price in anchors)
+            compatible = compatible and all(
+                day in raw and all(round(float(raw[day][key]), 2) == round(float(bar[key]), 2)
+                                   for key in ('open', 'high', 'low', 'close'))
+                for day, bar in actual.get(code, {}).items())
+            if compatible:
+                bars = raw
+                if restored_price_codes is not None:
+                    restored_price_codes.add(code)
+            else:
+                bars = {day: bar for day, bar in bars.items() if day == report_date}
+            by_code[code] = bars
+        bars.update(actual.get(code, {}))
+    merged = {code: [bars[day] for day in sorted(bars)] for code, bars in by_code.items()}
+    for signal in view.get('signals', {}).values():
+        if signal['date'] >= report_date:
+            continue
+        bars = merged.get(signal['code'], [])
+        if any(bar['date'] > report_date for bar in bars):
+            raise ValueError('future data in historical report view')
+        observations = []
+        for index, bar in enumerate(bars):
+            if bar['date'] <= signal['date']:
+                continue
+            quote = (target_quotes or {}).get(signal['code'], {}) if bar['date'] == report_date else {}
+            reference = quote.get('prev_close') if quote else bars[index - 1]['close'] if index else None
+            observations.append({'date': bar['date'], 'quote_date': bar['date'], 'code': signal['code'],
+                'open': bar['open'], 'high': bar['high'], 'low': bar['low'], 'price': bar['close'],
+                'change_reference_price': reference,
+                'change_pct': (bar['close'] / reference - 1) * 100 if reference and reference > 0 else None,
+                'source_mode': _HISTORICAL_REPORT_SOURCE})
+        signal['observations'] = observations
+        prior = prior_view['signals'][signal['signal_id']]
+        prior['observations'] = observations
+        _apply_rebuilt_execution_state(prior, rebuild_execution_state_from_observations(
+            prior, calendar=calendar, as_of=previous_trading_day(report_date, calendar)))
+        state = rebuild_execution_state_from_observations(signal, calendar=calendar, as_of=report_date)
+        _apply_rebuilt_execution_state(signal, state)
+        for point in signal.get('review_points', {}).values():
+            day = point['scheduled_date']
+            if day > report_date:
+                continue
+            quote = next((o for o in observations if o['date'] == day), None)
+            if quote is None:
+                point.update(status=REVIEW_POINT_NOT_CAPTURED, reason='节点当日无有效行情')
+                continue
+            node = copy.copy(signal)
+            node_state = rebuild_execution_state_from_observations(signal, calendar=calendar, as_of=day)
+            _apply_rebuilt_execution_state(node, node_state)
+            complete = node_state['execution_verification_status'] != UNVERIFIED_MISSING_EXECUTION_OBSERVATION
+            value = _snapshot_return_pct(node, quote['price']) if complete else None
+            point.update(status=REVIEW_POINT_CAPTURED, quote_date=day, open=quote['open'],
+                         high=quote['high'], low=quote['low'], price=quote['price'], return_pct=value,
+                         path_status=node['status'] if complete else PATH_UNVERIFIED_MISSING_PRIOR_EXECUTION_PATH,
+                         signal_status=node['status'], source_mode=_HISTORICAL_REPORT_SOURCE,
+                         entry_basis_price=node.get('entry_price') if complete else None,
+                         entry_basis_date=node.get('entry_date') if complete else None,
+                         reason=None if value is not None else 'NO_ENTRY_BY_REVIEW_DATE' if complete else '历史执行路径缺栏')
+    view['updated'] = report_date
+    view['review_coverage'] = verify_review_coverage(view, report_date, calendar=calendar,
+        expected=expected_review_set(prior_view, report_date, calendar))
+    return view, merged, sorted(conflicts)
+
+
 def build_report_model(
     report_date: date | datetime | str,
     *,
@@ -738,11 +871,14 @@ def build_report_model(
     review_failure: str | None = None,
     generated_at: datetime | None = None,
     calendar: TradingCalendar | None = None,
+    recover_close_20260930: bool = False,
 ) -> ReportModel:
     """Load canonical inputs and build a report without writing any files."""
 
     resolver = paths or DataPaths.from_env()
     normalized_date = _normalize_date(report_date)
+    if recover_close_20260930 and normalized_date != '2026-09-30':
+        raise ValueError('report history recovery is limited to 2026-09-30')
     watchlist_path = resolver.watchlist_file(normalized_date)
     watchlist_bytes = watchlist_path.read_bytes()
     watchlist = load_watchlist(watchlist_path)
@@ -763,6 +899,55 @@ def build_report_model(
         paths=resolver,
         calendar=cal,
     )
+    prospective_tracker = tracker
+    price_basis_conflicts = []
+    price_basis_restored = set()
+    recovery_package_verified = False
+    if recover_close_20260930 and tracker is not None:
+        from live_acquisition import (TCloseEvidenceStore, _hithink_capture_identity, _hithink_thscode,
+            _historical_window, _validate_historical_bars, HITHINK_STOCK_KLINE_API, DEFAULT_STOCK_BAR_COUNT)
+        raw_history = {}
+        raw_source_shas = {}
+        store = TCloseEvidenceStore(resolver.root / 't_close_evidence', normalized_date)
+        start, end = _historical_window(normalized_date, DEFAULT_STOCK_BAR_COUNT)
+        for code in historical_ohlc:
+            symbol = _hithink_thscode(code)
+            identity = _hithink_capture_identity(HITHINK_STOCK_KLINE_API,
+                {'thscode':symbol, 'interval':'1d', 'start':start, 'end':end, 'adjust':'none'})
+            raw = store.load_records('hithink_kline', identity)
+            if raw is not None:
+                raw_history[code] = _validate_historical_bars(raw, symbol, minimum_acceptable_history=1,
+                    as_of_date=normalized_date, require_last_bar_date=False, provider='HiThink Financial-API')
+                raw_source_shas[code] = store.latest('hithink_kline').metadata['file_sha256']
+        package_files = list((resolver.root / 'prospective_inputs' / '20260930').glob('*.json'))
+        target_quotes = {}
+        if len(package_files) == 1:
+            package = json.loads(package_files[0].read_text(encoding='utf-8'))
+            snapshot = package['generation_input_manifest']['quote_snapshot']
+            if snapshot['as_of_date'] != normalized_date or package['generation_input_manifest']['signal_date'] != normalized_date:
+                raise ValueError('recovery quote snapshot date mismatch')
+            recovery_package_verified = True
+            target_quotes = snapshot['quotes']
+            for exclusion in watchlist.get('input_coverage', {}).get('excluded_symbols', []):
+                quote = exclusion.get('evidence', {}).get('quote', {})
+                code = exclusion.get('symbol')
+                bar = next((b for b in historical_ohlc.get(code, []) if b['date'] == normalized_date), None)
+                if bar and all(quote.get(q) is not None and round(float(quote[q]), 6) == round(float(bar[b]), 6)
+                               for q, b in [('price','close'), ('open','open'), ('high','high'), ('low','low')]):
+                    target_quotes.setdefault(code, quote)
+        tracker, historical_ohlc, price_basis_conflicts = _historical_report_view(
+            tracker, canonical_watchlists, historical_ohlc, normalized_date, cal, target_quotes, raw_history, price_basis_restored)
+        historical_provenance = copy.deepcopy(historical_provenance)
+        historical_provenance.setdefault('__meta__', {})['source'] = 'DATED_HISTORY_WITH_ORIGINAL_OBSERVATIONS'
+        for code in historical_ohlc:
+            provenance = historical_provenance.setdefault(code, {})
+            provenance['forward_capture_sha256'] = provenance.pop('file_sha256', None)
+            provenance['forward_request_identity'] = provenance.pop('logical_component_identity', None)
+            provenance.update(source_mode=_HISTORICAL_REPORT_SOURCE, read_only=True,
+                              original_tracker_sha256=_sha256_file(resolver.perf_tracker_file()))
+            if code in price_basis_restored:
+                provenance.update(adjustment_mode='PROVIDER_RAW_SNAPSHOT',
+                                  unadjusted_capture_sha256=raw_source_shas[code])
     trade_performance = build_strategy_rule_performance(
         canonical_watchlists,
         historical_ohlc,
@@ -774,6 +959,22 @@ def build_report_model(
     volume_observations, volume_observation_status = _load_volume_observations(
         resolver, normalized_date, watchlist,
     )
+    if recover_close_20260930:
+        from live_acquisition import (TCloseEvidenceStore, DEFAULT_STOCK_BAR_COUNT,
+                                      _history_capture_spec, _load_captured_market_bars)
+        store = TCloseEvidenceStore(resolver.root / 't_close_evidence', normalized_date)
+        volume_observations = {}
+        for candidate in watchlist['candidates']:
+            code = candidate['code']
+            identity, symbol, _, _ = _history_capture_spec(
+                code, requested_count=DEFAULT_STOCK_BAR_COUNT, as_of_date=normalized_date, index=False)
+            captured = _load_captured_market_bars(store, identity, symbol,
+                minimum_acceptable_history=1, as_of_date=normalized_date, require_last_bar_date=True)
+            bars = captured[0] if captured is not None else None
+            observation = calculate_stock_volume_observation(bars, normalized_date, code=code)
+            observation['source_mode'] = 'HISTORICAL_REPORT_ONLY_20260930'
+            volume_observations[candidate['signal_id']] = observation
+        volume_observation_status = 'HISTORICAL_REPORT_ONLY_20260930'
     execution_audit = build_trade_performance_summary(
         performance_tracker,
         normalized_date,
@@ -789,7 +990,8 @@ def build_report_model(
     )
     previous_date = _normalize_date(previous_trading_day(normalized_date, cal))
     previous_signals, active_signals, closed_today = _daily_collections(
-        tracker, normalized_date, previous_date, resolver, review_failures
+        tracker, normalized_date, previous_date, resolver, review_failures,
+        historical_ohlc if recover_close_20260930 else None,
     )
     watchlist_rows = _watchlist_rows(
         watchlist,
@@ -827,9 +1029,10 @@ def build_report_model(
         review_status = REVIEW_OBSERVATION_INCOMPLETE
     else:
         review_status = "READY"
-    previous_triggered = sum(row['raw_status'] == 'triggered' for row in previous_signals)
-    previous_pending = sum(row['raw_status'] == 'pending' for row in previous_signals)
-    previous_ambiguous = sum(row['raw_status'] == 'AMBIGUOUS_SAME_BAR' for row in previous_signals)
+    previous_verified = [row for row in previous_signals if row['observed'] or not recover_close_20260930]
+    previous_triggered = sum(row['raw_status'] == 'triggered' for row in previous_verified)
+    previous_pending = sum(row['raw_status'] == 'pending' for row in previous_verified)
+    previous_ambiguous = sum(row['raw_status'] == 'AMBIGUOUS_SAME_BAR' for row in previous_verified)
     today_t1_pending = sum(row.get('observation_status') == _T1_PENDING for row in watchlist_rows)
     unverified_count = review_issues.count(_UNVERIFIED)
     ambiguity_dates: dict[str, int] = {}
@@ -854,6 +1057,8 @@ def build_report_model(
                 elif point.get("status") == REVIEW_POINT_CAPTURED and point.get("return_pct") is None:
                     unverified_dates[signal_date] = unverified_dates.get(signal_date, 0) + 1
     acquisition_status = _acquisition_status(resolver, normalized_date)
+    if recovery_package_verified and coverage_metadata.get('input_coverage_status') in {INPUT_COVERAGE_COMPLETE, INPUT_COVERAGE_DEGRADED}:
+        acquisition_status = coverage_metadata['input_coverage_status']
     cloud_checkpoint_status = _cloud_checkpoint_status(resolver, normalized_date)
     coverage_status = str(coverage_metadata.get("input_coverage_status") or _UNVERIFIED)
     coverage_degraded = coverage_status == INPUT_COVERAGE_DEGRADED
@@ -987,9 +1192,14 @@ def build_report_model(
         'today_t1_pending': today_t1_pending,
         'quality_exception_count': quality_exception_count,
     }
+    if recover_close_20260930:
+        summary['holding_signals'] = sum(row['raw_status'] == 'triggered' and row['observed'] for row in daily_rows)
+        summary['waiting_signals'] = sum(row['raw_status'] == 'pending' and row['observed'] for row in daily_rows)
     summary_text = (
-        f"昨日 {previous_date} 共 {previous_triggered + previous_pending + previous_ambiguous} 个信号："
+        f"昨日 {previous_date} 共 {len(previous_signals)} 个信号："
         f"triggered {previous_triggered}、pending {previous_pending}、same-bar {previous_ambiguous}。"
+        + (f"当日行情待核验 {len(previous_signals) - len(previous_verified)} 个。" if recover_close_20260930 else '')
+        +
         f"今日新信号 {today_t1_pending} 个，正常等待下一交易日 observation。"
         f"历史数据质量例外 {quality_exception_count} 个；"
         f"acquisition={acquisition_status}、review={review_status}、cloud={cloud_checkpoint_status}、"
@@ -1021,6 +1231,16 @@ def build_report_model(
         "candidate_count": len(watchlist_rows),
         "report_generated_at": generated.isoformat(),
         "volume_observation_status": volume_observation_status,
+        "close_report_recovery": recover_close_20260930,
+        "historical_price_basis_conflict_codes": price_basis_conflicts,
+        "historical_price_basis_restored_codes": sorted(price_basis_restored),
+        "prospective_review_coverage": prospective_tracker.get('review_coverage') if prospective_tracker else None,
+        "next_horizon_dates": {
+            label: min((p['scheduled_date'] for s in tracker.get('signals', {}).values()
+                        for key, p in s.get('review_points', {}).items()
+                        if key == label and p['scheduled_date'] > normalized_date), default=None)
+            for label, _ in REVIEW_HORIZONS
+        } if recover_close_20260930 and tracker else {},
         **coverage_metadata,
     }
     if review_coverage:
@@ -1184,6 +1404,7 @@ def _simple_table(headers, body, table_id='', table_class=''):
 
 def _review_table(rows):
     body = []
+    historical = any(row.get('source_mode') == _HISTORICAL_REPORT_SOURCE for row in rows)
     for row in rows:
         values = [_esc(row.get(k)) for k in ('code', 'name', 'list_date')]
         node_ohlc = row.get('node_ohlc')
@@ -1198,12 +1419,18 @@ def _review_table(rows):
             )
         horizon_return = row.get('horizon_return', _UNVERIFIED)
         if horizon_return in {_UNVERIFIED, _MISSING, 'N/A'}:
-            horizon_return = '—'
+            horizon_return = '未触发，无入场收益' if row.get('return_reason') == '节点时尚未触发' else '—'
+        if historical:
+            values += [_esc(row.get('review_date')),
+                       _esc(f"{_number(row.get('entry_basis_price'))} / {row.get('entry_basis_date') or '—'}")]
         values += [_esc(node_ohlc), _esc(horizon_return),
                    _ui_badge(row.get('path_status')), _ui_badge(row.get('snapshot_status')),
                    _esc(row.get('snapshot_source', '已记录'))]
         body.append('<tr>' + ''.join(f'<td>{v}</td>' for v in values) + '</tr>')
-    return _simple_table(('代码', '名称', '名单日期', '节点 O/H/L/C', '节点收益', '路径结果', '节点快照状态', '节点来源'), body, table_class='review-table')
+    headers = ('代码', '名称', '名单日期')
+    if historical:
+        headers += ('节点日期', '收益基准价 / 入场日')
+    return _simple_table(headers + ('节点 O/H/L/C', '节点收益', '路径结果', '节点快照状态', '节点来源'), body, table_class='review-table')
 
 
 def _position(distance):
@@ -1483,6 +1710,8 @@ def _watchlist_table(rows, earliest_execution=None):
 def _daily_note(row: Mapping[str, Any]) -> str:
     raw_status = row.get('raw_status')
     if not row.get('observed'):
+        if row.get('historical_report_only'):
+            return '当日行情已恢复；历史执行路径仍待核验'
         return '当日观察缺失，暂不作交易结论'
     if raw_status == 'AMBIGUOUS_SAME_BAR':
         return '同日触及条件，先后顺序无法确认'
@@ -1530,6 +1759,7 @@ def _daily_table(rows):
             f'<span><label>今日最低</label><strong>{_esc(_number(row.get("today_low")))}</strong></span>'
             f'<span><label>今日收盘</label><strong>{_esc(_number(row.get("today_close")))}</strong></span>'
             f'<span><label>当日涨跌</label><strong class="{_numeric_tone(change)}">{_esc(_percent(change, signed=True))}</strong></span>'
+            + (f'<span><label>涨跌基准价</label><strong>{_esc(_number(row.get("change_reference_price")))}</strong></span>' if row.get('historical_report_only') else '') +
             f'<span><label>收盘较 Trigger %</label><strong class="{_numeric_tone(close_vs_trigger)}">'
             f'{_esc(_percent(close_vs_trigger, signed=True) if close_vs_trigger is not None else "—")}</strong></span>'
             f'</div>'
@@ -1563,6 +1793,8 @@ def _quality_table(
     acquisition_status: str = 'COMPLETE',
     review_status: str = 'READY',
     shadow_monitor: Mapping[str, Any] | None = None,
+    recovery: bool = False,
+    input_coverage: Mapping[str, Any] | None = None,
 ):
     """Render strategy reconstruction quality separately from prospective audit quality."""
 
@@ -1597,7 +1829,22 @@ def _quality_table(
                 'SHADOW_CAPTURE_INCOMPLETE',
                 f"Shadow monitor data incomplete: {shadow_capture.get('complete', 0)}/{shadow_capture.get('expected', 0)}",
             ))
-        if acquisition_status != 'COMPLETE':
+        if recovery:
+            items = [
+                ('原前瞻观察记录缺失', count, status,
+                 '原 tracker 记录保持不变；本页已恢复的历史日线与节点不写回前瞻证据。')
+                if label == 'prospective observation 缺失' else
+                ('原前瞻 Shadow 捕获', count, status,
+                 '9/30 休市恢复不补写 Shadow snapshot；原前瞻覆盖不代表本页历史行情覆盖。')
+                if label == 'Prospective Shadow Monitor' else
+                (label, count, status, '仅标记缺少有效当日行情的恢复复盘记录，不用零值替代。')
+                if label == '历史节点 / 当日数据缺失' else (label, count, status, reason)
+                for label, count, status, reason in items
+            ]
+        if recovery and acquisition_status == INPUT_COVERAGE_DEGRADED:
+            items.append(('输入股票数据异常隔离', (input_coverage or {}).get('excluded_symbol_count', 0),
+                          INPUT_COVERAGE_DEGRADED, '这些股票未参与 Formal B 筛选，候选名单不包含它们。'))
+        elif acquisition_status != 'COMPLETE':
             items.append(('行情证据', 1, acquisition_status, '行情证据采集状态待确认。'))
         if review_status == 'REVIEW_FAILED':
             items.append(('复盘读取', 1, review_status, '复盘读取未完成，名单仍可查看。'))
@@ -1800,7 +2047,7 @@ def _trade_ambiguous_table(rows: list[Mapping[str, Any]]) -> str:
     return _simple_table(headers, body, table_class='trade-table')
 
 
-def _trade_excluded_table(rows: list[Mapping[str, Any]]) -> str:
+def _trade_excluded_table(rows: list[Mapping[str, Any]], *, public: bool = False) -> str:
     headers = ("技术 ID", "代码", "名称", "排除原因", "状态", "执行路径")
     if not rows:
         return '<div class="empty-state">暂无排除或待核验记录。</div>'
@@ -1809,8 +2056,10 @@ def _trade_excluded_table(rows: list[Mapping[str, Any]]) -> str:
         values = [_esc(row.get("signal_id")), _esc(row.get("code")), _esc(row.get("name")),
                   _ui_badge(row.get("reason")), _ui_badge(row.get("status")),
                   _ui_badge(row.get("execution_verification_status"))]
+        if public:
+            values = values[1:]
         body.append("<tr>" + "".join(f"<td>{value}</td>" for value in values) + "</tr>")
-    return _simple_table(headers, body, table_class='audit-table')
+    return _simple_table(headers[1:] if public else headers, body, table_class='audit-table')
 
 
 def _trade_performance_html(
@@ -1866,7 +2115,7 @@ def _trade_performance_html(
         f'{_trade_ambiguous_table(ambiguous_rows)}</div>'
         f'<details id="unverified-excluded" class="subtle-details"><summary>规则复算未纳入统计 · { _integer(len(excluded_rows), "0") }<span class="sr-only">排除 / 未核验</span></summary>'
         '<p class="note">以下是 UNTRIGGERED、数据缺失、配置错误或 T+1 尚未到达的规则复算记录；不改写 prospective tracker。</p>'
-        f'{_trade_excluded_table([])}'
+        f'{_trade_excluded_table(excluded_rows, public=True)}'
         '</details>'
     )
 
@@ -1905,8 +2154,11 @@ def _review_path_code(row: Mapping[str, Any]) -> Any:
     return row.get('path_status_code') or row.get('path_status')
 
 
-def _research_panel(horizon: str, title: str, rows: list[Mapping[str, Any]]) -> str:
-    captured = sum(row.get('snapshot_status') == 'CAPTURED' for row in rows)
+def _research_panel(horizon: str, title: str, rows: list[Mapping[str, Any]], next_date: str | None = None) -> str:
+    historical = any(row.get('source_mode') == _HISTORICAL_REPORT_SOURCE for row in rows) or next_date is not None
+    captured = sum(row.get('snapshot_status') == 'CAPTURED' or (
+        row.get('source_mode') == _HISTORICAL_REPORT_SOURCE and row.get('node_close') is not None) for row in rows)
+    capture_label = '历史已恢复' if historical else '已采集'
     calculable = sum(_horizon_return_is_calculable(row) for row in rows)
     untriggered = sum(
         str(_review_path_code(row) or '').upper()
@@ -1920,16 +2172,19 @@ def _research_panel(horizon: str, title: str, rows: list[Mapping[str, Any]]) -> 
     )
     average_return = _average_horizon_return(rows)
     detail = _review_table(rows) if rows else '<p class="empty-state">今日无该节点到期信号。</p>'
+    if not rows and next_date:
+        detail += f'<p class="note">下一批到期：{_esc(next_date)}；尚未到期，不生成结果。</p>'
     return (
         f'<article class="research-panel"><div class="research-panel-head">'
         f'<div><span class="research-horizon">{_esc(horizon)}</span><h3>{_esc(title)}</h3></div>'
-        f'<span class="badge {"positive" if captured else "neutral"}">{_esc(_integer(captured, "0"))} 已采集</span></div>'
+        f'<span class="badge {"positive" if captured else "neutral"}">{_esc(str(captured) + " " + capture_label if rows or not next_date else "今日无到期")}</span></div>'
         f'<div class="research-stats"><div><span>到期</span><strong>{_esc(_integer(len(rows), "0"))}</strong></div>'
-        f'<div><span>已采集</span><strong>{_esc(_integer(captured, "0"))}</strong></div>'
+        f'<div><span>{_esc(capture_label)}</span><strong>{_esc(_integer(captured, "0"))}</strong></div>'
         f'<div><span>可计算</span><strong>{_esc(_integer(calculable, "0"))}</strong></div>'
         f'<div><span>未触发</span><strong>{_esc(_integer(untriggered, "0"))}</strong></div>'
         f'<div><span>路径待核验</span><strong>{_esc(_integer(path_unverified, "0"))}</strong></div>'
         f'<div><span>平均收益</span><strong class="{_numeric_tone(average_return)}">{_esc(average_return)}</strong></div></div>'
+        + (f'<p class="note">下一批到期：{_esc(next_date)}；尚未到期，不生成结果。</p>' if not rows and next_date else '') +
         f'<details class="research-detail"><summary>查看 { _esc(horizon) } 明细</summary>{detail}</details>'
         '</article>'
     )
@@ -1944,9 +2199,12 @@ def _action_summary(summary: Mapping[str, Any]) -> str:
     if summary.get('stop_hits'):
         actions.append(f"今日止损 {summary['stop_hits']} 个")
     if summary.get('active_signals'):
-        actions.append(f"当前持仓观察 {summary['active_signals']} 个")
+        if 'holding_signals' in summary:
+            actions.append(f"活跃跟踪 {summary['active_signals']} 个（已触发 {summary['holding_signals']}、等待触发 {summary['waiting_signals']}）")
+        else:
+            actions.append(f"当前持仓观察 {summary['active_signals']} 个")
     if summary.get('previous_pending'):
-        actions.append(f"继续等待 {summary['previous_pending']} 个")
+        actions.append(f"{'昨日名单仍等待' if 'holding_signals' in summary else '继续等待'} {summary['previous_pending']} 个")
     return '；'.join(actions) if actions else '昨日无需要执行的已核验交易事件'
 
 
@@ -2095,7 +2353,14 @@ def render_html(model: ReportModel) -> str:
     )
     cloud_verified = overview.get('cloud_checkpoint_status') == 'VERIFIED'
     review_ready = model.review_status == 'READY'
+    review_label = '就绪' if review_ready else '待处理'
+    checkpoint_label = '已验证' if cloud_verified else '仅本地'
+    if metadata.get('close_report_recovery'):
+        review_label = '历史节点已恢复' if rolling_review.get('horizon_captured') == rolling_review.get('horizon_expected') else '节点部分恢复'
+        checkpoint_label = '本地核验' if overview.get('cloud_checkpoint_status') == 'LOCAL_INPUTS_VERIFIED' else '待生成'
     data_state = _friendly_data_state(model, overview)
+    if metadata.get('close_report_recovery'):
+        data_state = f"{summary.get('daily_missing', 0)} 只行情缺失" if summary.get('daily_missing') else '历史复盘已恢复'
     visible_review_note = (
         '复盘读取未完成，名单仍可查看；待核验记录不会被当作正式交易。'
         if model.review_status == 'REVIEW_FAILED' else
@@ -2103,16 +2368,31 @@ def render_html(model: ReportModel) -> str:
         if model.review_status == REVIEW_OBSERVATION_INCOMPLETE else
         _action_summary(summary)
     )
+    if metadata.get('close_report_recovery'):
+        visible_review_note = (
+            f"历史日线复盘：{_action_summary(summary)}；"
+            f"今日到期节点 {rolling_review.get('horizon_captured', 0)}/{rolling_review.get('horizon_expected', 0)} 已恢复。"
+            f"缺少当日行情 {summary.get('daily_missing', 0)} 只，未补值。"
+        )
+    compact_review_note = visible_review_note
+    if metadata.get('close_report_recovery'):
+        compact_review_note = (
+            f"昨日 {summary.get('previous_total', 0)} 个信号：已触发 {summary.get('previous_triggered', 0)}、"
+            f"未触发 {summary.get('previous_pending', 0)}、当日缺行情 "
+            f"{summary.get('previous_total', 0) - summary.get('previous_triggered', 0) - summary.get('previous_pending', 0) - summary.get('previous_ambiguous', 0)}。"
+            f"今日新名单 {metadata.get('candidate_count', 0)} 只，最早执行 {metadata.get('earliest_execution')}。"
+        )
     review_callout_class = (
         ' warning' if model.review_status in {'REVIEW_FAILED', REVIEW_OBSERVATION_INCOMPLETE} else ''
     )
     watchlist_count = len(model.watchlist_rows)
     shadow_monitor = model.shadow_monitor or {}
     shadow_html = _shadow_monitor_html(shadow_monitor)
+    if metadata.get('close_report_recovery'):
+        shadow_html = '<p class="note">本栏沿用原前瞻 Shadow 记录；本次 9/30 恢复不补写 snapshot，不据此判断 9/30 新信号。</p>' + shadow_html
     research_panels = ''.join([
-        _research_panel('T+3', '短期观察', model.review_sections['T+3']),
-        _research_panel('T+5', '主评价', model.review_sections['T+5']),
-        _research_panel('T+10', '延伸观察', model.review_sections['T+10']),
+        _research_panel(label, title, model.review_sections[label], metadata.get('next_horizon_dates', {}).get(label))
+        for label, title in (('T+3', '短期观察'), ('T+5', '主评价'), ('T+10', '延伸观察'))
     ])
     coverage_meta_tag = ""
     if isinstance(metadata.get("input_coverage"), Mapping):
@@ -2400,9 +2680,10 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
 <body>
 <main>
 <header class="site-header">
+  {'<p class="note">9/30 收盘日报恢复：量能、每日复盘及固定节点均使用截止 9/30 的已核对行情；节点按真实交易日计算，原前瞻跟踪记录保持原样。</p>' if metadata.get('close_report_recovery') else ''}
   <div class="eyebrow">A 股策略复盘</div>
   <div class="header-main">
-    <div><h1>{_esc(metadata.get('review_date'))} · {_esc(metadata.get('strategy'))}</h1>
+    <div><h1>{_esc(metadata.get('review_date'))} · {_esc('Formal B 收盘日报' if metadata.get('close_report_recovery') else metadata.get('strategy'))}</h1>
       <div class="header-strategy">{_esc(metadata.get('review_date'))} {_esc('周' + '一二三四五六日'[parse_date(metadata.get('review_date')).weekday()])} · T-close</div>
       <div class="header-universe">股票池：<strong>{_esc(metadata.get('universe'))}</strong></div></div>
     <div class="header-aside"><span>新名单 <strong>{_esc(_integer(watchlist_count, '0'))}</strong> 只</span><span>最早执行 <strong>{_esc(metadata.get('earliest_execution'))}</strong></span></div>
@@ -2410,8 +2691,8 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   <div class="status-pills">
     {_status_pill('T+1', '日线', 'neutral')}
     {_status_pill('证据', acquisition_label, 'positive' if acquisition_complete else 'warning')}
-    {_status_pill('复盘', '就绪' if review_ready else '待处理', 'positive' if review_ready else 'warning')}
-    {_status_pill('云端', '已验证' if cloud_verified else '仅本地', 'positive' if cloud_verified else 'neutral')}
+    {_status_pill('复盘', review_label, 'positive' if review_ready or review_label == '历史节点已恢复' else 'warning')}
+    {_status_pill('Checkpoint' if metadata.get('close_report_recovery') else '云端', checkpoint_label, 'positive' if cloud_verified else 'neutral')}
     {_status_pill('输入覆盖', metadata.get('input_coverage_status', 'UNVERIFIED'), 'warning' if metadata.get('input_coverage_status') == 'DEGRADED' else 'positive' if metadata.get('input_coverage_status') == 'COMPLETE' else 'neutral')}
   </div>
 </header>
@@ -2423,7 +2704,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
 <section id="overview">
   <div class="section-head"><div><p class="section-kicker">OVERVIEW</p><h2>今日总览</h2><p class="section-subtitle">先看行动信息，再看交易结果；技术细节收纳在审计区。</p></div><span class="badge {_status_class(data_state)}">数据状态：{_esc(data_state)}</span></div>
   <div class="overview-grid"><div class="overview-lead"><span class="eyebrow">当前阅读重点</span><strong>{_esc(visible_review_note)}</strong><p>策略规则绩效按 canonical trigger / stop / target 与历史 daily OHLC 理论复算；不代表真实成交。</p></div><div class="overview-facts"><div><span>名单日期</span><strong>{_esc(metadata.get('list_date'))}</strong></div><div><span>最早执行</span><strong>{_esc(metadata.get('earliest_execution'))}</strong></div><div><span>候选数量</span><strong>{_esc(_integer(watchlist_count, '0'))}</strong></div></div></div>
-  <div class="review-callout{review_callout_class}">{_esc(visible_review_note)}</div>
+  <div class="review-callout{review_callout_class}">{_esc(compact_review_note)}</div>
   {_input_coverage_html(metadata)}
 </section>
 
@@ -2454,14 +2735,14 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
 </section>
 
 <section id="formal-review">
-  <div class="section-head"><div><p class="section-kicker">RESEARCH</p><h2>固定节点研究</h2><p class="section-subtitle">T+3 / T+5 / T+10 为研究快照，不等同于真实交易盈亏。</p></div></div>
+  <div class="section-head"><div><p class="section-kicker">RESEARCH</p><h2>固定节点研究</h2><p class="section-subtitle">T+3 / T+5 / T+10 为研究快照，不等同于真实交易盈亏。{'本区展示 9/30 当日到期的节点；收益 = 节点收盘 / 节点时已确认的日线入场价 − 1，未触发样本不计作零收益。' if metadata.get('close_report_recovery') else ''}</p></div></div>
   <div class="research-panels">{research_panels}</div>
   <details class="metric-details"><summary>查看节点覆盖</summary>{_rolling_review_html(rolling_review)}</details>
 </section>
 
 <section id="anomalies">
   <div class="section-head"><div><p class="section-kicker">DATA QUALITY</p><h2>数据质量</h2><p class="section-subtitle">只显示需要关注的异常；正常采集状态合并为单一提示。</p></div></div>
-  {_quality_table(quality_rows, performance=trade_performance, audit_performance=audit_performance, summary=summary, acquisition_status=overview.get('acquisition_status', _UNVERIFIED), review_status=model.review_status, shadow_monitor=shadow_monitor)}
+  {_quality_table(quality_rows, performance=trade_performance, audit_performance=audit_performance, summary=summary, acquisition_status=overview.get('acquisition_status', _UNVERIFIED), review_status=model.review_status, shadow_monitor=shadow_monitor, recovery=metadata.get('close_report_recovery', False), input_coverage=metadata.get('input_coverage'))}
 </section>
 
 <details id="audit">
@@ -2475,7 +2756,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
     {rule_excluded_audit_html}
   </div>
 </details>
-<footer>本报告仅整理正式观察名单与 tracker 的真实记录。缺少记录统一显示为 —，不回填历史行情。</footer>
+<footer>{'本页为 9/30 历史日线复盘；原前瞻记录保持不变，未到期节点不生成结果，价格或路径不完整时不计算收益。' if metadata.get('close_report_recovery') else '本报告仅整理正式观察名单与 tracker 的真实记录。缺少记录统一显示为 —，不回填历史行情。'}</footer>
 </main>
 <script>
 (function () {{
@@ -2744,6 +3025,7 @@ def render_daily_close(
     review_failure: str | None = None,
     generated_at: datetime | None = None,
     calendar: TradingCalendar | None = None,
+    recover_close_20260930: bool = False,
 ) -> tuple[ReportModel, Path, Path]:
     """Build and atomically write the dated report and complete latest copy."""
 
@@ -2754,6 +3036,7 @@ def render_daily_close(
         review_failure=review_failure,
         generated_at=generated_at,
         calendar=calendar,
+        recover_close_20260930=recover_close_20260930,
     )
     content = render_html(model)
     date_path = resolver.reports_dir() / f"daily_close_{_date_token(model.metadata['list_date'])}.html"
@@ -2766,6 +3049,8 @@ def render_daily_close(
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--date", required=True, help="canonical watchlist/report date, YYYYMMDD or YYYY-MM-DD")
+    parser.add_argument('--recover-close-20260930', action='store_true',
+                        help='Show 9/30 historical volume and yesterday review without tracker writes')
     parser.add_argument(
         "--review-failure",
         default=None,
@@ -2780,6 +3065,7 @@ def main(argv: list[str] | None = None) -> int:
         model, dated, latest = render_daily_close(
             args.date,
             review_failure=args.review_failure,
+            recover_close_20260930=args.recover_close_20260930,
         )
     except Exception as exc:
         print(f"DAILY_CLOSE_RENDER_FAILED: {type(exc).__name__}: {exc}")

@@ -2006,15 +2006,34 @@ def _build_official_listed_roster(
     return dict(sorted(eligible.items())), audit
 
 
+def close_report_recovery_enabled(as_of_date: str, retrieved_at_bjt: str | None = None) -> bool:
+    """One authorized holiday recovery; never crosses a new XSHG session."""
+    if os.environ.get("ASHARE_CLOSE_REPORT_RECOVERY_DATE") != "2026-09-30":
+        return False
+    if as_of_date != "2026-09-30":
+        _fail(INPUT_DATE_MISMATCH, "close report recovery is limited to 2026-09-30")
+    if retrieved_at_bjt is not None:
+        observed = _canonical_timestamp(retrieved_at_bjt)
+        if not "2026-10-01" <= observed.date().isoformat() <= "2026-10-07":
+            _fail(INPUT_DATE_MISMATCH, "9/30 recovery is limited to the National Day holiday")
+        _validate_close_window(as_of_date, observed, default_calendar(), allow_weekend_backfill=True)
+    return True
+
+
+UNIVERSE_ELIGIBILITY_MODE_CLOSE_REPORT_RECOVERY = "CURRENT_ROSTER_HOLIDAY_RECOVERY_20260930"
+
+
 def _hithink_universe_eligibility_mode(as_of_date: str, retrieved_at_bjt: str) -> str:
     """Return the universe eligibility mode for one acquisition run.
 
-    Only a same-calendar-date production run may treat the HiThink ticker list
-    as current membership evidence.  Any other target/retrieval date
-    combination is a historical or authorized-backfill run whose listing
-    eligibility must be proven by explicit list_date evidence.
+    Normal production requires same-calendar-date membership evidence.
+    The explicitly authorized 9/30 holiday recovery keeps that roster policy
+    with a distinct provenance mode and unchanged target-bar validation.
+    Other historical runs still require explicit list_date evidence.
     """
 
+    if close_report_recovery_enabled(as_of_date, retrieved_at_bjt):
+        return UNIVERSE_ELIGIBILITY_MODE_CLOSE_REPORT_RECOVERY
     same_calendar_date = str(retrieved_at_bjt)[:10] == as_of_date
     return (
         UNIVERSE_ELIGIBILITY_MODE_CURRENT_ROSTER_SAME_DAY
@@ -2045,7 +2064,10 @@ def _build_universe(
     )
     eligibility_mode = _hithink_universe_eligibility_mode(as_of_date, retrieved_at_bjt)
     same_day_roster_eligibility = (
-        eligibility_mode == UNIVERSE_ELIGIBILITY_MODE_CURRENT_ROSTER_SAME_DAY
+        eligibility_mode in {
+            UNIVERSE_ELIGIBILITY_MODE_CURRENT_ROSTER_SAME_DAY,
+            UNIVERSE_ELIGIBILITY_MODE_CLOSE_REPORT_RECOVERY,
+        }
     )
     scoped_names: dict[str, str] = {}
     scoped_list_dates: dict[str, str | None] = {}
@@ -3071,8 +3093,11 @@ def _validate_list_date_eligibility_audit(
     if eligibility_mode not in {
         UNIVERSE_ELIGIBILITY_MODE_CURRENT_ROSTER_SAME_DAY,
         UNIVERSE_ELIGIBILITY_MODE_LIST_DATE_HISTORICAL,
+        UNIVERSE_ELIGIBILITY_MODE_CLOSE_REPORT_RECOVERY,
     }:
         _fail(PROVIDER_FAILURE, "HiThink universe eligibility mode is unsupported")
+    if eligibility_mode == UNIVERSE_ELIGIBILITY_MODE_CLOSE_REPORT_RECOVERY and as_of_date != "2026-09-30":
+        _fail(INPUT_DATE_MISMATCH, "holiday recovery universe must target 2026-09-30")
     if value.get("target_day_bar_validation_required") is not True:
         _fail(
             PROVIDER_FAILURE,
@@ -3181,7 +3206,8 @@ def _validate_universe_quality(value: Any, as_of_date: str) -> None:
     expected_selection_rule = (
         HITHINK_UNIVERSE_SELECTION_RULE_SAME_DAY
         if value["list_date_eligibility"]["eligibility_mode"]
-        == UNIVERSE_ELIGIBILITY_MODE_CURRENT_ROSTER_SAME_DAY
+        in {UNIVERSE_ELIGIBILITY_MODE_CURRENT_ROSTER_SAME_DAY,
+            UNIVERSE_ELIGIBILITY_MODE_CLOSE_REPORT_RECOVERY}
         else HITHINK_UNIVERSE_SELECTION_RULE
     )
     if value.get("selection_rule") != expected_selection_rule:
