@@ -1192,6 +1192,9 @@ def build_report_model(
         'today_t1_pending': today_t1_pending,
         'quality_exception_count': quality_exception_count,
     }
+    if recover_close_20260930:
+        summary['holding_signals'] = sum(row['raw_status'] == 'triggered' and row['observed'] for row in daily_rows)
+        summary['waiting_signals'] = sum(row['raw_status'] == 'pending' and row['observed'] for row in daily_rows)
     summary_text = (
         f"昨日 {previous_date} 共 {len(previous_signals)} 个信号："
         f"triggered {previous_triggered}、pending {previous_pending}、same-bar {previous_ambiguous}。"
@@ -2196,9 +2199,12 @@ def _action_summary(summary: Mapping[str, Any]) -> str:
     if summary.get('stop_hits'):
         actions.append(f"今日止损 {summary['stop_hits']} 个")
     if summary.get('active_signals'):
-        actions.append(f"当前持仓观察 {summary['active_signals']} 个")
+        if 'holding_signals' in summary:
+            actions.append(f"活跃跟踪 {summary['active_signals']} 个（已触发 {summary['holding_signals']}、等待触发 {summary['waiting_signals']}）")
+        else:
+            actions.append(f"当前持仓观察 {summary['active_signals']} 个")
     if summary.get('previous_pending'):
-        actions.append(f"继续等待 {summary['previous_pending']} 个")
+        actions.append(f"{'昨日名单仍等待' if 'holding_signals' in summary else '继续等待'} {summary['previous_pending']} 个")
     return '；'.join(actions) if actions else '昨日无需要执行的已核验交易事件'
 
 
