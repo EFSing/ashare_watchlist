@@ -1790,6 +1790,8 @@ def _quality_table(
     acquisition_status: str = 'COMPLETE',
     review_status: str = 'READY',
     shadow_monitor: Mapping[str, Any] | None = None,
+    recovery: bool = False,
+    input_coverage: Mapping[str, Any] | None = None,
 ):
     """Render strategy reconstruction quality separately from prospective audit quality."""
 
@@ -1824,7 +1826,22 @@ def _quality_table(
                 'SHADOW_CAPTURE_INCOMPLETE',
                 f"Shadow monitor data incomplete: {shadow_capture.get('complete', 0)}/{shadow_capture.get('expected', 0)}",
             ))
-        if acquisition_status != 'COMPLETE':
+        if recovery:
+            items = [
+                ('原前瞻观察记录缺失', count, status,
+                 '原 tracker 记录保持不变；本页已恢复的历史日线与节点不写回前瞻证据。')
+                if label == 'prospective observation 缺失' else
+                ('原前瞻 Shadow 捕获', count, status,
+                 '9/30 休市恢复不补写 Shadow snapshot；原前瞻覆盖不代表本页历史行情覆盖。')
+                if label == 'Prospective Shadow Monitor' else
+                (label, count, status, '仅标记缺少有效当日行情的恢复复盘记录，不用零值替代。')
+                if label == '历史节点 / 当日数据缺失' else (label, count, status, reason)
+                for label, count, status, reason in items
+            ]
+        if recovery and acquisition_status == INPUT_COVERAGE_DEGRADED:
+            items.append(('输入股票数据异常隔离', (input_coverage or {}).get('excluded_symbol_count', 0),
+                          INPUT_COVERAGE_DEGRADED, '这些股票未参与 Formal B 筛选，候选名单不包含它们。'))
+        elif acquisition_status != 'COMPLETE':
             items.append(('行情证据', 1, acquisition_status, '行情证据采集状态待确认。'))
         if review_status == 'REVIEW_FAILED':
             items.append(('复盘读取', 1, review_status, '复盘读取未完成，名单仍可查看。'))
@@ -2365,6 +2382,8 @@ def render_html(model: ReportModel) -> str:
     watchlist_count = len(model.watchlist_rows)
     shadow_monitor = model.shadow_monitor or {}
     shadow_html = _shadow_monitor_html(shadow_monitor)
+    if metadata.get('close_report_recovery'):
+        shadow_html = '<p class="note">本栏沿用原前瞻 Shadow 记录；本次 9/30 恢复不补写 snapshot，不据此判断 9/30 新信号。</p>' + shadow_html
     research_panels = ''.join([
         _research_panel(label, title, model.review_sections[label], metadata.get('next_horizon_dates', {}).get(label))
         for label, title in (('T+3', '短期观察'), ('T+5', '主评价'), ('T+10', '延伸观察'))
@@ -2717,7 +2736,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
 
 <section id="anomalies">
   <div class="section-head"><div><p class="section-kicker">DATA QUALITY</p><h2>数据质量</h2><p class="section-subtitle">只显示需要关注的异常；正常采集状态合并为单一提示。</p></div></div>
-  {_quality_table(quality_rows, performance=trade_performance, audit_performance=audit_performance, summary=summary, acquisition_status=overview.get('acquisition_status', _UNVERIFIED), review_status=model.review_status, shadow_monitor=shadow_monitor)}
+  {_quality_table(quality_rows, performance=trade_performance, audit_performance=audit_performance, summary=summary, acquisition_status=overview.get('acquisition_status', _UNVERIFIED), review_status=model.review_status, shadow_monitor=shadow_monitor, recovery=metadata.get('close_report_recovery', False), input_coverage=metadata.get('input_coverage'))}
 </section>
 
 <details id="audit">
