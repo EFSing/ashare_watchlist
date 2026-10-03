@@ -1,5 +1,31 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-10-03 — Complete 9/30 report reconciliation delivered
+
+- Current final runtime-state `1a0a1fa8331cd88ce9e4a16673a60ea3624af761`; report/checkpoint/Markdown
+  commit `08c414a84855d041e352661bf5315001fea24d40`. Delivery run 37123185262 succeeded,
+  Email/Bark SUCCESS, report_date=2026-09-30; actual send 2026-10-03 20:32:41 BJT.
+- Renderer source `ac52055ac757f8647f039f1d471be51df97ab492`, standalone PR #96 remains open.
+  Full suite 808 passed / 2 existing local-fixture skips / 11 warnings; implementation-head CI passed.
+- Whole report now uses one disposable dated history view and existing execution/return rules:
+  T+3 9 prices / 7 calculable / 2 untriggered / mean +1.67%; T+5 16 prices / 7 calculable /
+  9 untriggered / mean -3.25%; T+10 no 9/30 maturity, next 10/8, no future results.
+- Recovered 21 missing legacy-symbol histories and reconciled 11 QFQ-vintage conflicts with
+  same-provider unadjusted histories matched to original signal closes and recorded OHLC.
+  All 3,230 captured series are bounded to 9/30. Original dated observations take priority;
+  incompatible prices are never silently mixed. No strategy, scores, thresholds or candidates changed.
+- Daily coverage 79/80; the only current market-bar gap is 603183 (latest 9/29). Active 69 means
+  triggered 40 + waiting 29, not 69 holdings. Original prospective coverage is labelled separately.
+  Two volume cards retain genuine short-window missing reasons. Markdown/HTML/diagnostics agree.
+- Watchlist SHA stays `3f97702d45828287eb5328f0a2a0ac7c62a5149f8055ecb2310df6cab918bdc6`;
+  durable tracker stays `1ec378f7f9d4c2672c5b3603496e4f7e987ccbfb76d5adc880c3ffa6c52ad7a1`.
+  Formal HTML SHA `4ec8c8169a4642906630c1e54b82a5eb4a797bcdd55557e86d3e97ae2c8f5c92`;
+  delivery SHA `3ea8737c132aeaf891269145db8478b23f1ffcec797097b32eb78f5061879718`.
+- Independently checked XSHG session offsets, every due-node return denominator/date, daily
+  changes, closed-trade return/mean/win-rate and sample funnels; validation PASS. Prior versions
+  remain in Git, including 43215e7. Current files and validation are in `../recovery-20260930`.
+  Classification unchanged: product blocker with correctness boundary / STRICT PATH; recovery complete.
+
 ## 2026-10-02 — 9/30 report display corrected and redelivered
 
 - Latest final runtime-state: `43215e72037b12a46c748875d0ad031d4b9808d7`; corrected report/checkpoint

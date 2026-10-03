@@ -1,5 +1,18 @@
 # CURRENT STATUS
 
+## 2026-10-03 — Complete 9/30 report validated and delivered
+
+- Final runtime-state `1a0a1fa8331cd88ce9e4a16673a60ea3624af761`; run 37123185262 succeeded,
+  Email/Bark SUCCESS; report_date stays 9/30. Source ac52055, PR #96 open, exact implementation CI passed.
+- T+3: 9 prices / 7 returns / mean +1.67%; T+5: 16 prices / 7 returns / mean -3.25%; T+10 no
+  maturity on 9/30, next 10/8. No untriggered sample is counted as a zero return; no future result.
+- 21 legacy-symbol histories restored; 11 price-vintage conflicts reconciled against dated original
+  records using verified same-provider raw histories. All 3,230 series end no later than 9/30.
+  Nodes, daily review, performance, Markdown and diagnostics share the same bounded data view.
+- Original watchlist SHA and durable tracker bytes unchanged. Only 603183 lacks the target-date bar;
+  short-window volume reasons remain explicit. Raw prospective and Shadow records were not rewritten.
+  Full tests 808 passed / 2 existing fixture skips; independent numeric validation and browser QA passed.
+
 ## 2026-10-02 — 9/30 volume and previous-session display corrected
 
 - Final corrected report/receipt state: `43215e72037b12a46c748875d0ad031d4b9808d7`, from report revision
