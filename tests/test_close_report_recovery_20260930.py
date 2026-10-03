@@ -93,3 +93,108 @@ def test_report_restores_volume_and_yesterday_ohlc_without_durable_observations(
     assert normal.watchlist_rows[0]['volume_observation'] == {}
     with pytest.raises(ValueError, match='limited to 2026-09-30'):
         renderer.build_report_model('2026-10-01', paths=paths, recover_close_20260930=True)
+
+
+def _report_signal(day, **overrides):
+    from watchlist_schema import validate_watchlist
+    watch = validate_watchlist(payload(date=day, candidates=[candidate(**overrides)],
+                                      strategy_version=tracker.CURRENT_PROSPECTIVE_STRATEGY))
+    signal = tracker._signal_from_candidate(watch, watch['candidates'][0], tracker.default_calendar())
+    return watch, signal
+
+
+def _session_bars(start, end, close=122.0):
+    from datetime import date, timedelta
+    calendar = tracker.default_calendar()
+    result = []
+    day = date.fromisoformat(start)
+    while day <= date.fromisoformat(end):
+        if calendar.is_trading_day(day):
+            result.append({'date':day.isoformat(), 'open':120.0, 'high':125.0, 'low':119.0,
+                           'close':close, 'volume':100.0})
+        day += timedelta(days=1)
+    return result
+
+
+def test_each_matured_horizon_uses_its_own_session_price_and_keeps_source_unchanged():
+    import render_daily_close_html as renderer
+    watch, signal = _report_signal('2026-09-03', price=119.0)
+    original = {'version':2, 'signals':{signal['signal_id']:signal}, 'updated':None, 'review_coverage':None}
+    frozen = copy.deepcopy(original)
+    bars = _session_bars('2026-09-03', '2026-09-30')
+    prices = {'2026-09-03':119.0, '2026-09-08':121.0, '2026-09-10':122.0,
+              '2026-09-17':123.0, '2026-09-30':124.0}
+    for bar in bars:
+        bar['close'] = prices.get(bar['date'], 122.0)
+    view, _, _ = renderer._historical_report_view(original, [watch], {'600519':bars},
+                                                 '2026-09-30', tracker.default_calendar())
+    points = view['signals'][signal['signal_id']]['review_points']
+    for label, day, price in [('T+3','2026-09-08',121), ('T+5','2026-09-10',122), ('T+10','2026-09-17',123)]:
+        assert points[label]['quote_date'] == day
+        assert points[label]['price'] == price
+        assert points[label]['entry_basis_price'] == 120
+        assert points[label]['return_pct'] == pytest.approx((price / 120 - 1) * 100, abs=1e-6)
+    assert original == frozen
+
+
+def test_later_entry_does_not_create_an_earlier_return_or_future_t10_result():
+    import render_daily_close_html as renderer
+    watch, signal = _report_signal('2026-09-16', price=119.0)
+    original = {'version':2, 'signals':{signal['signal_id']:signal}, 'updated':None, 'review_coverage':None}
+    bars = _session_bars('2026-09-16', '2026-09-30')
+    for bar in bars:
+        if bar['date'] < '2026-09-23':
+            bar.update(open=119.0, high=119.5, low=118.0, close=119.0)
+        else:
+            bar.update(open=121.0, high=124.0, low=120.0, close=122.0)
+    view, _, _ = renderer._historical_report_view(original, [watch], {'600519':bars},
+                                                 '2026-09-30', tracker.default_calendar())
+    points = view['signals'][signal['signal_id']]['review_points']
+    assert points['T+3']['quote_date'] == '2026-09-21'
+    assert points['T+3']['return_pct'] is None and points['T+3']['entry_basis_price'] is None
+    assert points['T+5']['entry_basis_date'] == '2026-09-23'
+    assert points['T+5']['entry_basis_price'] == 121.0
+    assert points['T+5']['return_pct'] == pytest.approx((122 / 121 - 1) * 100, abs=1e-6)
+    assert points['T+10']['scheduled_date'] == '2026-10-08'
+    assert points['T+10']['status'] == tracker.REVIEW_POINT_PENDING
+    assert points['T+10']['price'] is None and points['T+10']['return_pct'] is None
+
+
+def test_restated_qfq_is_replaced_only_by_raw_prices_matching_original_records():
+    import render_daily_close_html as renderer
+    watch, signal = _report_signal('2026-09-16', price=119.0)
+    raw = _session_bars('2026-09-16', '2026-09-30')
+    raw[0].update(open=118.0, high=120.0, low=117.0, close=119.0)
+    first = raw[1]
+    signal['observations'] = [{'date':first['date'], 'open':first['open'], 'high':first['high'],
+                               'low':first['low'], 'price':first['close']}]
+    original = {'version':2, 'signals':{signal['signal_id']:signal}, 'updated':None, 'review_coverage':None}
+    restated = copy.deepcopy(raw)
+    for bar in restated:
+        if bar['date'] < '2026-09-30':
+            for field in ('open','high','low','close'):
+                bar[field] -= 1.0
+    view, merged, conflicts = renderer._historical_report_view(original, [watch], {'600519':restated},
+        '2026-09-30', tracker.default_calendar(), raw_history={'600519':raw})
+    assert conflicts == ['600519']
+    assert view['signals'][signal['signal_id']]['entry_price'] == 120.0
+    assert merged['600519'][0]['close'] == 119.0
+    incompatible = copy.deepcopy(raw)
+    incompatible[0]['close'] = 118.0
+    _, unsafe, _ = renderer._historical_report_view(original, [watch], {'600519':restated},
+        '2026-09-30', tracker.default_calendar(), raw_history={'600519':incompatible})
+    assert {b['date'] for b in unsafe['600519']} == {first['date'], '2026-09-30'}
+
+
+def test_horizon_panel_counts_restored_prices_and_does_not_average_untriggered_rows():
+    import render_daily_close_html as renderer
+    rows = [{'source_mode':renderer._HISTORICAL_REPORT_SOURCE, 'snapshot_status':'历史节点已恢复',
+             'node_close':12, 'horizon_return_value':10, 'path_status_code':'triggered'},
+            {'source_mode':renderer._HISTORICAL_REPORT_SOURCE, 'snapshot_status':'历史节点已恢复',
+             'node_close':9, 'horizon_return_value':None, 'path_status_code':'pending',
+             'return_reason':'节点时尚未触发'}]
+    text = renderer._research_panel('T+3', '短期观察', rows)
+    assert '2 历史已恢复' in text
+    assert '+10.00%' in text and '+5.00%' not in text
+    assert '未触发，无入场收益' in text
+    assert '下一批到期：2026-10-08' in renderer._research_panel('T+10', '延伸观察', [], '2026-10-08')
