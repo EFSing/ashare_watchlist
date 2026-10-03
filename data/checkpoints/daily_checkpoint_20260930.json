@@ -1,11 +1,11 @@
 {
   "cloud_target": "ashare_watchlist/daily_checkpoints/20260930",
-  "code_git_sha": "d564ed5f9d77af0d4a86cdd1462feddb07979406",
+  "code_git_sha": "ac52055ac757f8647f039f1d471be51df97ab492",
   "created_at_bjt": "2026-09-30T15:00:00+08:00",
   "dated_html": {
-    "byte_length": 522089,
+    "byte_length": 491612,
     "filename": "daily_close_20260930.html",
-    "sha256": "b2b0b899bd7bf9ed7084902bebd8a5042606c8b3eb1fa187b7ae187578e1671e"
+    "sha256": "4ec8c8169a4642906630c1e54b82a5eb4a797bcdd55557e86d3e97ae2c8f5c92"
   },
   "earliest_execution": "2026-10-08",
   "input_coverage": {
@@ -4145,9 +4145,9 @@
     "schema_version": "INPUT_COVERAGE_V1"
   },
   "latest_html": {
-    "byte_length": 522089,
+    "byte_length": 491612,
     "filename": "latest.html",
-    "sha256": "b2b0b899bd7bf9ed7084902bebd8a5042606c8b3eb1fa187b7ae187578e1671e"
+    "sha256": "4ec8c8169a4642906630c1e54b82a5eb4a797bcdd55557e86d3e97ae2c8f5c92"
   },
   "list_date": "2026-09-30",
   "perf_tracker": {
