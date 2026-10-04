@@ -1,5 +1,40 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-10-05 — B signal entry-validity research complete; blocked by data gap
+
+- Intake reconciliation: live `origin/master` was
+  `c7d2feac99e48fb840e36785a0c0866035d18355`; PR #94 is MERGED at
+  `2b1975d27f05615ed1f377f3f974d2be4818e91b`; live `origin/runtime-state` is
+  `1a0a1fa8331cd88ce9e4a16673a60ea3624af761`. PR #95 (old recovery-blocked audit), PR #96
+  (2026-09-30 recovery), and PR #97 (daily-report UX) remain live OPEN and are outside this
+  independent diff. The older #94 awaiting-merge text below is historical provenance only.
+- Current branch: `codex/b-signal-entry-validity-decay-v1`, based on the live master above.
+  Decision is `NEEDS_MORE_EVIDENCE`; terminal marker is
+  `SIGNAL_VALIDITY_RESEARCH_BLOCKED_BY_DATA_GAP`. Protocol
+  `B_SIGNAL_ENTRY_VALIDITY_DECAY_V1` SHA-256 is
+  `19e5511fbb9b6abbd62192978485fc190f27283e7736c42db7b830be7db7ec99`.
+- Research sample: 210 canonical signal IDs; 118 delay-known (EARLY 117, LATE 1 at T+5),
+  9 censored, 82 incomplete, 1 source conflict, and 0 complete untriggered. The LATE group is
+  `INSUFFICIENT_SAMPLE`; no production cutoff is selected. CSV SHA-256
+  `a8175bf4115b09db29fa32061c4f20f368773be334b571cef18b4b3f98d59db0`; cohort summary SHA-256
+  `580ab10ad26f65eeb0def30e8260155af1f83bfdd8f7e6c40e8bfd0a411cde69`; report SHA-256
+  `788333f85cbfba575faf2599e62ed5ae5cd893653c0e4c47d0674441be87e660`; manifest SHA-256
+  `55b2d26ff9aed4999ab3177811d1ccac4551e934d79cb88ac33e507e09a2a3de`. The exclusive delay
+  partition is `KNOWN=118 / INCOMPLETE=82 / CENSORED=9 / DATA_CONFLICT=1`.
+- `ENTRY_VALIDITY_SEMANTICS_MISMATCH` is recorded: prospective T+10 is an operational
+  search/expiry/time-exit boundary while strategy-rule performance has no entry expiry/time exit.
+  No production semantics, tracker state, runtime-state, prospective evidence, Final OOS, C,
+  old D, or forbidden validation data was changed/read.
+- Validation: focused research tests `10 passed`; project venv full suite `811 passed, 2 skipped,
+  11 warnings`; compileall, diff check, and Cloudflare dispatcher `3 passed`.
+- Local implementation commits are still unpushed. Push/PR creation is pending because GitHub HTTPS push/readback failed with a Schannel TLS
+  handshake error, SSH was closed by the network path, and the GitHub CLI keyring token is invalid;
+  no remote branch or PR was created. Retry the same local branch/commit before treating delivery
+  as PR-ready.
+- Next after transport recovery: push the independent research branch, create a non-merged PR,
+  and re-read exact-head CI. User decision is whether to continue prospective collection/repair
+  the missing sessions; do not open a production-change PR from this evidence.
+
 ## 2026-10-01 — Tracker partial-observation repair implemented; PR #94 user merge decision
 
 - Classification: product blocker with correctness/data-integrity boundary; STRICT PATH.
