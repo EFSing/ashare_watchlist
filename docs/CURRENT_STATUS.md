@@ -1,5 +1,21 @@
 # CURRENT STATUS
 
+## 2026-10-04 — Daily report UX V5 — independent presentation branch
+
+Live intake was reconciled before implementation: `origin/master` is
+`c7d2feac99e48fb840e36785a0c0866035d18355`, `origin/runtime-state` is
+`1a0a1fa8331cd88ce9e4a16673a60ea3624af761`, and PR #96 remains OPEN/MERGEABLE at head
+`1c44d6610a6fed32475b54f2292b3612a89c75a7` against `master@c7d2fea`, with both current
+correctness checks passing. The PR #94-complete entry below is historical relative to this
+intake; the live-state mismatch is recorded as `PROJECT_GOVERNANCE_STATE_CONFLICT` here without
+rewriting historical provenance.
+
+The current branch is `codex/daily-close-report-ux-v5`, based on live master. This task changes
+only daily Formal B renderer presentation, B+C inline delivery presentation, and regression tests.
+Canonical strategy identity, candidate generation/ranking, tracker state, rule-performance
+calculation, fixed-horizon semantics, and the single-file delivery contract remain unchanged.
+Terminal state after verification: `DAILY_REPORT_UX_V5_PR_READY_FOR_USER_MERGE_DECISION`.
+
 ## 2026-10-01 — Formal B 2026-09-30 tracker failure; PR #94 merged
 
 - Current state: user-authorized PR #94 squash merge completed at

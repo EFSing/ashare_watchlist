@@ -385,7 +385,7 @@ def test_same_bar_ambiguity_is_preserved_and_sorted_first(tmp_path):
     (tmp_path / "data" / "perf_tracker.json").write_text(json.dumps(tracker), encoding="utf-8")
 
     model = renderer.build_report_model("20260910", paths=_paths(tmp_path), calendar=CALENDAR)
-    row = model.previous_signals[0]
+    row = model.closed_today[0]
 
     assert row["raw_status"] == "AMBIGUOUS_SAME_BAR"
     assert row["observation_status"] == "AMBIGUOUS_SAME_BAR"
@@ -408,14 +408,14 @@ def test_report_information_architecture_has_overview_yesterday_new_list_quality
     text = renderer.render_html(model)
 
     for marker in (
-        "T-close", "昨日 / 活跃信号复盘", "今日新名单", "固定节点研究",
-        "数据质量", "技术与审计信息", "今日新信号，等待下一交易日观察",
+        "T-close", "昨日 / 活跃信号复盘", "今日新名单", "策略表现",
+        "研究与数据", "技术与审计信息", "今日新信号，等待下一交易日观察",
     ):
         assert marker in text
     assert (
         text.index('id="overview"') < text.index('id="tomorrow-watchlist"')
-        < text.index('id="trade-performance"') < text.index('id="daily-review"')
-        < text.index('id="formal-review"') < text.index('id="anomalies"')
+        < text.index('id="daily-review"') < text.index('id="trade-performance"')
+        < text.index('id="research-data"')
         < text.index('id="audit"')
     )
     assert (tmp_path / "data" / "watchlist_20260910.json").read_bytes() == current_before
@@ -450,7 +450,7 @@ def test_report_keeps_full_audit_details_collapsed_after_review_sections(tmp_pat
     audit = text.split('<details id="audit">', 1)[1].split("</details>", 1)[0]
     assert "signal_id" in audit
     assert '<details id="audit" open' not in text
-    assert text.index('id="audit"') > text.index('id="anomalies"')
+    assert text.index('id="audit"') > text.index('id="research-data"')
 
 
 def test_html_escapes_text_and_has_no_external_dependency(tmp_path):
@@ -572,8 +572,8 @@ def test_fixed_node_separates_unverified_path_from_true_untriggered(tmp_path):
     assert by_code["600019"]["path_status_code"] == "pending"
     assert by_code["600019"]["path_status"] == "PENDING"
     assert text.count("<span>可计算</span><strong>0</strong>") >= 1
-    assert text.count("<span>未触发</span><strong>1</strong>") >= 1
-    assert text.count("<span>路径待核验</span><strong>1</strong>") >= 1
+    assert "未触发 1" in text
+    assert "路径待核验 1" in text
     assert "路径未完整验证" in text
     assert "未触发" in text
 
@@ -702,19 +702,20 @@ def test_complete_previous_session_includes_terminal_states(tmp_path, status):
     (tmp_path / 'data/perf_tracker.json').write_text(json.dumps(tracker), encoding='utf-8')
     _write_watchlist(tmp_path, '20260910', [_candidate('600002', 'Tomorrow', 80)])
     model = renderer.build_report_model('20260910', paths=_paths(tmp_path), calendar=CALENDAR)
-    assert len(model.previous_signals) == 1
-    assert model.previous_signals[0]['path_status'] == status
-    assert model.previous_signals[0]['today_open'] is None
+    collection = model.previous_signals if status in {'pending', 'triggered'} else model.closed_today
+    assert len(collection) == 1
+    assert collection[0]['path_status'] == status
+    assert collection[0]['today_open'] is None
     assert model.daily_summary['tracked'] == 1
     assert [r['code'] for r in model.watchlist_rows] == ['600002']
     assert not model.active_signals
     text = renderer.render_html(model)
-    main = text.split('<details id="audit">')[0]
-    assert signal['signal_id'] not in main
-    assert renderer._display_status(status) in main
-    assert 'package_sha' not in main
+    visible_review = text.split('<details class="review-details">', 1)[0]
+    assert signal['signal_id'] not in visible_review
+    assert renderer._display_status(status) in visible_review
+    assert 'package_sha' not in visible_review
     assert '<details id="audit" open' not in text
-    assert text.index('id="tomorrow-watchlist"') < text.index('id="daily-review"') < text.index('id="formal-review"')
+    assert text.index('id="tomorrow-watchlist"') < text.index('id="daily-review"') < text.index('id="trade-performance"')
 
 
 def test_previous_watchlist_missing_tracker_identity_is_not_dropped(tmp_path):
@@ -743,18 +744,18 @@ def test_older_active_and_closed_today_are_separate(tmp_path):
     assert model.daily_summary['target_hits'] == 1
 
 
-def test_formal_empty_keeps_rolling_summary_and_primary_is_first(tmp_path):
+def test_strategy_performance_keeps_rolling_summary_and_primary_is_first(tmp_path):
     watchlist = _write_watchlist(tmp_path, '20260910', [_candidate('600001', 'New', 60)])
     _write_tracker(tmp_path, watchlist)
     model = renderer.build_report_model('20260910', paths=_paths(tmp_path), calendar=CALENDAR)
-    text = renderer.render_html(model).split('<section id="formal-review">')[1].split('</section>')[0]
-    assert '查看节点覆盖' in text
+    text = renderer.render_html(model).split('<section id="trade-performance">')[1].split('<section id="research-data">')[0]
+    assert '节点覆盖与口径' in text
     assert '今日无该节点到期信号' in text
     row = dict(code='600001', name='Old', list_date='2026-09-03', horizon_return='+2.00%', path_status='loss', snapshot_status='CAPTURED', signal_id='hidden')
     model.review_sections['T+5'].append(row)
     model.review_sections['T+3'].append(row)
-    text = renderer.render_html(model).split('<section id="formal-review">')[1].split('</section>')[0]
-    assert text.index('查看 T+3 明细') < text.index('查看 T+5 明细')
+    text = renderer.render_html(model).split('<section id="trade-performance">')[1].split('<section id="research-data">')[0]
+    assert text.index('查看 T+3 采集与明细') < text.index('查看 T+5 采集与明细')
     assert '止损' in text and '已记录' in text and '+2.00%' in text
     assert 'hidden' not in text
 
@@ -825,11 +826,11 @@ def test_trade_performance_section_is_before_audit_and_keeps_small_sample_visibl
     text = dated.read_text(encoding='utf-8')
 
     assert model.trade_performance is not None
-    assert text.index('id="trade-performance"') < text.index('id="daily-review"')
+    assert text.index('id="daily-review"') < text.index('id="trade-performance"')
     for marker in (
         '交易绩效', '样本不足', '胜率', '平均收益', '平均盈利', '平均亏损',
         '盈亏比', 'Profit Factor', '期望收益', '平均 R', '平均持有',
-        '平均 MFE', '平均 MAE', '中位收益', '已结案交易', '当前持仓', '排除 / 未核验',
+        '平均 MFE', '平均 MAE', '中位收益', '已结案策略交易', '规则模拟未结案', '排除 / 未核验',
         'SAMPLE_SMALL', 'N/A / sample=0',
     ):
         assert marker in text
@@ -848,9 +849,9 @@ def test_presentation_regression_has_compact_sections_and_collapsed_technical_de
 
     assert len(re.findall(r'<article class="kpi-card primary-kpi"', text)) == 6
     assert text.index('id="tomorrow-watchlist"') < text.index('id="trade-performance"')
-    assert text.index('id="trade-performance"') < text.index('id="daily-review"') < text.index('id="formal-review"')
+    assert text.index('id="daily-review"') < text.index('id="trade-performance"') < text.index('id="research-data"')
     assert '<details id="unverified-excluded"' in text
-    assert '<details class="research-detail"><summary>查看 T+3 明细' in text
+    assert '<details class="research-detail"><summary>查看 T+3 采集与明细' in text
     assert text.count('sample=0') <= 1
     assert 'N/A' not in main
     for literal in ('UNVERIFIED_MISSING_EXECUTION_OBSERVATION', 'EXECUTION_MODEL_DAILY_OHLC_T1_V1'):
@@ -943,10 +944,7 @@ def test_module_navigation_stays_sticky_for_the_whole_page(tmp_path):
     assert '<nav' not in header
     nav = text.split('<nav class="section-nav"', 1)[1].split('</nav>', 1)[0]
     anchors = re.findall(r'href="#([^"]+)"', nav)
-    assert anchors == [
-        'overview', 'tomorrow-watchlist', 'trade-performance', 'shadow-monitor',
-        'daily-review', 'formal-review', 'anomalies',
-    ]
+    assert anchors == ['overview', 'tomorrow-watchlist', 'daily-review', 'trade-performance', 'research-data']
     body_start = text.index('</header>')
     assert body_start < text.index('<nav class="section-nav"')
     assert text.index('<nav class="section-nav"') < text.index('<section id="overview">')
@@ -980,4 +978,83 @@ def test_scroll_spy_uses_plain_dom_and_keeps_anchor_navigation_working(tmp_path)
     assert '<script src=' not in text
     assert 'import ' not in script
     # Anchors stay plain, so navigation works with JavaScript disabled.
-    assert text.count('<a href="#overview">总览</a>') == 1
+    assert text.count('<a href="#overview">今日总览</a>') == 1
+
+
+def test_v5_closed_signal_shows_canonical_rule_return_and_hides_market_math_by_default():
+    row = {
+        'code': '600001', 'name': '规则收益测试', 'path_status': 'win',
+        'observation_status': 'CAPTURED', 'raw_status': 'win', 'observed': True,
+        'closed_today': True, 'today_open': 10.0, 'today_high': 10.2,
+        'today_low': 9.8, 'today_close': 9.7, 'daily_change_pct': -3.0,
+        'close_vs_trigger_pct': -2.5, 'rule_exit_reason': 'TARGET',
+        'rule_return_pct': 8.18, 'rule_entry_price': 10.0,
+        'rule_entry_date': '2026-09-03', 'rule_exit_price': 10.818,
+        'rule_exit_date': '2026-09-10', 'rule_holding_sessions': 4,
+        'observation_source': '已记录',
+    }
+    html = renderer._daily_table([row])
+
+    assert '本笔规则结果</span><strong>止盈' in html
+    assert '本笔规则收益</span><strong class="positive">+8.18%' in html
+    assert '当日涨跌' in html
+    assert html.index('当日涨跌') > html.index('查看当日行情')
+    assert '本笔规则收益</span><strong class="negative">-3.00%' not in html
+
+
+def test_v5_performance_summary_prioritizes_winner_loser_means_and_collapses_tables():
+    performance = {
+        'resolved_closed_trades': 113, 'avg_win_pct': 8.18, 'avg_loss_pct': -2.97,
+        'payoff_ratio': 2.75, 'win_rate': 22.12, 'avg_return_pct': -0.91,
+        'profit_factor': 0.61, 'open_rule_trades': 40,
+        'open_mtm_avg_return_pct': -1.20, 'closed_trades': [],
+        'open_position_rows': [], 'ambiguous_rows': [], 'excluded_rows': [],
+        'total_signals': 153, 'eligible_signals': 140, 'triggered': 120,
+        'untriggered': 20, 'ambiguous': 0, 'performance_data_incomplete': 0,
+    }
+    html = renderer._trade_performance_html(performance)
+
+    assert '历史已结案 113 笔' in html
+    assert '止盈平均 +8.18%' in html
+    assert '止损平均 -2.97%' in html
+    assert '盈亏比 2.75' in html
+    assert '规则模拟未结案 40 笔 · 平均浮动收益 -1.20%' in html
+    assert html.count('<details class="performance-list-details">') == 3
+    assert '<details class="performance-list-details" open' not in html
+
+
+def test_v5_active_summary_uses_only_triggered_rule_marks_and_dash_for_empty_sides():
+    rows = [
+        {'signal_id': 'a', 'raw_status': 'triggered'},
+        {'signal_id': 'b', 'raw_status': 'triggered'},
+        {'signal_id': 'c', 'raw_status': 'pending'},
+    ]
+    performance = {
+        'open_position_rows': [
+            {'signal_id': 'a', 'mark_return_pct': 3.5},
+            {'signal_id': 'b', 'mark_return_pct': -1.2},
+        ]
+    }
+    summary = renderer._active_review_summary(rows, performance)
+
+    assert summary['total'] == 3
+    assert summary['triggered'] == 2
+    assert summary['waiting'] == 1
+    assert summary['positive_mean_pct'] == pytest.approx(3.5)
+    assert summary['negative_mean_pct'] == pytest.approx(-1.2)
+    empty = renderer._active_review_summary([{'signal_id': 'c', 'raw_status': 'pending'}], {'open_position_rows': []})
+    assert renderer._percent(empty['positive_mean_pct'], signed=True) == '—'
+    assert renderer._percent(empty['negative_mean_pct'], signed=True) == '—'
+
+
+def test_v5_volume_detail_is_collapsed_and_summary_is_dynamic():
+    html = renderer._volume_observations_html({
+        'window_days': 13,
+        'down_volume_share': 0.4383,
+        'up_down_volume_ratio': 1.13,
+        'pullback_volume_decay_ratio': 0.42,
+    })
+
+    assert '<details class="volume-details-compact">' in html
+    assert '<details class="volume-details-compact" open' not in html
+    assert '量能：下跌日 43.8% · 涨/跌均量 1.13× · 后半/前半 0.42×' in html

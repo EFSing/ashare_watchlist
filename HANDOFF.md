@@ -1,5 +1,22 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-10-04 — Daily report UX V5 implementation in progress
+
+- live intake：`origin/master` 为 `c7d2feac99e48fb840e36785a0c0866035d18355`；
+  `origin/runtime-state` 为 `1a0a1fa8331cd88ce9e4a16673a60ea3624af761`。
+- governance reconciliation：当前入口已记录 PR #94 merged，但实时 PR #96 仍为
+  `OPEN / MERGEABLE`，base `master@c7d2fea`，head
+  `1c44d6610a6fed32475b54f2292b3612a89c75a7`，两个 correctness checks 均 success。
+  入口快照与实时 PR 之间标记为 `PROJECT_GOVERNANCE_STATE_CONFLICT`；本段是最小 live-state
+  纠正，不改写下方历史 provenance。
+- current task：`DAILY_REPORT_UX_V5_PRESENTATION_ONLY`；独立分支
+  `codex/daily-close-report-ux-v5` 基于 live master，不继续堆入 PR #96。
+- boundary：只改 Formal B renderer、B+C presentation composite、presentation tests 与
+  implementation map；不改变 strategy identity、candidate/ranking、tracker、performance
+  calculation、T+3/T+5/T+10 semantics 或 delivery contract。
+- next action：完成真实 preview、desktop/mobile QA、focused/full verification，创建独立 PR，
+  终点为 `DAILY_REPORT_UX_V5_PR_READY_FOR_USER_MERGE_DECISION`。
+
 ## 2026-10-01 — Tracker partial-observation repair implemented; PR #94 user merge decision
 
 - Classification: product blocker with correctness/data-integrity boundary; STRICT PATH.

@@ -402,6 +402,32 @@ def render_unavailable_section(report_date: str, status: str, *, reason: str | N
 </section>"""
 
 
+def _research_data_details(c_section: str) -> tuple[str, str]:
+    """Convert the standalone C section into a collapsed research/data detail."""
+
+    styles = "".join(re.findall(r"<style\b[^>]*>.*?</style>", c_section, flags=re.IGNORECASE | re.DOTALL))
+    body = re.sub(r"\s*<style\b[^>]*>.*?</style>\s*", "\n", c_section, count=0, flags=re.IGNORECASE | re.DOTALL)
+    opening = re.search(
+        r"<section\b([^>]*\bid=[\"']c-daily-research[\"'][^>]*)>",
+        body,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if opening is None:
+        raise ValueError("inline C section has no c-daily-research section")
+    heading_match = re.search(r"<h2>(.*?)</h2>", body, flags=re.IGNORECASE | re.DOTALL)
+    heading = re.sub(r"<[^>]+>", "", heading_match.group(1)).strip() if heading_match else "研究结果"
+    details_open = (
+        f'<details id="c-daily-research" class="c-research-section research-data-details">'
+        f'<summary>C 研究 · {heading}</summary>'
+    )
+    body = body[:opening.start()] + details_open + body[opening.end():]
+    closing = re.search(r"</section\s*>", body, flags=re.IGNORECASE)
+    if closing is None:
+        raise ValueError("inline C section has no closing section tag")
+    body = body[:closing.start()] + "</details>" + body[closing.end():]
+    return styles, body.strip()
+
+
 def compose_delivery_html(formal_html: bytes | str, c_section: str) -> bytes:
     """Inline C into an existing self-contained Formal B document without changing B bytes."""
 
@@ -425,31 +451,37 @@ def compose_delivery_html(formal_html: bytes | str, c_section: str) -> bytes:
         raise ValueError("Formal B presentation contains an external C dependency")
     if not isinstance(c_section, str) or "id=\"c-daily-research\"" not in c_section:
         raise ValueError("inline C section is invalid")
-    nav_anchor = re.search(
-        r"<a\b[^>]*href=[\"']#tomorrow-watchlist[\"'][^>]*>.*?</a>",
+    text = re.sub(
+        r"<a\b[^>]*href=[\"']#c-daily-research[\"'][^>]*>.*?</a>",
+        "",
         text,
         flags=re.IGNORECASE | re.DOTALL,
     )
-    if nav_anchor and 'href="#c-daily-research"' not in text:
-        text = (text[:nav_anchor.end()]
-                + '<a href="#c-daily-research">C研究</a>'
-                + text[nav_anchor.end():])
-    # C is a top-level module of the same daily reading order, right after the
-    # Formal B new list, instead of a second report appended before </main>.
-    section_anchor = re.search(
-        r"<section\b[^>]*id=[\"']tomorrow-watchlist[\"'][^>]*>.*?</section\s*>",
+    c_style, c_details = _research_data_details(c_section)
+    if c_style:
+        head = re.search(r"</head\s*>", text, flags=re.IGNORECASE)
+        if head is not None:
+            text = text[:head.start()] + c_style + "\n" + text[head.start():]
+        else:
+            text = c_style + text
+    research_open = re.search(
+        r"<section\b[^>]*id=[\"']research-data[\"'][^>]*>",
         text,
         flags=re.IGNORECASE | re.DOTALL,
     )
-    if section_anchor is not None:
-        composite = text[:section_anchor.end()] + f"\n{c_section}\n" + text[section_anchor.end():]
+    if research_open is not None:
+        closing = re.search(r"</section\s*>", text[research_open.end():], flags=re.IGNORECASE)
+        if closing is None:
+            raise ValueError("Research/data section has no closing tag")
+        close_at = research_open.end() + closing.start()
+        composite = text[:close_at] + f"\n{c_details}\n" + text[close_at:]
     else:
         closing = re.search(r"</main\s*>", text, flags=re.IGNORECASE)
         if closing is None:
             closing = re.search(r"</body\s*>", text, flags=re.IGNORECASE)
         if closing is None:
             raise ValueError("Formal B report has no main or body closing tag")
-        composite = text[:closing.start()] + f"\n{c_section}\n" + text[closing.start():]
+        composite = text[:closing.start()] + f"\n{c_details}\n" + text[closing.start():]
     return composite.encode("utf-8")
 
 

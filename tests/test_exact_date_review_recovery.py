@@ -526,7 +526,7 @@ def test_real_recovered_html_shows_25_yesterday_rows_and_11_unverified_nodes():
     if model.review_status == REVIEW_OBSERVATION_INCOMPLETE:
         assert "复盘数据不完整：execution expected=36, captured=25, missing=11" in text
     assert "昨日名单今日表现 · 2026-09-07" in text
-    assert "今日开盘" in text and "收盘较 Trigger %" in text
+    assert "今日开盘" in text and "收盘较 Trigger" in text
     assert "路径未完整验证" in text and "已恢复（不可变证据）" in text
 
 

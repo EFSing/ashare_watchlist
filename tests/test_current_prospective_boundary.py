@@ -88,7 +88,7 @@ def test_report_uses_yesterday_canonical_and_rejects_legacy(tmp_path):
     assert all(text.count(renderer._esc(r['signal_id'])) >= 1 for r in
                model.watchlist_rows + model.previous_signals + model.active_signals)
     assert '2026-08-20' not in text and legacy['signal_id'] not in text
-    assert '数据缺失' in text and '收盘较 Trigger %' in text
+    assert '数据缺失' in text and '收盘较 Trigger' in text
     assert dated.read_bytes() == latest.read_bytes()
     assert all(not s['observations'] for s in tracker['signals'].values() if s is not legacy)
 

@@ -1,5 +1,20 @@
 # DECISION LOG
 
+## 2026-10-04 — Adopt Daily Report UX V5 as a presentation-only contract
+
+- decision：Formal B and its inline B+C delivery use five first-level areas—今日总览、新名单、
+  今日复盘、策略表现、研究与数据. Shadow, C research, data quality, provenance and technical
+  audit are subordinate to 研究与数据; T+3/T+5/T+10 are subordinate to 策略表现.
+- display invariants：volume detail, long active-history, closed-trade, rule-simulated-open and
+  fixed-horizon tables are collapsed by default. Closed daily cards show canonical rule exit
+  reason and realized rule return; daily change/OHLC remain market context and never substitute
+  for trade return.
+- boundary：presentation/UX only. No strategy, watchlist, tracker, performance, fixed-horizon,
+  C selection, Shadow semantics or delivery identity changes. The V5 prototype is the reference;
+  no 2026-09-30 values are hard-coded.
+- governance：the PR #94-complete entry is superseded for current intake by live master and PR
+  #96 verification; the reconciliation is recorded as `PROJECT_GOVERNANCE_STATE_CONFLICT`.
+
 ## 2026-09-28 — ADOPT current-roster same-day universe eligibility; historical listing stays fail-closed
 
 - `ADOPT` identity `HITHINK_CURRENT_ROSTER_SAME_DAY_OR_LIST_DATE_ELIGIBILITY_V2` (replacing
