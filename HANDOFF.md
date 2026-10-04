@@ -25,15 +25,14 @@
   search/expiry/time-exit boundary while strategy-rule performance has no entry expiry/time exit.
   No production semantics, tracker state, runtime-state, prospective evidence, Final OOS, C,
   old D, or forbidden validation data was changed/read.
-- Validation: focused research tests `10 passed`; project venv full suite `811 passed, 2 skipped,
-  11 warnings`; compileall, diff check, and Cloudflare dispatcher `3 passed`.
-- Local implementation commits are still unpushed. Push/PR creation is pending because GitHub HTTPS push/readback failed with a Schannel TLS
-  handshake error, SSH was closed by the network path, and the GitHub CLI keyring token is invalid;
-  no remote branch or PR was created. Retry the same local branch/commit before treating delivery
-  as PR-ready.
-- Next after transport recovery: push the independent research branch, create a non-merged PR,
-  and re-read exact-head CI. User decision is whether to continue prospective collection/repair
-  the missing sessions; do not open a production-change PR from this evidence.
+- Validation: focused research tests `12 passed`; project venv full suite `813 passed, 2 skipped,
+  11 warnings`; compileall, diff check, and Cloudflare dispatcher `3 passed`. Independent PR #98
+  is open against live master at exact head `5d931277a7c378fff81f3885a0d490af5079e8cb`; exact-head
+  push correctness run `37222126447` and exact-head pull-request correctness run `37222193298`
+  both succeeded.
+- PR #98 is research-only, unmerged, and awaits the user's merge decision. User decision is whether
+  to continue prospective collection/repair the missing sessions; do not open a production-change
+  PR from this evidence.
 
 ## 2026-10-01 — Tracker partial-observation repair implemented; PR #94 user merge decision
 

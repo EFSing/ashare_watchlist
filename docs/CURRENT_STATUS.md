@@ -34,14 +34,17 @@
   and has time-exit behavior; strategy-rule performance searches through report date with no
   entry expiry and `time_exit=False`. T+10 is consequently both an operational boundary and a
   fixed research node in current code. No unification is made in this PR.
-- Validation: focused research tests `10 passed`; full project suite `811 passed, 2 skipped,
+- Validation: focused research tests `12 passed`; full project suite `813 passed, 2 skipped,
   11 warnings` under the project `.venv` with a short Windows basetemp; compileall, diff check,
-  and CI-equivalent Cloudflare dispatcher `3 passed`. Final OOS remains `SEALED / UNREAD`; C
-  outcome, old D, and the forbidden validation directory were not read. No production dispatch,
-  provider call, runtime-state mutation, prospective backfill, or merge was performed.
+  and CI-equivalent Cloudflare dispatcher `3 passed`. Independent PR #98 is open against live
+  master at exact head `5d931277a7c378fff81f3885a0d490af5079e8cb`; exact-head push correctness
+  run `37222126447` and exact-head pull-request correctness run `37222193298` both succeeded.
+  Final OOS remains `SEALED / UNREAD`; C outcome, old D, and the forbidden validation directory
+  were not read. No production dispatch, provider call, runtime-state mutation, prospective
+  backfill, or merge was performed.
 - Next decision: user chooses whether to continue prospective collection/repair the missing
-  session observations before rerunning this research. This result does not authorize a
-  production entry-validity change.
+  session observations before rerunning this research. PR #98 is research-only and awaits the
+  user's merge decision; this result does not authorize a production entry-validity change.
 
 ## 2026-10-01 — Formal B 2026-09-30 tracker failure; PR #94 merged
 
