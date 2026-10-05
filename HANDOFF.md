@@ -1,6 +1,6 @@
 # HANDOFF — 跨设备最小恢复入口
 
-## 2026-10-06 — ENTRY_VALIDITY_SEMANTICS_MISMATCH correctness audit — in progress
+## 2026-10-06 — ENTRY_VALIDITY_SEMANTICS_MISMATCH correctness audit — PR #100 open
 
 - Classification: correctness audit + research question under STRICT PATH. This checkout is
   `codex/entry-validity-semantics-impact-audit-v1`, created from the live `origin/master` read
@@ -17,6 +17,10 @@
   as-of `2026-09-30`. The new read-only audit artifact is
   `data/research/b_entry_validity_semantics_impact_v1/`; exact Category A/B counts are both 0,
   with unresolved potentially affected counts 83 and 48 respectively.
+- Delivery: PR #100 is `https://github.com/EFSing/ashare_watchlist/pull/100`, head
+  `d44d97d161de688d72312024b2ef2f615f7823d8`, base `master@fb05327289fed9d13961b162a1c76c97c39f220d`.
+  Exact-head push correctness run `37347791252` and pull-request correctness run `37347920426`
+  both passed; GitHub reports `MERGEABLE / CLEAN`. Do not merge automatically.
 - Terminal marker: `DUAL_MODEL_SEMANTICS_INTENTIONAL_REPORTING_SEPARATION_READY_FOR_USER_DECISION`.
   No production semantic change, tracker/runtime-state write, prospective backfill, provider call,
   Final OOS read, C/old-D read, or merge was performed.

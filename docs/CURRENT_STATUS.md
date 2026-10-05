@@ -1,6 +1,6 @@
 # CURRENT STATUS
 
-## 2026-10-06 — ENTRY_VALIDITY_SEMANTICS_MISMATCH correctness audit — ready for user decision
+## 2026-10-06 — ENTRY_VALIDITY_SEMANTICS_MISMATCH correctness audit — PR #100 open
 
 - Classification: correctness audit + research question under STRICT PATH. The independent branch
   `codex/entry-validity-semantics-impact-audit-v1` starts from the live intake
@@ -20,6 +20,10 @@
   terminal marker is `DUAL_MODEL_SEMANTICS_INTENTIONAL_REPORTING_SEPARATION_READY_FOR_USER_DECISION`.
   Keep MODEL_P prospective execution/path performance distinct from MODEL_R theoretical rule-price
   simulation; do not change production semantics in this audit.
+- Delivery: PR #100 is open at `https://github.com/EFSing/ashare_watchlist/pull/100`, head
+  `d44d97d161de688d72312024b2ef2f615f7823d8`, base live master
+  `fb05327289fed9d13961b162a1c76c97c39f220d`. Exact-head push run `37347791252` and PR run
+  `37347920426` passed; GitHub reports `MERGEABLE / CLEAN`. User merge decision is pending.
 - Artifacts: `data/research/b_entry_validity_semantics_impact_v1/`. Final OOS remains
   `SEALED / UNREAD`; C outcome, old D, and forbidden validation data remain unread. No runtime-state
   mutation, prospective backfill, provider call, or merge was performed.
