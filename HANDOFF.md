@@ -26,10 +26,15 @@
   No production semantics, tracker state, runtime-state, prospective evidence, Final OOS, C,
   old D, or forbidden validation data was changed/read.
 - Validation: focused research tests `12 passed`; project venv full suite `813 passed, 2 skipped,
-  11 warnings`; compileall, diff check, and Cloudflare dispatcher `3 passed`. Independent PR #98
-  is open against live master at exact head `5d931277a7c378fff81f3885a0d490af5079e8cb`; exact-head
-  push correctness run `37222126447` and exact-head pull-request correctness run `37222193298`
-  both succeeded.
+  11 warnings`; compileall, diff check, and Cloudflare dispatcher `3 passed`. The research/artifact
+  verification checkpoint is implementation head `5d931277a7c378fff81f3885a0d490af5079e8cb`,
+  retained as historical provenance only.
+- Pre-follow-up live readback snapshot: PR #98 was `OPEN / MERGEABLE` at head
+  `bfac38c5f6cbcf00b0e24c675e8332b55a57a993`; push correctness run `37222331994` and
+  pull-request correctness run `37222334992` were both `success`. This is a readback snapshot,
+  not a permanent current-head invariant; re-read the final PR tip, mergeability, and exact-head
+  CI at merge-decision time. The governance-only follow-up itself must not be treated as covered
+  by these prior checks.
 - PR #98 is research-only, unmerged, and awaits the user's merge decision. User decision is whether
   to continue prospective collection/repair the missing sessions; do not open a production-change
   PR from this evidence.
