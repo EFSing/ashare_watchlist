@@ -1,14 +1,18 @@
 # HANDOFF — 跨设备最小恢复入口
 
-## 2026-10-05 — B signal entry-validity research complete; blocked by data gap
+## 2026-10-05 — PR #98 merged; post-merge governance reconciliation
 
-- Intake reconciliation: live `origin/master` was
+- Live post-merge master is `a94d8758bcb04df41e2ab5a326bc463a18ab91f7`; PR #98 was squash-merged
+  from source head `b210c0a3bf035901dbfcda4a8bcd1f4a63564886`. Its pre-merge exact-head push
+  run `37331208404` and pull-request run `37331214500` both succeeded. These are merged-PR
+  provenance, not a permanent current-head invariant.
+- Intake reconciliation: prior live `origin/master` was
   `c7d2feac99e48fb840e36785a0c0866035d18355`; PR #94 is MERGED at
-  `2b1975d27f05615ed1f377f3f974d2be4818e91b`; live `origin/runtime-state` is
+  `2b1975d27f05615ed1f377f3f974d2be481e91b`; live `origin/runtime-state` is
   `1a0a1fa8331cd88ce9e4a16673a60ea3624af761`. PR #95 (old recovery-blocked audit), PR #96
   (2026-09-30 recovery), and PR #97 (daily-report UX) remain live OPEN and are outside this
   independent diff. The older #94 awaiting-merge text below is historical provenance only.
-- Current branch: `codex/b-signal-entry-validity-decay-v1`, based on the live master above.
+- Current branch: post-merge governance-only reconciliation branch, based on live master above.
   Decision is `NEEDS_MORE_EVIDENCE`; terminal marker is
   `SIGNAL_VALIDITY_RESEARCH_BLOCKED_BY_DATA_GAP`. Protocol
   `B_SIGNAL_ENTRY_VALIDITY_DECAY_V1` SHA-256 is
@@ -25,19 +29,14 @@
   search/expiry/time-exit boundary while strategy-rule performance has no entry expiry/time exit.
   No production semantics, tracker state, runtime-state, prospective evidence, Final OOS, C,
   old D, or forbidden validation data was changed/read.
-- Validation: focused research tests `12 passed`; project venv full suite `813 passed, 2 skipped,
-  11 warnings`; compileall, diff check, and Cloudflare dispatcher `3 passed`. The research/artifact
-  verification checkpoint is implementation head `5d931277a7c378fff81f3885a0d490af5079e8cb`,
-  retained as historical provenance only.
-- Pre-follow-up live readback snapshot: PR #98 was `OPEN / MERGEABLE` at head
-  `bfac38c5f6cbcf00b0e24c675e8332b55a57a993`; push correctness run `37222331994` and
-  pull-request correctness run `37222334992` were both `success`. This is a readback snapshot,
-  not a permanent current-head invariant; re-read the final PR tip, mergeability, and exact-head
-  CI at merge-decision time. The governance-only follow-up itself must not be treated as covered
-  by these prior checks.
-- PR #98 is research-only, unmerged, and awaits the user's merge decision. User decision is whether
-  to continue prospective collection/repair the missing sessions; do not open a production-change
-  PR from this evidence.
+- Validation provenance remains: focused research tests `12 passed`; project venv full suite
+  `813 passed, 2 skipped, 11 warnings`; compileall, diff check, and Cloudflare dispatcher `3 passed`.
+  The research/artifact verification checkpoint is implementation head
+  `5d931277a7c378fff81f3885a0d490af5079e8cb`, retained as historical provenance only.
+- This branch changes only HANDOFF/CURRENT_STATUS to reconcile the merged state. It does not alter
+  research artifacts, DECISION_LOG, production semantics, runtime-state, prospective evidence, or
+  Final OOS. The governance-only follow-up requires its own live PR/head/CI readback and user merge
+  decision; do not open a production-change PR from this evidence.
 
 ## 2026-10-01 — Tracker partial-observation repair implemented; PR #94 user merge decision
 
