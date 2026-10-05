@@ -408,15 +408,14 @@ def test_report_information_architecture_has_overview_yesterday_new_list_quality
     text = renderer.render_html(model)
 
     for marker in (
-        "T-close", "昨日 / 活跃信号复盘", "今日新名单", "固定节点研究",
+        "T-close", "今日复盘", "今日新名单", "策略表现", "固定节点研究",
         "数据质量", "技术与审计信息", "今日新信号，等待下一交易日观察",
     ):
         assert marker in text
     assert (
         text.index('id="overview"') < text.index('id="tomorrow-watchlist"')
-        < text.index('id="trade-performance"') < text.index('id="daily-review"')
-        < text.index('id="formal-review"') < text.index('id="anomalies"')
-        < text.index('id="audit"')
+        < text.index('id="daily-review"') < text.index('id="trade-performance"')
+        < text.index('id="research-data"') < text.index('id="audit"')
     )
     assert (tmp_path / "data" / "watchlist_20260910.json").read_bytes() == current_before
     assert tracker_path.read_bytes() == tracker_before
@@ -747,16 +746,176 @@ def test_formal_empty_keeps_rolling_summary_and_primary_is_first(tmp_path):
     watchlist = _write_watchlist(tmp_path, '20260910', [_candidate('600001', 'New', 60)])
     _write_tracker(tmp_path, watchlist)
     model = renderer.build_report_model('20260910', paths=_paths(tmp_path), calendar=CALENDAR)
-    text = renderer.render_html(model).split('<section id="formal-review">')[1].split('</section>')[0]
+    text = renderer.render_html(model)
     assert '查看节点覆盖' in text
     assert '今日无该节点到期信号' in text
     row = dict(code='600001', name='Old', list_date='2026-09-03', horizon_return='+2.00%', path_status='loss', snapshot_status='CAPTURED', signal_id='hidden')
     model.review_sections['T+5'].append(row)
     model.review_sections['T+3'].append(row)
-    text = renderer.render_html(model).split('<section id="formal-review">')[1].split('</section>')[0]
+    text = renderer.render_html(model)
     assert text.index('查看 T+3 明细') < text.index('查看 T+5 明细')
     assert '止损' in text and '已记录' in text and '+2.00%' in text
-    assert 'hidden' not in text
+    fixed_node_detail = text.split('<details id="formal-review"', 1)[1].split(
+        '<details id="shadow-monitor"', 1
+    )[0]
+    assert 'hidden' not in fixed_node_detail
+
+
+def _dual_model_report_fixture() -> renderer.ReportModel:
+    """Keep deliberately different MODEL_P/MODEL_R facts in one render fixture."""
+
+    report_date = "2026-09-30"
+    prospective = {
+        "total_signals": 3,
+        "execution_pending": 0,
+        "execution_unverified": 0,
+        "open_positions": 1,
+        "open_positions_count": 1,
+        "target_exit_count": 0,
+        "stop_exit_count": 1,
+        "untriggered_expired": 1,
+        "ambiguous": 0,
+        "entered": 2,
+        "confirmed_closed_count": 1,
+        "excluded_rows": [{"reason": "UNTRIGGERED_ACTIVE"}],
+        "closed_trades": [{"entry_price": 10.0, "status": "loss"}],
+    }
+    theoretical = {
+        "total_signals": 1,
+        "signals_with_t1_opportunity": 1,
+        "eligible_signals": 1,
+        "triggered": 1,
+        "entered": 1,
+        "trigger_rate": 100.0,
+        "resolved_target": 1,
+        "resolved_stop": 0,
+        "resolved_closed_trades": 1,
+        "confirmed_closed_count": 1,
+        "open_rule_trades": 0,
+        "open_positions_count": 0,
+        "untriggered": 0,
+        "ambiguous": 0,
+        "performance_data_incomplete": 0,
+        "strategy_config_errors": 0,
+        "win_count": 1,
+        "loss_count": 0,
+        "flat_count": 0,
+        "win_rate": 100.0,
+        "avg_return_pct": 8.333333,
+        "median_return_pct": 8.333333,
+        "avg_win_pct": 8.333333,
+        "avg_loss_pct": None,
+        "payoff_ratio": None,
+        "profit_factor": None,
+        "expectancy_pct": 8.333333,
+        "avg_r": 1.0,
+        "median_r": 1.0,
+        "expectancy_r": 1.0,
+        "target_exit_count": 1,
+        "stop_exit_count": 0,
+        "time_exit_count": 0,
+        "avg_holding_sessions": 2.0,
+        "median_holding_sessions": 2.0,
+        "avg_mfe_pct": 10.0,
+        "avg_mae_pct": -1.0,
+        "median_mfe_pct": 10.0,
+        "median_mae_pct": -1.0,
+        "open_mtm_avg_return_pct": None,
+        "historical_data_source": "fixture",
+        "historical_provider_calls": 0,
+        "closed_trades": [{
+            "signal_date": "2026-09-03",
+            "code": "600001",
+            "name": "理论模型信号",
+            "entry_date": "2026-09-04",
+            "entry_price": 12.0,
+            "trigger_date": "2026-09-04",
+            "trigger": 12.0,
+            "exit_date": report_date,
+            "exit_price": 13.0,
+            "exit_reason": "TARGET",
+            "realized_return_pct": 8.333333,
+            "realized_r": 1.0,
+            "holding_sessions": 2,
+            "mfe_pct": 10.0,
+            "mae_pct": -1.0,
+        }],
+        "open_position_rows": [],
+        "excluded_rows": [],
+    }
+    summary = {
+        "tracked": 0, "active_signals": 0, "new_triggered": 0,
+        "target_hits": 0, "stop_hits": 0, "ambiguous": 0, "expired": 0,
+        "daily_missing": 0, "missing_observations": 0,
+        "t3_count": 1, "t5_count": 0, "t10_count": 0,
+        "previous_total": 0, "previous_triggered": 0, "previous_pending": 0,
+        "previous_ambiguous": 0, "today_t1_pending": 0,
+        "quality_exception_count": 0,
+    }
+    metadata = {
+        "list_date": report_date, "previous_date": "2026-09-29", "review_date": report_date,
+        "earliest_execution": "2026-10-01", "strategy": "B_BREAKOUT_RETEST_LEGACY_V1_1",
+        "universe": "ASHARE_MAIN_BOARD_ONLY_V1", "universe_policy": "ASHARE_MAIN_BOARD_ONLY_V1",
+        "frozen_candidate": "YES", "package_sha": "—", "generation_fingerprint": "—",
+        "watchlist_sha": "fixture", "candidate_count": 0, "report_generated_at": report_date,
+        "input_coverage_status": "COMPLETE",
+    }
+    overview = {
+        "acquisition_status": "COMPLETE", "review_status": "READY",
+        "cloud_checkpoint_status": "VERIFIED", "input_coverage_status": "COMPLETE",
+        "quality_exception_count": 0,
+        "prospective_counters": renderer._prospective_path_counters(prospective),
+    }
+    return renderer.ReportModel(
+        metadata=metadata, watchlist_rows=[], daily_summary=summary,
+        review_sections={"T+3": [], "T+5": [], "T+10": []},
+        active_signals=[], previous_signals=[], closed_today=[], anomalies=["NONE"],
+        summary_text="fixture", review_status="READY", overview=overview,
+        data_quality=[], rolling_review={}, trade_performance=theoretical,
+        execution_audit=prospective, shadow_monitor={"empty": True, "capture": {}},
+    )
+
+
+def test_daily_report_separates_model_p_and_model_r_without_cross_feed() -> None:
+    text = renderer.render_html(_dual_model_report_fixture())
+    nav = text.split('<nav class="section-nav"', 1)[1].split('</nav>', 1)[0]
+    assert re.findall(r'href="#([^"]+)"', nav) == [
+        "overview", "tomorrow-watchlist", "daily-review", "trade-performance", "research-data",
+    ]
+
+    trade = text.split('<section id="trade-performance">', 1)[1].split(
+        '<section id="research-data">', 1
+    )[0]
+    prospective_panel = trade.split('<div class="model-panel model-p-panel">', 1)[1].split(
+        '<div class="model-panel model-r-panel">', 1
+    )[0]
+    theoretical_panel = trade.split('<div class="model-panel model-r-panel">', 1)[1]
+    assert 'MODEL_P · 前瞻执行路径' in trade
+    assert 'MODEL_R · 理论规则模拟' in trade
+    assert '<div class="kpi-label">全部信号</div><div class="kpi-value neutral">3' in trade
+    assert '<div class="kpi-label">前瞻路径 · 止损</div><div class="kpi-value neutral">1' in trade
+    assert '理论规则模拟已结案</div>' in trade
+    assert 'closed n=1' in trade and '胜/负 1/0' in trade
+    assert '理论规则模拟 · 止盈' in text
+    assert '理论模拟收益' in text
+    assert '理论入场价</label><strong>12.00' in text
+    assert '10.00' not in prospective_panel and '8.33' not in prospective_panel
+    assert 'closed n=3' not in theoretical_panel and '8.33' in theoretical_panel
+    assert '两个模型入场价与退出边界不同，收益指标不可直接作优劣比较。' in text
+    assert '按信号日固定节点观察，不属于前瞻执行路径，也不属于理论规则模拟持仓周期。' in text
+    assert 'href="#shadow-monitor"' not in nav
+    assert 'href="#formal-review"' not in nav
+
+
+def test_missing_model_r_denominator_is_rendered_as_dash() -> None:
+    assert renderer._closed_sample_note({"resolved_closed_trades": None}) == "closed n=—"
+    assert "closed n=—" in renderer._performance_cards({"resolved_closed_trades": None})
+
+
+def test_renderer_source_does_not_embed_fixture_date_or_metrics() -> None:
+    source = Path(renderer.__file__).read_text(encoding="utf-8")
+    for literal in ("2026-09-30", "113", "22.1%", "+0.58%", "51/22/29"):
+        assert literal not in source
 
 
 @pytest.mark.parametrize('distance,label', [(-2, '已在 Trigger 上方'), (-0.1, '已在 Trigger 上方'), (0, '贴近 Trigger'), (1, '贴近 Trigger'), (1.01, '等待触发'), (None, '—')])
@@ -825,11 +984,11 @@ def test_trade_performance_section_is_before_audit_and_keeps_small_sample_visibl
     text = dated.read_text(encoding='utf-8')
 
     assert model.trade_performance is not None
-    assert text.index('id="trade-performance"') < text.index('id="daily-review"')
+    assert text.index('id="daily-review"') < text.index('id="trade-performance"')
     for marker in (
-        '交易绩效', '样本不足', '胜率', '平均收益', '平均盈利', '平均亏损',
+        '策略表现', '理论规则模拟', '样本不足', '胜率', '平均收益', '平均盈利', '平均亏损',
         '盈亏比', 'Profit Factor', '期望收益', '平均 R', '平均持有',
-        '平均 MFE', '平均 MAE', '中位收益', '已结案交易', '当前持仓', '排除 / 未核验',
+        '平均 MFE', '平均 MAE', '中位收益', '理论规则模拟已结案', '理论规则模拟未结案', '排除 / 未核验',
         'SAMPLE_SMALL', 'N/A / sample=0',
     ):
         assert marker in text
@@ -848,7 +1007,7 @@ def test_presentation_regression_has_compact_sections_and_collapsed_technical_de
 
     assert len(re.findall(r'<article class="kpi-card primary-kpi"', text)) == 6
     assert text.index('id="tomorrow-watchlist"') < text.index('id="trade-performance"')
-    assert text.index('id="trade-performance"') < text.index('id="daily-review"') < text.index('id="formal-review"')
+    assert text.index('id="daily-review"') < text.index('id="trade-performance"') < text.index('id="formal-review"')
     assert '<details id="unverified-excluded"' in text
     assert '<details class="research-detail"><summary>查看 T+3 明细' in text
     assert text.count('sample=0') <= 1
@@ -944,8 +1103,8 @@ def test_module_navigation_stays_sticky_for_the_whole_page(tmp_path):
     nav = text.split('<nav class="section-nav"', 1)[1].split('</nav>', 1)[0]
     anchors = re.findall(r'href="#([^"]+)"', nav)
     assert anchors == [
-        'overview', 'tomorrow-watchlist', 'trade-performance', 'shadow-monitor',
-        'daily-review', 'formal-review', 'anomalies',
+        'overview', 'tomorrow-watchlist', 'daily-review', 'trade-performance',
+        'research-data',
     ]
     body_start = text.index('</header>')
     assert body_start < text.index('<nav class="section-nav"')
@@ -980,4 +1139,4 @@ def test_scroll_spy_uses_plain_dom_and_keeps_anchor_navigation_working(tmp_path)
     assert '<script src=' not in text
     assert 'import ' not in script
     # Anchors stay plain, so navigation works with JavaScript disabled.
-    assert text.count('<a href="#overview">总览</a>') == 1
+    assert text.count('<a href="#overview">今日总览</a>') == 1
