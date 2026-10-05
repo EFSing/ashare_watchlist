@@ -1,6 +1,34 @@
 # CURRENT STATUS
 
-## 2026-10-05 — PR #98 merged; B signal research state retained
+## 2026-10-06 — ENTRY_VALIDITY_SEMANTICS_MISMATCH correctness audit — PR #100 open
+
+- Classification: correctness audit + research question under STRICT PATH. The independent branch
+  `codex/entry-validity-semantics-impact-audit-v1` starts from the live intake
+  `origin/master=fb05327289fed9d13961b162a1c76c97c39f220d`; `origin/runtime-state` at intake is
+  `1a0a1fa8331cd88ce9e4a16673a60ea3624af761`. These are intake provenance, not permanent current
+  master invariants; branch/HEAD/upstream, PR, and CI state must be live-read at delivery time.
+- Bounded `PROJECT_GOVERNANCE_STATE_CONFLICT` at intake: live master already contained PR #99,
+  while persisted top wording still described a post-merge governance branch. The reconciliation
+  only relabels PR #98/#99 as historical checkpoints and removes the self-referential sync-PR loop;
+  it does not alter strategy, production semantics, or runtime-state.
+- PR #98 and PR #99 are historical merged checkpoints. PR #95/#96/#97 remain independent live OPEN
+  work and were not merged/cherry-picked. No post-merge self-referential governance sync is required.
+- Fixed comparison: 210 canonical `signal_id` rows from `B_SIGNAL_ENTRY_VALIDITY_DECAY_V1`, cutoff
+  `2026-09-30`. Category A exact `0`, unresolved potentially affected `83`; Category B exact `0`,
+  unresolved early-entry candidates `48`; primary complete/identity-consistent intersection `70`.
+- Contract conclusion: repository evidence supports independent theoretical rule simulation, so the
+  terminal marker is `DUAL_MODEL_SEMANTICS_INTENTIONAL_REPORTING_SEPARATION_READY_FOR_USER_DECISION`.
+  Keep MODEL_P prospective execution/path performance distinct from MODEL_R theoretical rule-price
+  simulation; do not change production semantics in this audit.
+- Delivery: PR #100 is open at `https://github.com/EFSing/ashare_watchlist/pull/100`, head
+  `d44d97d161de688d72312024b2ef2f615f7823d8`, base live master
+  `fb05327289fed9d13961b162a1c76c97c39f220d`. Exact-head push run `37347791252` and PR run
+  `37347920426` passed; GitHub reports `MERGEABLE / CLEAN`. User merge decision is pending.
+- Artifacts: `data/research/b_entry_validity_semantics_impact_v1/`. Final OOS remains
+  `SEALED / UNREAD`; C outcome, old D, and forbidden validation data remain unread. No runtime-state
+  mutation, prospective backfill, provider call, or merge was performed.
+
+## Historical checkpoint — 2026-10-05 — PR #98 merged; B signal research state retained
 
 - Classification: `research question` under STRICT PATH; fixed decision is
   `NEEDS_MORE_EVIDENCE`, terminal marker
@@ -43,9 +71,9 @@
   provenance only. Final OOS remains `SEALED / UNREAD`; C outcome, old D, and the forbidden
   validation directory were not read. No production dispatch, provider call, runtime-state
   mutation, or prospective backfill was performed.
-- This checkout is a governance-only post-merge reconciliation. It changes no research artifact,
-  DECISION_LOG, production code, or strategy semantics. Any follow-up PR/head/CI is a live delivery
-  property and must be re-read at its own merge-decision time.
+- This section is historical provenance. Any later PR/head/CI is a live delivery property and must
+  be re-read at its own merge-decision time; the document does not pin a permanent current master
+  SHA and does not require another post-merge sync PR.
 
 ## 2026-10-01 — Formal B 2026-09-30 tracker failure; PR #94 merged
 

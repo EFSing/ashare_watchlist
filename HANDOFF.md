@@ -1,8 +1,34 @@
 # HANDOFF — 跨设备最小恢复入口
 
-## 2026-10-05 — PR #98 merged; post-merge governance reconciliation
+## 2026-10-06 — ENTRY_VALIDITY_SEMANTICS_MISMATCH correctness audit — PR #100 open
 
-- Live post-merge master is `a94d8758bcb04df41e2ab5a326bc463a18ab91f7`; PR #98 was squash-merged
+- Classification: correctness audit + research question under STRICT PATH. This checkout is
+  `codex/entry-validity-semantics-impact-audit-v1`, created from the live `origin/master` read
+  at intake. Current branch/HEAD/upstream, GitHub PR state and CI must be re-read live; this file
+  does not declare any SHA as a permanent current-master invariant.
+- Bounded intake governance conflict: `PROJECT_GOVERNANCE_STATE_CONFLICT` because the live master
+  already contained PR #99 while the persisted top text still described a post-merge governance
+  branch. Resolved here by relabeling PR #98/#99 as historical checkpoints and removing any
+  requirement for a self-referential post-merge sync PR; no strategy or production state changed.
+- Live intake values: `origin/master=fb05327289fed9d13961b162a1c76c97c39f220d` and
+  `origin/runtime-state=1a0a1fa8331cd88ce9e4a16673a60ea3624af761`. PR #95/#96/#97 were OPEN;
+  PR #98/#99 were MERGED historical checkpoints. No PR #95/#96/#97 was merged or cherry-picked.
+- Fixed universe/cutoff: `B_SIGNAL_ENTRY_VALIDITY_DECAY_V1`, 210 canonical signal IDs,
+  as-of `2026-09-30`. The new read-only audit artifact is
+  `data/research/b_entry_validity_semantics_impact_v1/`; exact Category A/B counts are both 0,
+  with unresolved potentially affected counts 83 and 48 respectively.
+- Delivery: PR #100 is `https://github.com/EFSing/ashare_watchlist/pull/100`, head
+  `d44d97d161de688d72312024b2ef2f615f7823d8`, base `master@fb05327289fed9d13961b162a1c76c97c39f220d`.
+  Exact-head push correctness run `37347791252` and pull-request correctness run `37347920426`
+  both passed; GitHub reports `MERGEABLE / CLEAN`. Do not merge automatically.
+- Terminal marker: `DUAL_MODEL_SEMANTICS_INTENTIONAL_REPORTING_SEPARATION_READY_FOR_USER_DECISION`.
+  No production semantic change, tracker/runtime-state write, prospective backfill, provider call,
+  Final OOS read, C/old-D read, or merge was performed.
+
+## Historical checkpoint — 2026-10-05 — PR #98 merged; B signal research state retained
+
+- Historical merge checkpoint: PR #98 was squash-merged into the then-live master
+  `a94d8758bcb04df41e2ab5a326bc463a18ab91f7`
   from source head `b210c0a3bf035901dbfcda4a8bcd1f4a63564886`. Its pre-merge exact-head push
   run `37331208404` and pull-request run `37331214500` both succeeded. These are merged-PR
   provenance, not a permanent current-head invariant.
@@ -12,8 +38,7 @@
   `1a0a1fa8331cd88ce9e4a16673a60ea3624af761`. PR #95 (old recovery-blocked audit), PR #96
   (2026-09-30 recovery), and PR #97 (daily-report UX) remain live OPEN and are outside this
   independent diff. The older #94 awaiting-merge text below is historical provenance only.
-- Current branch: post-merge governance-only reconciliation branch, based on live master above.
-  Decision is `NEEDS_MORE_EVIDENCE`; terminal marker is
+- Historical research decision was `NEEDS_MORE_EVIDENCE`; terminal marker was
   `SIGNAL_VALIDITY_RESEARCH_BLOCKED_BY_DATA_GAP`. Protocol
   `B_SIGNAL_ENTRY_VALIDITY_DECAY_V1` SHA-256 is
   `19e5511fbb9b6abbd62192978485fc190f27283e7736c42db7b830be7db7ec99`.
@@ -33,10 +58,9 @@
   `813 passed, 2 skipped, 11 warnings`; compileall, diff check, and Cloudflare dispatcher `3 passed`.
   The research/artifact verification checkpoint is implementation head
   `5d931277a7c378fff81f3885a0d490af5079e8cb`, retained as historical provenance only.
-- This branch changes only HANDOFF/CURRENT_STATUS to reconcile the merged state. It does not alter
-  research artifacts, DECISION_LOG, production semantics, runtime-state, prospective evidence, or
-  Final OOS. The governance-only follow-up requires its own live PR/head/CI readback and user merge
-  decision; do not open a production-change PR from this evidence.
+- This section is persisted provenance only. A later governance or research task must use a fresh
+  live Git/GitHub/CI read and must not create a self-referential post-merge sync PR solely to restate
+  that this checkpoint merged.
 
 ## 2026-10-01 — Tracker partial-observation repair implemented; PR #94 user merge decision
 

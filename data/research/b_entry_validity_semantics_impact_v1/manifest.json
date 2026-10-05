@@ -1,0 +1,32 @@
+{
+  "artifacts": {
+    "impact_summary.json": "36574c05598ba40cd31b750e937407ef07269011ab1e42ece0b9633de590a598",
+    "protocol.json": "c053926e56c5e08ded3e3b9ee34ec4e6fe4490f0967204f32c5a06426659d67e",
+    "report.md": "60bdded3658265f28f38ab3f781c3528ee0bb2a233d67b5052193def9f9cd0ce",
+    "signal_level_comparison.csv": "7ceb737026dccacc24828c1c4f648c9dcf06516782ff75e5be0711fe7789c085"
+  },
+  "audit_version": "B_ENTRY_VALIDITY_SEMANTICS_IMPACT_V1",
+  "canonical_signal_id_sha256": "6cae101d5f283392c7d322aaecdf063327f70f45aa22e5b699877d3582b460c8",
+  "decision_marker": "DUAL_MODEL_SEMANTICS_INTENTIONAL_REPORTING_SEPARATION_READY_FOR_USER_DECISION",
+  "protocol_sha256": "c053926e56c5e08ded3e3b9ee34ec4e6fe4490f0967204f32c5a06426659d67e",
+  "reproducibility": {
+    "canonical_rows_mutated": false,
+    "command": "python scripts/audit_entry_validity_semantics_impact.py run --runtime-ref origin/runtime-state --as-of 2026-09-30 --evidence-root <existing-read-only-data/t_close_evidence>",
+    "input_evidence_is_read_only": true,
+    "production_semantics_changed": false
+  },
+  "source": {
+    "c_outcome": "NOT_READ",
+    "evidence_date": "2026-09-11",
+    "evidence_manifest_sha256": "77b8b07e9b3fbbeda01425c7ac135221b8324f045978ab0cf6a91ba6330ae78a",
+    "final_oos": "SEALED / UNREAD",
+    "forbidden_validation_data": "NOT_READ",
+    "master_sha_at_audit_base": "fb05327289fed9d13961b162a1c76c97c39f220d",
+    "old_d": "NOT_READ",
+    "runtime_state_ref": "origin/runtime-state",
+    "runtime_state_sha": "1a0a1fa8331cd88ce9e4a16673a60ea3624af761",
+    "tracker_git_blob_sha": "3984238398fcbb7e6a5dd08f7bd0df72c51367a6",
+    "tracker_path": "data/perf_tracker.json",
+    "tracker_sha256": "1ec378f7f9d4c2672c5b3603496e4f7e987ccbfb76d5adc880c3ffa6c52ad7a1"
+  }
+}
