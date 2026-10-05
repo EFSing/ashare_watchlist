@@ -1,0 +1,115 @@
+{
+  "audit_version": "B_ENTRY_VALIDITY_SEMANTICS_IMPACT_V1",
+  "canonical_universe": {
+    "canonical_rows_mutated": false,
+    "signal_count": 210,
+    "source_manifest_sha256": "55b2d26ff9aed4999ab3177811d1ccac4551e934d79cb88ac33e507e09a2a3de",
+    "source_protocol": "B_SIGNAL_ENTRY_VALIDITY_DECAY_V1",
+    "source_protocol_sha256": "19e5511fbb9b6abbd62192978485fc190f27283e7736c42db7b830be7db7ec99",
+    "strategy": "B_BREAKOUT_RETEST_LEGACY_V1_1",
+    "unit": "canonical signal_id"
+  },
+  "categories": {
+    "ENTRY_EXPIRY_MISMATCH": {
+      "complete_evidence": "R has complete history through its terminal/open state at report_date",
+      "definition": "P is complete EXPIRED_UNTRIGGERED at T+10 and R first trigger delay is >10",
+      "new_rule_trade": "R creates a triggered trade outside the P entry-validity contract",
+      "unresolved_candidate": "P cannot prove T+10 expiry and R lacks a complete path; NOT_YET_ELIGIBLE rows are excluded from potentially affected count"
+    },
+    "TIME_EXIT_MISMATCH": {
+      "definition": "same signal and first-entry date, first entry T+1..T+9, P completes with T+10 TIME_EXIT, and R continues beyond P exit",
+      "entry_identity": "same canonical signal_id and same first_trigger_date; entry_price equality is reported separately",
+      "later_outcomes": [
+        "LATER_TARGET",
+        "LATER_STOP",
+        "REMAINS_OPEN",
+        "UNRESOLVED_INCOMPLETE_OR_CENSORED"
+      ],
+      "unresolved_candidate": "same known early entry but P or R post-entry path is incomplete"
+    },
+    "mutually_exclusive": true
+  },
+  "data_cutoff": "2026-09-30",
+  "decision_rule": {
+    "A": "choose only if repository contract defines formal performance as prospective execution reconstruction and R deviation is incorrect",
+    "B": "choose only if repository contract explicitly supports independent rule simulation; separate labels, counts and UI are required",
+    "C": "choose if contract evidence is materially conflicting or insufficient to determine canonical meaning",
+    "selection_constraint": "never choose from which model has better returns"
+  },
+  "metric_denominators": {
+    "delta": "MODEL_R minus MODEL_P on the same primary intersection",
+    "eligible_signals": "signal_date < data_cutoff and both models have a T+1 opportunity in the selected intersection",
+    "open_and_closed_rates": "count / eligible_signals",
+    "payoff_ratio": "average positive realized return / abs(average negative realized return)",
+    "profit_factor": "sum positive realized returns / abs(sum negative realized returns)",
+    "returns": "complete numeric realized return rows only; no open/ambiguous/incomplete/censored rows",
+    "target_stop_time_exit_rates": "exit count / closed_trades; ambiguous is not a closed trade",
+    "trigger_rate": "triggered / eligible_signals",
+    "win_rate": "TARGET / closed_trades"
+  },
+  "missing_data_rules": {
+    "all_missing_observations": "retain missing/null; never use 0 or future observations",
+    "model_r_expiry_metric": "NOT_APPLICABLE because R has no expiry; report untriggered_to_report separately",
+    "primary_returns": "only complete, identity-consistent P/R intersection; numeric realized returns only",
+    "secondary_counts": "include incomplete, censored, conflict and not-yet-eligible states without adding them to return denominators"
+  },
+  "model_p": {
+    "earlier_entry_at_t_plus_10": "TIME_EXIT at T+10 close unless an earlier stop/target terminal event occurs",
+    "entry_day_sellability": "entry session cannot sell; next XSHG session is sellable",
+    "fill": "open when opening gap is at/above trigger, otherwise canonical trigger",
+    "first_entry": "first canonical trigger on XSHG T+1 through T+10",
+    "missing_observation": "path is unverified/incomplete; missing is never zero-filled or repaired with future bars",
+    "name": "MODEL_P_CURRENT_PROSPECTIVE_SEMANTICS",
+    "source": "scripts/track_perf.py::rebuild_execution_state_from_observations via scripts/research_b_signal_entry_validity_decay.py::analyze_signal",
+    "stop_target": "sellable bar open-first gap, then low/high; same-bar stop+target is AMBIGUOUS_SAME_BAR",
+    "t_plus_10_first_trigger": "entry allowed; first legal next session handles exit/time-exit",
+    "t_plus_10_untriggered": "EXPIRED_UNTRIGGERED"
+  },
+  "model_r": {
+    "entry_day_sellability": "entry session cannot sell; next XSHG session is sellable",
+    "entry_expiry": "none",
+    "fill": "canonical trigger price; daily open is not used",
+    "first_entry": "first post-signal XSHG session through report_date with high >= canonical trigger",
+    "missing_observation": "PERFORMANCE_DATA_INCOMPLETE; missing is never zero-filled",
+    "name": "MODEL_R_CURRENT_STRATEGY_RULE_PERFORMANCE_SEMANTICS",
+    "source": "scripts/track_perf.py::build_strategy_rule_performance -> _strategy_rule_trade_row -> _rule_sessions_after",
+    "stop_target": "sellable bar low/high at canonical rule price; same-bar stop+target is AMBIGUOUS_SAME_BAR",
+    "t_plus_10_or_later_first_trigger": "allowed while report_date contains the session",
+    "time_exit": "none; a trade may remain OPEN through report_date"
+  },
+  "research_only": true,
+  "source_contract": {
+    "c_outcome": "NOT_READ",
+    "evidence_date": "2026-09-11",
+    "evidence_manifest_sha256": "77b8b07e9b3fbbeda01425c7ac135221b8324f045978ab0cf6a91ba6330ae78a",
+    "final_oos": "SEALED / UNREAD",
+    "forbidden_validation_data": "NOT_READ",
+    "master_sha_at_audit_base": "fb05327289fed9d13961b162a1c76c97c39f220d",
+    "old_d": "NOT_READ",
+    "runtime_state_ref": "origin/runtime-state",
+    "runtime_state_sha": "1a0a1fa8331cd88ce9e4a16673a60ea3624af761",
+    "tracker_git_blob_sha": "3984238398fcbb7e6a5dd08f7bd0df72c51367a6",
+    "tracker_path": "data/perf_tracker.json",
+    "tracker_sha256": "1ec378f7f9d4c2672c5b3603496e4f7e987ccbfb76d5adc880c3ffa6c52ad7a1"
+  },
+  "source_paths_and_functions": {
+    "prospective": [
+      "scripts/track_perf.py::_execution_horizon_sessions",
+      "scripts/track_perf.py::rebuild_execution_state_from_observations",
+      "scripts/track_perf.py::_sellable_exit_decision",
+      "scripts/track_perf.py::_time_exit_t1_decision",
+      "scripts/research_b_signal_entry_validity_decay.py::analyze_signal"
+    ],
+    "rule_performance": [
+      "scripts/track_perf.py::_rule_sessions_after",
+      "scripts/track_perf.py::_strategy_rule_trade_row",
+      "scripts/track_perf.py::build_strategy_rule_performance",
+      "scripts/render_daily_close_html.py::build_report_model"
+    ],
+    "tests": [
+      "tests/test_b_signal_entry_validity_decay.py",
+      "tests/test_strategy_rule_performance.py",
+      "tests/test_entry_validity_semantics_impact.py"
+    ]
+  }
+}
