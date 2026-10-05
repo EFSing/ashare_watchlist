@@ -556,6 +556,7 @@ _B_SHELL = (
     '<section id="overview">总览内容</section>\n'
     '<section id="tomorrow-watchlist">新名单内容</section>\n'
     '<section id="trade-performance">绩效内容</section>\n'
+    '<section id="research-data"><h2>研究与数据</h2></section>\n'
     '<details id="audit"><summary>技术与审计信息</summary></details>\n'
     '</main></body></html>'
 )
@@ -571,7 +572,7 @@ def _single_match_watchlist() -> dict:
     return build_watchlist(record)
 
 
-def test_composite_places_c_module_after_new_list_with_nav_entry() -> None:
+def test_composite_places_c_module_inside_collapsed_research_data() -> None:
     from c_daily_watchlist import compose_delivery_html, render_section
 
     watchlist = _single_match_watchlist()
@@ -579,15 +580,15 @@ def test_composite_places_c_module_after_new_list_with_nav_entry() -> None:
     html = compose_delivery_html(_B_SHELL, section).decode("utf-8")
 
     assert html.count('id="c-daily-research"') == 1
-    assert '<a href="#tomorrow-watchlist">新名单</a><a href="#c-daily-research">C研究</a>' in html
-    assert (html.index('<section id="tomorrow-watchlist"') < html.index('<section id="c-daily-research"')
-            < html.index('<section id="trade-performance"'))
+    assert 'href="#c-daily-research"' not in html
+    assert '<details id="c-daily-research"' in html
+    research_start = html.index('<section id="research-data">')
+    c_start = html.index('<details id="c-daily-research"')
+    research_end = html.index('</section>', research_start)
+    assert research_start < c_start < research_end
+    assert '<summary>C 研究 · C 策略研究名单 · 1 只</summary>' in html
     assert "c_daily/" not in html and "iframe" not in html
-    # The presentation copy differs from the canonical Formal B bytes only by the
-    # added navigation entry and the inline C module.
-    restored = html.replace(f"\n{section}\n", "").replace(
-        '<a href="#c-daily-research">C研究</a>', "")
-    assert restored == _B_SHELL
+    assert '<style data-c-daily-inline-style>' in html
 
 
 def test_c_module_first_layer_is_compact_and_technical_detail_is_collapsed() -> None:

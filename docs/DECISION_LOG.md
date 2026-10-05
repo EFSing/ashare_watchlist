@@ -1,5 +1,17 @@
 # DECISION LOG
 
+## 2026-10-06 — ADOPT_DUAL_MODEL_REPORTING_SEPARATION
+
+- Retain the existing `MODEL_P` prospective execution/path model and existing
+  `MODEL_R` theoretical/read-only rule simulation; separate them explicitly in
+  the daily report using the user-facing labels “前瞻执行路径” and “理论规则模拟”。
+- Keep fixed T+3/T+5/T+10 observations independent, and keep C inline under
+  研究与数据 in the self-contained B+C HTML delivery.
+- This is a bounded presentation and semantic-labeling decision only. It does
+  not adopt a new trading rule, change entry validity, promote MODEL_R to
+  prospective truth, or change any strategy, tracker, performance calculation,
+  runtime-state, artifact, or Final OOS semantics.
+
 ## 2026-10-05 — NEEDS_MORE_EVIDENCE: B signal entry-validity decay is blocked by missing path data
 
 - `NEEDS_MORE_EVIDENCE` for `B_SIGNAL_ENTRY_VALIDITY_DECAY_V1`; this is a research decision,

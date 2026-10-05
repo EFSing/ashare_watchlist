@@ -374,7 +374,9 @@ def test_html_empty_state_and_no_decision_language(tmp_path: Path):
     (tmp_path / "data" / "perf_tracker.json").write_text(json.dumps(tracker), encoding="utf-8")
     model = renderer.build_report_model("20260910", paths=DataPaths(tmp_path / "data"), calendar=CALENDAR)
     html = renderer.render_html(model)
-    section = html.split('<section id="shadow-monitor">', 1)[1].split('<section id="daily-review">', 1)[0]
+    section = html.split('<details id="shadow-monitor"', 1)[1].split(
+        '<details id="anomalies"', 1
+    )[0]
     assert "暂无 prospective shadow 样本" in section
     assert "BUY" not in section and "AVOID" not in section
 
