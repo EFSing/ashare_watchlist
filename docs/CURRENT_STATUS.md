@@ -1,5 +1,55 @@
 # CURRENT STATUS
 
+## 2026-10-05 — B signal entry-validity decay research blocked by data gap
+
+- Classification: `research question` under STRICT PATH; fixed decision is
+  `NEEDS_MORE_EVIDENCE`, terminal marker
+  `SIGNAL_VALIDITY_RESEARCH_BLOCKED_BY_DATA_GAP`. This is an independent research-only branch
+  `codex/b-signal-entry-validity-decay-v1`, based on live `origin/master=
+  c7d2feac99e48fb840e36785a0c0866035d18355`; it does not change production semantics.
+- Protocol: `B_SIGNAL_ENTRY_VALIDITY_DECAY_V1`, SHA-256
+  `19e5511fbb9b6abbd62192978485fc190f27283e7736c42db7b830be7db7ec99`; data cutoff
+  `2026-09-30`; current prospective epoch `2026-09-03`; strategy exactly
+  `B_BREAKOUT_RETEST_LEGACY_V1_1`. The runtime-state tracker source is `origin/runtime-state=
+  1a0a1fa8331cd88ce9e4a16673a60ea3624af761`, tracker SHA-256
+  `1ec378f7f9d4c2672c5b3603496e4f7e987ccbfb76d5adc880c3ffa6c52ad7a1`, and the 14 canonical
+  watchlists are pinned in `protocol.json`.
+- Research artifacts: 210 signal-level rows keyed by canonical `signal_id`; CSV SHA-256
+  `a8175bf4115b09db29fa32061c4f20f368773be334b571cef18b4b3f98d59db0`; cohort summary SHA-256
+  `580ab10ad26f65eeb0def30e8260155af1f83bfdd8f7e6c40e8bfd0a411cde69`; report SHA-256
+  `788333f85cbfba575faf2599e62ed5ae5cd893653c0e4c47d0674441be87e660`. The manifest SHA-256
+  is `55b2d26ff9aed4999ab3177811d1ccac4551e934d79cb88ac33e507e09a2a3de`; the read-only
+  2026-09-11 T-close evidence manifest covers 139 codes and has SHA-256
+  `77b8b07e9b3fbbeda01425c7ac135221b8324f045978ab0cf6a91ba6330ae78a`.
+- Evidence: 118 delays are classifiable (EARLY 117; LATE 1 at T+5); T+6–T+10 has 0
+  classifiable signals; complete UNTRIGGERED is 0; 9 delay paths are censored at the cutoff,
+  82 are incomplete, and 1 has an evidence/tracker bar conflict. The mutually exclusive
+  partition is therefore `KNOWN=118 / INCOMPLETE=82 / CENSORED=9 / DATA_CONFLICT=1`.
+  Analysis B also has 48
+  known-delay rows with incomplete post-entry operational paths. Fixed E+1/E+3/E+5 results are
+  therefore not a valid Early-vs-Late decay test; LATE is `INSUFFICIENT_SAMPLE`, and no bootstrap
+  CI was run.
+- The audit records `ENTRY_VALIDITY_SEMANTICS_MISMATCH`: prospective tracker searches T+1..T+10,
+  expires untriggered signals at T+10, permits a T+10 first entry with next-session sellability,
+  and has time-exit behavior; strategy-rule performance searches through report date with no
+  entry expiry and `time_exit=False`. T+10 is consequently both an operational boundary and a
+  fixed research node in current code. No unification is made in this PR.
+- Validation: focused research tests `12 passed`; full project suite `813 passed, 2 skipped,
+  11 warnings` under the project `.venv` with a short Windows basetemp; compileall, diff check,
+  and CI-equivalent Cloudflare dispatcher `3 passed`. The research/artifact verification
+  checkpoint is implementation head `5d931277a7c378fff81f3885a0d490af5079e8cb`, retained as
+  historical provenance only. In the pre-follow-up live readback snapshot, PR #98 was
+  `OPEN / MERGEABLE` at head `bfac38c5f6cbcf00b0e24c675e8332b55a57a993`; exact-head push
+  correctness run `37222331994` and pull-request correctness run `37222334992` both succeeded.
+  This snapshot is not a permanent current-head invariant; merge-decision recovery must re-read
+  the final PR tip, mergeability, and exact-head CI. The governance-only follow-up is not covered
+  by those prior checks. Final OOS remains `SEALED / UNREAD`; C outcome, old D, and the forbidden
+  validation directory were not read. No production dispatch, provider call, runtime-state
+  mutation, prospective backfill, or merge was performed.
+- Next decision: user chooses whether to continue prospective collection/repair the missing
+  session observations before rerunning this research. PR #98 is research-only and awaits the
+  user's merge decision; this result does not authorize a production entry-validity change.
+
 ## 2026-10-01 — Formal B 2026-09-30 tracker failure; PR #94 merged
 
 - Current state: user-authorized PR #94 squash merge completed at

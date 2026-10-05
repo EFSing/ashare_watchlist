@@ -1,5 +1,39 @@
 # DECISION LOG
 
+## 2026-10-05 — NEEDS_MORE_EVIDENCE: B signal entry-validity decay is blocked by missing path data
+
+- `NEEDS_MORE_EVIDENCE` for `B_SIGNAL_ENTRY_VALIDITY_DECAY_V1`; this is a research decision,
+  not a production entry-expiry decision. The fixed data cutoff is `2026-09-30`, the current
+  prospective epoch is `2026-09-03`, and the only strategy studied is
+  `B_BREAKOUT_RETEST_LEGACY_V1_1`.
+- The canonical signal-level sample is 210 `signal_id` rows. Only 118 first-trigger delays are
+  provable from XSHG-session observations: EARLY (T+1..T+3) has 117 and LATE (T+4..T+10) has
+  one T+5 row. There are no delay-classifiable T+6..T+10 rows and no complete UNTRIGGERED
+  cohort. Nine rows are censored because T+10 is not observable at the cutoff, 82 have missing
+  required path observations, and one has a conflict between the read-only T-close evidence and
+  tracker observation for the same session.
+- Primary Analysis A remains fixed-entry-relative E+1/E+3/E+5 with canonical trigger/stop/target,
+  current prospective fill semantics, A-share T+1, terminal handling, and no zero-filled missing
+  observations. Its Early-vs-Late comparison is `INSUFFICIENT_SAMPLE`; no CI/bootstrap is
+  reported. Analysis B separately replays the current prospective T+10 operational path. The
+  cutoff sensitivity table is counterfactual only and never uses `argmax -> production cutoff`.
+- The audit establishes `ENTRY_VALIDITY_SEMANTICS_MISMATCH`: prospective tracker T+10 is an
+  operational search/expiry/time-exit boundary, while strategy-rule performance has no entry
+  expiry or time exit and can search beyond T+10. This mismatch is documented but not repaired
+  by this research PR.
+- Required next evidence is specific: complete, identity-preserving XSHG OHLC observations for
+  the missing T+1..T+10 sessions and post-entry E+1/E+3/E+5/terminal paths for the prospective
+  signal set, with no prospective backfill that rewrites existing artifacts. Until that gate is
+  met, current production rules remain unchanged and the result is
+  `SIGNAL_VALIDITY_RESEARCH_BLOCKED_BY_DATA_GAP`.
+- Protocol SHA-256 is
+  `19e5511fbb9b6abbd62192978485fc190f27283e7736c42db7b830be7db7ec99`; signal-level artifact
+  SHA-256 is `a8175bf4115b09db29fa32061c4f20f368773be334b571cef18b4b3f98d59db0`. The corrected
+  cohort summary SHA-256 is `580ab10ad26f65eeb0def30e8260155af1f83bfdd8f7e6c40e8bfd0a411cde69`;
+  its exclusive delay partition is `118 / 82 / 9 / 1`, with the combined unresolved cohort at
+  92. Final OOS
+  remains `SEALED / UNREAD`; C outcome data and the forbidden validation directory were not read.
+
 ## 2026-09-28 — ADOPT current-roster same-day universe eligibility; historical listing stays fail-closed
 
 - `ADOPT` identity `HITHINK_CURRENT_ROSTER_SAME_DAY_OR_LIST_DATE_ELIGIBILITY_V2` (replacing
