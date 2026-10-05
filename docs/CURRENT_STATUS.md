@@ -1,12 +1,14 @@
 # CURRENT STATUS
 
-## 2026-10-05 — B signal entry-validity decay research blocked by data gap
+## 2026-10-05 — PR #98 merged; B signal research state retained
 
 - Classification: `research question` under STRICT PATH; fixed decision is
   `NEEDS_MORE_EVIDENCE`, terminal marker
-  `SIGNAL_VALIDITY_RESEARCH_BLOCKED_BY_DATA_GAP`. This is an independent research-only branch
-  `codex/b-signal-entry-validity-decay-v1`, based on live `origin/master=
-  c7d2feac99e48fb840e36785a0c0866035d18355`; it does not change production semantics.
+  `SIGNAL_VALIDITY_RESEARCH_BLOCKED_BY_DATA_GAP`. PR #98 is now squash-merged into live master
+  `a94d8758bcb04df41e2ab5a326bc463a18ab91f7` from source head
+  `b210c0a3bf035901dbfcda4a8bcd1f4a63564886`; its pre-merge exact-head push run `37331208404`
+  and pull-request run `37331214500` both succeeded. Those values are merged-PR provenance, not
+  a permanent current-head invariant. Production semantics remain unchanged.
 - Protocol: `B_SIGNAL_ENTRY_VALIDITY_DECAY_V1`, SHA-256
   `19e5511fbb9b6abbd62192978485fc190f27283e7736c42db7b830be7db7ec99`; data cutoff
   `2026-09-30`; current prospective epoch `2026-09-03`; strategy exactly
@@ -34,21 +36,16 @@
   and has time-exit behavior; strategy-rule performance searches through report date with no
   entry expiry and `time_exit=False`. T+10 is consequently both an operational boundary and a
   fixed research node in current code. No unification is made in this PR.
-- Validation: focused research tests `12 passed`; full project suite `813 passed, 2 skipped,
-  11 warnings` under the project `.venv` with a short Windows basetemp; compileall, diff check,
-  and CI-equivalent Cloudflare dispatcher `3 passed`. The research/artifact verification
-  checkpoint is implementation head `5d931277a7c378fff81f3885a0d490af5079e8cb`, retained as
-  historical provenance only. In the pre-follow-up live readback snapshot, PR #98 was
-  `OPEN / MERGEABLE` at head `bfac38c5f6cbcf00b0e24c675e8332b55a57a993`; exact-head push
-  correctness run `37222331994` and pull-request correctness run `37222334992` both succeeded.
-  This snapshot is not a permanent current-head invariant; merge-decision recovery must re-read
-  the final PR tip, mergeability, and exact-head CI. The governance-only follow-up is not covered
-  by those prior checks. Final OOS remains `SEALED / UNREAD`; C outcome, old D, and the forbidden
+- Validation provenance remains: focused research tests `12 passed`; full project suite
+  `813 passed, 2 skipped, 11 warnings` under the project `.venv`; compileall, diff check, and
+  CI-equivalent Cloudflare dispatcher `3 passed`. The research/artifact verification checkpoint
+  is implementation head `5d931277a7c378fff81f3885a0d490af5079e8cb`, retained as historical
+  provenance only. Final OOS remains `SEALED / UNREAD`; C outcome, old D, and the forbidden
   validation directory were not read. No production dispatch, provider call, runtime-state
-  mutation, prospective backfill, or merge was performed.
-- Next decision: user chooses whether to continue prospective collection/repair the missing
-  session observations before rerunning this research. PR #98 is research-only and awaits the
-  user's merge decision; this result does not authorize a production entry-validity change.
+  mutation, or prospective backfill was performed.
+- This checkout is a governance-only post-merge reconciliation. It changes no research artifact,
+  DECISION_LOG, production code, or strategy semantics. Any follow-up PR/head/CI is a live delivery
+  property and must be re-read at its own merge-decision time.
 
 ## 2026-10-01 — Formal B 2026-09-30 tracker failure; PR #94 merged
 
