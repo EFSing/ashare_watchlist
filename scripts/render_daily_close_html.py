@@ -1652,6 +1652,8 @@ def _daily_review_html(model: ReportModel) -> str:
     )
     report_date = str(model.metadata.get('review_date') or '')
     return (
+        f'<p class="section-summary">昨日名单今日表现 · {_esc(model.metadata.get("previous_date"))} · '
+        f'共 {_esc(_integer(summary.get("previous_total"), "0"))} 个信号</p>'
         '<div class="model-panel model-p-panel">'
         f'<div class="model-panel-head"><div><span class="model-label">{MODEL_P} · {MODEL_P_LABEL}</span>'
         '<h3>前瞻执行路径变化</h3></div>'
