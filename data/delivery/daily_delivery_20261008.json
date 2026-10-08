@@ -1,0 +1,17 @@
+{
+  "bark_error_summary": null,
+  "bark_sent_at_bjt": "2026-10-08T18:40:26+08:00",
+  "bark_status": "SUCCESS",
+  "candidate_count": 8,
+  "delivery_report_kind": "B_PLUS_C_PRESENTATION_V1",
+  "delivery_report_sha256": "1399ebd776831c257c70114549e006cbb1bff36a484d6fc7fc822e2033923380",
+  "email_error_summary": null,
+  "email_sent_at_bjt": "2026-10-08T18:40:26+08:00",
+  "email_status": "SUCCESS",
+  "last_attempt_at_bjt": "2026-10-08T18:40:26+08:00",
+  "report_date": "2026-10-08",
+  "report_sha256": "3a6c424c4a4a5eb3c7d625b5d9577a2cb9ed85f24ada2520c7b8ba9685deecc0",
+  "review_status": "REVIEW_OBSERVATION_INCOMPLETE",
+  "schema_version": "DAILY_REPORT_DELIVERY_RECEIPT_V1",
+  "shadow_status": "SHADOW_CAPTURE_INCOMPLETE"
+}
