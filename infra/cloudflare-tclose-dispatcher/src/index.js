@@ -51,10 +51,28 @@ export function buildDispatchRequest(scheduledTime, env) {
 
 export async function dispatchWorkflow(scheduledTime, env, fetchImpl = fetch) {
   const request = buildDispatchRequest(scheduledTime, env);
-  const response = await fetchImpl(request.url, request.init);
+  const context = {
+    as_of_date: JSON.parse(request.init.body).inputs.as_of_date,
+    scheduled_time: new Date(scheduledTime).toISOString(),
+    trigger_source: TRIGGER_SOURCE,
+    repository: REPOSITORY,
+    workflow: WORKFLOW,
+    ref: DISPATCH_REF,
+  };
+  console.info({ status: "DISPATCH_STARTED", ...context });
+  let response;
+  try {
+    response = await fetchImpl(request.url, request.init);
+  } catch {
+    // A transport exception may contain request headers. Never log/rethrow it.
+    console.error({ status: "DISPATCH_FAILED", ...context, reason: "GITHUB_WORKFLOW_DISPATCH_NETWORK_ERROR" });
+    throw new Error("GITHUB_WORKFLOW_DISPATCH_NETWORK_ERROR");
+  }
   if (response.status !== 204) {
+    console.error({ status: "DISPATCH_FAILED", ...context, http_status: response.status });
     throw new Error(`GITHUB_WORKFLOW_DISPATCH_FAILED_${response.status}`);
   }
+  console.info({ status: "DISPATCHED", ...context, http_status: 204 });
   return {
     status: "DISPATCHED",
     as_of_date: JSON.parse(request.init.body).inputs.as_of_date,
