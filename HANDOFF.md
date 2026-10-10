@@ -1,6 +1,49 @@
 # HANDOFF — 跨设备最小恢复入口
 
-## 2026-10-06 — ENTRY_VALIDITY_SEMANTICS_MISMATCH correctness audit — PR #100 open
+## 2026-10-10 — Scheduler recovery — PR #102 merge/deploy decision
+
+- Classification: STRICT PATH; initially correctness blocker, revised to P1 product blocker
+  for daily automatic execution and monitoring because existing stale-date/idempotency
+  correctness gates are effective. Independent branch `codex/scheduler-recovery-20261009`,
+  based on live `origin/master=2551c7f3dc34a3c5bcc88c5c24ac0203e037384d`; runtime-state read
+  `804e9b05a23b3248de933698c636e65be792b776`. Original/other research worktrees untouched.
+- `PROJECT_GOVERNANCE_STATE_CONFLICT` resolved by this top entry and historical labeling:
+  GitHub confirms #100 merged as `85ce2a970ed3bd70d4b5d3289222f76749caee64` and #101 merged
+  as `2551c7f3dc34a3c5bcc88c5c24ac0203e037384d`. Their earlier pending decisions are
+  historical. No research record/result or Decision Log is rewritten.
+- GitHub primary/retry 37957620044/37963035069 were created at October 10 00:14/00:59 BJT
+  and safely returned `SKIPPED_STALE_SCHEDULE`, `provider_calls=0`. Cloudflare account
+  reads confirm Worker, unchanged 17:25 Cron, required secret binding, and active version
+  `ef7368ce-9995-4c96-b29b-c9710f4fc88b`. Its bundled code matches live master, including
+  User-Agent. October 9 has no recorded Scheduled Invocation; October 8 control has a
+  successful Cron and one subrequest. Missed Cron delivery vs telemetry loss remains
+  `UNRESOLVED`; no October 9 GitHub HTTP status or PAT failure is established.
+- Fix: native persisted Workers Logs configuration plus safe start/result/HTTP/network
+  diagnostics; transport exception text/stack/cause are discarded. No schedule, Python
+  production, strategy, runtime-state or receipt semantics changed. Not deployed.
+- PR: https://github.com/EFSing/ashare_watchlist/pull/102 (base `master`); pushed implementation
+  checkpoint `462014010bc7f051aa0e3677f9e715c596b31567`. This handoff advances the tip.
+  Remote recovery source is `origin/codex/scheduler-recovery-20261009`: fetch, resolve its
+  live HEAD and require checkout/upstream/PR HEAD to agree; do not mistake this checkpoint
+  for the final tip. Exact-head push/PR correctness CI and mergeability must be read live.
+- Verification: Node 5 passed, focused Python cloud context/runtime/delivery 78 passed,
+  Node syntax, Python compile, diff checks and Wrangler 4.133.0 deploy dry-run passed.
+  October 9 Git bytes/checkpoint/HTML/receipt hashes match; canonical state copied read-only
+  returns `ALREADY_COMPLETED` and zero provider calls, with 8 candidates and Email/Bark
+  SUCCESS. Scoped evidence/full hashes and recovery steps are in the existing
+  `infra/cloudflare-tclose-dispatcher/README.md`; no local-only evidence is required to resume.
+- Remaining: user merge/deploy decision; Cloudflare explanation for the missing occurrence;
+  native notification eligibility/policy/delivery verification. Existing OAuth alerting
+  reads return 403, so alarms are `UNVERIFIED`. Logs alone cannot notify or detect an absent
+  Cron. Do not claim recovery, change Cron/secret without evidence, or add paid infrastructure.
+  Accept only on a future normal trading-day Cron with original date, safe log/HTTP result,
+  matching GitHub context and canonical completion/receipt or idempotent skip.
+- Target: `SCHEDULER_RECOVERY_PR_READY_FOR_USER_MERGE_AND_DEPLOY_DECISION`. No production
+  dispatch/rerun, provider call, backfill, historical overwrite, deployment/account setting
+  change, Final OOS access, other research PR modification or automatic merge.
+  Keep this single PR; no post-merge governance sync loop is required.
+
+## Historical pre-merge checkpoint — 2026-10-06 — ENTRY_VALIDITY_SEMANTICS_MISMATCH audit — PR #100
 
 - Classification: correctness audit + research question under STRICT PATH. This checkout is
   `codex/entry-validity-semantics-impact-audit-v1`, created from the live `origin/master` read
