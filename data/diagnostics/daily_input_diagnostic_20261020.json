@@ -1,0 +1,406 @@
+{
+  "actual_retrieved_at_bjt": "2026-10-20T17:25:36.957946+08:00",
+  "candidate_count": 0,
+  "checkpoint_created": false,
+  "coverage_status": "NO_VALID_INPUT",
+  "delivery_receipt_created": false,
+  "detail": "HiThink stock history source repeatedly failed; acquisition stopped early",
+  "evaluated_symbol_count": 0,
+  "excluded_reason_counts": {
+    "HISTORICAL_PROVIDER_FAILURE": 3,
+    "TARGET_DAY_HISTORICAL_STALE": 1
+  },
+  "excluded_symbol_count": 4,
+  "exclusions": [
+    {
+      "detail": "INPUT_DATE_MISMATCH: HiThink historical latest bar for 000016.SZ is 2026-09-03 != 2026-10-20",
+      "display_name": "*ST康佳A",
+      "evidence": {
+        "historical": {
+          "classification": "TARGET_DAY_HISTORICAL_STALE",
+          "detail": "INPUT_DATE_MISMATCH: HiThink historical latest bar for 000016.SZ is 2026-09-03 != 2026-10-20",
+          "historical_bar_count": 339,
+          "historical_quality": {
+            "future_data": false,
+            "non_empty": true,
+            "structure_valid": true
+          },
+          "latest_historical_date": "2026-09-03",
+          "provider": "HiThink Financial-API",
+          "retry_count": 1,
+          "symbol": "000016",
+          "target_date": "2026-10-20",
+          "thscode": "000016.SZ"
+        },
+        "quote": {
+          "chg_pct": null,
+          "code": "000016",
+          "high": null,
+          "low": null,
+          "name": "*ST康佳A",
+          "open": null,
+          "prev_close": 2.46,
+          "price": null,
+          "quote_date": "2026-10-20",
+          "quote_date_evidence": "NOT_PROVIDER_VERIFIED",
+          "symbol": "000016",
+          "timestamp": null,
+          "trade_state": "UNKNOWN",
+          "turnover_amount": 0.0,
+          "volume": 0.0
+        }
+      },
+      "failure_stage": "stock_kline",
+      "failure_status": "INPUT_DATE_MISMATCH",
+      "latest_historical_date": "2026-09-03",
+      "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+      "provider": "HiThink Financial-API",
+      "provider_symbol": "000016.SZ",
+      "quote_trade_state": "UNKNOWN",
+      "reason": "TARGET_DAY_HISTORICAL_STALE",
+      "status": "EXCLUDED_INPUT_ANOMALY",
+      "symbol": "000016",
+      "target_date": "2026-10-20"
+    },
+    {
+      "detail": "PROVIDER_FAILURE: HiThink historical acquisition failed for 000717.SZ; no alternate provider is permitted",
+      "display_name": "中南股份",
+      "evidence": {
+        "historical": {
+          "detail": "PROVIDER_FAILURE: HiThink historical acquisition failed for 000717.SZ; no alternate provider is permitted",
+          "exception_type": "_HiThinkReadFailure",
+          "provider": "HiThink Financial-API",
+          "retry_count": 0,
+          "symbol": "000717",
+          "target_date": "2026-10-20"
+        },
+        "quote": {
+          "chg_pct": -0.934579,
+          "code": "000717",
+          "high": 2.14,
+          "low": 2.09,
+          "name": "中南股份",
+          "open": 2.13,
+          "prev_close": 2.14,
+          "price": 2.12,
+          "quote_date": "2026-10-20",
+          "quote_date_evidence": "NOT_PROVIDER_VERIFIED",
+          "symbol": "000717",
+          "timestamp": null,
+          "trade_state": "TRADED",
+          "turnover_amount": 33599518.0,
+          "volume": 15935800.0
+        }
+      },
+      "failure_stage": "stock_kline",
+      "failure_status": "PROVIDER_FAILURE",
+      "latest_historical_date": null,
+      "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+      "provider": "HiThink Financial-API",
+      "provider_symbol": "000717.SZ",
+      "quote_trade_state": "TRADED",
+      "reason": "HISTORICAL_PROVIDER_FAILURE",
+      "status": "EXCLUDED_INPUT_ANOMALY",
+      "symbol": "000717",
+      "target_date": "2026-10-20"
+    },
+    {
+      "detail": "PROVIDER_FAILURE: HiThink historical acquisition failed for 000725.SZ; no alternate provider is permitted",
+      "display_name": "京东方Ａ",
+      "evidence": {
+        "historical": {
+          "detail": "PROVIDER_FAILURE: HiThink historical acquisition failed for 000725.SZ; no alternate provider is permitted",
+          "exception_type": "_HiThinkReadFailure",
+          "provider": "HiThink Financial-API",
+          "retry_count": 0,
+          "symbol": "000725",
+          "target_date": "2026-10-20"
+        },
+        "quote": {
+          "chg_pct": -0.395257,
+          "code": "000725",
+          "high": 5.1,
+          "low": 5.01,
+          "name": "京东方Ａ",
+          "open": 5.04,
+          "prev_close": 5.06,
+          "price": 5.04,
+          "quote_date": "2026-10-20",
+          "quote_date_evidence": "NOT_PROVIDER_VERIFIED",
+          "symbol": "000725",
+          "timestamp": null,
+          "trade_state": "TRADED",
+          "turnover_amount": 2953754000.0,
+          "volume": 585752990.0
+        }
+      },
+      "failure_stage": "stock_kline",
+      "failure_status": "PROVIDER_FAILURE",
+      "latest_historical_date": null,
+      "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+      "provider": "HiThink Financial-API",
+      "provider_symbol": "000725.SZ",
+      "quote_trade_state": "TRADED",
+      "reason": "HISTORICAL_PROVIDER_FAILURE",
+      "status": "EXCLUDED_INPUT_ANOMALY",
+      "symbol": "000725",
+      "target_date": "2026-10-20"
+    },
+    {
+      "detail": "PROVIDER_FAILURE: HiThink historical acquisition failed for 000727.SZ; no alternate provider is permitted",
+      "display_name": "冠捷科技",
+      "evidence": {
+        "historical": {
+          "detail": "PROVIDER_FAILURE: HiThink historical acquisition failed for 000727.SZ; no alternate provider is permitted",
+          "exception_type": "_HiThinkReadFailure",
+          "provider": "HiThink Financial-API",
+          "retry_count": 0,
+          "symbol": "000727",
+          "target_date": "2026-10-20"
+        },
+        "quote": {
+          "chg_pct": 0.0,
+          "code": "000727",
+          "high": 2.1,
+          "low": 2.06,
+          "name": "冠捷科技",
+          "open": 2.07,
+          "prev_close": 2.07,
+          "price": 2.07,
+          "quote_date": "2026-10-20",
+          "quote_date_evidence": "NOT_PROVIDER_VERIFIED",
+          "symbol": "000727",
+          "timestamp": null,
+          "trade_state": "TRADED",
+          "turnover_amount": 71201745.0,
+          "volume": 34283700.0
+        }
+      },
+      "failure_stage": "stock_kline",
+      "failure_status": "PROVIDER_FAILURE",
+      "latest_historical_date": null,
+      "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+      "provider": "HiThink Financial-API",
+      "provider_symbol": "000727.SZ",
+      "quote_trade_state": "TRADED",
+      "reason": "HISTORICAL_PROVIDER_FAILURE",
+      "status": "EXCLUDED_INPUT_ANOMALY",
+      "symbol": "000727",
+      "target_date": "2026-10-20"
+    }
+  ],
+  "formal_result_valid": false,
+  "formal_watchlist_created": false,
+  "global_failures": [
+    {
+      "detail": "the same provider failure repeated; remaining stock requests were not attempted",
+      "provider": "HiThink Financial-API",
+      "reason": "REPEATED_SYSTEM_FAILURE_FAST_FAIL",
+      "stage": "stock_kline",
+      "status": "PROVIDER_FAILURE",
+      "symbols_seen": [
+        "000001",
+        "000002",
+        "000006"
+      ]
+    }
+  ],
+  "input_coverage": {
+    "coverage_status": "NO_VALID_INPUT",
+    "evaluated_symbol_count": 0,
+    "excluded_reason_counts": {
+      "HISTORICAL_PROVIDER_FAILURE": 3,
+      "TARGET_DAY_HISTORICAL_STALE": 1
+    },
+    "excluded_symbol_count": 4,
+    "excluded_symbols": [
+      {
+        "detail": "INPUT_DATE_MISMATCH: HiThink historical latest bar for 000016.SZ is 2026-09-03 != 2026-10-20",
+        "display_name": "*ST康佳A",
+        "evidence": {
+          "historical": {
+            "classification": "TARGET_DAY_HISTORICAL_STALE",
+            "detail": "INPUT_DATE_MISMATCH: HiThink historical latest bar for 000016.SZ is 2026-09-03 != 2026-10-20",
+            "historical_bar_count": 339,
+            "historical_quality": {
+              "future_data": false,
+              "non_empty": true,
+              "structure_valid": true
+            },
+            "latest_historical_date": "2026-09-03",
+            "provider": "HiThink Financial-API",
+            "retry_count": 1,
+            "symbol": "000016",
+            "target_date": "2026-10-20",
+            "thscode": "000016.SZ"
+          },
+          "quote": {
+            "chg_pct": null,
+            "code": "000016",
+            "high": null,
+            "low": null,
+            "name": "*ST康佳A",
+            "open": null,
+            "prev_close": 2.46,
+            "price": null,
+            "quote_date": "2026-10-20",
+            "quote_date_evidence": "NOT_PROVIDER_VERIFIED",
+            "symbol": "000016",
+            "timestamp": null,
+            "trade_state": "UNKNOWN",
+            "turnover_amount": 0.0,
+            "volume": 0.0
+          }
+        },
+        "failure_stage": "stock_kline",
+        "failure_status": "INPUT_DATE_MISMATCH",
+        "latest_historical_date": "2026-09-03",
+        "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+        "provider": "HiThink Financial-API",
+        "provider_symbol": "000016.SZ",
+        "quote_trade_state": "UNKNOWN",
+        "reason": "TARGET_DAY_HISTORICAL_STALE",
+        "status": "EXCLUDED_INPUT_ANOMALY",
+        "symbol": "000016",
+        "target_date": "2026-10-20"
+      },
+      {
+        "detail": "PROVIDER_FAILURE: HiThink historical acquisition failed for 000717.SZ; no alternate provider is permitted",
+        "display_name": "中南股份",
+        "evidence": {
+          "historical": {
+            "detail": "PROVIDER_FAILURE: HiThink historical acquisition failed for 000717.SZ; no alternate provider is permitted",
+            "exception_type": "_HiThinkReadFailure",
+            "provider": "HiThink Financial-API",
+            "retry_count": 0,
+            "symbol": "000717",
+            "target_date": "2026-10-20"
+          },
+          "quote": {
+            "chg_pct": -0.934579,
+            "code": "000717",
+            "high": 2.14,
+            "low": 2.09,
+            "name": "中南股份",
+            "open": 2.13,
+            "prev_close": 2.14,
+            "price": 2.12,
+            "quote_date": "2026-10-20",
+            "quote_date_evidence": "NOT_PROVIDER_VERIFIED",
+            "symbol": "000717",
+            "timestamp": null,
+            "trade_state": "TRADED",
+            "turnover_amount": 33599518.0,
+            "volume": 15935800.0
+          }
+        },
+        "failure_stage": "stock_kline",
+        "failure_status": "PROVIDER_FAILURE",
+        "latest_historical_date": null,
+        "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+        "provider": "HiThink Financial-API",
+        "provider_symbol": "000717.SZ",
+        "quote_trade_state": "TRADED",
+        "reason": "HISTORICAL_PROVIDER_FAILURE",
+        "status": "EXCLUDED_INPUT_ANOMALY",
+        "symbol": "000717",
+        "target_date": "2026-10-20"
+      },
+      {
+        "detail": "PROVIDER_FAILURE: HiThink historical acquisition failed for 000725.SZ; no alternate provider is permitted",
+        "display_name": "京东方Ａ",
+        "evidence": {
+          "historical": {
+            "detail": "PROVIDER_FAILURE: HiThink historical acquisition failed for 000725.SZ; no alternate provider is permitted",
+            "exception_type": "_HiThinkReadFailure",
+            "provider": "HiThink Financial-API",
+            "retry_count": 0,
+            "symbol": "000725",
+            "target_date": "2026-10-20"
+          },
+          "quote": {
+            "chg_pct": -0.395257,
+            "code": "000725",
+            "high": 5.1,
+            "low": 5.01,
+            "name": "京东方Ａ",
+            "open": 5.04,
+            "prev_close": 5.06,
+            "price": 5.04,
+            "quote_date": "2026-10-20",
+            "quote_date_evidence": "NOT_PROVIDER_VERIFIED",
+            "symbol": "000725",
+            "timestamp": null,
+            "trade_state": "TRADED",
+            "turnover_amount": 2953754000.0,
+            "volume": 585752990.0
+          }
+        },
+        "failure_stage": "stock_kline",
+        "failure_status": "PROVIDER_FAILURE",
+        "latest_historical_date": null,
+        "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+        "provider": "HiThink Financial-API",
+        "provider_symbol": "000725.SZ",
+        "quote_trade_state": "TRADED",
+        "reason": "HISTORICAL_PROVIDER_FAILURE",
+        "status": "EXCLUDED_INPUT_ANOMALY",
+        "symbol": "000725",
+        "target_date": "2026-10-20"
+      },
+      {
+        "detail": "PROVIDER_FAILURE: HiThink historical acquisition failed for 000727.SZ; no alternate provider is permitted",
+        "display_name": "冠捷科技",
+        "evidence": {
+          "historical": {
+            "detail": "PROVIDER_FAILURE: HiThink historical acquisition failed for 000727.SZ; no alternate provider is permitted",
+            "exception_type": "_HiThinkReadFailure",
+            "provider": "HiThink Financial-API",
+            "retry_count": 0,
+            "symbol": "000727",
+            "target_date": "2026-10-20"
+          },
+          "quote": {
+            "chg_pct": 0.0,
+            "code": "000727",
+            "high": 2.1,
+            "low": 2.06,
+            "name": "冠捷科技",
+            "open": 2.07,
+            "prev_close": 2.07,
+            "price": 2.07,
+            "quote_date": "2026-10-20",
+            "quote_date_evidence": "NOT_PROVIDER_VERIFIED",
+            "symbol": "000727",
+            "timestamp": null,
+            "trade_state": "TRADED",
+            "turnover_amount": 71201745.0,
+            "volume": 34283700.0
+          }
+        },
+        "failure_stage": "stock_kline",
+        "failure_status": "PROVIDER_FAILURE",
+        "latest_historical_date": null,
+        "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+        "provider": "HiThink Financial-API",
+        "provider_symbol": "000727.SZ",
+        "quote_trade_state": "TRADED",
+        "reason": "HISTORICAL_PROVIDER_FAILURE",
+        "status": "EXCLUDED_INPUT_ANOMALY",
+        "symbol": "000727",
+        "target_date": "2026-10-20"
+      }
+    ],
+    "formal_result_valid": false,
+    "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+    "qualified_symbol_count": 3196,
+    "raw_symbol_count": 5579,
+    "schema_version": "INPUT_COVERAGE_V1"
+  },
+  "qualified_symbol_count": 3196,
+  "raw_symbol_count": 5579,
+  "report_generated_at_bjt": "2026-10-20T17:34:15.228777+08:00",
+  "run_type": "SAME_CALENDAR_DATE",
+  "schema_version": "DAILY_INPUT_DIAGNOSTIC_V1",
+  "target_date": "2026-10-20"
+}
