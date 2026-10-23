@@ -1,0 +1,78 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C 策略研究名单 · 2026-10-23</title>
+<style>
+:root { color-scheme: light; --bg: #f3f5f7; --surface: #ffffff; --surface-2: #f7f9fa; --text: #18232d; --muted: #667581; --border: #d9e0e5; --accent: #28658a; --warning: #a56700; --radius: 7px; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; line-height: 1.45; }
+main { width: min(1440px, 100%); margin: 0 auto; padding: 18px 24px 34px; }
+main > section { min-width: 0; padding: 18px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+h2 { margin: 0; font-size: 20px; letter-spacing: -.01em; }
+h3 { margin: 0; font-size: 15px; }
+p { margin-top: 0; }
+summary { cursor: pointer; color: var(--accent); font-size: 12px; }
+.badge { display: inline-block; border: 1px solid currentColor; border-radius: 999px; padding: 2px 7px; color: var(--muted); font-size: 11px; line-height: 1.35; white-space: nowrap; }
+.badge.warning { color: var(--warning); }
+.badge.positive { color: #23825a; }
+.badge.neutral { color: #61727f; }
+.section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; min-width: 0; margin-bottom: 14px; }
+.section-kicker { margin: 0 0 2px; color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.section-subtitle { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+@media (max-width: 760px) {
+  main { padding: 12px 10px 24px; }
+  main > section { padding: 13px; }
+  .section-head { display: block; }
+}
+</style>
+</head><body><main><style data-c-daily-inline-style>
+#c-daily-research { min-width: 0; }
+#c-daily-research, #c-daily-research * { box-sizing: border-box; }
+#c-daily-research .c-research-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 14px 0 0; }
+#c-daily-research .c-research-summary > div { min-width: 0; padding: 9px 11px; border: 1px solid var(--border, #d9e0e5); background: var(--surface-2, #f7f9fa); }
+#c-daily-research .c-research-summary span { display: block; color: var(--muted, #667581); font-size: 12px; }
+#c-daily-research .c-research-summary strong { display: block; margin-top: 4px; font-size: 18px; font-variant-numeric: tabular-nums; }
+#c-daily-research .c-stock-card { min-width: 0; margin: 9px 0 0; padding: 13px; border: 1px solid var(--border, #d9e0e5); border-left: 3px solid var(--accent, #28658a); background: var(--surface, #ffffff); }
+#c-daily-research .c-stock-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; min-width: 0; }
+#c-daily-research .c-stock-symbol, #c-daily-research .c-stock-name { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+#c-daily-research .c-stock-name { min-width: 0; overflow-wrap: anywhere; }
+#c-daily-research .c-stock-summary { margin: 8px 0 0; color: var(--muted, #667581); font-size: 13px; overflow-wrap: anywhere; }
+#c-daily-research .c-stock-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; margin: 11px 0 0; }
+#c-daily-research .c-metric { min-width: 0; padding: 9px 10px; border: 1px solid var(--border, #d9e0e5); background: var(--surface-2, #f7f9fa); }
+#c-daily-research .c-metric span { display: block; color: var(--muted, #667581); font-size: 12px; }
+#c-daily-research .c-metric strong { display: block; margin-top: 3px; font-size: 16px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+#c-daily-research .c-metric small { display: block; margin-top: 3px; color: var(--muted, #667581); font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
+#c-daily-research details { margin-top: 11px; border-top: 1px solid var(--border, #d9e0e5); }
+#c-daily-research .c-audit-body { margin: 6px 0 0; color: var(--muted, #667581); font-size: 12px; overflow-wrap: anywhere; }
+#c-daily-research .c-audit-body p { margin: 0 0 6px; }
+#c-daily-research .c-research-notice { margin: 14px 0 0; padding: 11px 13px; border: 1px solid var(--border, #d9e0e5); border-left: 3px solid var(--warning, #a56700); background: var(--surface-2, #f7f9fa); font-size: 13px; }
+#c-daily-research .c-research-empty { border-style: dashed; }
+#c-daily-research code { overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+  #c-daily-research .c-stock-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  #c-daily-research .c-stock-card { padding: 11px; }
+  #c-daily-research .c-research-summary, #c-daily-research .c-stock-metrics { grid-template-columns: 1fr; }
+}
+</style>
+<section id="c-daily-research" class="c-research-section">
+  <div class="section-head">
+    <div><p class="section-kicker">C RESEARCH · 独立研究观察</p><h2>C 策略研究名单 · 0 只</h2>
+      <p class="section-subtitle">信号日期 2026-10-23 · 独立研究观察，不属于 Formal B 正式名单，不构成买入建议。</p></div>
+    <span class="badge warning">覆盖范围待核验</span>
+  </div>
+  <div class="c-research-summary">
+    <div><span>命中股票</span><strong>0</strong></div>
+    <div><span>BALANCED_A</span><strong>0</strong></div>
+    <div><span>CONSERVATIVE_B</span><strong>0</strong></div>
+  </div>
+  <article class="c-stock-card c-research-empty"><p class="c-research-notice">今日无 C 研究匹配：两套规则独立检查；该状态仅表示本次 C 结果明确记录 matched_stock_count=0。</p></article>
+  <details class="c-research-audit"><summary>研究与数据质量详情</summary>
+  <div class="c-audit-body">
+    <p>只覆盖 B 冻结输入中实际评估且 C 时间、ST 证据合格的证券，不代表完整主板股票池。C 状态：C_SUCCESS_NO_MATCH。</p>
+    <p>输入状态 PRICE_OBSERVATION_VOLUME_UNVERIFIED；覆盖 PARTIAL_UNVERIFIED；B 已评估 3191；B 输入隔离 3；C ST/规则排除 280；C ST 证据待核验 0；C 价格请求时间待核验 0。</p>
+    <p>BALANCED_A 数据待核验 0；CONSERVATIVE_B 数据待核验 0；缺口：B_HISTORY_PREFIX_INCOMPLETE:001232、B_HISTORY_PREFIX_INCOMPLETE:001246、B_HISTORY_PREFIX_INCOMPLETE:001248、B_HISTORY_PREFIX_INCOMPLETE:001399、B_HISTORY_PREFIX_INCOMPLETE:601091、B_HISTORY_PREFIX_INCOMPLETE:601123、B_HISTORY_PREFIX_INCOMPLETE:603448、B_HISTORY_PREFIX_INCOMPLETE:603468、B_INPUT_FAILURE_ISOLATED_SYMBOLS_MISSING_FROM_C_HISTORY、B_QUALIFIED_SYMBOLS_EXCLUDED_FROM_EVALUATION_PACKAGE、B_RAW_SOURCE_CAPTURE_INCOMPLETE、VOLUME_ADJUSTMENT_SEMANTICS_UNRESOLVED</p>
+    <p>量能前复权影响仍为 VOLUME_BASIS_UNVERIFIED，正式量价确认关闭；formal_b_signal=false；prospective_captured=false。每日名单可查看不等于完整永久前瞻证据集。</p>
+    <p>package SHA：<code>5a2d8b60e7a53eb800f78a2fa365505379b7987242a9b8c59ad9af967b9fd0c9</code><br>generation fingerprint：<code>d4c3c1419bbdf9a56802a6e4530a52759581bb3668bdec29eb41a538da72d684</code></p>
+  </div>
+</details>
+</section></main></body></html>
