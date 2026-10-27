@@ -1,0 +1,346 @@
+{
+  "cloud_target": "ashare_watchlist/daily_checkpoints/20261027",
+  "code_git_sha": "1b73acf7c5c01fc977888083b22d07ff49105bfa",
+  "created_at_bjt": "2026-10-27T15:00:00+08:00",
+  "dated_html": {
+    "byte_length": 415782,
+    "filename": "daily_close_20261027.html",
+    "sha256": "f8e8b69fa040ec7b0f504cfc020d98771233b1775701561a09d6ff89a004e5b8"
+  },
+  "earliest_execution": "2026-10-28",
+  "input_coverage": {
+    "coverage_status": "DEGRADED",
+    "evaluated_symbol_count": 3188,
+    "excluded_reason_counts": {
+      "HISTORICAL_PROVIDER_FAILURE": 1,
+      "TARGET_DAY_HISTORICAL_STALE": 5
+    },
+    "excluded_symbol_count": 6,
+    "excluded_symbols": [
+      {
+        "detail": "PROVIDER_FAILURE: HiThink historical acquisition failed for 001381.SZ: ValueError",
+        "display_name": "皇冠新材",
+        "evidence": {
+          "historical": {
+            "detail": "PROVIDER_FAILURE: HiThink historical acquisition failed for 001381.SZ: ValueError",
+            "exception_type": "ValueError",
+            "provider": "HiThink Financial-API",
+            "retry_count": 0,
+            "symbol": "001381",
+            "target_date": "2026-10-27"
+          },
+          "quote": {
+            "chg_pct": null,
+            "code": "001381",
+            "high": null,
+            "low": null,
+            "name": "皇冠新材",
+            "open": null,
+            "prev_close": null,
+            "price": null,
+            "quote_date": "2026-10-27",
+            "quote_date_evidence": "NOT_PROVIDER_VERIFIED",
+            "symbol": "001381",
+            "timestamp": null,
+            "trade_state": "UNKNOWN",
+            "turnover_amount": null,
+            "volume": null
+          }
+        },
+        "failure_stage": "stock_kline",
+        "failure_status": "PROVIDER_FAILURE",
+        "latest_historical_date": null,
+        "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+        "provider": "HiThink Financial-API",
+        "provider_symbol": "001381.SZ",
+        "quote_trade_state": "UNKNOWN",
+        "reason": "HISTORICAL_PROVIDER_FAILURE",
+        "status": "EXCLUDED_INPUT_ANOMALY",
+        "symbol": "001381",
+        "target_date": "2026-10-27"
+      },
+      {
+        "detail": "INPUT_DATE_MISMATCH: HiThink historical latest bar for 002717.SZ is 2026-10-12 != 2026-10-27",
+        "display_name": "*ST岭南",
+        "evidence": {
+          "historical": {
+            "classification": "TARGET_DAY_HISTORICAL_STALE",
+            "detail": "INPUT_DATE_MISMATCH: HiThink historical latest bar for 002717.SZ is 2026-10-12 != 2026-10-27",
+            "historical_bar_count": 358,
+            "historical_quality": {
+              "future_data": false,
+              "non_empty": true,
+              "structure_valid": true
+            },
+            "latest_historical_date": "2026-10-12",
+            "provider": "HiThink Financial-API",
+            "retry_count": 1,
+            "symbol": "002717",
+            "target_date": "2026-10-27",
+            "thscode": "002717.SZ"
+          },
+          "quote": {
+            "chg_pct": null,
+            "code": "002717",
+            "high": null,
+            "low": null,
+            "name": "*ST岭南",
+            "open": null,
+            "prev_close": 0.45,
+            "price": null,
+            "quote_date": "2026-10-27",
+            "quote_date_evidence": "NOT_PROVIDER_VERIFIED",
+            "symbol": "002717",
+            "timestamp": null,
+            "trade_state": "UNKNOWN",
+            "turnover_amount": 0.0,
+            "volume": 0.0
+          }
+        },
+        "failure_stage": "stock_kline",
+        "failure_status": "INPUT_DATE_MISMATCH",
+        "latest_historical_date": "2026-10-12",
+        "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+        "provider": "HiThink Financial-API",
+        "provider_symbol": "002717.SZ",
+        "quote_trade_state": "UNKNOWN",
+        "reason": "TARGET_DAY_HISTORICAL_STALE",
+        "status": "EXCLUDED_INPUT_ANOMALY",
+        "symbol": "002717",
+        "target_date": "2026-10-27"
+      },
+      {
+        "detail": "INPUT_DATE_MISMATCH: HiThink historical latest bar for 002827.SZ is 2026-10-23 != 2026-10-27",
+        "display_name": "高争民爆",
+        "evidence": {
+          "historical": {
+            "classification": "TARGET_DAY_HISTORICAL_STALE",
+            "detail": "INPUT_DATE_MISMATCH: HiThink historical latest bar for 002827.SZ is 2026-10-23 != 2026-10-27",
+            "historical_bar_count": 369,
+            "historical_quality": {
+              "future_data": false,
+              "non_empty": true,
+              "structure_valid": true
+            },
+            "latest_historical_date": "2026-10-23",
+            "provider": "HiThink Financial-API",
+            "retry_count": 1,
+            "symbol": "002827",
+            "target_date": "2026-10-27",
+            "thscode": "002827.SZ"
+          },
+          "quote": {
+            "chg_pct": null,
+            "code": "002827",
+            "high": null,
+            "low": null,
+            "name": "高争民爆",
+            "open": null,
+            "prev_close": 51.8,
+            "price": null,
+            "quote_date": "2026-10-27",
+            "quote_date_evidence": "NOT_PROVIDER_VERIFIED",
+            "symbol": "002827",
+            "timestamp": null,
+            "trade_state": "UNKNOWN",
+            "turnover_amount": 0.0,
+            "volume": 0.0
+          }
+        },
+        "failure_stage": "stock_kline",
+        "failure_status": "INPUT_DATE_MISMATCH",
+        "latest_historical_date": "2026-10-23",
+        "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+        "provider": "HiThink Financial-API",
+        "provider_symbol": "002827.SZ",
+        "quote_trade_state": "UNKNOWN",
+        "reason": "TARGET_DAY_HISTORICAL_STALE",
+        "status": "EXCLUDED_INPUT_ANOMALY",
+        "symbol": "002827",
+        "target_date": "2026-10-27"
+      },
+      {
+        "detail": "INPUT_DATE_MISMATCH: HiThink historical latest bar for 600621.SH is 2026-10-23 != 2026-10-27",
+        "display_name": "华鑫股份",
+        "evidence": {
+          "historical": {
+            "classification": "TARGET_DAY_HISTORICAL_STALE",
+            "detail": "INPUT_DATE_MISMATCH: HiThink historical latest bar for 600621.SH is 2026-10-23 != 2026-10-27",
+            "historical_bar_count": 369,
+            "historical_quality": {
+              "future_data": false,
+              "non_empty": true,
+              "structure_valid": true
+            },
+            "latest_historical_date": "2026-10-23",
+            "provider": "HiThink Financial-API",
+            "retry_count": 1,
+            "symbol": "600621",
+            "target_date": "2026-10-27",
+            "thscode": "600621.SH"
+          },
+          "quote": {
+            "chg_pct": null,
+            "code": "600621",
+            "high": null,
+            "low": null,
+            "name": "华鑫股份",
+            "open": null,
+            "prev_close": 14.9,
+            "price": null,
+            "quote_date": "2026-10-27",
+            "quote_date_evidence": "NOT_PROVIDER_VERIFIED",
+            "symbol": "600621",
+            "timestamp": null,
+            "trade_state": "UNKNOWN",
+            "turnover_amount": 0.0,
+            "volume": 0.0
+          }
+        },
+        "failure_stage": "stock_kline",
+        "failure_status": "INPUT_DATE_MISMATCH",
+        "latest_historical_date": "2026-10-23",
+        "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+        "provider": "HiThink Financial-API",
+        "provider_symbol": "600621.SH",
+        "quote_trade_state": "UNKNOWN",
+        "reason": "TARGET_DAY_HISTORICAL_STALE",
+        "status": "EXCLUDED_INPUT_ANOMALY",
+        "symbol": "600621",
+        "target_date": "2026-10-27"
+      },
+      {
+        "detail": "INPUT_DATE_MISMATCH: HiThink historical latest bar for 601326.SH is 2026-10-20 != 2026-10-27",
+        "display_name": "秦港股份",
+        "evidence": {
+          "historical": {
+            "classification": "TARGET_DAY_HISTORICAL_STALE",
+            "detail": "INPUT_DATE_MISMATCH: HiThink historical latest bar for 601326.SH is 2026-10-20 != 2026-10-27",
+            "historical_bar_count": 366,
+            "historical_quality": {
+              "future_data": false,
+              "non_empty": true,
+              "structure_valid": true
+            },
+            "latest_historical_date": "2026-10-20",
+            "provider": "HiThink Financial-API",
+            "retry_count": 1,
+            "symbol": "601326",
+            "target_date": "2026-10-27",
+            "thscode": "601326.SH"
+          },
+          "quote": {
+            "chg_pct": null,
+            "code": "601326",
+            "high": null,
+            "low": null,
+            "name": "秦港股份",
+            "open": null,
+            "prev_close": 3.57,
+            "price": null,
+            "quote_date": "2026-10-27",
+            "quote_date_evidence": "NOT_PROVIDER_VERIFIED",
+            "symbol": "601326",
+            "timestamp": null,
+            "trade_state": "UNKNOWN",
+            "turnover_amount": 0.0,
+            "volume": 0.0
+          }
+        },
+        "failure_stage": "stock_kline",
+        "failure_status": "INPUT_DATE_MISMATCH",
+        "latest_historical_date": "2026-10-20",
+        "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+        "provider": "HiThink Financial-API",
+        "provider_symbol": "601326.SH",
+        "quote_trade_state": "UNKNOWN",
+        "reason": "TARGET_DAY_HISTORICAL_STALE",
+        "status": "EXCLUDED_INPUT_ANOMALY",
+        "symbol": "601326",
+        "target_date": "2026-10-27"
+      },
+      {
+        "detail": "INPUT_DATE_MISMATCH: HiThink historical latest bar for 605258.SH is 2026-10-23 != 2026-10-27",
+        "display_name": "协和电子",
+        "evidence": {
+          "historical": {
+            "classification": "TARGET_DAY_HISTORICAL_STALE",
+            "detail": "INPUT_DATE_MISMATCH: HiThink historical latest bar for 605258.SH is 2026-10-23 != 2026-10-27",
+            "historical_bar_count": 369,
+            "historical_quality": {
+              "future_data": false,
+              "non_empty": true,
+              "structure_valid": true
+            },
+            "latest_historical_date": "2026-10-23",
+            "provider": "HiThink Financial-API",
+            "retry_count": 1,
+            "symbol": "605258",
+            "target_date": "2026-10-27",
+            "thscode": "605258.SH"
+          },
+          "quote": {
+            "chg_pct": null,
+            "code": "605258",
+            "high": null,
+            "low": null,
+            "name": "协和电子",
+            "open": null,
+            "prev_close": 41.19,
+            "price": null,
+            "quote_date": "2026-10-27",
+            "quote_date_evidence": "NOT_PROVIDER_VERIFIED",
+            "symbol": "605258",
+            "timestamp": null,
+            "trade_state": "UNKNOWN",
+            "turnover_amount": 0.0,
+            "volume": 0.0
+          }
+        },
+        "failure_stage": "stock_kline",
+        "failure_status": "INPUT_DATE_MISMATCH",
+        "latest_historical_date": "2026-10-23",
+        "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+        "provider": "HiThink Financial-API",
+        "provider_symbol": "605258.SH",
+        "quote_trade_state": "UNKNOWN",
+        "reason": "TARGET_DAY_HISTORICAL_STALE",
+        "status": "EXCLUDED_INPUT_ANOMALY",
+        "symbol": "605258",
+        "target_date": "2026-10-27"
+      }
+    ],
+    "formal_result_valid": true,
+    "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+    "qualified_symbol_count": 3194,
+    "raw_symbol_count": 5579,
+    "schema_version": "INPUT_COVERAGE_V1"
+  },
+  "latest_html": {
+    "byte_length": 415782,
+    "filename": "latest.html",
+    "sha256": "f8e8b69fa040ec7b0f504cfc020d98771233b1775701561a09d6ff89a004e5b8"
+  },
+  "list_date": "2026-10-27",
+  "perf_tracker": {
+    "byte_length": 2158201,
+    "filename": "perf_tracker.json",
+    "sha256": "8f53c519388741c79e5b2d35f7e4225860644b0910ca7cee30046ae657056e9c"
+  },
+  "schema_version": "DAILY_LIGHTWEIGHT_CLOUD_CHECKPOINT_V1",
+  "strategy_version": "B_BREAKOUT_RETEST_LEGACY_V1_1",
+  "upload_scope": [
+    "watchlist_20261027.json",
+    "perf_tracker.json",
+    "daily_close_20261027.html",
+    "daily_checkpoint_20261027.json",
+    "latest.html",
+    "latest_checkpoint.json"
+  ],
+  "verification_status": "LOCAL_INPUTS_VERIFIED",
+  "watchlist": {
+    "byte_length": 11381,
+    "filename": "watchlist_20261027.json",
+    "sha256": "d5bb9bc7935c3a34b23442900afd08fb4464f5296323a9c00ce97f644b1d1c83"
+  }
+}
