@@ -1,6 +1,21 @@
 # HANDOFF — 跨设备最小恢复入口
 
-## 2026-10-10 — Scheduler recovery — PR #102 merge/deploy decision
+## 2026-11-03 — B candidate ranking intake; #102 reconciliation
+
+- Research question / STRICT PATH: `B_CANDIDATE_RANKING_VOLUME_TURNOVER_DIAGNOSTIC_V1`,
+  independent branch `codex/b-candidate-ranking-volume-turnover-v1` from live
+  `origin/master=1b73acf7c5c01fc977888083b22d07ff49105bfa`; runtime-state intake
+  `ebe014748cfd3a551b0e3589124e08b2c154871d`. These are snapshots, not invariants.
+- `PROJECT_GOVERNANCE_STATE_CONFLICT` resolved: GitHub #102 confirms squash merge at
+  `1b73acf7c5c01fc977888083b22d07ff49105bfa` and authorized 2026-10-10 deployment
+  (version `651a27f8-5545-4c9a-a87c-1fba52ef2a87`). Its old pending-merge/deploy text below
+  is historical. This is the remote PR completion receipt, not a new live Cloudflare audit;
+  future Cron acceptance/notification evidence is not inferred.
+- Next: commit the pre-outcome ranking protocol, then audit exact historical B Score
+  recoverability before any new outcome analysis. No provider refetch/production mutation.
+  Existing independent open research/operational PRs remain untouched.
+
+## Historical pre-merge checkpoint — 2026-10-10 — Scheduler recovery — PR #102 merge/deploy decision
 
 - Classification: STRICT PATH; initially correctness blocker, revised to P1 product blocker
   for daily automatic execution and monitoring because existing stale-date/idempotency

@@ -1,6 +1,18 @@
 # CURRENT STATUS
 
-## 2026-10-10 — Scheduler reliability P1; recovery PR #102 prepared
+## 2026-11-03 — PR #102 reconciliation; independent Ranking question
+
+- `PROJECT_GOVERNANCE_STATE_CONFLICT` resolved using live Git/GitHub: #102 is merged
+  as `1b73acf7c5c01fc977888083b22d07ff49105bfa`. Its remote completion receipt records
+  authorized 2026-10-10 deployment, version `651a27f8-5545-4c9a-a87c-1fba52ef2a87`;
+  the previous pending-merge/deploy wording is historical. No fresh Cloudflare acceptance,
+  missing-Cron explanation or notification verification is claimed by this research task.
+- `B_CANDIDATE_RANKING_VOLUME_TURNOVER_DIAGNOSTIC_V1` is an independent research
+  question under STRICT PATH, not a product blocker. It must first establish exact
+  historical `score_total` identity; no production Ranking change is authorized.
+  Formal Delivery Ladder and existing research conclusions remain unchanged.
+
+## Historical pre-merge checkpoint — 2026-10-10 — Scheduler reliability P1; recovery PR #102 prepared
 
 - `PROJECT_GOVERNANCE_STATE_CONFLICT`: the former top entry still described #100 OPEN,
   while GitHub confirms #100 merged as `85ce2a970ed3bd70d4b5d3289222f76749caee64` and
