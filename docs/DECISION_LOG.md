@@ -1,5 +1,23 @@
 # DECISION LOG
 
+## 2026-11-03 — NEEDS_MORE_EVIDENCE: same-day B ranking lacks exact Score baseline
+
+- `B_CANDIDATE_RANKING_VOLUME_TURNOVER_DIAGNOSTIC_V1` stops with
+  `B_RANKING_BASELINE_SCORE_IDENTITY_NOT_RECOVERABLE` and main decision
+  `B_VOLUME_TURNOVER_RANKING_NEEDS_MORE_EVIDENCE`. The frozen qualified/core
+  streams exclude Score, and historical Sina membership for its two sector components
+  is unavailable. Absence of loaded membership is not a genuine V0 missing-symbol
+  mapping; default-filling would create a different comparator.
+- Recover exact provenance-bound scores for the qualified identities, or exact
+  historical full-evaluator inputs, before testing incremental same-day ranking.
+  No positive/negative feature-efficacy claim or new Ranking design follows from
+  this evidence gap. Prior volume-path and turnover/RV conclusions remain intact.
+- This remains a research question, not a product blocker. Formal B daily execution,
+  existing report-only observations and genuine prospective capture may continue.
+  No production change, Wave study, provider refetch or Final OOS access is authorized.
+  Evidence: `docs/research/b_candidate_ranking_volume_turnover_v1_report.md`;
+  pre-outcome protocol commit `24609f3eeea879a58d8f61acfdea0497947b4d56`.
+
 ## 2026-10-06 — ADOPT_DUAL_MODEL_REPORTING_SEPARATION
 
 - Retain the existing `MODEL_P` prospective execution/path model and existing

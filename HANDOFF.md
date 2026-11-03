@@ -1,6 +1,6 @@
 # HANDOFF — 跨设备最小恢复入口
 
-## 2026-11-03 — B candidate ranking intake; #102 reconciliation
+## 2026-11-03 — B candidate ranking stopped at exact-Score evidence gap
 
 - Research question / STRICT PATH: `B_CANDIDATE_RANKING_VOLUME_TURNOVER_DIAGNOSTIC_V1`,
   independent branch `codex/b-candidate-ranking-volume-turnover-v1` from live
@@ -11,9 +11,25 @@
   (version `651a27f8-5545-4c9a-a87c-1fba52ef2a87`). Its old pending-merge/deploy text below
   is historical. This is the remote PR completion receipt, not a new live Cloudflare audit;
   future Cron acceptance/notification evidence is not inferred.
-- Next: commit the pre-outcome ranking protocol, then audit exact historical B Score
-  recoverability before any new outcome analysis. No provider refetch/production mutation.
-  Existing independent open research/operational PRs remain untouched.
+- Protocol locked at `24609f3eeea879a58d8f61acfdea0497947b4d56` before new ranking analysis.
+  Outcome-blind full stream audit verifies 17,714 qualified identities / 763 dates and
+  4,041,140 core rows, all without saved Score/sector fields. Historical Sina membership
+  was deliberately absent from core inputs; exact full Score cannot be reconstructed.
+- Stop: `B_RANKING_BASELINE_SCORE_IDENTITY_NOT_RECOVERABLE`; main research decision
+  `B_VOLUME_TURNOVER_RANKING_NEEDS_MORE_EVIDENCE`. No ranking efficacy conclusion,
+  no models/outcome analysis/parity/prospective sanity run; metrics remain null.
+- Recovery source: `origin/codex/b-candidate-ranking-volume-turnover-v1`; fetch and resolve
+  its live remote HEAD, checkout/upstream and Draft PR HEAD together. This protocol SHA
+  is a lock identity, not the final branch tip. Report/script/summary paths share the
+  `b_candidate_ranking_volume_turnover_v1` stem. Reproduce with
+  `python scripts/b_candidate_ranking_volume_turnover_v1.py`; no local-only input is needed.
+  Summary SHA-256 `aa034545b0afaf315f51ae4a0acabcf265cf0c0c9a10a7c7426171375b7d0a41`.
+- Next user decision: whether to address exact provenance-bound historical Score inputs
+  in a separately authorized task. Current B and genuine prospective capture may continue.
+  Do not substitute an approximate/default Score, launch Ranking/Wave or refetch provider.
+  Leave this single independent PR for review; no automatic merge or production dispatch.
+  Existing independent PRs, runtime-state and production semantics remain untouched;
+  Final OOS is SEALED / UNREAD. Classification remained research question, STRICT PATH.
 
 ## Historical pre-merge checkpoint — 2026-10-10 — Scheduler recovery — PR #102 merge/deploy decision
 

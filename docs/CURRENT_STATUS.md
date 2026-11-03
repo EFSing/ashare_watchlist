@@ -8,8 +8,16 @@
   the previous pending-merge/deploy wording is historical. No fresh Cloudflare acceptance,
   missing-Cron explanation or notification verification is claimed by this research task.
 - `B_CANDIDATE_RANKING_VOLUME_TURNOVER_DIAGNOSTIC_V1` is an independent research
-  question under STRICT PATH, not a product blocker. It must first establish exact
-  historical `score_total` identity; no production Ranking change is authorized.
+  question under STRICT PATH, not a product blocker. It stops at
+  `B_RANKING_BASELINE_SCORE_IDENTITY_NOT_RECOVERABLE`: exact Score is absent from
+  17,714 qualified records / 763 dates and the frozen core replay, while historical
+  Sina membership needed for full Score remains unavailable. Protocol was committed
+  before new outcome access; no ranking models or outcome statistics were run.
+  Decision: `B_VOLUME_TURNOVER_RANKING_NEEDS_MORE_EVIDENCE`, an evidence-gap result
+  rather than a negative efficacy result. Exact saved Score with provenance or exact
+  historical full-evaluator inputs are needed before comparison. Existing Formal B,
+  report observations and genuine prospective capture can continue; no new production
+  Ranking or Wave research is authorized. The independent Draft PR is the review stop.
   Formal Delivery Ladder and existing research conclusions remain unchanged.
 
 ## Historical pre-merge checkpoint — 2026-10-10 — Scheduler reliability P1; recovery PR #102 prepared
