@@ -15,6 +15,7 @@ import re
 import subprocess
 
 from b_breakout_retest_v1_1 import STRATEGY_SPEC_SHA256, STRATEGY_VERSION
+from b_turnover_x_relative_volume_incremental import _board_for_symbol
 
 
 TASK = "B_CANDIDATE_RANKING_VOLUME_TURNOVER_DIAGNOSTIC_V1"
@@ -134,10 +135,10 @@ def run(root: Path) -> dict:
         raise RuntimeError("canonical turnover identity mismatch")
     by_date = Counter(key[1] for key in keys)
     by_year = Counter(key[1][:4] for key in keys)
-    by_board = Counter("ChiNext" if key[0].startswith(("300", "301")) else
-                       "STAR" if key[0].startswith(("688", "689")) else "Main" for key in keys)
+    by_board = Counter(_board_for_symbol(key[0]) for key in keys)
     evidence_paths = [PROTOCOL, CORE_MANIFEST, ELIGIBILITY, IMPACT, TURNOVER_MANIFEST,
                       "scripts/b_candidate_ranking_volume_turnover_v1.py",
+                      "scripts/b_turnover_x_relative_volume_incremental.py",
                       "scripts/b_breakout_retest.py", "scripts/b_breakout_retest_v1_1.py",
                       "scripts/core_signal_replay.py", "scripts/volume_observation.py",
                       "docs/phase2e_pit_source_audit.md", "scripts/historical_validation_layers.py"]
@@ -151,6 +152,8 @@ def run(root: Path) -> dict:
         "cohort": {"qualified_rows": len(keys), "candidate_dates": len(by_date),
                    "start": min(by_date), "end": max(by_date), "rows_by_year": dict(sorted(by_year.items())),
                    "rows_by_board": dict(sorted(by_board.items())),
+                   "rows_in_existing_turnover_board_scope": sum(
+                       n for board, n in by_board.items() if board != "OUT_OF_SCOPE_PREFIX"),
                    "eligible_candidate_dates_before_score_and_outcome_gates": {
                        "Top1": sum(n >= 2 for n in by_date.values()),
                        "Top3": sum(n >= 3 for n in by_date.values()),

@@ -847,7 +847,8 @@
     "ranking_evaluated_rows": 0,
     "rows_by_board": {
       "ChiNext": 4416,
-      "Main": 11485,
+      "Main": 10779,
+      "OUT_OF_SCOPE_PREFIX": 706,
       "STAR": 1813
     },
     "rows_by_year": {
@@ -856,6 +857,7 @@
       "2025": 6697,
       "2026": 2230
     },
+    "rows_in_existing_turnover_board_scope": 17008,
     "start": "2023-06-30"
   },
   "decision": "B_VOLUME_TURNOVER_RANKING_NEEDS_MORE_EVIDENCE",
@@ -907,7 +909,8 @@
     "docs/research/b_candidate_ranking_volume_turnover_v1_protocol.md": "d056cd4d71269d93e4f764b8c8b53aa8ba1acea3617d667d73357dcc65b79743",
     "scripts/b_breakout_retest.py": "994e32d1e03a0448816bdf376e8b09488f8810bc1ce411305d69578942bfc2ef",
     "scripts/b_breakout_retest_v1_1.py": "742eb8421c1e5ae165de5035300627d6a5037661d59e14d4f9c44fe54b449d04",
-    "scripts/b_candidate_ranking_volume_turnover_v1.py": "1754c0f72dc7cb53991f59c4a30c9ba92ec78b3339fc05828f183e37e165c7f4",
+    "scripts/b_candidate_ranking_volume_turnover_v1.py": "5129a0581278f89340e4395a68b803b7ba9fee30a758fc5cce395ef1eef141be",
+    "scripts/b_turnover_x_relative_volume_incremental.py": "e2dc1faeaea4758c564959295b6ff219504b6a701a8d19edceba8a96dc25fa8f",
     "scripts/core_signal_replay.py": "4035849fb3307dc307a8633bbfeff94a70fdd4301fd1a50cd2a9b168762a44d9",
     "scripts/historical_validation_layers.py": "1c013d81ce0f55c62cd8865aa4798bd881596803452f9d55ea1e9532cc8e0763",
     "scripts/volume_observation.py": "6fcc81d29f00e2c7916cf50290b96b2b1590568507bf0964123e7cd980e10026"

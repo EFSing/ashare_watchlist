@@ -23,7 +23,11 @@
   is a lock identity, not the final branch tip. Report/script/summary paths share the
   `b_candidate_ranking_volume_turnover_v1` stem. Reproduce with
   `python scripts/b_candidate_ranking_volume_turnover_v1.py`; no local-only input is needed.
-  Summary SHA-256 `aa034545b0afaf315f51ae4a0acabcf265cf0c0c9a10a7c7426171375b7d0a41`.
+  Summary SHA-256 `aca5f9c29b313259316121cd3e36504f9e58522b674b167ea7c528a647e09341`.
+  Draft PR: https://github.com/EFSing/ashare_watchlist/pull/103 (base `master`);
+  require live exact-head CI/mergeability readback before any review decision.
+  Existing turnover board scope contains 17,008 identities; 706 `.bj` identities
+  remain explicitly `OUT_OF_SCOPE_PREFIX`, never relabelled Main or silently dropped.
 - Next user decision: whether to address exact provenance-bound historical Score inputs
   in a separately authorized task. Current B and genuine prospective capture may continue.
   Do not substitute an approximate/default Score, launch Ranking/Wave or refetch provider.

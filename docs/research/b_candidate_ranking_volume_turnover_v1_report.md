@@ -67,8 +67,12 @@
 | 2025 | 6,697 |
 | 2026 | 2,230 |
 
-板块身份计数：Main 11,485；ChiNext 4,416；STAR 1,813。它们来自既有冻结
-historical cohort，不扩展生产 Main Board universe。候选数门槛在 **Score／feature／
+板块身份计数（复用既有 turnover 的 symbol mapping）：Main 10,779；ChiNext 4,416；
+STAR 1,813；`OUT_OF_SCOPE_PREFIX` 706（920 前缀／.bj）。全体 qualified 身份保留
+17,714，既有 turnover Main／ChiNext／STAR 范围为 17,008；后者是板块范围交集，
+不等于本次已恢复 Score／全部 feature／outcome 的 complete-case 样本。没有把 706
+条范围外身份改名为 Main 或静默丢弃。它们来自既有冻结 historical cohort，不扩展
+生产 Main Board universe。候选数门槛在 **Score／feature／
 outcome 完整性筛选之前** 的日期数分别为 Top1（n≥2）745、Top3（n≥3）719、
 Top5（n≥5）657；这些不是可用评价日期数。逐日计数在 summary 中。
 
@@ -153,11 +157,12 @@ dispatch=0，merge=0。
 Focused／relevant regressions：40 passed；full pytest：834 passed、2 skipped、10 warnings。
 两项 skip 是既有未提交大 capture fixture，不是本研究豁免。`compileall scripts tests`
 及 `git diff --check` 通过；两次确定性复现得到相同 summary SHA-256：
-`aa034545b0afaf315f51ae4a0acabcf265cf0c0c9a10a7c7426171375b7d0a41`。
-summary 为 26,411 字节；没有新增大文件。
+`aca5f9c29b313259316121cd3e36504f9e58522b674b167ea7c528a647e09341`。
+summary 为 26,624 字节；没有新增大文件。
 
 唯一研究分支为 `codex/b-candidate-ranking-volume-turnover-v1`，base 为核验后的
-live `master`。同一 PR 仅含本研究及 #102 已合并／部署的最小治理纠正；保留旧记录为
+live `master`。[Draft PR #103](https://github.com/EFSing/ashare_watchlist/pull/103)
+仅含本研究及 #102 已合并／部署的最小治理纠正；保留旧记录为
 historical checkpoint，不建立后续治理 PR 循环。PR／exact-head CI／mergeability
 以最终 live GitHub 核对和该 PR 的交付说明为准。停止于数据证据缺口并等待用户决策，
 不把阻断审计说成已完成 M0–M3 的排序研究。

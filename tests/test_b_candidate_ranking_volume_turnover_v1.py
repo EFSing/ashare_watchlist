@@ -63,6 +63,9 @@ def test_delivered_blocker_has_null_metrics_and_preserves_boundaries():
     assert summary["decision"] == ranking.DECISION
     cohort = summary["cohort"]
     assert cohort["exact_baseline_missing_rows"] == cohort["qualified_rows"]
+    assert sum(cohort["rows_by_board"].values()) == cohort["qualified_rows"]
+    assert ranking._board_for_symbol("920001.bj") == "OUT_OF_SCOPE_PREFIX"
+    assert cohort["rows_by_board"]["OUT_OF_SCOPE_PREFIX"] == 706
     assert cohort["ranking_evaluated_rows"] == cohort["ranking_evaluated_dates"] == 0
     assert all(model["Top1_increment_pp"] is None and model["mean_rank_ic"] is None
                for model in summary["models"].values())

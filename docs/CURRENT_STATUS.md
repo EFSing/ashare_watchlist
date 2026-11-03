@@ -17,7 +17,8 @@
   rather than a negative efficacy result. Exact saved Score with provenance or exact
   historical full-evaluator inputs are needed before comparison. Existing Formal B,
   report observations and genuine prospective capture can continue; no new production
-  Ranking or Wave research is authorized. The independent Draft PR is the review stop.
+  Ranking or Wave research is authorized. Independent Draft
+  https://github.com/EFSing/ashare_watchlist/pull/103 is the review stop.
   Formal Delivery Ladder and existing research conclusions remain unchanged.
 
 ## Historical pre-merge checkpoint — 2026-10-10 — Scheduler reliability P1; recovery PR #102 prepared
