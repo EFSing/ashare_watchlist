@@ -1,6 +1,67 @@
 # CURRENT STATUS
 
-## 2026-11-04 — PR #103 user-authorized squash-merge delivery
+## 2026-11-04 — B_PRIORITY_EXPLORATORY_V0_READY_FOR_USER_DECISION
+
+- `USER_AUTHORIZED_EXPLORATORY_RELAXATION_OF_PARITY_GATE`: independent
+  `B_PRIORITY_W2W3_VOLUME_EXPLORATORY_V0` may study frozen DEVELOPMENT outcomes
+  after its own pre-outcome protocol commit. Research question / STRICT PATH;
+  LOW_CONFIDENCE / NOT_PRODUCTION_VALIDATED. The strict study below remains
+  blocked and its uncomputed metrics are not overwritten.
+- Existing Draft #104 / `codex/b-priority-w2w3-volume-v1`; exploratory protocol
+  locked at `f717b6e9e41f3ceb23a5bca8a19356923bfabeb2` before outcome access.
+  Frozen Main structure+volume intersection is 7,541; no new acquisition.
+- Exploratory markers: `EXPLORATORY_W2W3_SIGNAL_MIXED`,
+  `EXPLORATORY_VOLUME_SIGNAL_MIXED`,
+  `EXPLORATORY_W2W3_VOLUME_PRIORITY_MIXED`. R1 5D contrast +0.416pp / 576 dates,
+  10D approximately flat. R2 5D Top1/Top3 uplift -0.196/-0.080pp; R3
+  +0.175/+0.179pp (644/555 dates), with CIs spanning zero. R3 10D Top1 is
+  -0.359pp while Top3 is +0.262pp. 2026 5D R1/R3 reverses the prior years.
+- ADOPT `B_PRIORITY_PROTOTYPE_V0` for research demonstration only; production
+  NEEDS_MORE_EVIDENCE. Recommend a separately user-approved, recording-only
+  Main shadow to test semantics/future stability, not production ranking or
+  STAR expansion. No shadow started. The report and deterministic historical
+  examples use the exploratory-v0/prototype-v0 stems; existing daily product
+  paths remain unblocked. No promotion/merge; Final OOS SEALED / UNREAD.
+
+## 2026-11-04 — New independent B priority research; former plan superseded
+
+- `B_PRIORITY_W2W3_VOLUME_RESEARCH_V1`, research question / STRICT PATH, starts
+  on `codex/b-priority-w2w3-volume-v1` from live master
+  `7d7b6c9f2de1c45e1a4b1a493395ac81646489d8`. #103 is merged and its post-merge
+  exact-head correctness run `41767491750` is SUCCESS; runtime-state intake
+  `ebe014748cfd3a551b0e3589124e08b2c154871d` is unchanged.
+- `PROJECT_GOVERNANCE_STATE_CONFLICT`: the old active operational-Score study
+  next-action is replaced by this user decision. Its state is **NOT_STARTED /
+  SUPERSEDED_BY_USER_DECISION**, not failure or an efficacy conclusion.
+  The previous diagnostic and `B_RANKING_BASELINE_SCORE_IDENTITY_NOT_RECOVERABLE`
+  remain valid for their own identities; old Score is excluded from this study.
+- `PRE_OUTCOME_PROTOCOL_COMMIT` = `13008a3579a225af1f89f1facee1f22c48050195`.
+  Study stops at **B_PRIORITY_RESEARCH_BLOCKED_BY_DATA_GAP**: 24 real observation
+  date files / 223 identities are readable, but original T-day OHLCV prefixes
+  were not recovered; real reconstruction parity is `NOT_RUN_INPUTS_UNAVAILABLE`,
+  not PASS or a mismatching-definition result. No study outcome values used.
+- Outcome-blind coverage: 17,714 qualified identities / 763 dates; Main Primary
+  10,779 / 749 dates, structure available 9,085 with 2,512 transition proxies,
+  volume complete 7,861 / 719 dates. Beijing's 706 identities remain out of scope.
+  R0/R1/R2/R3 efficacy is uncomputed/null. Three independent decisions are
+  `B_W2W3_TRANSITION_PRIORITY_NEEDS_MORE_EVIDENCE`,
+  `B_REPORT_VOLUME_PRIORITY_NEEDS_MORE_EVIDENCE`, and
+  `B_W2W3_VOLUME_PRIORITY_NEEDS_MORE_EVIDENCE`. This is an input-gap decision,
+  not evidence against the hypotheses. See the independent protocol/report/
+  summary with the `b_priority_w2w3_volume_v1` stem.
+- Product decision is deferred: no `首选 / 次选 / 观察` mapping, old Score
+  demotion or turnover research. Required next evidence is original provenance-
+  bound prefixes for multiple real dates, covering complete/incomplete candidates,
+  or an explicit user revision of that prerequisite. Real parity cannot be
+  replaced by synthetic tests or aggregate stores. Formal Delivery Ladder,
+  production semantics and existing product paths remain unchanged. Final OOS
+  remains SEALED / UNREAD. Classification remained research question.
+- Independent delivery: [Draft PR #104](https://github.com/EFSing/ashare_watchlist/pull/104)
+  against live master. Review the recorded input gap; do not infer efficacy or
+  production readiness from the Draft or its CI. Exact-head CI and mergeability
+  are live GitHub properties, to be re-read for the current branch tip.
+
+## Historical checkpoint — 2026-11-04 — PR #103 user-authorized squash-merge delivery
 
 - The user authorized squash-merging #103 into master. Require exact-head CI success and
   `CLEAN / MERGEABLE`; live PR https://github.com/EFSing/ashare_watchlist/pull/103 supplies

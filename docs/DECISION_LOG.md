@@ -1,5 +1,52 @@
 # DECISION LOG
 
+## 2026-11-04 — USER_AUTHORIZED_EXPLORATORY_RELAXATION_OF_PARITY_GATE
+
+- User authorizes independent `B_PRIORITY_W2W3_VOLUME_EXPLORATORY_V0` on the
+  existing #104 branch: DEVELOPMENT / RECONSTRUCTED_RETROSPECTIVE / EXPLORATORY /
+  LOW_CONFIDENCE / NOT_PRODUCTION_VALIDATED. It may read frozen DEVELOPMENT
+  outcomes after its own protocol commit, without production-observation parity.
+- Strict `B_PRIORITY_RESEARCH_BLOCKED_BY_DATA_GAP`, its protocol/report and
+  NEEDS_MORE_EVIDENCE decisions remain valid and unchanged. This relaxation is
+  not a strict parity PASS, production validation or prospective validation.
+- ADOPT the fixed research-only prototype demonstration and fixed R0–R3 study
+  scope in `docs/research/b_priority_w2w3_volume_exploratory_v0_protocol.md`.
+  No production promotion, provider acquisition, new branch/PR or merge.
+- Completed exploration: all three independent exploratory markers are MIXED;
+  Main R3 5D Top1/3 has small positive matched uplift but 2026 reverses and
+  10D Top1 is negative. R2 does not improve 5D overall; equal weights remain
+  frozen. Production decision stays NEEDS_MORE_EVIDENCE: actual feature
+  semantics/vintage, untouched prospective inputs, stability and executable
+  costs remain unproven. Existing Formal B paths can continue without them.
+- Recommend only a separately authorized Main recording-only shadow proposal
+  with input retention/readback and predeclared acceptance, never activation
+  by this research task. Do not promote to STAR or choose weights from this
+  DEVELOPMENT result. Evidence: exploratory report/summary and fixed samples.
+
+## 2026-11-04 — B priority question supersedes the unstarted operational-Score plan
+
+- User decision: `B_OPERATIONAL_SCORE_VOLUME_RANKING_V1` is **NOT_STARTED /
+  SUPERSEDED_BY_USER_DECISION**, not a failed experiment. Adopt the independent
+  research scope `B_PRIORITY_W2W3_VOLUME_RESEARCH_V1`: existing B determines
+  qualification; only the fixed B-native structure proxy and three report volume
+  observations may be studied as a separate priority layer. Old Score is neither
+  baseline nor control, and its production behavior remains unchanged.
+- Preserve the earlier diagnostic and `B_RANKING_BASELINE_SCORE_IDENTITY_NOT_RECOVERABLE`
+  for their own identity. They are not negative evidence about the new question.
+- `NEEDS_MORE_EVIDENCE`: the new question stops at
+  `B_PRIORITY_RESEARCH_BLOCKED_BY_DATA_GAP`, before outcome analysis. Original
+  T-day inputs needed for real-observation reconstruction parity are unavailable
+  in the checked sources. Synthetic agreement and stored aggregate values do not
+  meet that prerequisite. Recover provenance-bound prefixes for multiple actual
+  observation dates (complete/incomplete cases), or obtain an explicit user
+  revision of the requirement, before continuing.
+- Defer priority-label product design and Score demotion. Do not launch turnover
+  research from this input gap. Existing Formal B daily operation, report
+  observations and genuine prospective recording remain unblocked; no production
+  change or Final OOS access follows. Evidence: independent
+  `docs/research/b_priority_w2w3_volume_v1_protocol.md` (lock commit
+  `13008a3579a225af1f89f1facee1f22c48050195`) and its report.
+
 ## 2026-11-03 — NEEDS_MORE_EVIDENCE: same-day B ranking lacks exact Score baseline
 
 - `B_CANDIDATE_RANKING_VOLUME_TURNOVER_DIAGNOSTIC_V1` stops with

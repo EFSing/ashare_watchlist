@@ -1,6 +1,113 @@
 # HANDOFF — 跨设备最小恢复入口
 
-## 2026-11-04 — PR #103 user-authorized squash-merge checkpoint
+## 2026-11-04 — B_PRIORITY_EXPLORATORY_V0_READY_FOR_USER_DECISION
+
+- Research question / STRICT PATH throughout. Continue existing Draft
+  [#104](https://github.com/EFSing/ashare_watchlist/pull/104), branch
+  `codex/b-priority-w2w3-volume-v1`, worktree
+  `D:/dev/ashare-b-priority-w2w3-volume-v1`. Current remote HEAD is resolved
+  live from `origin/codex/b-priority-w2w3-volume-v1` and #104, not a fixed
+  protocol/milestone SHA. Do not create a branch/PR, merge or close #104.
+- User decision `USER_AUTHORIZED_EXPLORATORY_RELAXATION_OF_PARITY_GATE`
+  authorizes separate DEVELOPMENT / RECONSTRUCTED_RETROSPECTIVE / EXPLORATORY /
+  LOW_CONFIDENCE / NOT_PRODUCTION_VALIDATED results. Protocol lock
+  `EXPLORATORY_PRE_OUTCOME_PROTOCOL_COMMIT=f717b6e9e41f3ceb23a5bca8a19356923bfabeb2`
+  precedes outcome access. Strict study below stays blocked; its protocol,
+  report, summary and NEEDS_MORE_EVIDENCE markers are unchanged.
+- All three exploratory markers are MIXED. Main R3 5D Top1/3 uplift
+  +0.175/+0.179pp over matched R0 (644/555 dates; CIs cross zero); 10D
+  -0.359/+0.262pp. R2 5D -0.196/-0.080pp. 2026 reverses R1/R3 5D direction.
+  Read `docs/research/b_priority_w2w3_volume_exploratory_v0_report.md` and
+  `data/validation/b_priority_w2w3_volume_exploratory_v0/summary.json` for all
+  years, horizons, risks, single fields, board and episode sensitivities.
+- ADOPT only `B_PRIORITY_PROTOTYPE_V0` research demonstration. Fixed R3:
+  transition first, then equal-weight volume quality; rank1 首选 when N>=2,
+  rank2–3 次选, rest 观察 (single candidate 观察). Incomplete volume unranked.
+  Examples: `docs/examples/b_priority_prototype_v0.md`; deterministic dates
+  2023-06-30, 2025-02-10, 2026-08-28 and largest-count 2024-10-18.
+- Reproduce `python scripts/b_priority_w2w3_volume_exploratory_v0.py` from the
+  existing strict feature detail plus frozen qualified B V2 outcomes. Feature
+  recovery/raw Drive identity and reconstruction command remain in the strict
+  report below; no new provider/source/local-only evidence. New derived detail
+  and full prototype candidates are tracked with byte/stream SHA in summary.
+- Next user decision: authorize a bounded Main recording-only shadow proposal
+  to test real feature semantics/vintage and future directional stability, or
+  defer it. Not authorized to activate shadow or promote production ranking.
+  No production blockers added. Final OOS SEALED / UNREAD; semantics/dispatch/
+  production ranking changes=0. Production, C, Score/report and runtime-state
+  untouched. Exact final CI/head/mergeability must be read live from #104.
+- Verification: focused strict+exploratory tests 26 passed; full pytest
+  860 passed / 2 existing large-fixture skips / 10 warnings. Compileall,
+  diff checks and Node 5 passed. Two final-code runs match all five generated
+  file hashes; independent integer-rank/lexicographic reconstruction matches
+  all 12 Main TopK/horizon comparisons. Summary SHA-256
+  `d79d95aaf4fd761c12a2587b1087916107c0caac5d499d4ca802ae557a7aa511`.
+
+## Strict study checkpoint — 2026-11-04 — Independent B priority structure/volume research intake
+
+- Research question / STRICT PATH: `B_PRIORITY_W2W3_VOLUME_RESEARCH_V1`.
+  Independent branch `codex/b-priority-w2w3-volume-v1`, worktree
+  `D:/dev/ashare-b-priority-w2w3-volume-v1`, starts from live master
+  `7d7b6c9f2de1c45e1a4b1a493395ac81646489d8` (not the old research branch).
+  Runtime-state intake `ebe014748cfd3a551b0e3589124e08b2c154871d`.
+  #103 is live-confirmed merged; master exact-head correctness run
+  `41767491750` SUCCESS. These are intake provenance, not permanent invariants.
+- `PROJECT_GOVERNANCE_STATE_CONFLICT` minimally reconciled: the former active
+  operational-Score next-action is superseded by the user's new direction.
+  `B_OPERATIONAL_SCORE_VOLUME_RANKING_V1` = **NOT_STARTED /
+  SUPERSEDED_BY_USER_DECISION**; never record it as a failed research result.
+  Preserve the earlier `B_CANDIDATE_RANKING_VOLUME_TURNOVER_DIAGNOSTIC_V1` and
+  `B_RANKING_BASELINE_SCORE_IDENTITY_NOT_RECOVERABLE` unchanged.
+- Protocol locked before study outcomes: `PRE_OUTCOME_PROTOCOL_COMMIT` =
+  `13008a3579a225af1f89f1facee1f22c48050195`.
+  Terminal: **B_PRIORITY_RESEARCH_BLOCKED_BY_DATA_GAP**, decision
+  `NEEDS_MORE_EVIDENCE`. Real observation parity is `NOT_RUN_INPUTS_UNAVAILABLE`:
+  24 runtime-state date files / 223 identities (156 complete, 67 incomplete)
+  exist, but their original T-day input prefixes were not recovered. Frozen
+  historical OHLCV ends 2026-08-28; observation dates begin 2026-09-21. Existing
+  local/remote archive checks found no matching inputs; no provider refetch.
+- Outcome-blind audit: 17,714 identities / 763 candidate dates; Main Primary
+  10,779 / 749 dates, structure available 9,085 (transition 2,512), three-volume
+  complete case 7,861 / 719 dates. Main/ChiNext/STAR/Beijing counts are
+  10,779/4,416/1,813/706; Beijing remains separate. Full raw hashes and corrected
+  membership proof verified; 17,714 causal append/public-wrapper checks pass.
+  R0/R1/R2/R3 efficacy and Top-K results remain null, not zero or negative.
+- Three independent markers:
+  `B_W2W3_TRANSITION_PRIORITY_NEEDS_MORE_EVIDENCE`,
+  `B_REPORT_VOLUME_PRIORITY_NEEDS_MORE_EVIDENCE`,
+  `B_W2W3_VOLUME_PRIORITY_NEEDS_MORE_EVIDENCE`.
+  Defer priority product design and old Score demotion; no turnover study.
+- Recovery: fetch `origin/codex/b-priority-w2w3-volume-v1` and resolve its current
+  remote HEAD live (the protocol commit is a lock, not branch tip). Report,
+  script, tests and summary use the `b_priority_w2w3_volume_v1` stem. Reproduce:
+  `python scripts/b_priority_w2w3_volume_v1.py --raw-dir <restored frozen core_signal_validation/raw>`.
+  The report records the existing Drive recovery reference, required raw hashes,
+  deterministic ignored detail path/count/SHA and the unavailable parity input.
+  No new local-only evidence is required to understand or reproduce this stop.
+- Validation: final focused/relevant 57 passed; full pytest 852 passed, 2 existing
+  large-fixture skips, 10 warnings; compileall/diff checks and Node 5 pass.
+  Two final-code reconstructions match both summary and detail hashes. Summary
+  (26,762 bytes) SHA-256:
+  `beebccfe664c53f6738404fa25644432f9bd6c2446bd59b19ec86031f19332a5`.
+  Draft PR/exact-head CI/mergeability are delivery readbacks; verify them live
+  when resuming. Do not claim the normal successful-research terminal.
+- Next user decision: recover original provenance-bound T-day inputs for
+  multiple real observation dates with complete/incomplete candidates, or
+  explicitly revise the prerequisite. No outcome access until evidence is met.
+  No production/Score/runtime-state change; no dispatch or automatic merge;
+  Final OOS SEALED / UNREAD. Classification remains research question; existing
+  Formal B operation/report observations/prospective recording may continue.
+- Delivery: independent [Draft PR #104](https://github.com/EFSing/ashare_watchlist/pull/104),
+  base `master` (live at creation `7d7b6c9f2de1c45e1a4b1a493395ac81646489d8`).
+  Implementation checkpoint `048fa77e8d3578754bc01138f5bc4446474e2c0b`;
+  this PR-recovery receipt advances the tip. Current remote HEAD is the live
+  `origin/codex/b-priority-w2w3-volume-v1` ref, not that checkpoint or protocol SHA.
+  Re-read #104 for the exact current head, CI and mergeability. All valuable
+  changes are committed/pushed with remote-recoverable inputs or explicit
+  unavailable-input evidence; no automatic merge. This is a blocked research
+  audit Draft, not a completed efficacy study.
+
+## Historical checkpoint — 2026-11-04 — PR #103 user-authorized squash-merge checkpoint
 
 - Classification: merge / STRICT PATH; the underlying study remains a research question.
   The user explicitly authorized squash-merging PR #103 into `master`. Its source checkpoint
