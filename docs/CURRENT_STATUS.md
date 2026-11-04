@@ -1,6 +1,18 @@
 # CURRENT STATUS
 
-## 2026-11-03 — PR #102 reconciliation; independent Ranking question
+## 2026-11-04 — PR #103 user-authorized squash-merge delivery
+
+- The user authorized squash-merging #103 into master. Require exact-head CI success and
+  `CLEAN / MERGEABLE`; live PR https://github.com/EFSing/ashare_watchlist/pull/103 supplies
+  the merge result and identity. After confirmation, recovery source is live `origin/master`;
+  no separate post-merge governance sync PR is required.
+- The previous research question and its exact-legacy-Score evidence-gap conclusion remain
+  unchanged. The separately authorized operational-Score/three-volume-feature study must
+  start from new live master only after #103 is merged, and pass production parity before
+  outcome access. This merge task performs no new research or production change.
+  Formal Delivery Ladder is unchanged; Final OOS remains `SEALED / UNREAD`.
+
+## Historical pre-merge checkpoint — 2026-11-03 — PR #102 reconciliation; independent Ranking question
 
 - `PROJECT_GOVERNANCE_STATE_CONFLICT` resolved using live Git/GitHub: #102 is merged
   as `1b73acf7c5c01fc977888083b22d07ff49105bfa`. Its remote completion receipt records
