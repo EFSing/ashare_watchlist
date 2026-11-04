@@ -1,5 +1,25 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-11-04 — C_RULE_FUNNEL_STRICTNESS_AUDIT_V1 intake
+
+- Research question / STRICT PATH. `PROJECT_GOVERNANCE_STATE_CONFLICT`
+  minimally reconciled: #104 is merged as `334f636a98c17d31c3f3251b8ce3d3859132c3b7`;
+  master exact-head correctness run `41820494903` succeeded. Earlier #104
+  pending-decision entries below are historical; their research conclusions remain.
+- Independent branch `codex/c-rule-funnel-strictness-audit-v1`, worktree
+  `D:/dev/ashare-c-rule-funnel-strictness-audit-v1`, based on that live master.
+  Runtime-state intake `ebe014748cfd3a551b0e3589124e08b2c154871d` is read-only.
+  Protocol: `docs/research/c_rule_funnel_strictness_audit_v1_protocol.md`.
+- Question: recent C scarcity from market structure versus hard rule conditions;
+  product use: decide whether a separate one/two-condition study is warranted.
+  Recover original inputs before population funnel/near-miss claims; otherwise
+  complete frequency evidence and record NEEDS_MORE_EVIDENCE, never fake counts.
+- Future B/C direction: eligibility → structure state → independent evidence →
+  priority/explanation; no weighted Score product target. Existing production
+  and prior research remain unchanged. Final OOS SEALED / UNREAD.
+- Next: implement read-only reproducible evidence audit, verify, push and Draft PR;
+  no merge, dispatch, provider acquisition, runtime mutation or rule relaxation.
+
 ## 2026-11-04 — B_PRIORITY_EXPLORATORY_V0_READY_FOR_USER_DECISION
 
 - Research question / STRICT PATH throughout. Continue existing Draft

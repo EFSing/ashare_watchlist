@@ -1,5 +1,20 @@
 # CURRENT STATUS
 
+## 2026-11-04 — Independent C scarcity audit intake
+
+- `PROJECT_GOVERNANCE_STATE_CONFLICT` minimally reconciled: #104 is merged at
+  `334f636a98c17d31c3f3251b8ce3d3859132c3b7`, master exact-head CI
+  `41820494903` SUCCESS. The #104 pending-review wording below is historical;
+  strict evidence-gap and exploratory conclusions remain unchanged.
+- `C_RULE_FUNNEL_STRICTNESS_AUDIT_V1`: research question / STRICT PATH, independent
+  branch `codex/c-rule-funnel-strictness-audit-v1`; protocol uses real C reports
+  and original T-bound inputs only. No outcome access or production changes.
+  Missing rejected-stock inputs must remain NEEDS_MORE_EVIDENCE rather than a
+  market-versus-rule causal claim. Existing daily product paths remain unblocked.
+- User's future B/C design direction excludes weighted Score product targets:
+  eligibility → structure state → independent evidence → priority/explanation.
+  Delivery Ladder unchanged; Final OOS SEALED / UNREAD.
+
 ## 2026-11-04 — B_PRIORITY_EXPLORATORY_V0_READY_FOR_USER_DECISION
 
 - `USER_AUTHORIZED_EXPLORATORY_RELAXATION_OF_PARITY_GATE`: independent

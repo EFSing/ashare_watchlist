@@ -1,5 +1,18 @@
 # DECISION LOG
 
+## 2026-11-04 — ADOPT future B/C product architecture; audit C scarcity independently
+
+- User direction: future B/C use eligibility → structure state → independent
+  evidence → priority/explanation. Do not mechanically combine weak factors
+  into Score/weighted sums/points; qualification and priority are separate.
+  This does not change current Formal B production or reinterpret #104's
+  research-only prototype as a production adoption.
+- Authorize outcome-blind `C_RULE_FUNNEL_STRICTNESS_AUDIT_V1` to inform a later
+  explicit decision about one/two-condition research. No rule relaxation,
+  outcome optimization, provider acquisition or production modification.
+- #104 is live-confirmed merged as `334f636a98c17d31c3f3251b8ce3d3859132c3b7`;
+  preserve its strict and exploratory decisions under their original identities.
+
 ## 2026-11-04 — USER_AUTHORIZED_EXPLORATORY_RELAXATION_OF_PARITY_GATE
 
 - User authorizes independent `B_PRIORITY_W2W3_VOLUME_EXPLORATORY_V0` on the
