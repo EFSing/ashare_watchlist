@@ -1,5 +1,18 @@
 # DECISION LOG
 
+## 2026-11-04 — USER_AUTHORIZED_EXPLORATORY_RELAXATION_OF_PARITY_GATE
+
+- User authorizes independent `B_PRIORITY_W2W3_VOLUME_EXPLORATORY_V0` on the
+  existing #104 branch: DEVELOPMENT / RECONSTRUCTED_RETROSPECTIVE / EXPLORATORY /
+  LOW_CONFIDENCE / NOT_PRODUCTION_VALIDATED. It may read frozen DEVELOPMENT
+  outcomes after its own protocol commit, without production-observation parity.
+- Strict `B_PRIORITY_RESEARCH_BLOCKED_BY_DATA_GAP`, its protocol/report and
+  NEEDS_MORE_EVIDENCE decisions remain valid and unchanged. This relaxation is
+  not a strict parity PASS, production validation or prospective validation.
+- ADOPT the fixed research-only prototype demonstration and fixed R0–R3 study
+  scope in `docs/research/b_priority_w2w3_volume_exploratory_v0_protocol.md`.
+  No production promotion, provider acquisition, new branch/PR or merge.
+
 ## 2026-11-04 — B priority question supersedes the unstarted operational-Score plan
 
 - User decision: `B_OPERATIONAL_SCORE_VOLUME_RANKING_V1` is **NOT_STARTED /

@@ -1,5 +1,17 @@
 # CURRENT STATUS
 
+## 2026-11-04 — Separately authorized exploratory B priority V0
+
+- `USER_AUTHORIZED_EXPLORATORY_RELAXATION_OF_PARITY_GATE`: independent
+  `B_PRIORITY_W2W3_VOLUME_EXPLORATORY_V0` may study frozen DEVELOPMENT outcomes
+  after its own pre-outcome protocol commit. Research question / STRICT PATH;
+  LOW_CONFIDENCE / NOT_PRODUCTION_VALIDATED. The strict study below remains
+  blocked and its uncomputed metrics are not overwritten.
+- Continue existing Draft #104 / `codex/b-priority-w2w3-volume-v1`; no new branch,
+  provider input, production mutation, promotion or merge. Product decision:
+  assess fixed Top1/Top3 ordering and demonstrate `B_PRIORITY_PROTOTYPE_V0`.
+  Final OOS SEALED / UNREAD. Protocol is the independent exploratory-v0 file.
+
 ## 2026-11-04 — New independent B priority research; former plan superseded
 
 - `B_PRIORITY_W2W3_VOLUME_RESEARCH_V1`, research question / STRICT PATH, starts
