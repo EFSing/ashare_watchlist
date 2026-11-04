@@ -1,6 +1,49 @@
 # HANDOFF — 跨设备最小恢复入口
 
-## 2026-11-04 — Independent B priority structure/volume research intake
+## 2026-11-04 — B_PRIORITY_EXPLORATORY_V0_READY_FOR_USER_DECISION
+
+- Research question / STRICT PATH throughout. Continue existing Draft
+  [#104](https://github.com/EFSing/ashare_watchlist/pull/104), branch
+  `codex/b-priority-w2w3-volume-v1`, worktree
+  `D:/dev/ashare-b-priority-w2w3-volume-v1`. Current remote HEAD is resolved
+  live from `origin/codex/b-priority-w2w3-volume-v1` and #104, not a fixed
+  protocol/milestone SHA. Do not create a branch/PR, merge or close #104.
+- User decision `USER_AUTHORIZED_EXPLORATORY_RELAXATION_OF_PARITY_GATE`
+  authorizes separate DEVELOPMENT / RECONSTRUCTED_RETROSPECTIVE / EXPLORATORY /
+  LOW_CONFIDENCE / NOT_PRODUCTION_VALIDATED results. Protocol lock
+  `EXPLORATORY_PRE_OUTCOME_PROTOCOL_COMMIT=f717b6e9e41f3ceb23a5bca8a19356923bfabeb2`
+  precedes outcome access. Strict study below stays blocked; its protocol,
+  report, summary and NEEDS_MORE_EVIDENCE markers are unchanged.
+- All three exploratory markers are MIXED. Main R3 5D Top1/3 uplift
+  +0.175/+0.179pp over matched R0 (644/555 dates; CIs cross zero); 10D
+  -0.359/+0.262pp. R2 5D -0.196/-0.080pp. 2026 reverses R1/R3 5D direction.
+  Read `docs/research/b_priority_w2w3_volume_exploratory_v0_report.md` and
+  `data/validation/b_priority_w2w3_volume_exploratory_v0/summary.json` for all
+  years, horizons, risks, single fields, board and episode sensitivities.
+- ADOPT only `B_PRIORITY_PROTOTYPE_V0` research demonstration. Fixed R3:
+  transition first, then equal-weight volume quality; rank1 首选 when N>=2,
+  rank2–3 次选, rest 观察 (single candidate 观察). Incomplete volume unranked.
+  Examples: `docs/examples/b_priority_prototype_v0.md`; deterministic dates
+  2023-06-30, 2025-02-10, 2026-08-28 and largest-count 2024-10-18.
+- Reproduce `python scripts/b_priority_w2w3_volume_exploratory_v0.py` from the
+  existing strict feature detail plus frozen qualified B V2 outcomes. Feature
+  recovery/raw Drive identity and reconstruction command remain in the strict
+  report below; no new provider/source/local-only evidence. New derived detail
+  and full prototype candidates are tracked with byte/stream SHA in summary.
+- Next user decision: authorize a bounded Main recording-only shadow proposal
+  to test real feature semantics/vintage and future directional stability, or
+  defer it. Not authorized to activate shadow or promote production ranking.
+  No production blockers added. Final OOS SEALED / UNREAD; semantics/dispatch/
+  production ranking changes=0. Production, C, Score/report and runtime-state
+  untouched. Exact final CI/head/mergeability must be read live from #104.
+- Verification: focused strict+exploratory tests 26 passed; full pytest
+  860 passed / 2 existing large-fixture skips / 10 warnings. Compileall,
+  diff checks and Node 5 passed. Two final-code runs match all five generated
+  file hashes; independent integer-rank/lexicographic reconstruction matches
+  all 12 Main TopK/horizon comparisons. Summary SHA-256
+  `d79d95aaf4fd761c12a2587b1087916107c0caac5d499d4ca802ae557a7aa511`.
+
+## Strict study checkpoint — 2026-11-04 — Independent B priority structure/volume research intake
 
 - Research question / STRICT PATH: `B_PRIORITY_W2W3_VOLUME_RESEARCH_V1`.
   Independent branch `codex/b-priority-w2w3-volume-v1`, worktree

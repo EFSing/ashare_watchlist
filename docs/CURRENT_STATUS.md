@@ -1,16 +1,27 @@
 # CURRENT STATUS
 
-## 2026-11-04 — Separately authorized exploratory B priority V0
+## 2026-11-04 — B_PRIORITY_EXPLORATORY_V0_READY_FOR_USER_DECISION
 
 - `USER_AUTHORIZED_EXPLORATORY_RELAXATION_OF_PARITY_GATE`: independent
   `B_PRIORITY_W2W3_VOLUME_EXPLORATORY_V0` may study frozen DEVELOPMENT outcomes
   after its own pre-outcome protocol commit. Research question / STRICT PATH;
   LOW_CONFIDENCE / NOT_PRODUCTION_VALIDATED. The strict study below remains
   blocked and its uncomputed metrics are not overwritten.
-- Continue existing Draft #104 / `codex/b-priority-w2w3-volume-v1`; no new branch,
-  provider input, production mutation, promotion or merge. Product decision:
-  assess fixed Top1/Top3 ordering and demonstrate `B_PRIORITY_PROTOTYPE_V0`.
-  Final OOS SEALED / UNREAD. Protocol is the independent exploratory-v0 file.
+- Existing Draft #104 / `codex/b-priority-w2w3-volume-v1`; exploratory protocol
+  locked at `f717b6e9e41f3ceb23a5bca8a19356923bfabeb2` before outcome access.
+  Frozen Main structure+volume intersection is 7,541; no new acquisition.
+- Exploratory markers: `EXPLORATORY_W2W3_SIGNAL_MIXED`,
+  `EXPLORATORY_VOLUME_SIGNAL_MIXED`,
+  `EXPLORATORY_W2W3_VOLUME_PRIORITY_MIXED`. R1 5D contrast +0.416pp / 576 dates,
+  10D approximately flat. R2 5D Top1/Top3 uplift -0.196/-0.080pp; R3
+  +0.175/+0.179pp (644/555 dates), with CIs spanning zero. R3 10D Top1 is
+  -0.359pp while Top3 is +0.262pp. 2026 5D R1/R3 reverses the prior years.
+- ADOPT `B_PRIORITY_PROTOTYPE_V0` for research demonstration only; production
+  NEEDS_MORE_EVIDENCE. Recommend a separately user-approved, recording-only
+  Main shadow to test semantics/future stability, not production ranking or
+  STAR expansion. No shadow started. The report and deterministic historical
+  examples use the exploratory-v0/prototype-v0 stems; existing daily product
+  paths remain unblocked. No promotion/merge; Final OOS SEALED / UNREAD.
 
 ## 2026-11-04 — New independent B priority research; former plan superseded
 

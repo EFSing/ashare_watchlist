@@ -12,6 +12,16 @@
 - ADOPT the fixed research-only prototype demonstration and fixed R0–R3 study
   scope in `docs/research/b_priority_w2w3_volume_exploratory_v0_protocol.md`.
   No production promotion, provider acquisition, new branch/PR or merge.
+- Completed exploration: all three independent exploratory markers are MIXED;
+  Main R3 5D Top1/3 has small positive matched uplift but 2026 reverses and
+  10D Top1 is negative. R2 does not improve 5D overall; equal weights remain
+  frozen. Production decision stays NEEDS_MORE_EVIDENCE: actual feature
+  semantics/vintage, untouched prospective inputs, stability and executable
+  costs remain unproven. Existing Formal B paths can continue without them.
+- Recommend only a separately authorized Main recording-only shadow proposal
+  with input retention/readback and predeclared acceptance, never activation
+  by this research task. Do not promote to STAR or choose weights from this
+  DEVELOPMENT result. Evidence: exploratory report/summary and fixed samples.
 
 ## 2026-11-04 — B priority question supersedes the unstarted operational-Score plan
 
