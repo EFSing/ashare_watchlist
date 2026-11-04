@@ -21,6 +21,9 @@ data/validation/core_signal_validation/raw/daily_k.parquet
 # Reproducible DEVELOPMENT diagnostic detail (143+ MB compressed); summary is tracked.
 data/validation/b_phase_volume_path_diagnostic_v1/events.jsonl.gz
 
+# Reproducible outcome-blind B-priority feature detail; summary is tracked.
+data/validation/b_priority_w2w3_volume_v1/input_features.jsonl.gz
+
 # Large local-only DEVELOPMENT turnover acquisition/canonical/detail inputs.
 data/validation/b_turnover_x_relative_volume_incremental_v1/raw/
 data/validation/b_turnover_x_relative_volume_incremental_v1/tushare_gateway/raw/full/

@@ -12,12 +12,27 @@
   SUPERSEDED_BY_USER_DECISION**, not failure or an efficacy conclusion.
   The previous diagnostic and `B_RANKING_BASELINE_SCORE_IDENTITY_NOT_RECOVERABLE`
   remain valid for their own identities; old Score is excluded from this study.
-- Product decision: whether B-native structure plus the three existing report
-  volume observations merits independent `首选 / 次选 / 观察` design. Input
-  audits and a pre-outcome committed protocol precede all outcome access.
-  Real volume parity cannot be replaced by synthetic tests or aggregate stores.
-  Formal Delivery Ladder, production semantics and existing product paths are
-  unchanged. Final OOS remains SEALED / UNREAD.
+- `PRE_OUTCOME_PROTOCOL_COMMIT` = `13008a3579a225af1f89f1facee1f22c48050195`.
+  Study stops at **B_PRIORITY_RESEARCH_BLOCKED_BY_DATA_GAP**: 24 real observation
+  date files / 223 identities are readable, but original T-day OHLCV prefixes
+  were not recovered; real reconstruction parity is `NOT_RUN_INPUTS_UNAVAILABLE`,
+  not PASS or a mismatching-definition result. No study outcome values used.
+- Outcome-blind coverage: 17,714 qualified identities / 763 dates; Main Primary
+  10,779 / 749 dates, structure available 9,085 with 2,512 transition proxies,
+  volume complete 7,861 / 719 dates. Beijing's 706 identities remain out of scope.
+  R0/R1/R2/R3 efficacy is uncomputed/null. Three independent decisions are
+  `B_W2W3_TRANSITION_PRIORITY_NEEDS_MORE_EVIDENCE`,
+  `B_REPORT_VOLUME_PRIORITY_NEEDS_MORE_EVIDENCE`, and
+  `B_W2W3_VOLUME_PRIORITY_NEEDS_MORE_EVIDENCE`. This is an input-gap decision,
+  not evidence against the hypotheses. See the independent protocol/report/
+  summary with the `b_priority_w2w3_volume_v1` stem.
+- Product decision is deferred: no `首选 / 次选 / 观察` mapping, old Score
+  demotion or turnover research. Required next evidence is original provenance-
+  bound prefixes for multiple real dates, covering complete/incomplete candidates,
+  or an explicit user revision of that prerequisite. Real parity cannot be
+  replaced by synthetic tests or aggregate stores. Formal Delivery Ladder,
+  production semantics and existing product paths remain unchanged. Final OOS
+  remains SEALED / UNREAD. Classification remained research question.
 
 ## Historical checkpoint — 2026-11-04 — PR #103 user-authorized squash-merge delivery
 

@@ -15,12 +15,45 @@
   SUPERSEDED_BY_USER_DECISION**; never record it as a failed research result.
   Preserve the earlier `B_CANDIDATE_RANKING_VOLUME_TURNOVER_DIAGNOSTIC_V1` and
   `B_RANKING_BASELINE_SCORE_IDENTITY_NOT_RECOVERABLE` unchanged.
-- Only outcome-blind input, identity, trace, structure and three-volume-field
-  audits are running. Freeze `docs/research/b_priority_w2w3_volume_v1_protocol.md`
-  in Git before any study outcomes. Real observation parity additionally
-  requires the original provenance-bound T-day OHLCV, not aggregate values.
-  No production/Score/runtime-state change; no provider calls or dispatch;
-  Final OOS SEALED / UNREAD. Existing product operation may continue.
+- Protocol locked before study outcomes: `PRE_OUTCOME_PROTOCOL_COMMIT` =
+  `13008a3579a225af1f89f1facee1f22c48050195`.
+  Terminal: **B_PRIORITY_RESEARCH_BLOCKED_BY_DATA_GAP**, decision
+  `NEEDS_MORE_EVIDENCE`. Real observation parity is `NOT_RUN_INPUTS_UNAVAILABLE`:
+  24 runtime-state date files / 223 identities (156 complete, 67 incomplete)
+  exist, but their original T-day input prefixes were not recovered. Frozen
+  historical OHLCV ends 2026-08-28; observation dates begin 2026-09-21. Existing
+  local/remote archive checks found no matching inputs; no provider refetch.
+- Outcome-blind audit: 17,714 identities / 763 candidate dates; Main Primary
+  10,779 / 749 dates, structure available 9,085 (transition 2,512), three-volume
+  complete case 7,861 / 719 dates. Main/ChiNext/STAR/Beijing counts are
+  10,779/4,416/1,813/706; Beijing remains separate. Full raw hashes and corrected
+  membership proof verified; 17,714 causal append/public-wrapper checks pass.
+  R0/R1/R2/R3 efficacy and Top-K results remain null, not zero or negative.
+- Three independent markers:
+  `B_W2W3_TRANSITION_PRIORITY_NEEDS_MORE_EVIDENCE`,
+  `B_REPORT_VOLUME_PRIORITY_NEEDS_MORE_EVIDENCE`,
+  `B_W2W3_VOLUME_PRIORITY_NEEDS_MORE_EVIDENCE`.
+  Defer priority product design and old Score demotion; no turnover study.
+- Recovery: fetch `origin/codex/b-priority-w2w3-volume-v1` and resolve its current
+  remote HEAD live (the protocol commit is a lock, not branch tip). Report,
+  script, tests and summary use the `b_priority_w2w3_volume_v1` stem. Reproduce:
+  `python scripts/b_priority_w2w3_volume_v1.py --raw-dir <restored frozen core_signal_validation/raw>`.
+  The report records the existing Drive recovery reference, required raw hashes,
+  deterministic ignored detail path/count/SHA and the unavailable parity input.
+  No new local-only evidence is required to understand or reproduce this stop.
+- Validation: final focused/relevant 57 passed; full pytest 852 passed, 2 existing
+  large-fixture skips, 10 warnings; compileall/diff checks and Node 5 pass.
+  Two final-code reconstructions match both summary and detail hashes. Summary
+  (26,762 bytes) SHA-256:
+  `beebccfe664c53f6738404fa25644432f9bd6c2446bd59b19ec86031f19332a5`.
+  Draft PR/exact-head CI/mergeability are delivery readbacks; verify them live
+  when resuming. Do not claim the normal successful-research terminal.
+- Next user decision: recover original provenance-bound T-day inputs for
+  multiple real observation dates with complete/incomplete candidates, or
+  explicitly revise the prerequisite. No outcome access until evidence is met.
+  No production/Score/runtime-state change; no dispatch or automatic merge;
+  Final OOS SEALED / UNREAD. Classification remains research question; existing
+  Formal B operation/report observations/prospective recording may continue.
 
 ## Historical checkpoint — 2026-11-04 — PR #103 user-authorized squash-merge checkpoint
 
