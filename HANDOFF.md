@@ -1,6 +1,6 @@
 # HANDOFF — 跨设备最小恢复入口
 
-## 2026-11-04 — C_RULE_FUNNEL_STRICTNESS_AUDIT_V1 intake
+## 2026-11-04 — C_RULE_FUNNEL_STRICTNESS_AUDIT_READY_FOR_USER_DECISION
 
 - Research question / STRICT PATH. `PROJECT_GOVERNANCE_STATE_CONFLICT`
   minimally reconciled: #104 is merged as `334f636a98c17d31c3f3251b8ce3d3859132c3b7`;
@@ -9,16 +9,40 @@
 - Independent branch `codex/c-rule-funnel-strictness-audit-v1`, worktree
   `D:/dev/ashare-c-rule-funnel-strictness-audit-v1`, based on that live master.
   Runtime-state intake `ebe014748cfd3a551b0e3589124e08b2c154871d` is read-only.
-  Protocol: `docs/research/c_rule_funnel_strictness_audit_v1_protocol.md`.
+  Protocol locked at `bedb730`; protocol/report/script/tests use the
+  `c_rule_funnel_strictness_audit_v1` stem. Current remote HEAD is resolved live
+  from `origin/codex/c-rule-funnel-strictness-audit-v1` / its Draft PR, not the
+  protocol commit or a static snapshot.
 - Question: recent C scarcity from market structure versus hard rule conditions;
   product use: decide whether a separate one/two-condition study is warranted.
-  Recover original inputs before population funnel/near-miss claims; otherwise
-  complete frequency evidence and record NEEDS_MORE_EVIDENCE, never fake counts.
+  Decision `NEEDS_MORE_EVIDENCE`: 21 actual report dates, 36 stock-date matches
+  (23 symbols), average 1.714/day, zero days 6/21; Balanced 36, Conservative 0.
+  Oct08..Nov03 matches the user's expectation: 18 dates / 29 matches.
+  First/last ten report days average 3.0 / 0.6; no long-run causal claim.
+- Original T-bound full-universe inputs/rejected observations not recovered in
+  checked Git/local/Drive sources. Full F0–F8, local near misses, margins,
+  sensitivity, market/rule decomposition and population top3 remain null.
+  Within 36 Balanced matches only: Conservative trend false 34; depth/time
+  aggregate status 20; rebound aggregate status 9 (overlapping, selected cohort).
+  Do not call these population bottlenecks or single-condition causes.
+- Overall `C_SCARCITY_CAUSE_NEEDS_MORE_EVIDENCE`; Conservative
+  `C_CONSERVATIVE_B_STRICTNESS_NEEDS_MORE_EVIDENCE`. Recover original packages
+  matching report SHA / full observations before selecting relaxation research.
+  No production blocker added; existing daily operation can continue.
 - Future B/C direction: eligibility → structure state → independent evidence →
   priority/explanation; no weighted Score product target. Existing production
   and prior research remain unchanged. Final OOS SEALED / UNREAD.
-- Next: implement read-only reproducible evidence audit, verify, push and Draft PR;
-  no merge, dispatch, provider acquisition, runtime mutation or rule relaxation.
+- Reproduce: `python scripts/c_rule_funnel_strictness_audit_v1.py` after fetch.
+  All three derived artifacts are tracked in `data/validation/c_rule_funnel_strictness_audit_v1/`;
+  report and summary contain input/detail identities and exact command. Summary SHA
+  `0d50b08bc44d13ef7744d354e13e1500b1d36fef998a1b6b1744ab7a5c877b9d`.
+  No next-device dependency on local-only state.
+- Validation: focused 10 passed; full pytest 870 passed / 2 existing missing
+  large-fixture skips / 10 warnings; compileall, Node 5, diff checks and repeated
+  three-file hash equality pass. Production semantics change=0.
+- Next: read the independent Draft PR for current exact-head CI/mergeability;
+  user decides whether/how to recover evidence. Do not merge, dispatch, acquire
+  provider data, mutate runtime-state, relax rules or start follow-on research.
 
 ## 2026-11-04 — B_PRIORITY_EXPLORATORY_V0_READY_FOR_USER_DECISION
 
