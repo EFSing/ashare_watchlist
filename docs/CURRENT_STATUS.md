@@ -1,6 +1,39 @@
 # CURRENT STATUS
 
-## 2026-10-10 — Scheduler reliability P1; recovery PR #102 prepared
+## 2026-11-04 — PR #103 user-authorized squash-merge delivery
+
+- The user authorized squash-merging #103 into master. Require exact-head CI success and
+  `CLEAN / MERGEABLE`; live PR https://github.com/EFSing/ashare_watchlist/pull/103 supplies
+  the merge result and identity. After confirmation, recovery source is live `origin/master`;
+  no separate post-merge governance sync PR is required.
+- The previous research question and its exact-legacy-Score evidence-gap conclusion remain
+  unchanged. The separately authorized operational-Score/three-volume-feature study must
+  start from new live master only after #103 is merged, and pass production parity before
+  outcome access. This merge task performs no new research or production change.
+  Formal Delivery Ladder is unchanged; Final OOS remains `SEALED / UNREAD`.
+
+## Historical pre-merge checkpoint — 2026-11-03 — PR #102 reconciliation; independent Ranking question
+
+- `PROJECT_GOVERNANCE_STATE_CONFLICT` resolved using live Git/GitHub: #102 is merged
+  as `1b73acf7c5c01fc977888083b22d07ff49105bfa`. Its remote completion receipt records
+  authorized 2026-10-10 deployment, version `651a27f8-5545-4c9a-a87c-1fba52ef2a87`;
+  the previous pending-merge/deploy wording is historical. No fresh Cloudflare acceptance,
+  missing-Cron explanation or notification verification is claimed by this research task.
+- `B_CANDIDATE_RANKING_VOLUME_TURNOVER_DIAGNOSTIC_V1` is an independent research
+  question under STRICT PATH, not a product blocker. It stops at
+  `B_RANKING_BASELINE_SCORE_IDENTITY_NOT_RECOVERABLE`: exact Score is absent from
+  17,714 qualified records / 763 dates and the frozen core replay, while historical
+  Sina membership needed for full Score remains unavailable. Protocol was committed
+  before new outcome access; no ranking models or outcome statistics were run.
+  Decision: `B_VOLUME_TURNOVER_RANKING_NEEDS_MORE_EVIDENCE`, an evidence-gap result
+  rather than a negative efficacy result. Exact saved Score with provenance or exact
+  historical full-evaluator inputs are needed before comparison. Existing Formal B,
+  report observations and genuine prospective capture can continue; no new production
+  Ranking or Wave research is authorized. Independent Draft
+  https://github.com/EFSing/ashare_watchlist/pull/103 is the review stop.
+  Formal Delivery Ladder and existing research conclusions remain unchanged.
+
+## Historical pre-merge checkpoint — 2026-10-10 — Scheduler reliability P1; recovery PR #102 prepared
 
 - `PROJECT_GOVERNANCE_STATE_CONFLICT`: the former top entry still described #100 OPEN,
   while GitHub confirms #100 merged as `85ce2a970ed3bd70d4b5d3289222f76749caee64` and

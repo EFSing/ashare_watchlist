@@ -1,6 +1,59 @@
 # HANDOFF — 跨设备最小恢复入口
 
-## 2026-10-10 — Scheduler recovery — PR #102 merge/deploy decision
+## 2026-11-04 — PR #103 user-authorized squash-merge checkpoint
+
+- Classification: merge / STRICT PATH; the underlying study remains a research question.
+  The user explicitly authorized squash-merging PR #103 into `master`. Its source checkpoint
+  is `665ba8eb949a958e8b93c4f2d35a16c5e95c8a3c`; this documentation update advances the tip.
+  Require successful exact-head CI and `CLEAN / MERGEABLE` before merging.
+- Recovery: fetch and read https://github.com/EFSing/ashare_watchlist/pull/103 live. Once it
+  reports merged, use live `origin/master`; the PR records the squash identity. Until then,
+  use `origin/codex/b-candidate-ranking-volume-turnover-v1`. Resolve remote HEAD live; neither
+  the source checkpoint above nor a documentation snapshot is a permanent HEAD invariant.
+- Preserve the previous study and `B_RANKING_BASELINE_SCORE_IDENTITY_NOT_RECOVERABLE`
+  unchanged. The separate authorized `B_OPERATIONAL_SCORE_VOLUME_RANKING_V1` studies
+  `CURRENT_OPERATIONAL_SCORE`, not `FULL_LEGACY_SCORE`. Its prerequisite is #103 merged;
+  then start a new branch from live master and perform production Score parity before any
+  historical outcome access. Do not stack it on #103. No new research is run by this merge task.
+- No follow-on governance sync PR is required merely to restate the merge. Production
+  semantics/runtime-state remain unchanged; Final OOS remains `SEALED / UNREAD`.
+
+## Historical pre-merge checkpoint — 2026-11-03 — B candidate ranking stopped at exact-Score evidence gap
+
+- Research question / STRICT PATH: `B_CANDIDATE_RANKING_VOLUME_TURNOVER_DIAGNOSTIC_V1`,
+  independent branch `codex/b-candidate-ranking-volume-turnover-v1` from live
+  `origin/master=1b73acf7c5c01fc977888083b22d07ff49105bfa`; runtime-state intake
+  `ebe014748cfd3a551b0e3589124e08b2c154871d`. These are snapshots, not invariants.
+- `PROJECT_GOVERNANCE_STATE_CONFLICT` resolved: GitHub #102 confirms squash merge at
+  `1b73acf7c5c01fc977888083b22d07ff49105bfa` and authorized 2026-10-10 deployment
+  (version `651a27f8-5545-4c9a-a87c-1fba52ef2a87`). Its old pending-merge/deploy text below
+  is historical. This is the remote PR completion receipt, not a new live Cloudflare audit;
+  future Cron acceptance/notification evidence is not inferred.
+- Protocol locked at `24609f3eeea879a58d8f61acfdea0497947b4d56` before new ranking analysis.
+  Outcome-blind full stream audit verifies 17,714 qualified identities / 763 dates and
+  4,041,140 core rows, all without saved Score/sector fields. Historical Sina membership
+  was deliberately absent from core inputs; exact full Score cannot be reconstructed.
+- Stop: `B_RANKING_BASELINE_SCORE_IDENTITY_NOT_RECOVERABLE`; main research decision
+  `B_VOLUME_TURNOVER_RANKING_NEEDS_MORE_EVIDENCE`. No ranking efficacy conclusion,
+  no models/outcome analysis/parity/prospective sanity run; metrics remain null.
+- Recovery source: `origin/codex/b-candidate-ranking-volume-turnover-v1`; fetch and resolve
+  its live remote HEAD, checkout/upstream and Draft PR HEAD together. This protocol SHA
+  is a lock identity, not the final branch tip. Report/script/summary paths share the
+  `b_candidate_ranking_volume_turnover_v1` stem. Reproduce with
+  `python scripts/b_candidate_ranking_volume_turnover_v1.py`; no local-only input is needed.
+  Summary SHA-256 `aca5f9c29b313259316121cd3e36504f9e58522b674b167ea7c528a647e09341`.
+  Draft PR: https://github.com/EFSing/ashare_watchlist/pull/103 (base `master`);
+  require live exact-head CI/mergeability readback before any review decision.
+  Existing turnover board scope contains 17,008 identities; 706 `.bj` identities
+  remain explicitly `OUT_OF_SCOPE_PREFIX`, never relabelled Main or silently dropped.
+- Next user decision: whether to address exact provenance-bound historical Score inputs
+  in a separately authorized task. Current B and genuine prospective capture may continue.
+  Do not substitute an approximate/default Score, launch Ranking/Wave or refetch provider.
+  Leave this single independent PR for review; no automatic merge or production dispatch.
+  Existing independent PRs, runtime-state and production semantics remain untouched;
+  Final OOS is SEALED / UNREAD. Classification remained research question, STRICT PATH.
+
+## Historical pre-merge checkpoint — 2026-10-10 — Scheduler recovery — PR #102 merge/deploy decision
 
 - Classification: STRICT PATH; initially correctness blocker, revised to P1 product blocker
   for daily automatic execution and monitoring because existing stale-date/idempotency
