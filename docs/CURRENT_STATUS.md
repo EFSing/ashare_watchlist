@@ -33,6 +33,10 @@
   replaced by synthetic tests or aggregate stores. Formal Delivery Ladder,
   production semantics and existing product paths remain unchanged. Final OOS
   remains SEALED / UNREAD. Classification remained research question.
+- Independent delivery: [Draft PR #104](https://github.com/EFSing/ashare_watchlist/pull/104)
+  against live master. Review the recorded input gap; do not infer efficacy or
+  production readiness from the Draft or its CI. Exact-head CI and mergeability
+  are live GitHub properties, to be re-read for the current branch tip.
 
 ## Historical checkpoint — 2026-11-04 — PR #103 user-authorized squash-merge delivery
 

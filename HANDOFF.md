@@ -54,6 +54,15 @@
   No production/Score/runtime-state change; no dispatch or automatic merge;
   Final OOS SEALED / UNREAD. Classification remains research question; existing
   Formal B operation/report observations/prospective recording may continue.
+- Delivery: independent [Draft PR #104](https://github.com/EFSing/ashare_watchlist/pull/104),
+  base `master` (live at creation `7d7b6c9f2de1c45e1a4b1a493395ac81646489d8`).
+  Implementation checkpoint `048fa77e8d3578754bc01138f5bc4446474e2c0b`;
+  this PR-recovery receipt advances the tip. Current remote HEAD is the live
+  `origin/codex/b-priority-w2w3-volume-v1` ref, not that checkpoint or protocol SHA.
+  Re-read #104 for the exact current head, CI and mergeability. All valuable
+  changes are committed/pushed with remote-recoverable inputs or explicit
+  unavailable-input evidence; no automatic merge. This is a blocked research
+  audit Draft, not a completed efficacy study.
 
 ## Historical checkpoint — 2026-11-04 — PR #103 user-authorized squash-merge checkpoint
 

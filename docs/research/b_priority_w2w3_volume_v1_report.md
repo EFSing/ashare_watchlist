@@ -185,6 +185,9 @@ future-append invariance 与 public-volume-wrapper 一致性检查；这些不�
 SHA-256 `beebccfe664c53f6738404fa25644432f9bd6c2446bd59b19ec86031f19332a5`；
 Node dispatcher 检查 5 passed。Draft PR、exact-head CI 和 mergeability 由本分支 HANDOFF
 及最终 live delivery readback 记录，不能把本次输入阻断写成研究成功终点。
+独立交付为 [Draft PR #104](https://github.com/EFSing/ashare_watchlist/pull/104)，
+base = 创建时 live master；恢复时直接从 PR 重读 current head 与 CI，不将 transient SHA
+或 run ID 当成永久不变量。
 
 Formal B qualification/spec、trigger/stop/target、production Score/report、tracker、
 MODEL_P/MODEL_R、runtime-state、provider、C、scheduler 均未修改；production dispatch = 0；
