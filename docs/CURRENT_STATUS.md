@@ -1,5 +1,33 @@
 # CURRENT STATUS
 
+## 2026-11-04 — C scarcity frequency verified; causal audit needs original inputs
+
+- `PROJECT_GOVERNANCE_STATE_CONFLICT` minimally reconciled: #104 is merged at
+  `334f636a98c17d31c3f3251b8ce3d3859132c3b7`, master exact-head CI
+  `41820494903` SUCCESS. The #104 pending-review wording below is historical;
+  strict evidence-gap and exploratory conclusions remain unchanged.
+- `C_RULE_FUNNEL_STRICTNESS_AUDIT_V1`: research question / STRICT PATH, independent
+  branch `codex/c-rule-funnel-strictness-audit-v1`; protocol uses real C reports
+  and original T-bound inputs only. No outcome access or production changes.
+- Frequency: all 21 actual reports through 11-03 contain 36 Balanced / 0
+  Conservative stock-date matches, daily average 1.714, zero days 6/21. The
+  user's Oct08..Nov03 interval is 18 dates / 29 matches. First/last ten recorded
+  days average 3.0 / 0.6; no broader causal conclusion follows.
+- `NEEDS_MORE_EVIDENCE`: original full-universe T-bound inputs/rejected C
+  observations not recovered in checked project sources. Population funnel,
+  exact eligible count, near misses, margins, single-condition sensitivity and
+  market/rule split remain unavailable/null. Selected Balanced matches show
+  Conservative trend false 34/36 plus overlapping depth/time/rebound aggregate
+  failures; these are not whole-market bottleneck estimates.
+- Decisions: `C_SCARCITY_CAUSE_NEEDS_MORE_EVIDENCE` and
+  `C_CONSERVATIVE_B_STRICTNESS_NEEDS_MORE_EVIDENCE`. Defer selecting one/two
+  relaxation conditions until evidence recovery; do not delete Conservative.
+  The independent report/summary provide hashes and reproduction; all derived
+  details are tracked. Existing daily product paths remain unblocked.
+- User's future B/C design direction excludes weighted Score product targets:
+  eligibility → structure state → independent evidence → priority/explanation.
+  Delivery Ladder unchanged; Final OOS SEALED / UNREAD.
+
 ## 2026-11-04 — B_PRIORITY_EXPLORATORY_V0_READY_FOR_USER_DECISION
 
 - `USER_AUTHORIZED_EXPLORATORY_RELAXATION_OF_PARITY_GATE`: independent
