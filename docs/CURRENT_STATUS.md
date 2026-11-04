@@ -1,6 +1,25 @@
 # CURRENT STATUS
 
-## 2026-11-04 — PR #103 user-authorized squash-merge delivery
+## 2026-11-04 — New independent B priority research; former plan superseded
+
+- `B_PRIORITY_W2W3_VOLUME_RESEARCH_V1`, research question / STRICT PATH, starts
+  on `codex/b-priority-w2w3-volume-v1` from live master
+  `7d7b6c9f2de1c45e1a4b1a493395ac81646489d8`. #103 is merged and its post-merge
+  exact-head correctness run `41767491750` is SUCCESS; runtime-state intake
+  `ebe014748cfd3a551b0e3589124e08b2c154871d` is unchanged.
+- `PROJECT_GOVERNANCE_STATE_CONFLICT`: the old active operational-Score study
+  next-action is replaced by this user decision. Its state is **NOT_STARTED /
+  SUPERSEDED_BY_USER_DECISION**, not failure or an efficacy conclusion.
+  The previous diagnostic and `B_RANKING_BASELINE_SCORE_IDENTITY_NOT_RECOVERABLE`
+  remain valid for their own identities; old Score is excluded from this study.
+- Product decision: whether B-native structure plus the three existing report
+  volume observations merits independent `首选 / 次选 / 观察` design. Input
+  audits and a pre-outcome committed protocol precede all outcome access.
+  Real volume parity cannot be replaced by synthetic tests or aggregate stores.
+  Formal Delivery Ladder, production semantics and existing product paths are
+  unchanged. Final OOS remains SEALED / UNREAD.
+
+## Historical checkpoint — 2026-11-04 — PR #103 user-authorized squash-merge delivery
 
 - The user authorized squash-merging #103 into master. Require exact-head CI success and
   `CLEAN / MERGEABLE`; live PR https://github.com/EFSing/ashare_watchlist/pull/103 supplies

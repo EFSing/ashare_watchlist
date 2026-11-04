@@ -1,6 +1,28 @@
 # HANDOFF — 跨设备最小恢复入口
 
-## 2026-11-04 — PR #103 user-authorized squash-merge checkpoint
+## 2026-11-04 — Independent B priority structure/volume research intake
+
+- Research question / STRICT PATH: `B_PRIORITY_W2W3_VOLUME_RESEARCH_V1`.
+  Independent branch `codex/b-priority-w2w3-volume-v1`, worktree
+  `D:/dev/ashare-b-priority-w2w3-volume-v1`, starts from live master
+  `7d7b6c9f2de1c45e1a4b1a493395ac81646489d8` (not the old research branch).
+  Runtime-state intake `ebe014748cfd3a551b0e3589124e08b2c154871d`.
+  #103 is live-confirmed merged; master exact-head correctness run
+  `41767491750` SUCCESS. These are intake provenance, not permanent invariants.
+- `PROJECT_GOVERNANCE_STATE_CONFLICT` minimally reconciled: the former active
+  operational-Score next-action is superseded by the user's new direction.
+  `B_OPERATIONAL_SCORE_VOLUME_RANKING_V1` = **NOT_STARTED /
+  SUPERSEDED_BY_USER_DECISION**; never record it as a failed research result.
+  Preserve the earlier `B_CANDIDATE_RANKING_VOLUME_TURNOVER_DIAGNOSTIC_V1` and
+  `B_RANKING_BASELINE_SCORE_IDENTITY_NOT_RECOVERABLE` unchanged.
+- Only outcome-blind input, identity, trace, structure and three-volume-field
+  audits are running. Freeze `docs/research/b_priority_w2w3_volume_v1_protocol.md`
+  in Git before any study outcomes. Real observation parity additionally
+  requires the original provenance-bound T-day OHLCV, not aggregate values.
+  No production/Score/runtime-state change; no provider calls or dispatch;
+  Final OOS SEALED / UNREAD. Existing product operation may continue.
+
+## Historical checkpoint — 2026-11-04 — PR #103 user-authorized squash-merge checkpoint
 
 - Classification: merge / STRICT PATH; the underlying study remains a research question.
   The user explicitly authorized squash-merging PR #103 into `master`. Its source checkpoint
