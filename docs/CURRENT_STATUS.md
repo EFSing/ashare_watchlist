@@ -1,5 +1,43 @@
 # CURRENT STATUS
 
+## 2026-11-04 — Prospective C funnel recorder; activation awaits user decision
+
+- #105 was explicitly authorized and squash-merged at
+  `5ec3020f3173924c1ff1039fdf28c2e0b29e5b1f`, following successful exact-head CI
+  and a live mergeable readback. Its NEEDS_MORE_EVIDENCE conclusions stand.
+- `C_RULE_FUNNEL_STRICTNESS_AUDIT_V1 = NEEDS_MORE_EVIDENCE`.
+  `C_PROSPECTIVE_RULE_FUNNEL_CAPTURE_V1 = USER_AUTHORIZED_EVIDENCE_COLLECTION`.
+  Classification remains research question / STRICT PATH, not a product blocker.
+  Delivery Ladder and existing daily product paths are unchanged.
+- Independent recorder branch `codex/c-prospective-rule-funnel-capture-v1` uses
+  the original same-day C-consumed package/observations after B delivery and C
+  publication. It records all computationally evaluable stocks for both rules,
+  with explicit identity/history/exclusion gaps, full-precision F0–F8 features,
+  all tried pivot pairs, diagnostic margins and overlapping local failures.
+  Conservative slope versus up-close fraction, peak age versus depth, and
+  missing rebound high versus rebound-size failure are separately recoverable.
+- No Score, parameter sensitivity, priority/ranking, volume entry gate or rule
+  change. Missing values stay null. Near misses describe local predicates,
+  without claiming a relaxed rule would select that stock or improve outcomes.
+- Reuses runtime-state's narrow immutable write/commit/readback pattern in
+  `data/research/c_rule_funnel_capture_v1/`: daily summary + compressed detail,
+  SHA/bytes/row counts, same-date idempotency and conflict rejection. No raw Kline
+  copy or daily master commit. Detail <=64 MB/date and collection <=20 real C
+  run dates; the namespace is ignored in master. Full raw reproduction remains
+  unavailable if the original ephemeral package is lost.
+- Separate post-publication step defaults disabled, continue-on-error, 3-minute
+  limit; recorder failure cannot mark C failed or change B delivery/completion.
+  Repository variables/production writes have not been enabled; no dispatch,
+  provider acquisition or runtime-state remote mutation was performed.
+- Stop at 15 real XSHG C run dates and >=20,000 complete stock-day-rule
+  observations, otherwise at 20 real run dates. Report/recorder gaps count
+  toward the hard maximum; duplicate C versions do not count twice. Summary
+  marks `C_PROSPECTIVE_RULE_FUNNEL_REVIEW_V1 / REVIEW_REQUIRED`; later runs stop
+  recording until user review. No scarcity/strictness conclusion is made now.
+- Next user decision is independent Draft PR merge and subsequent activation
+  date/flag. No automatic merge/activation or outcome study. Final OOS remains
+  SEALED / UNREAD; production semantics change=0.
+
 ## 2026-11-04 — C scarcity frequency verified; causal audit needs original inputs
 
 - `PROJECT_GOVERNANCE_STATE_CONFLICT` minimally reconciled: #104 is merged at

@@ -1,5 +1,105 @@
 # C_PROSPECTIVE_CAPTURE_V1
 
+## 2026-11-04 supplement: C_PROSPECTIVE_RULE_FUNNEL_CAPTURE_V1
+
+This supplement describes the optional diagnostics for the existing same-runner
+C daily report. The standalone/private handoff contract below remains a separate
+historical route; this recorder does not activate that provider/capture workflow.
+
+Research question / STRICT PATH: why are C candidates scarce, market structure
+or rule strictness? The missing evidence is original full-population diagnostics,
+including rejected stocks. The product decision is whether a later independently
+authorized boundary/outcome study is warranted. Existing B/C operation can
+continue without this evidence. `C_RULE_FUNNEL_STRICTNESS_AUDIT_V1 =
+NEEDS_MORE_EVIDENCE`; `C_PROSPECTIVE_RULE_FUNNEL_CAPTURE_V1 =
+USER_AUTHORIZED_EVIDENCE_COLLECTION`. No strictness conclusion, sensitivity,
+return, MFE/MAE, MODEL_P/MODEL_R or Final OOS access is part of collection.
+
+`scripts/c_rule_funnel_capture.py` runs in a separate, optional workflow step
+AFTER Formal B delivery and C report publication. It verifies the exact package,
+C observation and published manifest SHAs, T date and post-XSHG-close timestamps;
+it neither requests provider data nor accepts historical/backfill inputs.
+`c_pre_outcome_design.py`, its two rule definitions, the input adapter, daily C
+evaluator/report, B and delivery are unchanged. The new step is fail-soft and
+bounded to 3 minutes. Its output/status never feeds B/C qualification, priority,
+completion, report sorting or user delivery. Recording is disabled by default.
+
+Each package symbol has two detail rows. A symbol lacking an original C rule
+observation retains its identity, history and input gaps, with null diagnostics;
+it is not silently evaluated or counted as a C rejection. B-isolated symbols
+remain explicit coverage gaps, not invented C inputs. Counts distinguish input
+stocks, actual C evaluated stocks/rules, complete and missing diagnostics.
+
+| Stage | Retained evidence |
+| --- | --- |
+| F0/F1 | symbol/date/rule, board, T-known ST/universe status, input gaps/quality, history availability/end/count, applicable 90-bar adapter and rule minima, input prefix/Kline SHA |
+| F2 | close>fast, MA order, positive slope and numeric log slope, up-close fraction, threshold, margin and aggregate trend qualification |
+| F3 | confirmed low/high pivot counts, distinct pair and pre-pullback peak availability, separation/minimum, selected pair/peak age/limit, exact original status |
+| F4 | full-precision depth/min/max/lower/upper margin, peak age and its limit, separate age/depth failures, pullback sessions, original structure status |
+| F5 | confirmed high availability, rebound size/min/max/margins, missing-high versus out-of-range-size diagnostic status |
+| F6 | four confirmation predicates, close location/threshold/margin, failed predicates and count, original-context confirmation qualification |
+| F7 | support floor, pullback/T close breaks, recovered punctures, support entry predicate |
+| F8 | exact current price_structure_match, research_match_status and rule ID |
+
+All pairs actually tried by the frozen enumeration are retained in order up to
+its first selected structure (or all pairs when no selection exists). Later
+pairs are not used to rescue a failed confirmation/support on that selection.
+First-low peak/depth/support and second-low rebound/confirmation values are
+stored once, with an ordered `candidate_pairs` reference table.
+`iter_pair_diagnostics` expands this losslessly, including overlapping failed
+and missing predicates. Original rule results are preserved; any decomposition
+or selection parity mismatch becomes a missing diagnostic. This also avoids
+calling an earlier failed pair a stock failure when a later pair was selected.
+
+Near-miss `failed_condition_count` is the count of false predicates in a fully
+defined context. For a selected structure only that context is eligible; with
+no selection it is the minimum across fully defined tried contexts, with ALL
+pair evidence retained. Classes cover one trend predicate, one confirmation
+predicate, depth only, peak age only, rebound size only and support only; multiple
+classes/failures can coexist. This is LOCAL_CONDITION_DIAGNOSTIC, not a Score,
+primary-cause choice, parameter relaxation or proven counterfactual stock list.
+Undefined predicates remain null; known-independent T predicates are retained
+even without a selected rebound. Unknown stages are separately counted rather
+than reported as rule attrition.
+
+Persistence reuses the existing runtime-state writer and atomic immutable copy:
+
+- `data/research/c_rule_funnel_capture_v1/daily/YYYYMMDD.json`: small summary,
+  frozen rule/config/source identities, original package/observation/report
+  hashes, F0–F8 known-pass/attrition/unavailable counts, every local failure and
+  missing count, pair-level failure combinations, all-pairs-failed stock counts,
+  near misses, exact final rule matches and diagnostic gaps. Conservative slope
+  failure, fraction failure, both, slope-only and fraction-only are explicit.
+- `details/YYYYMMDD.jsonl.gz`: immutable full-precision per-stock evidence, no
+  duplicate OHLCV prefix. Summary binds compressed/uncompressed SHA-256, bytes
+  and row count. Gzip has fixed metadata. Both local decompressed readback and
+  remote Git byte readback are required before claiming persistence verified.
+- Same-date same-input retries are idempotent. A different input/version or
+  existing content conflict is rejected, never overwritten. Only these two
+  narrow paths are allowlisted/staged; no B path is changed. The namespace is
+  ignored by master. Summary <=100 KB/date, compressed detail <=64 MB/date,
+  at most 20 dates: conservative upper bound 1.28 GB detail on runtime-state,
+  zero daily detail in master history. Actual size must be reported each day;
+  over-limit/error/timeout is recording failure, not C failure or zero matches.
+
+This proves diagnostics derive from exact same-day C inputs by SHA and original
+rule observation parity; it does not retain raw input bytes or upgrade the older
+`PROSPECTIVE_CAPTURED`/volume-validity claim. No historical backfill is allowed.
+
+After the user approves merge AND activation, configure repository variables
+`ENABLE_C_RULE_FUNNEL_CAPTURE_V1=true` and `C_RULE_FUNNEL_CAPTURE_START_DATE` as
+the first enabled real T date. This implementation changes neither variable.
+Start date/rule identity cannot silently change within the same collection.
+
+Checkpoint: at least 15 distinct real XSHG C run dates AND >=20,000 complete
+stock-day-rule observations. Otherwise continue to no more than 20 real run
+dates. Counting reads dated published C manifests, including recorder-gap dates;
+duplicate report versions do not count twice. Daily summary marks
+`C_PROSPECTIVE_RULE_FUNNEL_REVIEW_V1 / REVIEW_REQUIRED`, with INSUFFICIENT_DATA
+when appropriate at the hard limit. Subsequent captures stop. The implementation
+only emits the review checkpoint, not a premature strictness or outcome report.
+Recorder failures remain explicit gaps; they do not extend the 20-run ceiling.
+
 状态：`C_SHARED_INPUT_ACTIVATION_RELEASE_GATE_READY_FOR_SOL`；真实交接尚未完成，
 `PROSPECTIVE_CAPTURED` 尚未成立。
 

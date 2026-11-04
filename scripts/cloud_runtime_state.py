@@ -253,6 +253,8 @@ def _is_allowlisted_data_relative(relative: Path) -> bool:
         return True
     if re.fullmatch(r"reports/c_daily/\d{8}/(?:[0-9a-f]{64}/)?(?:index\.html|manifest\.json)", token):
         return True
+    if re.fullmatch(r"research/c_rule_funnel_capture_v1/(?:daily/\d{8}\.json|details/\d{8}\.jsonl\.gz)", token):
+        return True
     if _VOLUME_OBSERVATION_NAME.fullmatch(Path(token).name) and token.startswith("volume_observations/"):
         return True
     if _DIAGNOSTIC_NAME.fullmatch(Path(token).name) and token.startswith("diagnostics/"):
