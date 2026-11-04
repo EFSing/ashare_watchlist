@@ -1,6 +1,6 @@
 # CURRENT STATUS
 
-## 2026-11-04 — Prospective C funnel recorder; activation awaits user decision
+## 2026-11-04 — Lightweight C funnel recorder; existing Draft #106
 
 - #105 was explicitly authorized and squash-merged at
   `5ec3020f3173924c1ff1039fdf28c2e0b29e5b1f`, following successful exact-head CI
@@ -9,22 +9,34 @@
   `C_PROSPECTIVE_RULE_FUNNEL_CAPTURE_V1 = USER_AUTHORIZED_EVIDENCE_COLLECTION`.
   Classification remains research question / STRICT PATH, not a product blocker.
   Delivery Ladder and existing daily product paths are unchanged.
-- Independent recorder branch `codex/c-prospective-rule-funnel-capture-v1` uses
+- Existing Draft #106 branch `codex/c-prospective-rule-funnel-capture-v1` uses
   the original same-day C-consumed package/observations after B delivery and C
   publication. It records all computationally evaluable stocks for both rules,
-  with explicit identity/history/exclusion gaps, full-precision F0–F8 features,
-  all tried pivot pairs, diagnostic margins and overlapping local failures.
+  with explicit identity/history/exclusion gap counts. Full-precision F0–F8
+  features, tried pivot pairs and diagnostic margins are temporary in memory;
+  the streaming reducer keeps only aggregates and bounded near-miss samples.
   Conservative slope versus up-close fraction, peak age versus depth, and
   missing rebound high versus rebound-size failure are separately recoverable.
 - No Score, parameter sensitivity, priority/ranking, volume entry gate or rule
   change. Missing values stay null. Near misses describe local predicates,
   without claiming a relaxed rule would select that stock or improve outcomes.
-- Reuses runtime-state's narrow immutable write/commit/readback pattern in
-  `data/research/c_rule_funnel_capture_v1/`: daily summary + compressed detail,
-  SHA/bytes/row counts, same-date idempotency and conflict rejection. No raw Kline
-  copy or daily master commit. Detail <=64 MB/date and collection <=20 real C
-  run dates; the namespace is ignored in master. Full raw reproduction remains
-  unavailable if the original ephemeral package is lost.
+- User persistence decision ADOPT:
+  `FULL_UNIVERSE_COMPUTE_IN_MEMORY / AGGREGATE_ONLY_DURABLE_PERSISTENCE`
+  plus `BOUNDED_NEAR_MISS_SAMPLES`. Reuses runtime-state's narrow immutable
+  write/commit/readback pattern for only `daily/YYYYMMDD.json` and
+  `near_miss/YYYYMMDD.json` in `data/research/c_rule_funnel_capture_v1/`.
+  Full detail, gzip, full-row SHA/bytes/row contract and old details allowlist
+  are removed. Each file <=256,000 bytes, combined <=500,000 bytes/day
+  (stricter than 512 KB), <=10,000,000 bytes over 20 dates, excluding Git
+  overhead. Same-date idempotency and append-only conflict rejection remain.
+  No full-population row/pair/identity/margin persistence or master daily commit.
+- Summary alone supports future funnel review, including attrition/unavailable,
+  exact statuses, condition failures, joint/decomposition counts and frozen
+  six-metric histograms. Pair-weighted distributions and selected structures
+  have explicit denominators. Each rule x class retains <=5 minimal samples by
+  absolute margin then symbol, with empty arrays for absent classes. Original
+  ephemeral inputs are not made recoverable. Future near-miss outcome cohorts
+  require a separate decision, not full rejected-stock retention here.
 - Separate post-publication step defaults disabled, continue-on-error, 3-minute
   limit; recorder failure cannot mark C failed or change B delivery/completion.
   Repository variables/production writes have not been enabled; no dispatch,
@@ -37,6 +49,12 @@
 - Next user decision is independent Draft PR merge and subsequent activation
   date/flag. No automatic merge/activation or outcome study. Final OOS remains
   SEALED / UNREAD; production semantics change=0.
+- Validation: 3,000-stock / 260-bar / 6,000-rule-observation synthetic run,
+  16.198 s diagnostic runtime, summary 10,139 bytes + near-miss 3,795 bytes =
+  13,934 durable bytes; peak memory NOT_MEASURED. Full pytest 907 passed /
+  2 existing fixture skips / 10 warnings; compileall, dispatcher 5 tests and
+  diff check pass. Stop:
+  `C_LIGHTWEIGHT_FUNNEL_CAPTURE_IMPLEMENTATION_READY_FOR_USER_DECISION`.
 
 ## 2026-11-04 — C scarcity frequency verified; causal audit needs original inputs
 

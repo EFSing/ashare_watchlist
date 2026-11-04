@@ -24,13 +24,18 @@ evaluator/report, B and delivery are unchanged. The new step is fail-soft and
 bounded to 3 minutes. Its output/status never feeds B/C qualification, priority,
 completion, report sorting or user delivery. Recording is disabled by default.
 
-Each package symbol has two detail rows. A symbol lacking an original C rule
-observation retains its identity, history and input gaps, with null diagnostics;
-it is not silently evaluated or counted as a C rejection. B-isolated symbols
-remain explicit coverage gaps, not invented C inputs. Counts distinguish input
-stocks, actual C evaluated stocks/rules, complete and missing diagnostics.
+Persistence contract: **FULL_UNIVERSE_COMPUTE_IN_MEMORY /
+AGGREGATE_ONLY_DURABLE_PERSISTENCE / BOUNDED_NEAR_MISS_SAMPLES**.
+`iter_rows` diagnoses one stock/rule, updates counters, histograms and top-five
+samples, then discards the row. Only the current stock's temporary tried-pair
+contexts are needed for parity. The existing package and C observations are
+runner-local inputs; no new full-universe diagnostic row collection is built.
+A symbol lacking an original C rule observation contributes explicit diagnostic
+gap counts, not an invented C rejection. B-isolated stocks remain coverage count
+gaps. Counts distinguish input/evaluated stocks/rules and complete/missing
+diagnostics. Full-universe symbol lists and all-symbol margins are not persisted.
 
-| Stage | Retained evidence |
+| Stage | In-memory computation (durable output is aggregate counts) |
 | --- | --- |
 | F0/F1 | symbol/date/rule, board, T-known ST/universe status, input gaps/quality, history availability/end/count, applicable 90-bar adapter and rule minima, input prefix/Kline SHA |
 | F2 | close>fast, MA order, positive slope and numeric log slope, up-close fraction, threshold, margin and aggregate trend qualification |
@@ -41,20 +46,20 @@ stocks, actual C evaluated stocks/rules, complete and missing diagnostics.
 | F7 | support floor, pullback/T close breaks, recovered punctures, support entry predicate |
 | F8 | exact current price_structure_match, research_match_status and rule ID |
 
-All pairs actually tried by the frozen enumeration are retained in order up to
+All pairs actually tried by the frozen enumeration are computed in order up to
 its first selected structure (or all pairs when no selection exists). Later
 pairs are not used to rescue a failed confirmation/support on that selection.
-First-low peak/depth/support and second-low rebound/confirmation values are
-stored once, with an ordered `candidate_pairs` reference table.
-`iter_pair_diagnostics` expands this losslessly, including overlapping failed
-and missing predicates. Original rule results are preserved; any decomposition
+First-low peak/depth/support and second-low rebound/confirmation values and pair
+references are temporary per-stock context, discarded after reduction.
+`iter_pair_diagnostics` feeds overlapping failed/missing predicate aggregates.
+Original rule results are preserved; any decomposition
 or selection parity mismatch becomes a missing diagnostic. This also avoids
 calling an earlier failed pair a stock failure when a later pair was selected.
 
 Near-miss `failed_condition_count` is the count of false predicates in a fully
 defined context. For a selected structure only that context is eligible; with
-no selection it is the minimum across fully defined tried contexts, with ALL
-pair evidence retained. Classes cover one trend predicate, one confirmation
+no selection it is the minimum across fully defined tried contexts. Only
+aggregate pair counts/histograms survive. Classes cover one trend predicate, one confirmation
 predicate, depth only, peak age only, rebound size only and support only; multiple
 classes/failures can coexist. This is LOCAL_CONDITION_DIAGNOSTIC, not a Score,
 primary-cause choice, parameter relaxation or proven counterfactual stock list.
@@ -62,25 +67,99 @@ Undefined predicates remain null; known-independent T predicates are retained
 even without a selected rebound. Unknown stages are separately counted rather
 than reported as rule attrition.
 
-Persistence reuses the existing runtime-state writer and atomic immutable copy:
+Persistence reuses the existing runtime-state writer and atomic immutable copy.
+Exactly two JSON files are allowed per captured date:
 
 - `data/research/c_rule_funnel_capture_v1/daily/YYYYMMDD.json`: small summary,
   frozen rule/config/source identities, original package/observation/report
   hashes, F0–F8 known-pass/attrition/unavailable counts, every local failure and
   missing count, pair-level failure combinations, all-pairs-failed stock counts,
-  near misses, exact final rule matches and diagnostic gaps. Conservative slope
-  failure, fraction failure, both, slope-only and fraction-only are explicit.
-- `details/YYYYMMDD.jsonl.gz`: immutable full-precision per-stock evidence, no
-  duplicate OHLCV prefix. Summary binds compressed/uncompressed SHA-256, bytes
-  and row count. Gzip has fixed metadata. Both local decompressed readback and
-  remote Git byte readback are required before claiming persistence verified.
+  near misses, exact final rule matches, diagnostic gaps, histograms and the
+  checkpoint/production/Final OOS markers. Conservative slope/fraction joint
+  counts, peak-age/depth joint pair counts and rebound-high/size pair counts are
+  explicit. Future funnel review needs only this summary, not sampled identities.
+- `near_miss/YYYYMMDD.json`: at most N=5 per rule x class (60 total), selected by
+  absolute signed margin ascending, symbol ascending on ties. For multiple
+  contexts of one stock/class choose the smallest absolute margin; equal margins
+  retain frozen enumeration order. Classes are `ONE_TREND_SUBCONDITION`,
+  `ONE_CONFIRMATION_SUBCONDITION`, `DEPTH_ONLY`, `PEAK_AGE_ONLY`,
+  `REBOUND_SIZE_ONLY`, `SUPPORT_ONLY`; absent classes are empty arrays. Each entry
+  contains only symbol/date/rule/class, relevant condition/observed value/threshold/
+  signed margin, canonical structure status and daily input-identity reference.
+  File-level package/observation SHAs bind that reference. Negative margin means
+  failure; a strict > predicate can fail at zero. For range predicates use the
+  violated edge (upper-edge margin is threshold minus observed). Support margin
+  uses minimum close over the frozen pullback interval through T minus support
+  floor. No OHLCV, full F0-F8 row, pair table or nested context is retained.
+- Full-detail persistence and its SHA/bytes/row-count contract are removed;
+  runtime-state rejects the old `details/YYYYMMDD.jsonl.gz` path. There is no gzip
+  generation or full-universe gzip remote readback. Local JSON/SHA verification
+  and independent remote byte readback apply only to the two small JSON files.
 - Same-date same-input retries are idempotent. A different input/version or
   existing content conflict is rejected, never overwritten. Only these two
   narrow paths are allowlisted/staged; no B path is changed. The namespace is
-  ignored by master. Summary <=100 KB/date, compressed detail <=64 MB/date,
-  at most 20 dates: conservative upper bound 1.28 GB detail on runtime-state,
-  zero daily detail in master history. Actual size must be reported each day;
-  over-limit/error/timeout is recording failure, not C failure or zero matches.
+  ignored by master. Summary <=256,000 bytes/date, samples <=256,000 bytes/date,
+  combined <=500,000 bytes/date (stricter than 512 KB), so at most 20 dates means
+  <=10,000,000 bytes (10 MB, without rounding). This is
+  research JSON payload only, not a claim about Git object/history overhead.
+  Size checks occur before either file is written. Over-limit/error/timeout is
+  fail-soft recording failure, not C failure or zero matches.
+
+### Frozen histograms (no outcome-based rebinning)
+
+The following bins and endpoint inclusivity are fixed in `HISTOGRAM_BINS` before
+collection. Missing/non-finite values increment `UNAVAILABLE`, never a numeric
+bin. Balanced and Conservative each have independent histograms. No quantiles,
+data-fitting or outcome-based edge selection is allowed.
+
+| Metric | Frozen bins |
+| --- | --- |
+| up_close_fraction | <.50; [.50,.55); [.55,.58); [.58,.60); [.60,.62); >=.62 |
+| log_close_slope_per_session | <=0; (0,.0005); [.0005,.002); >=.002 |
+| depth | <.03; [.03,.04); [.04,.10); [.10,.12]; (.12,.15]; >.15 |
+| rebound_size | <.02; [.02,.08]; (.08,.10]; >.10 |
+| peak_age minus frozen rule limit | <=-4; -3..-1; 0; +1..+3; >=+4 sessions |
+| confirmation_close_location | <.50; [.50,.55); [.55,.60); [.60,.65); >=.65 |
+
+Slope uses the existing regression of natural-log close on session index. The
+fixed positive breaks .0005 and .002 correspond approximately to .05% and .2%
+per session; these scale-based reporting breaks do not change the >0 rule.
+Peak-age limits remain Balanced 24 and Conservative 31 sessions. The age buckets
+separate well below, 1-3 before, exactly at, just over and clearly over the limit.
+Depth bins expose shallow values, Conservative's .04 lower edge, Balanced's .12
+upper region, .12-.15 and >.15. Exact .12/.15 and .08/.10 remain in their existing
+inclusive rule ranges.
+
+`stock_histograms` count one value per input stock/rule for trend/fraction and
+confirmation close location (including independently observable T geometry when
+no structure is selected). `tried_pair_histograms` and decomposition counts cover
+ALL tried pairs, including rejected stocks: they are pair-weighted, not stock
+counts or a causal bottleneck ranking. `selected_structure_histograms` separately
+cover the canonical selection only; no-selection stocks are absent there.
+`candidate_pair_count`, exact statuses and all-pairs-failed stock counts provide
+the denominators. Sequential attrition/unavailable counts remain stock-level.
+Near-miss aggregate counts are computed before top-five truncation. This retains
+threshold-proximity evidence without preserving rejected-stock identities.
+
+The recorder answers only why C has few matches. Per-rejected-stock future
+returns are out of scope. A later outcome study needs a separately authorized
+targeted prospective cohort; it is not a reason to retain full detail here.
+
+### Synthetic capacity validation
+
+`python -m pytest -q -s tests/test_c_rule_funnel_capture.py::test_3000_stock_6000_observation_durable_capacity`
+executes the real verification/diagnostic/reducer/persistence path for 3,000
+synthetic Main Board stocks, 260 bars each and both frozen rules (6,000 complete
+rule observations). Half fail only the confirmation body predicate, exercising
+bounded samples; the other half preserve matches. No provider/outcome data is
+used. Full-suite measurement: diagnostic/validation/hashing/reduction 16.198 s
+(standalone 15.655 s); daily summary 10,139 bytes, near-miss 3,795 bytes, combined
+13,934 bytes. Synthetic input construction is excluded from diagnostic runtime.
+Peak memory is `NOT_MEASURED`: pytest RSS includes the existing package/observations,
+other tests and allocator retention, so no unsupported memory claim is made.
+The one-pass generator regression checks consumption before the next row and
+deterministic top-five selection for both rules and all six classes. Output size
+is a synthetic capacity result, not real prospective market evidence.
 
 This proves diagnostics derive from exact same-day C inputs by SHA and original
 rule observation parity; it does not retain raw input bytes or upgrade the older

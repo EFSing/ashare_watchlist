@@ -12,14 +12,13 @@ import argparse
 from collections import Counter
 from dataclasses import asdict
 from datetime import date, datetime, timedelta, timezone
-import gzip
 import hashlib
-import io
 import json
+import math
 import os
 from pathlib import Path
 import tempfile
-from typing import Any, Mapping, Sequence
+from typing import Any, Iterable, Iterator, Mapping, Sequence
 
 import c_pre_outcome_design as frozen
 from c_b_input_adapter import _b_kline_sha
@@ -35,8 +34,32 @@ RELATIVE_ROOT = Path("data/research/c_rule_funnel_capture_v1")
 RULES = ("BALANCED_A", "CONSERVATIVE_B")
 TREND_CONDITIONS = ("close_above_fast_average", "ma_order_ok", "positive_slope", "up_close_fraction_ok")
 CONFIRMATION_CONDITIONS = ("close_above_rebound_high", "close_above_previous_close", "positive_body", "close_location_ok")
-MAX_DETAIL_BYTES = 64_000_000  # compressed; at most 20 dates, never on master
-MAX_SUMMARY_BYTES = 100_000
+MAX_SUMMARY_BYTES = 256_000
+MAX_NEAR_MISS_BYTES = 256_000
+MAX_DURABLE_BYTES = 500_000  # <=512 KB/day and <=10,000,000 bytes over 20 days
+NEAR_MISS_LIMIT = 5
+NEAR_MISS_CLASSES = ("ONE_TREND_SUBCONDITION", "ONE_CONFIRMATION_SUBCONDITION", "DEPTH_ONLY",
+                     "PEAK_AGE_ONLY", "REBOUND_SIZE_ONLY", "SUPPORT_ONLY")
+PERSISTENCE = "FULL_UNIVERSE_COMPUTE_IN_MEMORY / AGGREGATE_ONLY_DURABLE_PERSISTENCE"
+# Frozen before collection; (label, upper bound, upper inclusive). First match
+# wins. Slope is natural-log price/session: .0005 ~= .05%, .002 ~= .2%.
+# Peak-age bins use age minus the existing rule limit (24 / 31 sessions).
+HISTOGRAM_BINS = {
+    "up_close_fraction": (("<0.50", .50, False), ("[0.50,0.55)", .55, False),
+                          ("[0.55,0.58)", .58, False), ("[0.58,0.60)", .60, False),
+                          ("[0.60,0.62)", .62, False), (">=0.62", None, False)),
+    "log_close_slope_per_session": (("<=0", 0., True), ("(0,0.0005)", .0005, False),
+                                    ("[0.0005,0.002)", .002, False), (">=0.002", None, False)),
+    "depth": (("<0.03", .03, False), ("[0.03,0.04)", .04, False), ("[0.04,0.10)", .10, False),
+              ("[0.10,0.12]", .12, True), ("(0.12,0.15]", .15, True), (">0.15", None, False)),
+    "rebound_size": (("<0.02", .02, False), ("[0.02,0.08]", .08, True),
+                     ("(0.08,0.10]", .10, True), (">0.10", None, False)),
+    "peak_age_minus_limit": (("<=-4", -4, True), ("[-3,-1]", -1, True), ("0", 0, True),
+                            ("[1,3]", 3, True), (">=4", None, False)),
+    "confirmation_close_location": (("<0.50", .50, False), ("[0.50,0.55)", .55, False),
+                                    ("[0.55,0.60)", .60, False), ("[0.60,0.65)", .65, False),
+                                    (">=0.65", None, False)),
+}
 _BJT = timezone(timedelta(hours=8))
 
 
@@ -52,6 +75,20 @@ def _all_known(values: Sequence[Any]) -> bool:
     return all(isinstance(value, bool) for value in values)
 
 
+def _histogram(names: Iterable[str]) -> dict[str, Counter]:
+    return {name: Counter({**{label: 0 for label, _, _ in HISTOGRAM_BINS[name]}, "UNAVAILABLE": 0}) for name in names}
+
+
+def _bin(histogram: Counter, name: str, value: Any) -> None:
+    if not isinstance(value, (float, int)) or not math.isfinite(value):
+        histogram["UNAVAILABLE"] += 1
+        return
+    for label, upper, inclusive in HISTOGRAM_BINS[name]:
+        if upper is None or (value <= upper if inclusive else value < upper):
+            histogram[label] += 1
+            return
+
+
 def _confirmation(bars: Sequence[Mapping[str, Any]], structure: Mapping[str, Any], config: Any) -> dict[str, Any]:
     result = frozen._rebound_confirmation(bars, structure, config)
     failed = [key for key in CONFIRMATION_CONDITIONS if result.get(key) is False]
@@ -62,7 +99,7 @@ def _confirmation(bars: Sequence[Mapping[str, Any]], structure: Mapping[str, Any
 
 
 def _pair_contexts(bars: Sequence[Mapping[str, Any]], config: Any) -> tuple[list[int], list[int], list[dict[str, Any]]]:
-    """Frozen enumeration order; retain ALL tried pairs, stopping at its selection.
+    """Temporary per-stock contexts in frozen order, stopping at its selection.
 
     Age/depth/rebound are decomposed even when an earlier predicate fails. No
     threshold is changed and no alternative stock list is calculated. Pivots
@@ -135,7 +172,7 @@ def _pair_contexts(bars: Sequence[Mapping[str, Any]], config: Any) -> tuple[list
 
 
 def iter_pair_diagnostics(row: Mapping[str, Any]):
-    """Lossless expansion of compact pair references; no OHLCV is required."""
+    """Expand temporary per-stock pair references for the streaming reducer."""
     for low1, low2 in row["candidate_pairs"]:
         first, second = row["first_low_contexts"][str(low1)], row["second_low_contexts"][str(low2)]
         gates = {**first["gates"], **second["gates"]}
@@ -149,6 +186,41 @@ def iter_pair_diagnostics(row: Mapping[str, Any]):
                "selected_by_current_structure_rule": all(value is True for value in gates.values()),
                "failed_conditions": failed, "missing_conditions": [k for k, value in conditions.items() if value is None],
                "failed_condition_count": len(failed) if _all_known(list(conditions.values())) else None}
+
+
+def _near_miss_value(failed: str, context: Mapping[str, Any], trend: Mapping[str, Any],
+                     bars: Sequence[Mapping[str, Any]], config: Any) -> tuple[float, float, float]:
+    """Observed value, violated threshold, signed margin (negative means fail).
+
+    Strict > predicates can fail at margin zero. Support uses the minimum close
+    over the frozen pullback interval including T, not an invented tolerance.
+    """
+    current, previous = bars[-1], bars[-2]
+    if failed == "depth_ok":
+        value = context["depth"]
+        threshold = config.shallow_depth_min if value < config.shallow_depth_min else config.shallow_depth_max
+        return value, threshold, value - threshold if value < threshold else threshold - value
+    if failed == "rebound_size_ok":
+        value = context["rebound_size"]
+        threshold = config.rebound_size_min if value < config.rebound_size_min else config.rebound_size_max
+        return value, threshold, value - threshold if value < threshold else threshold - value
+    if failed == "peak_age_ok":
+        return context["peak_age"], context["peak_age_limit"], context["peak_age_limit"] - context["peak_age"]
+    if failed == "entry_support_ok":
+        value = min(row["close"] for row in bars[context["peak_index"] + 1:])
+        threshold = context["support"]["support_floor"]
+    else:
+        value, threshold = {
+            "close_above_fast_average": (trend.get("close_t"), trend.get("fast_average")),
+            "ma_order_ok": (trend.get("fast_average"), trend.get("slow_average")),
+            "positive_slope": (trend.get("log_close_slope_per_session"), 0.),
+            "up_close_fraction_ok": (trend.get("up_close_fraction"), config.minimum_up_close_fraction),
+            "close_above_rebound_high": (current["close"], context["rebound_high"]),
+            "close_above_previous_close": (current["close"], previous["close"]),
+            "positive_body": (current["close"], current["open"]),
+            "close_location_ok": ((context["confirmation"] or {}).get("close_location"), config.confirmation_close_location),
+        }[failed]
+    return value, threshold, value - threshold
 
 
 def diagnose(bars: Sequence[Mapping[str, Any]], original: Mapping[str, Any], rule_id: str) -> dict[str, Any]:
@@ -210,7 +282,7 @@ def diagnose(bars: Sequence[Mapping[str, Any]], original: Mapping[str, Any], rul
         context["missing_conditions"] = [key for key, value in conditions.items() if value is None]
         context["failed_condition_count"] = len(context["failed_conditions"]) if _all_known(list(conditions.values())) else None
     counts = [row["failed_condition_count"] for row in near_contexts if row["failed_condition_count"] is not None]
-    near_classes = set()
+    near_samples = {}
     if final is False:
         for context in near_contexts:
             if context["failed_condition_count"] == 1:
@@ -220,10 +292,15 @@ def diagnose(bars: Sequence[Mapping[str, Any]], original: Mapping[str, Any], rul
                          {"depth_ok": "DEPTH_ONLY", "peak_age_ok": "PEAK_AGE_ONLY",
                           "rebound_size_ok": "REBOUND_SIZE_ONLY", "entry_support_ok": "SUPPORT_ONLY"}.get(failed))
                 if label:
-                    near_classes.add(label)
-    # First-low features (peak/depth/support) and second-low features (rebound/
-    # confirmation) do not depend on the other low. Store each once and retain
-    # every tried pair in its frozen order, avoiding hundreds of repeated dicts.
+                    value, threshold, margin = _near_miss_value(failed, context, trend, bars, config)
+                    sample = {"near_miss_class": label, "condition": failed, "observed_value": value,
+                              "threshold": threshold, "signed_margin": margin,
+                              "canonical_structure_status": structure.get("status")}
+                    # One representative per stock/class; equal margins retain
+                    # the first context in frozen enumeration order.
+                    if label not in near_samples or abs(margin) < abs(near_samples[label]["signed_margin"]):
+                        near_samples[label] = sample
+    # These temporary per-stock contexts are discarded after aggregation.
     first_fields = ("low1_index", "low1", "peak_index", "peak_high", "peak_age", "peak_age_limit", "peak_age_failed",
                     "depth", "depth_min", "depth_max", "depth_lower_margin", "depth_upper_margin", "depth_failed",
                     "pullback_sessions", "support")
@@ -275,7 +352,8 @@ def diagnose(bars: Sequence[Mapping[str, Any]], original: Mapping[str, Any], rul
                             "age_and_depth_pass_available": any(c["gates"]["peak_age_ok"] is True and c["gates"]["depth_ok"] is True for c in contexts),
                             "canonical_structure_selected": selected is not None},
         "near_miss_failed_condition_count": min(counts) if counts else None,
-        "near_miss_classes": sorted(near_classes),
+        "near_miss_classes": sorted(near_samples),
+        "near_miss_samples": list(near_samples.values()),
         "near_miss_semantics": "LOCAL_CONDITION_DIAGNOSTIC; NOT_A_RELAXED_RULE_OR_PROVEN_COUNTERFACTUAL_MATCH",
     }
 
@@ -294,16 +372,15 @@ def _identity_row(symbol: str, day: str, rule: str, history: Mapping[str, Any], 
             "diagnostic_status": "PARTIAL_UNVERIFIED", "missing_reason": "NO_CANONICAL_C_RULE_OBSERVATION",
             "F2": None, "F3": None, "F4": None, "F5": None, "F6": None, "F7": None, "F8": None,
             "candidate_pairs": [], "first_low_contexts": {}, "second_low_contexts": {}, "pair_statistics": {},
-            "near_miss_failed_condition_count": None, "near_miss_classes": []}
+            "near_miss_failed_condition_count": None, "near_miss_classes": [], "near_miss_samples": []}
 
 
-def build_rows(package: Mapping[str, Any], observation: Mapping[str, Any]) -> list[dict[str, Any]]:
+def iter_rows(package: Mapping[str, Any], observation: Mapping[str, Any]) -> Iterator[dict[str, Any]]:
     day = observation["source"]["target_date"]
     histories = {row["symbol"]: row for row in package["generation_input_manifest"]["stock_klines"]}
     observed = {row["symbol"]: row for row in observation["observations"]}
     if len(observed) != len(observation["observations"]):
         raise ValueError("DUPLICATE_C_SYMBOL")
-    rows = []
     for symbol in sorted(package["generation_input_manifest"]["universe"]["symbols"]):
         history, item = histories[symbol], observed.get(symbol)
         excluded = (observation.get("source", {}).get("coverage_groups") or {}).get("c_rule_or_st_excluded") or []
@@ -341,75 +418,115 @@ def build_rows(package: Mapping[str, Any], observation: Mapping[str, Any]) -> li
                                 "input_prefix_sha256": sha(canonical(bars))})
             except Exception as exc:
                 row["missing_reason"] = str(exc) if isinstance(exc, ValueError) else type(exc).__name__
-            rows.append(row)
-    return rows
+            yield row
 
 
-def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
+def aggregate(rows: Iterable[dict[str, Any]], *, samples: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Consume once; retain counters/histograms and at most 5 samples/class.
+
+    Structure histograms/decompositions count tried pairs, not stock failures.
+    Selected-structure histograms are separate. All-pairs-failed counters remain
+    stock counts. No rejected-symbol list or complete row collection survives.
+    """
     result = {}
+    structure_metrics = ("depth", "rebound_size", "peak_age_minus_limit")
     for rule in RULES:
-        cohort = [row for row in rows if row["rule_id"] == rule]
-        funnel = Counter({f"F{i}": 0 for i in range(9)})
-        attrition = Counter({f"F{i}": 0 for i in range(9)})
-        unavailable = Counter({f"F{i}": 0 for i in range(9)})
-        failures, missing, near, pair_failures, stock_all_pair_failures, pair_patterns, statuses, diagnostic_gaps = (Counter() for _ in range(8))
-        joint = Counter({"both_failed": 0, "slope_only_failed": 0, "up_close_fraction_only_failed": 0, "missing": 0})
-        complete = 0
-        for row in cohort:
-            complete += row["diagnostic_status"] == "COMPLETE"
-            if row.get("missing_reason"):
-                diagnostic_gaps[row["missing_reason"]] += 1
-            statuses[(row.get("F3") or {}).get("exact_failure_status") or "UNAVAILABLE"] += 1
-            for stage in ("F2", "F6", "F7"):
-                conditions = (TREND_CONDITIONS if stage == "F2" else CONFIRMATION_CONDITIONS if stage == "F6" else ("entry_support_ok",))
-                for key in conditions:
-                    value = (row.get(stage) or {}).get(key)
-                    failures[key] += value is False
-                    missing[key] += value is None
-            trend = row.get("F2") or {}
-            slope, fraction = trend.get("positive_slope"), trend.get("up_close_fraction_ok")
-            if not _all_known([slope, fraction]):
-                joint["missing"] += 1
-            else:
-                joint["both_failed"] += slope is False and fraction is False
-                joint["slope_only_failed"] += slope is False and fraction is True
-                joint["up_close_fraction_only_failed"] += slope is True and fraction is False
-            statistics = row["pair_statistics"]
-            pair_failures.update(statistics.get("candidate_pair_failure_counts") or {})
-            pair_patterns.update(statistics.get("candidate_pair_failure_combinations") or {})
-            stock_all_pair_failures.update(statistics.get("all_pair_contexts_failed_counts") or {})
-            for key in ("distinct_higher_low_pair_available", "pre_pullback_peak_available"):
-                value = (row.get("F3") or {}).get(key)
-                failures[key] += value is False
-                missing[key] += value is None
-            near.update(row["near_miss_classes"])
-            passes = [row["F0"]["universe_eligible"], row["F1"]["enough_history"],
-                      trend.get("trend_qualified"), (row.get("F3") or {}).get("pre_pullback_peak_available"),
-                      statistics.get("age_and_depth_pass_available"), statistics.get("canonical_structure_selected"),
-                      (row.get("F6") or {}).get("confirmation_qualified"),
-                      (row.get("F7") or {}).get("entry_support_ok"),
-                      (row.get("F8") or {}).get("price_structure_match")]
-            alive = True
-            for index, passed in enumerate(passes):
-                attrition[f"F{index}"] += alive and passed is False
-                unavailable[f"F{index}"] += alive and passed is None
-                alive = alive and passed is True
-                funnel[f"F{index}"] += alive
-        result[rule] = {"input_stock_count": len(cohort),
-                        "evaluated_count": sum(row["F0"]["rule_evaluated"] for row in cohort), "complete_diagnostic_count": complete,
-                        "missing_diagnostic_count": len(cohort) - complete, "funnel_counts": dict(funnel),
-                        "condition_failure_counts": dict(failures), "condition_missing_counts": dict(missing),
-                        "all_pair_contexts_failed_counts": dict(stock_all_pair_failures),
-                        "candidate_pair_failure_counts": dict(pair_failures),
-                        "candidate_pair_failure_combinations": dict(pair_patterns),
-                        "exact_structure_status_counts": dict(statuses), "diagnostic_gap_counts": dict(diagnostic_gaps),
-                        "sequential_attrition_counts": dict(attrition),
-                        "sequential_unavailable_counts": dict(unavailable),
-                        "funnel_count_semantics": "KNOWN_SEQUENTIAL_PASSES; MISSING_IS_NOT_A_RULE_FAILURE",
-                        "near_miss_counts": dict(near), "near_miss_count": sum(bool(r["near_miss_classes"]) for r in cohort),
-                        "slope_up_close_fraction_joint": dict(joint),
-                        "final_matches": sum((r.get("F8") or {}).get("price_structure_match") is True for r in cohort),
-                        "top_failure_reasons": [{"condition": k, "count": v} for k, v in sorted(failures.items(), key=lambda x: (-x[1], x[0])) if v]}
+        result[rule] = {
+            **{key: 0 for key in ("input_stock_count", "evaluated_count", "complete_diagnostic_count",
+                                 "missing_diagnostic_count", "near_miss_count", "final_matches", "candidate_pair_count")},
+            **{key: Counter({f"F{i}": 0 for i in range(9)}) for key in
+               ("funnel_counts", "sequential_attrition_counts", "sequential_unavailable_counts")},
+            **{key: Counter() for key in ("condition_failure_counts", "condition_missing_counts",
+                "all_pair_contexts_failed_counts", "candidate_pair_failure_counts", "candidate_pair_failure_combinations",
+                "exact_structure_status_counts", "diagnostic_gap_counts")},
+            "near_miss_counts": Counter({label: 0 for label in NEAR_MISS_CLASSES}),
+            "slope_up_close_fraction_joint": Counter({key: 0 for key in
+                ("both_failed", "slope_only_failed", "up_close_fraction_only_failed", "missing")}),
+            "peak_age_depth_pair_counts": Counter({key: 0 for key in
+                ("both_pass", "age_only_failed", "depth_only_failed", "both_failed", "missing")}),
+            "rebound_high_size_pair_counts": Counter({key: 0 for key in
+                ("NO_CONFIRMED_REBOUND_HIGH", "REBOUND_SIZE_OUTSIDE_CANDIDATE", "OK")}),
+            "stock_histograms": _histogram(("up_close_fraction", "log_close_slope_per_session", "confirmation_close_location")),
+            "tried_pair_histograms": _histogram(structure_metrics),
+            "selected_structure_histograms": _histogram(structure_metrics),
+            "funnel_count_semantics": "KNOWN_SEQUENTIAL_PASSES; MISSING_IS_NOT_A_RULE_FAILURE",
+        }
+        if samples is not None:
+            samples[rule] = {label: [] for label in NEAR_MISS_CLASSES}
+    for row in rows:
+        rule = row["rule_id"]
+        value = result[rule]
+        value["input_stock_count"] += 1
+        value["evaluated_count"] += row["F0"]["rule_evaluated"]
+        complete = row["diagnostic_status"] == "COMPLETE"
+        value["complete_diagnostic_count"] += complete
+        value["missing_diagnostic_count"] += not complete
+        if row.get("missing_reason"):
+            value["diagnostic_gap_counts"][row["missing_reason"]] += 1
+        value["exact_structure_status_counts"][(row.get("F3") or {}).get("exact_failure_status") or "UNAVAILABLE"] += 1
+        for stage in ("F2", "F6", "F7"):
+            conditions = (TREND_CONDITIONS if stage == "F2" else CONFIRMATION_CONDITIONS if stage == "F6" else ("entry_support_ok",))
+            for key in conditions:
+                condition = (row.get(stage) or {}).get(key)
+                value["condition_failure_counts"][key] += condition is False
+                value["condition_missing_counts"][key] += condition is None
+        trend = row.get("F2") or {}
+        slope, fraction = trend.get("positive_slope"), trend.get("up_close_fraction_ok")
+        joint = value["slope_up_close_fraction_joint"]
+        if not _all_known([slope, fraction]):
+            joint["missing"] += 1
+        else:
+            joint["both_failed"] += slope is False and fraction is False
+            joint["slope_only_failed"] += slope is False and fraction is True
+            joint["up_close_fraction_only_failed"] += slope is True and fraction is False
+        for name, number in (("up_close_fraction", trend.get("up_close_fraction")),
+                             ("log_close_slope_per_session", trend.get("log_close_slope_per_session")),
+                             ("confirmation_close_location", (row.get("F6") or {}).get("close_location"))):
+            _bin(value["stock_histograms"][name], name, number)
+        for pair in iter_pair_diagnostics(row):
+            value["candidate_pair_count"] += 1
+            age, depth = pair["gates"]["peak_age_ok"], pair["gates"]["depth_ok"]
+            label = ("missing" if not _all_known([age, depth]) else "both_pass" if age and depth else
+                     "both_failed" if not age and not depth else "age_only_failed" if not age else "depth_only_failed")
+            value["peak_age_depth_pair_counts"][label] += 1
+            value["rebound_high_size_pair_counts"][pair["rebound_status"]] += 1
+            for name, number in (("depth", pair["depth"]), ("rebound_size", pair["rebound_size"]),
+                                 ("peak_age_minus_limit", pair["peak_age"] - pair["peak_age_limit"] if pair["peak_age"] is not None else None)):
+                _bin(value["tried_pair_histograms"][name], name, number)
+                if pair["selected_by_current_structure_rule"]:
+                    _bin(value["selected_structure_histograms"][name], name, number)
+        statistics = row["pair_statistics"]
+        value["candidate_pair_failure_counts"].update(statistics.get("candidate_pair_failure_counts") or {})
+        value["candidate_pair_failure_combinations"].update(statistics.get("candidate_pair_failure_combinations") or {})
+        value["all_pair_contexts_failed_counts"].update(statistics.get("all_pair_contexts_failed_counts") or {})
+        for key in ("distinct_higher_low_pair_available", "pre_pullback_peak_available"):
+            condition = (row.get("F3") or {}).get(key)
+            value["condition_failure_counts"][key] += condition is False
+            value["condition_missing_counts"][key] += condition is None
+        value["near_miss_counts"].update(row["near_miss_classes"])
+        value["near_miss_count"] += bool(row["near_miss_classes"])
+        if samples is not None:
+            for sample in row["near_miss_samples"]:
+                kept = samples[rule][sample["near_miss_class"]]
+                kept.append({**sample, "symbol": row["symbol"], "signal_date": row["signal_date"], "rule_id": rule,
+                             "input_identity_ref": f"daily/{row['signal_date'].replace('-', '')}.json"})
+                kept.sort(key=lambda item: (abs(item["signed_margin"]), item["symbol"]))
+                del kept[NEAR_MISS_LIMIT:]
+        passes = [row["F0"]["universe_eligible"], row["F1"]["enough_history"],
+                  trend.get("trend_qualified"), (row.get("F3") or {}).get("pre_pullback_peak_available"),
+                  statistics.get("age_and_depth_pass_available"), statistics.get("canonical_structure_selected"),
+                  (row.get("F6") or {}).get("confirmation_qualified"),
+                  (row.get("F7") or {}).get("entry_support_ok"), (row.get("F8") or {}).get("price_structure_match")]
+        alive = True
+        for index, passed in enumerate(passes):
+            value["sequential_attrition_counts"][f"F{index}"] += alive and passed is False
+            value["sequential_unavailable_counts"][f"F{index}"] += alive and passed is None
+            alive = alive and passed is True
+            value["funnel_counts"][f"F{index}"] += alive
+        value["final_matches"] += (row.get("F8") or {}).get("price_structure_match") is True
+    for value in result.values():
+        value["top_failure_reasons"] = [{"condition": key, "count": count} for key, count in
+            sorted(value["condition_failure_counts"].items(), key=lambda item: (-item[1], item[0])) if count]
     return result
 
 
@@ -487,22 +604,24 @@ def capture(b_result: Mapping[str, Any], prepared: Mapping[str, Any], published:
     if len(real_days) > 20:
         return {"status": "C_FUNNEL_HARD_MAXIMUM_REACHED_NO_FURTHER_CAPTURE", "real_c_run_days": len(real_days),
                 "checkpoint": checkpoint(20, sum(p["complete_diagnostic_count"] for p in previous))}
-    rows = build_rows(package, observation)
-    by_rule = aggregate(rows)
+    samples: dict[str, Any] = {}
+    by_rule = aggregate(iter_rows(package, observation), samples=samples)
     if {rule: by_rule[rule]["final_matches"] for rule in RULES} != manifest["matched_by_rule"]:
         raise ValueError("CANONICAL_C_MATCH_COUNT_MISMATCH")
-    detail = b"".join(canonical(row) for row in rows)
-    buffer = io.BytesIO()
-    with gzip.GzipFile(fileobj=buffer, mode="wb", filename="", compresslevel=6, mtime=0) as archive:
-        archive.write(detail)
-    compressed = buffer.getvalue()
-    if len(compressed) > MAX_DETAIL_BYTES:
-        raise ValueError("C_FUNNEL_DETAIL_SIZE_LIMIT")
     day_token = day.replace("-", "")
-    detail_relative = RELATIVE_ROOT / "details" / f"{day_token}.jsonl.gz"
+    sample_relative = RELATIVE_ROOT / "near_miss" / f"{day_token}.json"
+    sample_payload = {"schema_version": VERSION, "signal_date": day, "limit_per_rule_class": NEAR_MISS_LIMIT,
+                      "selection": "ABSOLUTE_MARGIN_ASCENDING / SYMBOL_ASCENDING",
+                      "package_sha256": package_info["file_sha256"],
+                      "c_observation_sha256": consumed["record_sha256"], "by_rule": samples}
+    sample_raw = canonical(sample_payload)
+    if len(sample_raw) > MAX_NEAR_MISS_BYTES:
+        raise ValueError("C_FUNNEL_NEAR_MISS_SIZE_LIMIT")
     complete = sum(value["complete_diagnostic_count"] for value in by_rule.values())
+    rule_observations = sum(value["input_stock_count"] for value in by_rule.values())
     summary = {"schema_version": VERSION, "signal_date": day, "start_date": start_date,
-               "mode": "RECORDING_ONLY / FAIL_SOFT", "rules": {k: asdict(frozen.RULE_CANDIDATES[k]) for k in RULES},
+               "mode": "RECORDING_ONLY / FAIL_SOFT", "persistence": PERSISTENCE,
+               "rules": {k: asdict(frozen.RULE_CANDIDATES[k]) for k in RULES},
                "rule_version": frozen.C_STRATEGY_VERSION, "rule_source_sha256": sha(Path(frozen.__file__).read_bytes()),
                "recorder_source_sha256": sha(Path(__file__).read_bytes()),
                "package_sha256": package_info["file_sha256"], "c_observation_sha256": consumed["record_sha256"],
@@ -510,48 +629,62 @@ def capture(b_result: Mapping[str, Any], prepared: Mapping[str, Any], published:
                "c_status": manifest["c_status"], "coverage_status": source.get("coverage_status"),
                "c_generation_fingerprint": source.get("b_generation_fingerprint"),
                "c_read_at_bjt": source["c_read_at_bjt"],
-               "input_stock_count": len(rows) // len(RULES), "evaluated_stock_count": len(observation["observations"]),
+               "input_stock_count": rule_observations // len(RULES), "evaluated_stock_count": len(observation["observations"]),
                "evaluated_rule_observation_count": sum(value["evaluated_count"] for value in by_rule.values()),
-               "retained_rule_row_count": len(rows),
-               "complete_diagnostic_count": complete, "missing_diagnostic_count": len(rows) - complete,
-               "by_rule": by_rule, "b_input_coverage": source.get("b_input_coverage"),
-               "detail": {"path": detail_relative.as_posix(), "sha256": sha(compressed), "bytes": len(compressed),
-                          "row_count": len(rows), "uncompressed_sha256": sha(detail), "uncompressed_bytes": len(detail)},
+               "computed_rule_observation_count": rule_observations,
+               "complete_diagnostic_count": complete, "missing_diagnostic_count": rule_observations - complete,
+               "by_rule": by_rule,
+               "b_input_coverage_counts": {key: value for key, value in (source.get("b_input_coverage") or {}).items()
+                                           if key.endswith("_count") and isinstance(value, int)},
+               "histogram_bins": HISTOGRAM_BINS,
+               "histogram_semantics": {"stock_histograms": "ONE_PER_INPUT_STOCK_RULE; UNDEFINED_IS_UNAVAILABLE",
+                   "tried_pair_histograms": "ALL_TRIED_PAIRS; PAIR_WEIGHTED_NOT_STOCK_COUNTS",
+                   "selected_structure_histograms": "CANONICAL_SELECTED_PAIR_ONLY; NO_SELECTION_NOT_INCLUDED",
+                   "bin_definition": "FIRST_MATCHING_UPPER_BOUND; THIRD_ITEM_IS_UPPER_INCLUSIVE; NULL_IS_UNBOUNDED"},
+               "near_miss": {"path": sample_relative.as_posix(), "sha256": sha(sample_raw), "bytes": len(sample_raw)},
                "checkpoint": checkpoint(len(real_days), complete + sum(p["complete_diagnostic_count"] for p in previous)),
                "production_semantics_change": False, "outcome_accessed": False, "final_oos": "SEALED / UNREAD"}
     summary_raw = canonical(summary)
     if len(summary_raw) > MAX_SUMMARY_BYTES:
         raise ValueError("C_FUNNEL_SUMMARY_SIZE_LIMIT")
+    if len(summary_raw) + len(sample_raw) > MAX_DURABLE_BYTES:
+        raise ValueError("C_FUNNEL_COMBINED_SIZE_LIMIT")
     summary_relative = RELATIVE_ROOT / "daily" / f"{day_token}.json"
     # Preflight both immutable destinations before adding either one.
-    for relative, raw in ((detail_relative, compressed), (summary_relative, summary_raw)):
+    payloads = ((summary_relative, summary_raw), (sample_relative, sample_raw))
+    for relative, raw in payloads:
         target = state_root / relative
         if any(p.is_symlink() for p in (target, *target.parents)):
             raise ValueError("C_FUNNEL_SYMLINK_REFUSED")
         if target.exists() and target.read_bytes() != raw:
             raise ValueError("C_FUNNEL_SAME_DATE_IMMUTABILITY_CONFLICT")
-    for relative, raw in ((detail_relative, compressed), (summary_relative, summary_raw)):
+    for relative, raw in payloads:
         path = output_root / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(raw)
         # Existing immutable writer gives same-date conflict rejection + atomic link.
         _copy_missing(path, state_root / relative)
     verify_artifacts(state_root, summary_relative)
-    return {"status": "C_FUNNEL_STAGED_READBACK_VERIFIED", "paths": [detail_relative.as_posix(), summary_relative.as_posix()],
-            "summary_sha256": sha(summary_raw), "checkpoint": summary["checkpoint"], "detail": summary["detail"]}
+    return {"status": "C_FUNNEL_STAGED_READBACK_VERIFIED", "paths": [relative.as_posix() for relative, _ in payloads],
+            "summary_sha256": sha(summary_raw), "summary_bytes": len(summary_raw),
+            "near_miss_bytes": len(sample_raw), "combined_durable_bytes": len(summary_raw) + len(sample_raw),
+            "checkpoint": summary["checkpoint"]}
 
 
 def verify_artifacts(root: Path, summary_relative: Path) -> None:
     summary = json.loads((root / summary_relative).read_bytes())
-    info = summary["detail"]
-    expected = RELATIVE_ROOT / "details" / f"{summary['signal_date'].replace('-', '')}.jsonl.gz"
+    if (root / summary_relative).stat().st_size > MAX_SUMMARY_BYTES:
+        raise ValueError("C_FUNNEL_SUMMARY_SIZE_LIMIT")
+    info = summary["near_miss"]
+    expected = RELATIVE_ROOT / "near_miss" / f"{summary['signal_date'].replace('-', '')}.json"
     if info["path"] != expected.as_posix():
-        raise ValueError("C_FUNNEL_DETAIL_PATH_MISMATCH")
+        raise ValueError("C_FUNNEL_NEAR_MISS_PATH_MISMATCH")
     raw = (root / expected).read_bytes()
-    plain = gzip.decompress(raw)
-    if (len(raw) != info["bytes"] or sha(raw) != info["sha256"] or sha(plain) != info["uncompressed_sha256"]
-            or len(plain) != info["uncompressed_bytes"] or len(plain.splitlines()) != info["row_count"]):
-        raise ValueError("C_FUNNEL_DETAIL_READBACK_MISMATCH")
+    if len(raw) > MAX_NEAR_MISS_BYTES or len(raw) != info["bytes"] or sha(raw) != info["sha256"]:
+        raise ValueError("C_FUNNEL_NEAR_MISS_READBACK_MISMATCH")
+    samples = json.loads(raw)
+    if any(len(items) > NEAR_MISS_LIMIT for classes in samples["by_rule"].values() for items in classes.values()):
+        raise ValueError("C_FUNNEL_NEAR_MISS_COUNT_LIMIT")
 
 
 def publish(state_root: Path, staged: Mapping[str, Any]) -> dict[str, Any]:

@@ -1,15 +1,16 @@
 # HANDOFF — 跨设备最小恢复入口
 
-## 2026-11-04 — C_PROSPECTIVE_RULE_FUNNEL_CAPTURE_V1 implementation
+## 2026-11-04 — C lightweight funnel capture, existing Draft PR #106
 
-- Research question / STRICT PATH, unchanged. User explicitly authorized #105
-  squash merge in this chat; it is merged as
+- Research question / STRICT PATH, unchanged. Live GitHub confirms #105
+  is squash-merged as
   `5ec3020f3173924c1ff1039fdf28c2e0b29e5b1f`. Its exact-head correctness run
   `41823640174` was successful and GitHub reported mergeable before merge.
   Earlier #105 pending-decision wording below is historical.
-- Independent branch `codex/c-prospective-rule-funnel-capture-v1`, worktree
+- Continue branch `codex/c-prospective-rule-funnel-capture-v1`, worktree
   `D:/dev/ashare-c-prospective-rule-funnel-capture-v1`, base that new live master.
-  Remote HEAD is resolved after fetch from
+  Existing Draft PR https://github.com/EFSing/ashare_watchlist/pull/106 stays
+  open/unmerged. Remote HEAD is resolved after fetch from
   `origin/codex/c-prospective-rule-funnel-capture-v1`; do not treat an earlier
   validation/provenance SHA as its permanent tip.
 - `C_RULE_FUNNEL_STRICTNESS_AUDIT_V1 = NEEDS_MORE_EVIDENCE`.
@@ -23,19 +24,26 @@
   Frozen rules, adapter, C matched list/report sorting, Formal B, provider,
   delivery, schedules and completion status are unchanged. A separate bounded
   3-minute step is recording-only / fail-soft and defaults disabled.
-- Detail is lossless compact pivot-pair diagnostics, not repeated OHLCV:
-  `runtime-state:data/research/c_rule_funnel_capture_v1/details/YYYYMMDD.jsonl.gz`;
-  daily summary is `daily/YYYYMMDD.json` in the same namespace. Both are
-  append-only, one immutable identity per date; conflicting retries fail softly.
-  SHA/bytes/rows and local/remote readback are verified. The namespace is ignored
-  on master. Compressed detail cap is 64 MB/date, at most 20 real C run dates;
-  there is no infinite daily Git accumulation. Original OHLCV is not retained,
-  so this is diagnostic evidence, not a claim of full raw-input recoverability.
+- User-directed persistence decision ADOPT:
+  `FULL_UNIVERSE_COMPUTE_IN_MEMORY / AGGREGATE_ONLY_DURABLE_PERSISTENCE`
+  plus `BOUNDED_NEAR_MISS_SAMPLES`. One stock/rule -> reduce -> discard;
+  full diagnostic rows and tried-pair contexts exist only temporarily in memory.
+  No full-universe rows, candidate pairs or all-symbol margins are persisted.
+- Exactly two durable JSON files/date under
+  `runtime-state:data/research/c_rule_funnel_capture_v1/`:
+  `daily/YYYYMMDD.json` and `near_miss/YYYYMMDD.json`. Each <=256,000 bytes;
+  combined <=500,000 bytes (stricter than 512 KB) and <=10,000,000 bytes over
+  20 dates, excluding Git overhead. Full detail/gzip and its SHA/bytes/row
+  contract are removed; the old details path is refused by runtime-state.
+  Both small JSON files retain immutable/idempotent writes and remote readback.
 - Conservative slope/fraction failures and their overlap are separate. Peak
-  age/depth and missing high/out-of-range rebound are separate. All tried pairs
-  are retained in frozen order using shared first-/second-low values. Near-miss
-  counts are local-condition diagnostics, not a new Score or relaxed match list.
-  Missing/undefined fields remain null; unavailable stages are not rule failures.
+  age/depth and missing high/out-of-range rebound are separate aggregate counts.
+  Fixed six-metric bins and denominator semantics are frozen in code and
+  `docs/research/c_prospective_capture_v1.md`; stock and pair histograms are
+  explicit. Each rule x near-miss class retains <=5 minimal samples, absolute
+  margin ascending then symbol ascending. No Score/rank/rule/outcome change.
+  Missing values remain unavailable, not rule failures. Summary alone suffices
+  for funnel review; future targeted outcome cohorts need separate authorization.
 - Checkpoint: 15 real XSHG C run dates AND 20,000 complete stock-day-rule
   observations; otherwise continue to at most 20 real run dates, including
   recorder-gap dates. Daily summary emits `C_PROSPECTIVE_RULE_FUNNEL_REVIEW_V1`
@@ -46,15 +54,25 @@
   and `C_RULE_FUNNEL_CAPTURE_START_DATE` to the first enabled real T date. Neither
   variable was changed here. No dispatch or runtime-state remote mutation.
   Final OOS SEALED / UNREAD; no return/MFE/MAE/MODEL_P/MODEL_R access.
-- Verification: recorder-specific 25 passed; full pytest 895 passed / 2 existing
-  missing-large-fixture skips / 10 warnings. Compileall, Node dispatcher 5 and
-  diff checks pass. A synthetic 80-rule-observation / 260-bar capacity check took
-  0.808 s diagnostic time and 452,535 compressed bytes; this is not live evidence.
-- Delivery: independent Draft PR targets master; resolve its current URL/head/CI
-  by this branch. Next: user review/merge decision, after live exact-head CI and
-  mergeability readback. Stop at
-  `C_PROSPECTIVE_RULE_FUNNEL_CAPTURE_IMPLEMENTATION_READY_FOR_USER_DECISION`.
-  Do not auto-merge the new PR or start real recording.
+- Capacity validation: 3,000 synthetic stocks x 2 rules = 6,000 observations,
+  260 bars/stock, all diagnostic observations complete; measured reducer runtime
+  16.198 s in the full-suite run (standalone 15.655 s), summary 10,139 bytes,
+  samples 3,795 bytes, combined 13,934 bytes. Peak memory is NOT_MEASURED;
+  no unreliable pytest process-memory attribution is claimed. Reproduce with
+  `python -m pytest -q -s tests/test_c_rule_funnel_capture.py::test_3000_stock_6000_observation_durable_capacity`.
+- Verification: full pytest 907 passed / 2 existing missing-large-fixture skips /
+  10 warnings; compileall, Node dispatcher 5 tests and diff check passed.
+  Both frozen rules, C adapter/evaluator/report and CI configuration have no diff
+  against the merged #105 base. Existing parity/fail-soft tests remain.
+- Remote recovery: all required code/tests/protocol/governance are tracked on
+  the existing branch; the pushed remote HEAD is the live value of
+  `git rev-parse origin/codex/c-prospective-rule-funnel-capture-v1` after fetch.
+  No next-device dependency on local capacity outputs. Exact-head CI and live
+  mergeability are recorded on PR #106 and must be read there when deciding.
+- Next: user decision on existing Draft #106; read its live exact-head CI and
+  mergeability before any later merge authorization. Stop at
+  `C_LIGHTWEIGHT_FUNNEL_CAPTURE_IMPLEMENTATION_READY_FOR_USER_DECISION`.
+  Do not merge/close PR #106, create another branch, enable recording or dispatch.
 
 ## 2026-11-04 — C_RULE_FUNNEL_STRICTNESS_AUDIT_READY_FOR_USER_DECISION
 
