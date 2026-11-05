@@ -1,5 +1,31 @@
 # DECISION LOG
 
+## 2026-11-05 — ADOPT independent structure-first B volume observation design only
+
+- User authorizes `B_STRUCTURE_FIRST_VOLUME_INCREMENTAL_SHADOW_V1` implementation
+  and protocol freeze through an independent disabled Draft PR. Research
+  question / STRICT PATH, non-blocking: test V1/V2/V3 conditional increment
+  inside canonical qualified B's frozen W2→W3 proxy state. ADOPT the recording
+  design only; no production priority or feature-efficacy decision follows.
+- Preserve all qualified candidates and all frozen structure categories. Three
+  report fields keep exact original window/missing/source semantics, each with
+  its own available-field same-day transition coordinates. No composite, new
+  Score or preferred/secondary/watch ranking before evidence. Old V0 equal
+  weights remain historical only; not collected by this implementation.
+- Reuse the stricter existing B v1.1 60-session/200-mature-episode checkpoint,
+  maximum 120 real sessions including recorder gaps. Keep the original episode
+  ID plus conservative symbol/breakout-date/spec analysis dedup, so rolling
+  local indices do not inflate independence. Calendar eligibility never proves
+  actual maturity. Freeze 10D reference-open primary separately from MODEL_P
+  trigger path and MODEL_R theory, fixed hypotheses, bins, uncertainty,
+  concentration/materiality checks and independent per-feature decisions.
+- NEEDS_MORE_EVIDENCE for efficacy: a later user-authorized review needs genuine
+  identity-matched mature transition episodes, not reconstructed V0 outcomes or
+  pre-activation backfill. Existing B/C daily product paths continue without it.
+  No combination research, production promotion, merge or activation authorized
+  in this task; C lightweight recording is unchanged. Evidence: protocol lock
+  `b6d2adf6412dc722861acfb8902eb0c10347b1ee` and its independent implementation.
+
 ## 2026-11-04 — ADOPT future B/C product architecture; audit C scarcity independently
 
 - User direction: future B/C use eligibility → structure state → independent

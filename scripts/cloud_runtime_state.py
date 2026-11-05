@@ -255,6 +255,8 @@ def _is_allowlisted_data_relative(relative: Path) -> bool:
         return True
     if re.fullmatch(r"research/c_rule_funnel_capture_v1/(?:daily|near_miss)/\d{8}\.json", token):
         return True
+    if re.fullmatch(r"research/b_structure_volume_shadow_v1/(?:observations|daily)/\d{8}\.json", token):
+        return True
     if _VOLUME_OBSERVATION_NAME.fullmatch(Path(token).name) and token.startswith("volume_observations/"):
         return True
     if _DIAGNOSTIC_NAME.fullmatch(Path(token).name) and token.startswith("diagnostics/"):

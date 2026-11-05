@@ -1,5 +1,36 @@
 # CURRENT STATUS
 
+## 2026-11-05 — B structure-first independent volume Shadow, implementation only
+
+- Research question / STRICT PATH, non-blocking. ADOPT the recording-only design
+  `B_STRUCTURE_FIRST_VOLUME_INCREMENTAL_SHADOW_V1`; per-field efficacy remains
+  NEEDS_MORE_EVIDENCE. Missing evidence is genuine post-activation, mature,
+  independent transition episodes, for a later user-authorized priority study.
+  Existing Formal B/C paths and Delivery Ladder are unchanged.
+- Independent branch `codex/b-structure-first-volume-incremental-shadow-v1`,
+  Draft/unmerged/default-disabled. Protocol lock
+  `b6d2adf6412dc722861acfb8902eb0c10347b1ee`; details in
+  `docs/research/b_structure_first_volume_incremental_shadow_v1_protocol.md`.
+  All canonical qualified B are recorded, frozen structure states retained,
+  V1/V2/V3 separate with raw ascending transition-only percentiles/fixed thirds.
+  Partial fields remain usable independently, N<3 stays insufficient. No
+  equal-weight composite, new Score, TopK, priority labels or report change.
+- Lightweight immutable two-file daily storage in runtime-state's independent
+  B namespace, combined <=500,000 B/day. Conservative symbol/breakout-date/spec
+  episode dedup prevents rolling-index fragmentation. Existing stricter B v1.1
+  checkpoint reused: 60 real signal sessions + 200 mature independent transition
+  episodes, at most 120 sessions including recorder gaps. Calendar eligibility
+  is not actual outcome maturity; later authorized review verifies the latter.
+- C #106 is merged/activated, exact live variables confirmed true / 2026-11-05;
+  the C lightweight recorder and ongoing prospective evidence are untouched and
+  do not block this independent B implementation. #104/#105 merge states also
+  verified; no current governance conflict found.
+- Terminal:
+  `B_STRUCTURE_FIRST_VOLUME_INCREMENTAL_SHADOW_IMPLEMENTATION_READY_FOR_USER_DECISION`.
+  User decides Draft merge and subsequent activation separately; no variables
+  changed, real capture, dispatch, runtime-state write, outcome or combination
+  study. Production semantics change=0; Final OOS SEALED / UNREAD.
+
 ## 2026-11-05 — Lightweight C funnel capture activated; awaiting first real run
 
 - `PROJECT_GOVERNANCE_STATE_CONFLICT` minimally reconciled: PR #106 is merged

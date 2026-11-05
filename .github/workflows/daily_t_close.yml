@@ -735,6 +735,21 @@ jobs:
             --state-root "$GITHUB_WORKSPACE/runtime-state" > "$RUNNER_TEMP/c-rule-funnel-result.json"
           cat "$RUNNER_TEMP/c-rule-funnel-result.json" >> "$GITHUB_STEP_SUMMARY" || true
 
+      - name: Record independent B structure and volume after completed delivery
+        if: always() && env.RUN_MODE == 'production' && env.ASHARE_SKIP_PRODUCTION != '1' && steps.b_production.outcome == 'success' && steps.b_output_validation.outcome == 'success' && steps.b_state_push.outcome == 'success' && steps.b_delivery.outcome == 'success' && steps.delivery_health.outcome == 'success' && steps.b_receipt_persist.outcome == 'success' && vars.ENABLE_B_STRUCTURE_VOLUME_SHADOW_V1 == 'true'
+        continue-on-error: true
+        timeout-minutes: 3
+        env:
+          ENABLE_B_STRUCTURE_VOLUME_SHADOW_V1: ${{ vars.ENABLE_B_STRUCTURE_VOLUME_SHADOW_V1 || 'false' }}
+          B_STRUCTURE_VOLUME_SHADOW_START_DATE: ${{ vars.B_STRUCTURE_VOLUME_SHADOW_START_DATE || '' }}
+        shell: bash
+        run: |
+          python scripts/b_structure_volume_shadow.py \
+            --b-result "$PRODUCTION_RESULT" \
+            --delivery-result "$DELIVERY_RESULT" \
+            --state-root "$GITHUB_WORKSPACE/runtime-state" > "$RUNNER_TEMP/b-structure-volume-shadow-result.json"
+          cat "$RUNNER_TEMP/b-structure-volume-shadow-result.json" >> "$GITHUB_STEP_SUMMARY" || true
+
       - name: Checkout clean runtime-state for failure notice
         if: always() && env.RUN_MODE == 'production' && env.AS_OF_DATE != '' && env.ASHARE_SKIP_PRODUCTION != '1' && env.PRODUCTION_CANONICAL_READY != '1'
         uses: actions/checkout@v4
