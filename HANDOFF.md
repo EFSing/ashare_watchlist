@@ -1,24 +1,21 @@
 # HANDOFF — 跨设备最小恢复入口
 
-## 2026-11-05 — Independent B structure-first volume Shadow implementation
+## 2026-11-05 — B structure-first volume Shadow merged, activation blocked
 
 - Research question / STRICT PATH, non-blocking; classification unchanged.
   `B_STRUCTURE_FIRST_VOLUME_INCREMENTAL_SHADOW_V1` asks whether each report
   volume field adds conditional information inside qualified B transition rows.
   ADOPT recording design only; efficacy NEEDS_MORE_EVIDENCE. Existing B/C paths
   continue. No frozen old study or strategy/Score/report semantics changed.
-- Continue branch `codex/b-structure-first-volume-incremental-shadow-v1`, worktree
-  `D:/dev/ashare-b-structure-volume-shadow-v1`, base master
-  `8164eede3a04f2ba6d93cc0b4663fe9def98d9f1`. Resolve the current remote HEAD
-  after fetch with `git rev-parse origin/codex/b-structure-first-volume-incremental-shadow-v1`;
-  the protocol lock below is not the branch tip. Independent
-  [Draft PR #107](https://github.com/EFSing/ashare_watchlist/pull/107) remains
-  unmerged; read its exact-head CI and mergeability live there.
-- Intake live-confirmed #104/#105/#106 merged as `334f636a`, `5ec3020f`,
-  `ba0a2928`; master exact-head push correctness `41952876483` SUCCESS.
-  Runtime-state snapshot `8f32c5ade1ba44cd9b044b85d6821126e1140016`.
-  C flag `ENABLE_C_RULE_FUNNEL_CAPTURE_V1=true`, start `2026-11-05`, awaiting
-  genuine evidence. No governance conflict; C recorder/step/variables unchanged.
+- `PROJECT_GOVERNANCE_STATE_CONFLICT` reconciled. Implementation
+  [PR #107](https://github.com/EFSing/ashare_watchlist/pull/107) is merged.
+  Original HEAD `0946416e9ff8c9aaf01e8b5e07155ed84ed3e5cb`, squash merge
+  `2fee0f5844e785ff4c28a0e814ed27ac04010f33`, master push correctness
+  [41963400200](https://github.com/EFSing/ashare_watchlist/actions/runs/41963400200)
+  SUCCESS. Continue from live `origin/master` after fetch.
+- Runtime-state snapshot `8f32c5ade1ba44cd9b044b85d6821126e1140016`.
+  C remains enabled with `ENABLE_C_RULE_FUNNEL_CAPTURE_V1=true` and
+  `C_RULE_FUNNEL_CAPTURE_START_DATE=2026-11-05`.
 - Protocol committed before implementation at
   `b6d2adf6412dc722861acfb8902eb0c10347b1ee`, file
   `docs/research/b_structure_first_volume_incremental_shadow_v1_protocol.md`.
@@ -50,12 +47,11 @@
   features, immutability, gaps/checkpoint, rolling-episode dedup, capped capacity
   and local bare-remote push/readback. Compileall, Node 5 and diff checks pass.
   Full exact-head regression is reported by the independent Draft's CI.
-- REMOTE_RECOVERY_CHECKPOINT: code/tests/protocol/governance committed and pushed
-  on the branch above; no local-only artifact or real input needed to resume.
-  Read live remote tip and Draft PR before the user's next decision.
-- Terminal:
-  `B_STRUCTURE_FIRST_VOLUME_INCREMENTAL_SHADOW_IMPLEMENTATION_READY_FOR_USER_DECISION`.
-  Stop for user decision on Draft merge and later activation. Neither
+- `B_SHADOW_ACTIVATION_BLOCKED_BY_RUNTIME_STATE_ISOLATION`. The user authorized
+  an independent correctness blocker / STRICT PATH fix, gated squash merge and
+  activation after merge-commit master correctness succeeds. C and B need
+  separate fresh remote checkouts so B cannot publish C's local failed commit.
+  Wait for this governance-only master correctness before branching. Neither
   `ENABLE_B_STRUCTURE_VOLUME_SHADOW_V1` nor `B_STRUCTURE_VOLUME_SHADOW_START_DATE`
   has been created/changed. No real capture, dispatch, runtime-state mutation,
   outcome review or combination study. Production semantics change=0;

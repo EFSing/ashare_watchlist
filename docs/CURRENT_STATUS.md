@@ -1,15 +1,18 @@
 # CURRENT STATUS
 
-## 2026-11-05 — B structure-first independent volume Shadow, implementation only
+## 2026-11-05 — B structure-first independent volume Shadow merged, activation blocked
 
 - Research question / STRICT PATH, non-blocking. ADOPT the recording-only design
   `B_STRUCTURE_FIRST_VOLUME_INCREMENTAL_SHADOW_V1`; per-field efficacy remains
   NEEDS_MORE_EVIDENCE. Missing evidence is genuine post-activation, mature,
   independent transition episodes, for a later user-authorized priority study.
   Existing Formal B/C paths and Delivery Ladder are unchanged.
-- Independent branch `codex/b-structure-first-volume-incremental-shadow-v1`,
-  [Draft #107](https://github.com/EFSing/ashare_watchlist/pull/107),
-  unmerged/default-disabled. Protocol lock
+- `PROJECT_GOVERNANCE_STATE_CONFLICT` reconciled. Implementation
+  [PR #107](https://github.com/EFSing/ashare_watchlist/pull/107) is merged.
+  Original HEAD `0946416e9ff8c9aaf01e8b5e07155ed84ed3e5cb`, squash merge
+  `2fee0f5844e785ff4c28a0e814ed27ac04010f33`, master push correctness
+  [41963400200](https://github.com/EFSing/ashare_watchlist/actions/runs/41963400200)
+  SUCCESS. Protocol lock
   `b6d2adf6412dc722861acfb8902eb0c10347b1ee`; details in
   `docs/research/b_structure_first_volume_incremental_shadow_v1_protocol.md`.
   All canonical qualified B are recorded, frozen structure states retained,
@@ -22,15 +25,14 @@
   checkpoint reused: 60 real signal sessions + 200 mature independent transition
   episodes, at most 120 sessions including recorder gaps. Calendar eligibility
   is not actual outcome maturity; later authorized review verifies the latter.
-- C #106 is merged/activated, exact live variables confirmed true / 2026-11-05;
-  the C lightweight recorder and ongoing prospective evidence are untouched and
-  do not block this independent B implementation. #104/#105 merge states also
-  verified; no current governance conflict found.
-- Terminal:
-  `B_STRUCTURE_FIRST_VOLUME_INCREMENTAL_SHADOW_IMPLEMENTATION_READY_FOR_USER_DECISION`.
-  User decides Draft merge and subsequent activation separately; no variables
-  changed, real capture, dispatch, runtime-state write, outcome or combination
-  study. Production semantics change=0; Final OOS SEALED / UNREAD.
+- C #106 remains activated with `ENABLE_C_RULE_FUNNEL_CAPTURE_V1=true` and
+  `C_RULE_FUNNEL_CAPTURE_START_DATE=2026-11-05`.
+- `B_SHADOW_ACTIVATION_BLOCKED_BY_RUNTIME_STATE_ISOLATION`. The B variables
+  `ENABLE_B_STRUCTURE_VOLUME_SHADOW_V1` and
+  `B_STRUCTURE_VOLUME_SHADOW_START_DATE` are absent. The shared mutable Git
+  checkout can carry C staging or an unpublished C commit into B's publish.
+  B activation follows the authorized isolation fix and successful exact
+  merge-commit master correctness. Final OOS SEALED / UNREAD.
 
 ## 2026-11-05 — Lightweight C funnel capture activated; awaiting first real run
 
