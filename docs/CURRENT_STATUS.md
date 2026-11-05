@@ -8,7 +8,8 @@
   independent transition episodes, for a later user-authorized priority study.
   Existing Formal B/C paths and Delivery Ladder are unchanged.
 - Independent branch `codex/b-structure-first-volume-incremental-shadow-v1`,
-  Draft/unmerged/default-disabled. Protocol lock
+  [Draft #107](https://github.com/EFSing/ashare_watchlist/pull/107),
+  unmerged/default-disabled. Protocol lock
   `b6d2adf6412dc722861acfb8902eb0c10347b1ee`; details in
   `docs/research/b_structure_first_volume_incremental_shadow_v1_protocol.md`.
   All canonical qualified B are recorded, frozen structure states retained,

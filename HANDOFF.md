@@ -11,8 +11,9 @@
   `D:/dev/ashare-b-structure-volume-shadow-v1`, base master
   `8164eede3a04f2ba6d93cc0b4663fe9def98d9f1`. Resolve the current remote HEAD
   after fetch with `git rev-parse origin/codex/b-structure-first-volume-incremental-shadow-v1`;
-  the protocol lock below is not the branch tip. Independent Draft PR remains
-  unmerged; find its exact-head CI and mergeability live on that branch's PR.
+  the protocol lock below is not the branch tip. Independent
+  [Draft PR #107](https://github.com/EFSing/ashare_watchlist/pull/107) remains
+  unmerged; read its exact-head CI and mergeability live there.
 - Intake live-confirmed #104/#105/#106 merged as `334f636a`, `5ec3020f`,
   `ba0a2928`; master exact-head push correctness `41952876483` SUCCESS.
   Runtime-state snapshot `8f32c5ade1ba44cd9b044b85d6821126e1140016`.
