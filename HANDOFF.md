@@ -1,21 +1,38 @@
 # HANDOFF — 跨设备最小恢复入口
 
-## 2026-11-05 — B structure-first volume Shadow merged, activation blocked
+## 2026-11-05 — Research writer isolation merged and B Shadow activated
 
-- Research question / STRICT PATH, non-blocking; classification unchanged.
-  `B_STRUCTURE_FIRST_VOLUME_INCREMENTAL_SHADOW_V1` asks whether each report
-  volume field adds conditional information inside qualified B transition rows.
-  ADOPT recording design only; efficacy NEEDS_MORE_EVIDENCE. Existing B/C paths
-  continue. No frozen old study or strategy/Score/report semantics changed.
+- Correctness blocker / STRICT PATH, classification unchanged and resolved.
+  `RUNTIME_STATE_RESEARCH_WRITER_ISOLATION_V1 = MERGED`.
+  [Isolation PR #108](https://github.com/EFSing/ashare_watchlist/pull/108) original HEAD
+  `3718c577c194b00b1ea342198991442c666e1db5`, squash merge
+  `8f6d41ba48bcbcd421eecdc1a64e84a75ad961df`. Exact-head push
+  [41979449931](https://github.com/EFSing/ashare_watchlist/actions/runs/41979449931)
+  and PR [41979473570](https://github.com/EFSing/ashare_watchlist/actions/runs/41979473570)
+  succeeded. Merge-commit master push correctness
+  [41980295750](https://github.com/EFSing/ashare_watchlist/actions/runs/41980295750)
+  succeeded before activation.
 - `PROJECT_GOVERNANCE_STATE_CONFLICT` reconciled. Implementation
   [PR #107](https://github.com/EFSing/ashare_watchlist/pull/107) is merged.
   Original HEAD `0946416e9ff8c9aaf01e8b5e07155ed84ed3e5cb`, squash merge
   `2fee0f5844e785ff4c28a0e814ed27ac04010f33`, master push correctness
   [41963400200](https://github.com/EFSing/ashare_watchlist/actions/runs/41963400200)
-  SUCCESS. Continue from live `origin/master` after fetch.
-- Runtime-state snapshot `8f32c5ade1ba44cd9b044b85d6821126e1140016`.
-  C remains enabled with `ENABLE_C_RULE_FUNNEL_CAPTURE_V1=true` and
+  SUCCESS. Governance-only reconciliation `9c1e98cacc341877fb9eec123f8f8fcd1fc6771f`
+  passed master correctness [41978656910](https://github.com/EFSing/ashare_watchlist/actions/runs/41978656910).
+- `B_STRUCTURE_FIRST_VOLUME_INCREMENTAL_SHADOW_V1 = ACTIVATED_FOR_PROSPECTIVE_EVIDENCE_COLLECTION`.
+  At 14:28:08 BJT, readback confirmed `B_STRUCTURE_VOLUME_SHADOW_START_DATE=2026-11-05`
+  and `ENABLE_B_STRUCTURE_VOLUME_SHADOW_V1=true` after setting the start date
+  first and rechecking production. The XSHG session closes at 15:00 BJT and
+  normal production had yet to start. C remains enabled with
+  `ENABLE_C_RULE_FUNNEL_CAPTURE_V1=true` and
   `C_RULE_FUNNEL_CAPTURE_START_DATE=2026-11-05`.
+  Runtime-state activation snapshot `8f32c5ade1ba44cd9b044b85d6821126e1140016`.
+- `ONE_RESEARCH_WRITER / ONE_FRESH_RUNTIME_STATE_CHECKOUT`.
+  After Formal B delivery and C publication, the C funnel recorder uses
+  `c-funnel-runtime-state`. After that recorder exits or is skipped, B uses
+  `b-shadow-runtime-state` from the live remote ref. Each checkout and recorder
+  is fail-soft. B inherits a published C commit through the remote. C's local
+  index, untracked files and unpublished commits are confined to its checkout.
 - Protocol committed before implementation at
   `b6d2adf6412dc722861acfb8902eb0c10347b1ee`, file
   `docs/research/b_structure_first_volume_incremental_shadow_v1_protocol.md`.
@@ -38,24 +55,18 @@
   transition episodes, maximum 120 sessions, recorder gaps count. Recorder only
   determines T+10 calendar eligibility; review must separately verify actual
   maturity. No outcomes/tracker read or reviewer is implemented.
-- Enabled-code boundary: one default-off, post-delivery, 3-minute, fail-soft step
-  after existing C recorder, independent of C success. Formal B qualification,
-  legacy Score, report HTML, C, provider and schedules unchanged. Actual
-  package-generation and canonical-run fingerprints are distinct and both kept.
-- Focused 30 tests passed, including actual Formal B generation with synthetic
-  providers, report byte parity, no provider/outcome access, independent partial
-  features, immutability, gaps/checkpoint, rolling-episode dedup, capped capacity
-  and local bare-remote push/readback. Compileall, Node 5 and diff checks pass.
-  Full exact-head regression is reported by the independent Draft's CI.
-- `B_SHADOW_ACTIVATION_BLOCKED_BY_RUNTIME_STATE_ISOLATION`. The user authorized
-  an independent correctness blocker / STRICT PATH fix, gated squash merge and
-  activation after merge-commit master correctness succeeds. C and B need
-  separate fresh remote checkouts so B cannot publish C's local failed commit.
-  Wait for this governance-only master correctness before branching. Neither
-  `ENABLE_B_STRUCTURE_VOLUME_SHADOW_V1` nor `B_STRUCTURE_VOLUME_SHADOW_START_DATE`
-  has been created/changed. No real capture, dispatch, runtime-state mutation,
-  outcome review or combination study. Production semantics change=0;
-  Final OOS SEALED / UNREAD.
+- Isolation and related regression 151 passed. Clean-worktree full pytest
+  945 passed, 2 existing large-fixture skips. Compileall, Node 5 and diff checks
+  passed. Report change=NO, production semantics change=0, dispatch=NO,
+  backfill=NO, outcome access=NO, Final OOS SEALED / UNREAD.
+- Terminal
+  `RUNTIME_STATE_ISOLATION_FIXED_AND_B_SHADOW_ACTIVATED_WAITING_FOR_FIRST_REAL_RUN`.
+  Wait for the normal production workflow to supply the first observation.
+  On a later authorized check, verify the two B JSON files, separate writer
+  commits and readback identity. Efficacy remains NEEDS_MORE_EVIDENCE.
+- REMOTE_RECOVERY_CHECKPOINT on `master`. After fetch, resolve the current
+  remote HEAD with `git rev-parse origin/master`. The merge SHA and runtime-state
+  SHA above are provenance snapshots. All recovery inputs are on GitHub.
 
 ## 2026-11-05 — ACTIVATE_C_LIGHTWEIGHT_FUNNEL_CAPTURE_V1
 

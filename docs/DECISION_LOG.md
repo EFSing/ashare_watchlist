@@ -1,5 +1,28 @@
 # DECISION LOG
 
+## 2026-11-05 — Isolate research writers and activate prospective B Shadow
+
+- ADOPT `ONE_RESEARCH_WRITER / ONE_FRESH_RUNTIME_STATE_CHECKOUT` for the daily
+  research recorders. A failed C commit or push can leave staged paths or a
+  local commit behind. Separate checkouts give B the remote runtime-state
+  ref after C exits and keep C's local writes out of B's history. The
+  append-only, namespace and readback protections remain in both publishers.
+  [Isolation PR #108](https://github.com/EFSing/ashare_watchlist/pull/108).
+- `RUNTIME_STATE_RESEARCH_WRITER_ISOLATION_V1 = MERGED` at
+  `8f6d41ba48bcbcd421eecdc1a64e84a75ad961df`, original PR HEAD
+  `3718c577c194b00b1ea342198991442c666e1db5`. Merge-commit master
+  [correctness 41980295750](https://github.com/EFSing/ashare_watchlist/actions/runs/41980295750)
+  succeeded before activation.
+- `B_STRUCTURE_FIRST_VOLUME_INCREMENTAL_SHADOW_V1 = ACTIVATED_FOR_PROSPECTIVE_EVIDENCE_COLLECTION`.
+  User authorized recording from the next eligible genuine session. The
+  2026-11-05 session was still prospective at activation (14:28:08 BJT).
+  `B_STRUCTURE_VOLUME_SHADOW_START_DATE=2026-11-05` was set and read back
+  before the production recheck and `ENABLE_B_STRUCTURE_VOLUME_SHADOW_V1=true`.
+  C remains enabled with `ENABLE_C_RULE_FUNNEL_CAPTURE_V1=true` and
+  `C_RULE_FUNNEL_CAPTURE_START_DATE=2026-11-05`. Dispatch=NO, backfill=NO,
+  report change=NO, production semantics change=0, outcome access=NO,
+  Final OOS SEALED / UNREAD.
+
 ## 2026-11-05 — ADOPT independent structure-first B volume observation design only
 
 - User authorizes `B_STRUCTURE_FIRST_VOLUME_INCREMENTAL_SHADOW_V1` implementation
@@ -22,8 +45,8 @@
 - NEEDS_MORE_EVIDENCE for efficacy: a later user-authorized review needs genuine
   identity-matched mature transition episodes, not reconstructed V0 outcomes or
   pre-activation backfill. Existing B/C daily product paths continue without it.
-  No combination research, production promotion, merge or activation authorized
-  in this task; C lightweight recording is unchanged. Evidence: protocol lock
+  The initial implementation authorization covered the disabled recorder.
+  C lightweight recording is unchanged. Evidence: protocol lock
   `b6d2adf6412dc722861acfb8902eb0c10347b1ee` and its independent implementation.
 
 ## 2026-11-04 — ADOPT future B/C product architecture; audit C scarcity independently

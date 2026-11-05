@@ -1,6 +1,6 @@
 # CURRENT STATUS
 
-## 2026-11-05 — B structure-first independent volume Shadow merged, activation blocked
+## 2026-11-05 — B structure-first independent volume Shadow active
 
 - Research question / STRICT PATH, non-blocking. ADOPT the recording-only design
   `B_STRUCTURE_FIRST_VOLUME_INCREMENTAL_SHADOW_V1`; per-field efficacy remains
@@ -25,14 +25,23 @@
   checkpoint reused: 60 real signal sessions + 200 mature independent transition
   episodes, at most 120 sessions including recorder gaps. Calendar eligibility
   is not actual outcome maturity; later authorized review verifies the latter.
-- C #106 remains activated with `ENABLE_C_RULE_FUNNEL_CAPTURE_V1=true` and
+- `RUNTIME_STATE_RESEARCH_WRITER_ISOLATION_V1 = MERGED`.
+  [PR #108](https://github.com/EFSing/ashare_watchlist/pull/108) original HEAD
+  `3718c577c194b00b1ea342198991442c666e1db5`, squash merge
+  `8f6d41ba48bcbcd421eecdc1a64e84a75ad961df`, master correctness
+  [41980295750](https://github.com/EFSing/ashare_watchlist/actions/runs/41980295750)
+  SUCCESS. The two fail-soft writers use separate fresh remote checkouts.
+  C funnel follows delivery and C publication. B checks out after C funnel
+  completion or skip and inherits only C changes already on the remote.
+- `B_STRUCTURE_FIRST_VOLUME_INCREMENTAL_SHADOW_V1 = ACTIVATED_FOR_PROSPECTIVE_EVIDENCE_COLLECTION`.
+  Readback at 14:28:08 BJT confirmed
+  `B_STRUCTURE_VOLUME_SHADOW_START_DATE=2026-11-05` and
+  `ENABLE_B_STRUCTURE_VOLUME_SHADOW_V1=true`. Normal production had yet to
+  start. C variables read back as `ENABLE_C_RULE_FUNNEL_CAPTURE_V1=true` and
   `C_RULE_FUNNEL_CAPTURE_START_DATE=2026-11-05`.
-- `B_SHADOW_ACTIVATION_BLOCKED_BY_RUNTIME_STATE_ISOLATION`. The B variables
-  `ENABLE_B_STRUCTURE_VOLUME_SHADOW_V1` and
-  `B_STRUCTURE_VOLUME_SHADOW_START_DATE` are absent. The shared mutable Git
-  checkout can carry C staging or an unpublished C commit into B's publish.
-  B activation follows the authorized isolation fix and successful exact
-  merge-commit master correctness. Final OOS SEALED / UNREAD.
+  Awaiting the first genuine prospective observation.
+- Report change=NO, production semantics change=0, dispatch=NO, backfill=NO,
+  outcome access=NO, Final OOS SEALED / UNREAD.
 
 ## 2026-11-05 — Lightweight C funnel capture activated; awaiting first real run
 
