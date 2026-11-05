@@ -232,6 +232,7 @@ def _run_daily_close_reporting(
     data_root: Path,
     *,
     skip_shadow_capture: bool = False,
+    research_run_manifest: str | None = None,
 ) -> dict[str, Any]:
     """Run tracker then renderer after a successful canonical watchlist write.
 
@@ -303,6 +304,8 @@ def _run_daily_close_reporting(
     ]
     if tracker_failure:
         renderer_command.extend(["--review-failure", tracker_failure])
+    if research_run_manifest:
+        renderer_command.extend(["--research-run-manifest", research_run_manifest])
     try:
         renderer_run = subprocess.run(
             renderer_command,
@@ -774,7 +777,11 @@ def main(argv: list[str] | None = None) -> int:
                     skip_shadow_capture=True,
                 )
             else:
-                result["daily_close_bundle"] = _run_daily_close_reporting(args.as_of_date, data_root)
+                result["daily_close_bundle"] = _run_daily_close_reporting(
+                    args.as_of_date,
+                    data_root,
+                    research_run_manifest=result["watchlist"].get("run_manifest_path"),
+                )
     except (LiveAcquisitionError, OSError, RuntimeError, ValueError) as exc:
         diagnostics = getattr(exc, "diagnostics", {})
         if not isinstance(diagnostics, dict):

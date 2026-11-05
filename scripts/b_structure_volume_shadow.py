@@ -8,7 +8,6 @@ from __future__ import annotations
 import argparse
 from datetime import date, datetime, timedelta, timezone
 from functools import lru_cache
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -16,19 +15,16 @@ import re
 import subprocess
 import tempfile
 
-import numpy as np
-
 from b_breakout_retest_v1_1 import STRATEGY_SPEC_SHA256, STRATEGY_VERSION
-from b_phase_volume_path_diagnostic import _first_breakout_trace
-from b_priority_w2w3_volume_v1 import INVALID, STATES, structure_proxy, t_prefix
+from b_priority_w2w3_volume_v1 import STATES
+from b_structure_volume_observation import FIELDS, INVALID, add_coordinates, canonical, observe, sha
 from b_prospective_observation import (
-    _next_horizon_date, _source_identity, _source_validation, breakout_episode_id,
+    _next_horizon_date, _source_identity, _source_validation,
     MINIMUM_SIGNAL_SESSIONS, MINIMUM_MATURE_INDEPENDENT_EPISODES, MAXIMUM_SIGNAL_SESSIONS,
 )
 from c_state_store import _copy_missing
 from cloud_runtime_state import validate_state_tree
 from trading_calendar import default_calendar
-from volume_observation import VOLUME_OBSERVATION_FIELDS as FIELDS, calculate_stock_volume_observation
 from watchlist_schema import load_watchlist
 
 VERSION = "B_STRUCTURE_FIRST_VOLUME_INCREMENTAL_SHADOW_V1"
@@ -36,20 +32,12 @@ RELATIVE_ROOT = Path("data/research/b_structure_volume_shadow_v1")
 PROTOCOL = "docs/research/b_structure_first_volume_incremental_shadow_v1_protocol.md"
 PROTOCOL_COMMIT = "b6d2adf6412dc722861acfb8902eb0c10347b1ee"
 PROTOCOL_SHA256 = "dc78be572fcd47d714ce187ba6667d590d0bd467f79e5f298e22af230ea55b67"
-TRANSITION = STATES[1]
+PRE_EXTRACTION_RECORDER_SHA256 = "4edda98a9ade23828b7d7a2388cb4ee40ee624f1059b7a830ccb3d46127ef79d"
+EXTRACTED_OBSERVATION_SHA256 = "0d57e10ab56edb62accec96aacc9f65414a0bc377ed97933399b516068512703"
 MAX_FILE_BYTES = 256_000
 MAX_DAY_BYTES = 500_000
 BJT = timezone(timedelta(hours=8))
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
-
-
-def canonical(value) -> bytes:
-    return (json.dumps(value, ensure_ascii=False, allow_nan=False, sort_keys=True,
-                       separators=(",", ":")) + "\n").encode("utf-8")
-
-
-def sha(raw: bytes) -> str:
-    return hashlib.sha256(raw).hexdigest()
 
 
 def _read(path: Path, expected: str | None = None):
@@ -76,7 +64,8 @@ def _verify_generation_protocol(commit: str) -> None:
 
 
 def feature_identity() -> dict:
-    paths = ("b_structure_volume_shadow.py", "b_priority_w2w3_volume_v1.py",
+    paths = ("b_structure_volume_shadow.py", "b_structure_volume_observation.py",
+             "b_priority_w2w3_volume_v1.py",
              "b_phase_volume_path_diagnostic.py", "volume_observation.py")
     if sha((SOURCE_ROOT / PROTOCOL).read_bytes().replace(b"\r\n", b"\n")) != PROTOCOL_SHA256:
         raise ValueError("SHADOW_FROZEN_PROTOCOL_CHANGED")
@@ -84,63 +73,6 @@ def feature_identity() -> dict:
             "protocol_commit": PROTOCOL_COMMIT, "protocol_lf_sha256": PROTOCOL_SHA256,
             "source_lf_sha256": {p: sha((SOURCE_ROOT / "scripts" / p).read_bytes().replace(b"\r\n", b"\n"))
                                  for p in paths}}
-
-
-def observe(candidate: dict, bars, day: str) -> dict:
-    """A qualified candidate is retained even when its feature trace is absent."""
-    code = candidate["code"]
-    volume = calculate_stock_volume_observation(bars, day, code=code)
-    structure = {"state": INVALID, "recovery_ratio": None, "reason": "STOCK_KLINE_UNAVAILABLE"}
-    episode = None
-    if bars:
-        try:
-            prefix = t_prefix(bars, day)
-            # The package is a genuine T-ending input. Do not silently discard
-            # appended future rows or give them a valid prospective identity.
-            if len(prefix) != len(bars):
-                raise ValueError("FUTURE_INPUT_REFUSED")
-            c, h, l, v = (np.asarray([b[f] for b in prefix]) for f in ("close", "high", "low", "volume"))
-            trace = _first_breakout_trace(c, v, h, l, [b["date"] for b in prefix])
-            if trace is None or trace["pullback_stage"] != "PULLBACK_ALL_PASS":
-                structure["reason"] = "QUALIFIED_TRACE_UNAVAILABLE_OR_INCONSISTENT"
-            else:
-                i = int(trace["breakout_index"])
-                structure = structure_proxy(c, h, l, i)
-                facts = {"breakout_date": prefix[i]["date"], "breakout_index": i, "base_hi": trace["base_hi"]}
-                episode = {**facts, "breakout_episode_id": breakout_episode_id(code, facts),
-                           "analysis_episode_key": sha(canonical([code, facts["breakout_date"], STRATEGY_SPEC_SHA256]))}
-        except (KeyError, TypeError, ValueError, ArithmeticError) as exc:
-            structure = {"state": INVALID, "recovery_ratio": None,
-                         "reason": f"STRUCTURE_INPUT_UNAVAILABLE:{type(exc).__name__}"}
-    return {"signal_id": candidate["signal_id"], "code": code, "signal_date": day,
-            "formal_b_qualified": True, "structure": structure,
-            "is_w2w3_transition": structure["state"] == TRANSITION,
-            "volume": volume, "episode": episode}
-
-
-def add_coordinates(rows: list[dict]) -> None:
-    """Ascending raw coordinates only, independently available per field."""
-    for row in rows:
-        row["coordinates"] = {}
-    for field in FIELDS:
-        available = [r for r in rows if r["is_w2w3_transition"] and r["volume"][field] is not None]
-        n = len(available)
-        for row in rows:
-            value = row["volume"][field]
-            coordinate = {"available": value is not None, "cross_section_n": n,
-                          "percentile": None, "bucket": None}
-            if not row["is_w2w3_transition"]:
-                coordinate["status"] = "NOT_PRIMARY_COHORT"
-            elif value is None:
-                coordinate["status"] = "FEATURE_UNAVAILABLE"
-            elif n < 3:
-                coordinate["status"] = "INSUFFICIENT_CROSS_SECTION"
-            else:
-                values = [r["volume"][field] for r in available]
-                p = (sum(v < value for v in values) + (sum(v == value for v in values) + 1) / 2) / n
-                coordinate.update(percentile=p, bucket="LOW" if p <= 1/3 else "MID" if p <= 2/3 else "HIGH",
-                                  status="ANALYSIS_COORDINATE_ONLY")
-            row["coordinates"][field] = coordinate
 
 
 def _relative(day: str, kind: str) -> Path:
@@ -239,6 +171,12 @@ def capture(b_result: dict, delivery: dict, *, state_root: Path, output_root: Pa
     report = _read(Path(volume_info["path"]), volume_info["file_sha256"])
     if report["report_date"] != day or report["candidate_count"] != len(watch["candidates"]):
         raise ValueError("SHADOW_REPORT_COHORT_MISMATCH")
+    # An in-flight run may publish with the exact recorder that contained the
+    # now-extracted functions. Preserve its original source hashes on disk.
+    previous_sources = dict(identity["source_lf_sha256"])
+    helper_sha = previous_sources.pop("b_structure_volume_observation.py")
+    previous_sources["b_structure_volume_shadow.py"] = PRE_EXTRACTION_RECORDER_SHA256
+    pre_extraction_identity = {**identity, "source_lf_sha256": previous_sources}
     previous = []
     for path in sorted((state_root / RELATIVE_ROOT / "daily").glob("????????.json")):
         prior_day = f"{path.stem[:4]}-{path.stem[4:6]}-{path.stem[6:]}"
@@ -247,7 +185,11 @@ def capture(b_result: dict, delivery: dict, *, state_root: Path, output_root: Pa
         if prior_day == day:
             continue
         receipt, observed = verify_artifacts(state_root, prior_day)
-        if receipt["start_date"] != start_date or receipt["feature_identity"] != identity:
+        prior_identity = receipt["feature_identity"]
+        same_features = prior_identity == identity or (
+            helper_sha == EXTRACTED_OBSERVATION_SHA256 and prior_identity == pre_extraction_identity
+        )
+        if receipt["start_date"] != start_date or not same_features:
             raise ValueError("SHADOW_FROZEN_IDENTITY_CHANGED")
         previous.append((receipt, observed))
     if any(r["checkpoint"]["status"] != "COLLECTING" for r, _ in previous):
