@@ -20,6 +20,7 @@ from test_c_daily_watchlist import _init_c_state_repo
 
 DAY = "2026-11-05"
 CAL = TradingCalendar(holidays=set(), session_close_time=time(15))
+GENERATION_COMMIT = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=shadow.SOURCE_ROOT).decode().strip()
 
 
 def _bars(day=DAY):
@@ -66,7 +67,7 @@ def _inputs(tmp_path, *, day=DAY, codes=("600000",), missing=(), bars=None):
     report_path = source / "volume.json"
     report_path.write_bytes(shadow.canonical(build_volume_observation_store(watch["candidates"], manifest, day)))
     b = {"status": "T_CLOSE_EVIDENCE_PACKAGE_AND_WATCHLIST_PERSISTED", "as_of_date": day,
-         "code_git_sha": shadow.PROTOCOL_COMMIT, "acquisition_timing": "SAME_CALENDAR_DATE",
+         "code_git_sha": GENERATION_COMMIT, "acquisition_timing": "SAME_CALENDAR_DATE",
          "input_package": {"path": str(package_path), "file_sha256": shadow.sha(package_path.read_bytes())},
          "watchlist": {"path": str(watch_path), "file_sha256": shadow.sha(watch_path.read_bytes()),
                        "run_manifest_path": str(run_path), "candidate_count": len(codes)},
@@ -75,7 +76,7 @@ def _inputs(tmp_path, *, day=DAY, codes=("600000",), missing=(), bars=None):
     (state / "data/checkpoints").mkdir(parents=True, exist_ok=True)
     (state / "data" / watch_path.name).write_bytes(watch_path.read_bytes())
     checkpoint = {"schema_version": "DAILY_LIGHTWEIGHT_CLOUD_CHECKPOINT_V1", "list_date": day,
-                  "strategy_version": shadow.STRATEGY_VERSION, "code_git_sha": shadow.PROTOCOL_COMMIT,
+                  "strategy_version": shadow.STRATEGY_VERSION, "code_git_sha": GENERATION_COMMIT,
                   "created_at_bjt": day + "T18:00:00+08:00", "watchlist": {"sha256": b["watchlist"]["file_sha256"]}}
     (state / "data/checkpoints" / f"daily_checkpoint_{day.replace('-', '')}.json").write_bytes(shadow.canonical(checkpoint))
     return b, {"status": "DELIVERY_SUCCESS", "report_date": day}, state
@@ -155,7 +156,7 @@ def test_actual_package_and_formal_generation_contract_with_synthetic_providers(
     original = {p: p.read_bytes() for p in root.rglob("*.json")}
     volume = _capture_volume_observations(package, result, root, weekend_backfill=False)
     b = {"status": "T_CLOSE_EVIDENCE_PACKAGE_AND_WATCHLIST_PERSISTED", "as_of_date": DAY,
-         "code_git_sha": shadow.PROTOCOL_COMMIT,
+         "code_git_sha": GENERATION_COMMIT,
          "input_package": {"path": str(persisted.path), "file_sha256": persisted.file_sha256},
          "watchlist": {"path": str(result.output_path), "file_sha256": result.output_sha256,
                        "candidate_count": result.candidate_count, "run_manifest_path": str(result.run_manifest_path)},
