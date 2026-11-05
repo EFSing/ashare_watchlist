@@ -1,5 +1,30 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-11-05 — B 结构与量能研究观察进入每日 B+C HTML
+
+- Deferred improvement / STRICT PATH，分类保持。终点
+  `B_STRUCTURE_VOLUME_RESEARCH_OBSERVATION_REPORT_MERGED`。
+  `B_STRUCTURE_VOLUME_RESEARCH_OBSERVATION_REPORT_V1 = ADOPTED_PRESENTATION_ONLY`。
+- [PR #109](https://github.com/EFSing/ashare_watchlist/pull/109) branch
+  `codex/b-research-observation-report-v1`，原 HEAD
+  `bf4bf34946c354851ed74d6d4985d5d88f0b4119`，
+  [PR correctness](https://github.com/EFSing/ashare_watchlist/actions/runs/41991640369)
+  和 [push correctness](https://github.com/EFSing/ashare_watchlist/actions/runs/41991591371)
+  SUCCESS。16:07:32 BJT squash merge
+  `8c9ed8fd3681609875a31a0b5876ff6f5004e141`，
+  [master correctness](https://github.com/EFSing/ashare_watchlist/actions/runs/41992093383) SUCCESS。
+- 单份 B+C HTML 的 B 候选卡显示结构阶段、三项量能的数值、客观形态、预注册倾向和证据状态。
+  逐字段同结构坐标保留样本不足提示。日报用当轮生成 manifest，研究失败时正式 HTML 仍可交付。
+  Shadow 在交付后录制，既有记录保留原始源码指纹。结构、量能和坐标逐字段一致。
+- 定向 176 passed，干净检出全量 955 passed / 2 既有大文件夹具跳过。Chrome 320 / 375 /
+  430 px、compileall、Node dispatcher、diff check 通过。Formal B 资格、排序、Score、
+  操作参数、provider、scheduler、C 和 Shadow 观察语义 change=0。DISPLAY_DATA_T_KNOWN_ONLY=YES。
+- 合并时 11-05 正常生产尚未开始。下一步核验自然交付的首份 HTML 和独立研究写入，
+  首份真实日报待验证。Dispatch / rerun / backfill=NO。Shadow 收益证据仍为 NEEDS_MORE_EVIDENCE。
+  Outcome access=NO，Final OOS SEALED / UNREAD。
+- REMOTE_RECOVERY_CHECKPOINT 在 `master`。同步后用 `git rev-parse origin/master`
+  解析远端 HEAD，上述合并 SHA 是交付来源。接续所需代码和记录均已推送。
+
 ## 2026-11-05 — Research writer isolation merged and B Shadow activated
 
 - Correctness blocker / STRICT PATH, classification unchanged and resolved.

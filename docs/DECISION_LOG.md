@@ -1,5 +1,15 @@
 # DECISION LOG
 
+## 2026-11-05 — ADOPT B 结构与量能的日报研究展示
+
+- `B_STRUCTURE_VOLUME_RESEARCH_OBSERVATION_REPORT_V1 = ADOPTED_PRESENTATION_ONLY`。
+  在 Formal B 候选卡就地显示结构和三项量能，逐项区分客观形态、研究倾向和证据状态。
+  同结构坐标仅描述当日数值位置。V3 保留中间水平可能有收益优势的假设。
+- 日报和交付后 B Shadow 复用冻结的 T-known 计算，日报使用同一轮 canonical 生成
+  manifest。研究失败时正式交付继续。规则、Score 和排序变更为 0。
+- Shadow 仍为 NEEDS_MORE_EVIDENCE。后续独立研究评审使用冻结检查点要求的真实成熟过渡样本。
+  Final OOS SEALED / UNREAD。[PR #109](https://github.com/EFSing/ashare_watchlist/pull/109)。
+
 ## 2026-11-05 — Isolate research writers and activate prospective B Shadow
 
 - ADOPT `ONE_RESEARCH_WRITER / ONE_FRESH_RUNTIME_STATE_CHECKOUT` for the daily

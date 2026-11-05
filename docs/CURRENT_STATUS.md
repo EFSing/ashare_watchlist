@@ -1,5 +1,17 @@
 # CURRENT STATUS
 
+## 2026-11-05 — B 结构与量能研究观察已合并到每日 B+C HTML
+
+- `B_STRUCTURE_VOLUME_RESEARCH_OBSERVATION_REPORT_V1 = ADOPTED_PRESENTATION_ONLY`。
+  [PR #109](https://github.com/EFSing/ashare_watchlist/pull/109) squash merge
+  `8c9ed8fd3681609875a31a0b5876ff6f5004e141`，
+  [master correctness](https://github.com/EFSing/ashare_watchlist/actions/runs/41992093383) SUCCESS。
+- 单份自包含 HTML 在 B 候选卡中显示冻结结构阶段。三项现有量能各自显示数值、形态、
+  预注册倾向和证据状态，同结构可比样本不足逐项标注。展示故障时正式名单和交付仍可用。
+- Formal B 资格、Score、排序与操作参数 change=0，C change=0。
+  日报用当轮 T-known manifest，B Shadow 继续在交付后持久化同义观察。研究证据仍为
+  NEEDS_MORE_EVIDENCE。首份真实日报待正常生产核验。Final OOS SEALED / UNREAD。
+
 ## 2026-11-05 — B structure-first independent volume Shadow active
 
 - Research question / STRICT PATH, non-blocking. ADOPT the recording-only design
