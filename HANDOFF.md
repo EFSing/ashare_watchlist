@@ -1,5 +1,66 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-11-05 — Independent B structure-first volume Shadow implementation
+
+- Research question / STRICT PATH, non-blocking; classification unchanged.
+  `B_STRUCTURE_FIRST_VOLUME_INCREMENTAL_SHADOW_V1` asks whether each report
+  volume field adds conditional information inside qualified B transition rows.
+  ADOPT recording design only; efficacy NEEDS_MORE_EVIDENCE. Existing B/C paths
+  continue. No frozen old study or strategy/Score/report semantics changed.
+- Continue branch `codex/b-structure-first-volume-incremental-shadow-v1`, worktree
+  `D:/dev/ashare-b-structure-volume-shadow-v1`, base master
+  `8164eede3a04f2ba6d93cc0b4663fe9def98d9f1`. Resolve the current remote HEAD
+  after fetch with `git rev-parse origin/codex/b-structure-first-volume-incremental-shadow-v1`;
+  the protocol lock below is not the branch tip. Independent
+  [Draft PR #107](https://github.com/EFSing/ashare_watchlist/pull/107) remains
+  unmerged; read its exact-head CI and mergeability live there.
+- Intake live-confirmed #104/#105/#106 merged as `334f636a`, `5ec3020f`,
+  `ba0a2928`; master exact-head push correctness `41952876483` SUCCESS.
+  Runtime-state snapshot `8f32c5ade1ba44cd9b044b85d6821126e1140016`.
+  C flag `ENABLE_C_RULE_FUNNEL_CAPTURE_V1=true`, start `2026-11-05`, awaiting
+  genuine evidence. No governance conflict; C recorder/step/variables unchanged.
+- Protocol committed before implementation at
+  `b6d2adf6412dc722861acfb8902eb0c10347b1ee`, file
+  `docs/research/b_structure_first_volume_incremental_shadow_v1_protocol.md`.
+  Recorder reuses the frozen pure structure proxy and exact report volume
+  wrapper, and verifies against original report observations. All and only the
+  canonical qualified list is retained in canonical order, including missing
+  structure/volume; coordinates use each field's own transition availability.
+  N<3 -> INSUFFICIENT_CROSS_SECTION. No composite, new Score or priority output.
+- Two immutable JSON files/day in runtime-state
+  `data/research/b_structure_volume_shadow_v1/{observations,daily}/YYYYMMDD.json`.
+  Input/package/run/watchlist/report/source/protocol identities, rows, bytes,
+  SHA and gaps retained; no raw OHLCV or full-universe observations. Each file
+  <=256,000 bytes, combined <=500,000/day; <=60 MB/120 sessions excluding Git.
+  50 synthetic candidates: observations 70,419 B, receipt 2,504 B, combined
+  72,923 B, 0.352 s. Production size and peak memory NOT_MEASURED.
+- Primary analysis episode is symbol + breakout_date + frozen spec SHA,
+  conservative across rolling-window indices; original B episode ID also kept.
+  First transition observation/episode is fixed before outcomes. Reuse stricter
+  B v1.1 checkpoint: 60 real signal sessions AND 200 actual mature independent
+  transition episodes, maximum 120 sessions, recorder gaps count. Recorder only
+  determines T+10 calendar eligibility; review must separately verify actual
+  maturity. No outcomes/tracker read or reviewer is implemented.
+- Enabled-code boundary: one default-off, post-delivery, 3-minute, fail-soft step
+  after existing C recorder, independent of C success. Formal B qualification,
+  legacy Score, report HTML, C, provider and schedules unchanged. Actual
+  package-generation and canonical-run fingerprints are distinct and both kept.
+- Focused 30 tests passed, including actual Formal B generation with synthetic
+  providers, report byte parity, no provider/outcome access, independent partial
+  features, immutability, gaps/checkpoint, rolling-episode dedup, capped capacity
+  and local bare-remote push/readback. Compileall, Node 5 and diff checks pass.
+  Full exact-head regression is reported by the independent Draft's CI.
+- REMOTE_RECOVERY_CHECKPOINT: code/tests/protocol/governance committed and pushed
+  on the branch above; no local-only artifact or real input needed to resume.
+  Read live remote tip and Draft PR before the user's next decision.
+- Terminal:
+  `B_STRUCTURE_FIRST_VOLUME_INCREMENTAL_SHADOW_IMPLEMENTATION_READY_FOR_USER_DECISION`.
+  Stop for user decision on Draft merge and later activation. Neither
+  `ENABLE_B_STRUCTURE_VOLUME_SHADOW_V1` nor `B_STRUCTURE_VOLUME_SHADOW_START_DATE`
+  has been created/changed. No real capture, dispatch, runtime-state mutation,
+  outcome review or combination study. Production semantics change=0;
+  Final OOS SEALED / UNREAD.
+
 ## 2026-11-05 — ACTIVATE_C_LIGHTWEIGHT_FUNNEL_CAPTURE_V1
 
 - Research question (non-blocking) / STRICT PATH. User explicitly authorizes
