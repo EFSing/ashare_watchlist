@@ -503,6 +503,34 @@ def _load_volume_observations(
     return result, status
 
 
+def _load_b_research_observations(
+    run_manifest_path: Path | None,
+    watchlist: Mapping[str, Any],
+    watchlist_bytes: bytes,
+    calendar: TradingCalendar,
+) -> dict[str, dict[str, Any]]:
+    """Read only the canonical generation inputs supplied by this T-close run."""
+    if run_manifest_path is None or not watchlist["candidates"]:
+        return {}
+    try:
+        from b_prospective_observation import _source_validation
+        from b_structure_volume_observation import add_coordinates, observe
+
+        run = json.loads(run_manifest_path.read_text(encoding="utf-8"))
+        if run["output"]["file_sha256"] != hashlib.sha256(watchlist_bytes).hexdigest():
+            return {}
+        day, _, _, by_code = _source_validation(watchlist, run, calendar=calendar)
+        rows = [
+            observe(candidate, by_code.get(candidate["code"], {}).get("bars"), day)
+            for candidate in watchlist["candidates"]
+        ]
+        add_coordinates(rows)
+        return {row["signal_id"]: row for row in rows}
+    except Exception:
+        # Research is optional even when its inputs or computation fail.
+        return {}
+
+
 def _watchlist_rows(
     watchlist: Mapping[str, Any],
     tracker: Mapping[str, Any] | None,
@@ -786,6 +814,7 @@ def build_report_model(
     review_failure: str | None = None,
     generated_at: datetime | None = None,
     calendar: TradingCalendar | None = None,
+    research_run_manifest: Path | None = None,
 ) -> ReportModel:
     """Load canonical inputs and build a report without writing any files."""
 
@@ -802,6 +831,9 @@ def build_report_model(
     coverage_metadata = _input_coverage_metadata(watchlist.get("input_coverage"))
 
     cal = calendar or default_calendar()
+    research_observations = _load_b_research_observations(
+        research_run_manifest, watchlist, watchlist_bytes, cal,
+    )
     tracker, review_failures = _load_review_tracker(resolver, review_failure)
     performance_tracker = tracker if tracker is not None else {"version": 2, "signals": {}}
     canonical_watchlists = current_prospective_watchlists(resolver)
@@ -846,6 +878,10 @@ def build_report_model(
         shadow_monitor,
         volume_observations,
     )
+    for row in watchlist_rows:
+        research = research_observations.get(row["signal_id"])
+        if research is not None:
+            row["structure_volume_research"] = research
 
     anomalies = list(review_failures)
     anomalies.extend(review_issues)
@@ -1294,15 +1330,42 @@ def _near_one(value: Any) -> bool:
 
 
 _VOLUME_LABEL_DESCRIPTIONS = {
-    'down_volume_share': '回踩期间下跌日成交量占全部回踩成交量的比例。',
-    'up_down_volume_ratio': '上涨日平均成交量相对下跌日平均成交量。',
-    'pullback_volume_decay_ratio': '回踩后半段平均成交量相对前半段平均成交量。',
+    'down_volume_share': '回踩期间，下跌日成交量占全部回踩成交量的比例。',
+    'up_down_volume_ratio': '回踩期间，上涨日平均成交量 ÷ 下跌日平均成交量。',
+    'pullback_volume_decay_ratio': '回踩后半程平均成交量 ÷ 前半程平均成交量。低于 1 表示后半程缩量。',
 }
 _VOLUME_LEGACY_LABELS = {
     'down_volume_share': '下跌日成交量占比',
     'up_down_volume_ratio': '上涨/下跌日均量比',
     'pullback_volume_decay_ratio': '回踩后半/前半均量比',
 }
+_STRUCTURE_STAGE_LABELS = {
+    'EARLY_PULLBACK': '回踩早期',
+    'W2_TO_W3_TRANSITION_PROXY': '2→3 切换',
+    'POST_H1_CONTINUATION_PROXY': '前高后延续',
+    'STRUCTURE_PROXY_UNAVAILABLE_OR_INVALID': '结构待确认',
+}
+_RESEARCH_VOLUME_LABELS = {
+    'down_volume_share': '回踩下跌量占比',
+    'up_down_volume_ratio': '涨／跌日均量比',
+    'pullback_volume_decay_ratio': '回踩后半／前半量',
+}
+_RESEARCH_VOLUME_EVIDENCE = {
+    'down_volume_share': '待前瞻验证',
+    'up_down_volume_ratio': '历史证据较弱，待前瞻验证',
+    'pullback_volume_decay_ratio': '收益优势待验证',
+}
+_VOLUME_FAVOURED_BUCKET = {
+    'down_volume_share': 'LOW',
+    'up_down_volume_ratio': 'HIGH',
+    'pullback_volume_decay_ratio': 'LOW',
+}
+_COORDINATE_LABELS = {'LOW': '低', 'MID': '中', 'HIGH': '高'}
+_RESEARCH_OBSERVATION_NOTE = (
+    '研究观察，不参与 Formal B 筛选或正式排序，也不计入 Score。'
+    '结构阶段是系统的客观结构代理，不是人工波浪计数。'
+    '当日同结构位置仅表示数值在今日 2→3 候选中的相对位置，不代表好坏。'
+)
 
 
 def _volume_number(value: Any) -> float | None:
@@ -1399,13 +1462,64 @@ def _volume_bar_html(field: str, value: Any, reason: Any) -> str:
     )
 
 
+def _volume_research_detail(field: str, value: Any, coordinate: Mapping[str, Any]) -> str:
+    number = _volume_number(value)
+    bucket = coordinate['bucket']
+    favoured = _VOLUME_FAVOURED_BUCKET[field]
+    if number is None:
+        shape = '研究数据不足'
+    elif field == 'down_volume_share':
+        shape = {'LOW': '下跌量偏少', 'MID': '下跌量居中', 'HIGH': '下跌量偏重'}.get(
+            bucket, f'约 {_volume_share_text(number)} 的回踩成交量发生在下跌日',
+        )
+    elif field == 'up_down_volume_ratio':
+        if _near_one(number):
+            shape = '涨跌日量能接近'
+        else:
+            shape = '上涨日量能更活跃' if number > 1 else '下跌日量能更活跃'
+    else:
+        if _near_one(number):
+            shape = '前后量能接近'
+        else:
+            direction = '缩量' if number < 1 else '放量'
+            shape = f'后半程{direction}约 {abs(1 - number):.0%}'
+        shape += f'，后半程平均成交量约为前半程的 {number:.0%}'
+
+    position = ''
+    if bucket in _COORDINATE_LABELS:
+        position = f'当日同结构位置：{_COORDINATE_LABELS[bucket]}'
+    elif coordinate['status'] != 'NOT_PRIMARY_COHORT' and coordinate['cross_section_n'] < 3:
+        position = f'当日同结构可比样本不足（N={coordinate["cross_section_n"]}）'
+
+    tendency = '当前无法判断'
+    if bucket == favoured:
+        tendency = '研究假设偏积极'
+    elif bucket == 'MID':
+        tendency = '研究假设中性' if field != 'pullback_volume_decay_ratio' else '保留中间水平的可能'
+    elif bucket in _COORDINATE_LABELS:
+        tendency = '与当前研究假设方向相反'
+    elif coordinate['status'] == 'NOT_PRIMARY_COHORT':
+        tendency = '仅在 2→3 候选中比较'
+    direction = f'预注册方向为同结构{_COORDINATE_LABELS[favoured]}位'
+    if field == 'pullback_volume_decay_ratio':
+        direction += '，也保留中间水平有收益优势的可能'
+    position_text = f' ｜ {position}' if position else ''
+    return (
+        '<div class="volume-research-detail">'
+        f'<span>形态：{_esc(shape + position_text)}</span>'
+        f'<span>研究倾向：{_esc(tendency)}（{_esc(direction)}）</span>'
+        f'<span>证据状态：{_esc(_RESEARCH_VOLUME_EVIDENCE[field])}</span>'
+        '</div>'
+    )
+
+
 def _volume_metric_html(
-    label: str,
     field: str,
     value: Any,
     reason: Any,
     *,
     sample_insufficient: bool,
+    coordinate: Mapping[str, Any] | None = None,
 ) -> str:
     if sample_insufficient:
         display = '样本不足'
@@ -1416,7 +1530,7 @@ def _volume_metric_html(
     else:
         display = _volume_share_text(value) if field == 'down_volume_share' else _volume_ratio_text(value)
         explanation = _volume_dynamic_explanation(field, value)
-    legacy = _volume_legacy_explanation(field, value)
+    legacy = _volume_legacy_explanation(field, value) if coordinate is None else None
     legacy_html = f'<span class="sr-only">{_esc(legacy)}</span>' if legacy else ''
     raw_reason = f' 原始原因：{reason}' if reason else ''
     legacy_label = _VOLUME_LEGACY_LABELS[field]
@@ -1425,12 +1539,22 @@ def _volume_metric_html(
         'up_down_volume_ratio': '涨/跌日均量比',
         'pullback_volume_decay_ratio': '后半/前半均量比',
     }[field]
+    definition = _VOLUME_LABEL_DESCRIPTIONS[field]
+    research_detail = ''
+    definition_class = ''
+    if coordinate is not None:
+        display_label = legacy_label = _RESEARCH_VOLUME_LABELS[field]
+        if value is not None:
+            explanation = definition
+        research_detail = _volume_research_detail(field, value, coordinate)
+        definition_class = ' volume-research-definition'
     return (
-        f'<div class="volume-metric-row" title="{_esc(_VOLUME_LABEL_DESCRIPTIONS[field] + raw_reason)}">'
+        f'<div class="volume-metric-row" title="{_esc(definition + raw_reason)}">'
         f'<div class="volume-metric-label"><span class="volume-label" aria-label="{_esc(legacy_label)}">{_esc(display_label)}</span>'
-        f'<small class="volume-explanation">{_esc(explanation)}</small></div>'
+        f'<small class="volume-explanation{definition_class}">{_esc(explanation)}</small></div>'
         f'<div class="volume-metric-bar">{_volume_bar_html(field, value, reason)}</div>'
         f'<strong class="volume-value">{_esc(display)}</strong>'
+        f'{research_detail}'
         f'{legacy_html}'
         '</div>'
     )
@@ -1457,7 +1581,11 @@ def _volume_summary_line(data: Mapping[str, Any]) -> str:
     return '量能：' + ' · '.join(values) + f' → {factual}'
 
 
-def _volume_observations_html(observation: Mapping[str, Any] | None) -> str:
+def _volume_observations_html(
+    observation: Mapping[str, Any] | None, *, research: Mapping[str, Any] | None = None,
+) -> str:
+    if research is not None:
+        observation = research['volume']
     data = observation if isinstance(observation, Mapping) else {}
     reasons = data.get('missing_reason')
     if not isinstance(reasons, Mapping):
@@ -1468,20 +1596,16 @@ def _volume_observations_html(observation: Mapping[str, Any] | None) -> str:
     except (TypeError, ValueError):
         window_days = None
     metrics = []
-    for field, label in (
-        ('down_volume_share', '下跌日量占比'),
-        ('up_down_volume_ratio', '涨/跌日均量比'),
-        ('pullback_volume_decay_ratio', '后半/前半均量比'),
-    ):
+    for field in _RESEARCH_VOLUME_LABELS:
         reason = reasons.get(field)
         sample_insufficient = reason in {'PULLBACK_WINDOW_LT_4', 'NO_PULLBACK_WINDOW'}
         metrics.append(
             _volume_metric_html(
-                label,
                 field,
                 data.get(field),
                 reason,
                 sample_insufficient=sample_insufficient,
+                coordinate=research['coordinates'][field] if research is not None else None,
             )
         )
     window = (
@@ -1491,22 +1615,36 @@ def _volume_observations_html(observation: Mapping[str, Any] | None) -> str:
         if window_days == 0
         else '观察窗口：回踩区间'
     )
-    detail = (
+    window_html = f'<small class="volume-window">{_esc(window)}</small>'
+    if research is not None:
+        card_heading = window_html
+        card_footer = ''
+        summary = '回踩量能 · 研究观察'
+    else:
+        card_heading = (
+            f'<div class="volume-card-head"><strong>回踩量能 · 量能衰减</strong>{window_html}</div>'
+            '<small class="volume-observation-note">观察指标 · 不参与筛选/排名</small>'
+        )
+        card_footer = f'<p class="volume-summary"><span>事实总结</span>{_esc(_volume_factual_summary(data))}</p>'
+        summary = _volume_summary_line(data)
+    return (
+        f'<details class="volume-details-compact"{" open" if research is not None else ""}>'
+        f'<summary>{_esc(summary)}</summary>'
         '<div class="volume-observations">'
         '<div class="volume-card">'
-        f'<div class="volume-card-head"><strong>回踩量能 · 量能衰减</strong><small class="volume-window">{_esc(window)}</small></div>'
-        '<small class="volume-observation-note">观察指标 · 不参与筛选/排名</small>'
+        f'{card_heading}'
         f'<div class="volume-metric-list">{"".join(metrics)}</div>'
-        f'<p class="volume-summary"><span>事实总结</span>{_esc(_volume_factual_summary(data))}</p>'
-        '</div>'
-        '</div>'
+        f'{card_footer}'
+        '</div></div></details>'
     )
-    return (
-        '<details class="volume-details-compact">'
-        f'<summary>{_esc(_volume_summary_line(data))}</summary>'
-        f'{detail}'
-        '</details>'
-    )
+
+
+def _structure_observation_html(research: Mapping[str, Any] | None) -> str:
+    if research is None:
+        return '<p class="structure-observation">研究观察暂不可用，不影响 Formal B 资格。</p>'
+    state = research['structure']['state']
+    stage = _STRUCTURE_STAGE_LABELS.get(state, '结构待确认')
+    return f'<p class="structure-observation"><span>研究观察</span> <strong>结构阶段：{_esc(stage)}</strong></p>'
 
 
 def _watchlist_table(rows, earliest_execution=None):
@@ -1518,6 +1656,7 @@ def _watchlist_table(rows, earliest_execution=None):
         distance_tone = _numeric_tone(distance)
         status = row.get('status')
         observation_status = row.get('observation_status')
+        research = row.get('structure_volume_research')
         body.append(
             f'<article class="watch-row" data-search="{_esc(search)}">'
             f'<div class="watch-primary">'
@@ -1537,7 +1676,8 @@ def _watchlist_table(rows, earliest_execution=None):
             f'<small>{_esc(_position(distance))}</small></span>'
             f'<span><label>T+1</label><strong>{_esc(earliest_execution)}</strong></span>'
             f'</div>'
-            f'{_volume_observations_html(row.get("volume_observation"))}'
+            f'{_structure_observation_html(research)}'
+            f'{_volume_observations_html(row.get("volume_observation"), research=research)}'
             f'<div class="watch-meta"><span>{_esc(row.get("sector"))}</span>'
             f'<span>{_esc(row.get("status_explanation"))}</span></div>'
             f'</article>'
@@ -2519,6 +2659,10 @@ input[type=search] {{ width: min(360px, 100%); padding: 8px 10px; border: 1px so
 .volume-summary {{ margin: 9px 0 0; overflow-wrap: anywhere; color: var(--text); font-size: 11px; line-height: 1.4; }}
 .volume-summary span {{ margin-right: 5px; color: var(--muted); font-weight: 650; }}
 .volume-observation-note {{ display: block; margin-top: 9px; color: var(--muted); font-size: 11px; }}
+.structure-observation {{ margin: 10px 0 4px 38px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }}
+.structure-observation strong {{ margin-left: 4px; color: var(--text); }}
+.volume-research-detail {{ display: grid; grid-column: 1 / -1; gap: 2px; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }}
+.volume-explanation.volume-research-definition {{ white-space: normal; }}
 .action-list {{ display: grid; gap: 7px; }}
 .action-row {{ min-width: 0; padding: 12px 13px; border: 1px solid var(--border); border-left: 3px solid var(--accent); background: var(--surface); }}
 .action-row.positive {{ border-left-color: var(--positive); }}
@@ -2633,6 +2777,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   .watch-facts strong {{ overflow-wrap: anywhere; }}
   .watch-facts small {{ font-size: 11px; }}
   .watch-meta {{ margin-left: 34px; gap: 5px 12px; font-size: 12px; overflow-wrap: anywhere; }}
+  .structure-observation {{ margin-left: 34px; }}
   .watch-meta > span {{ min-width: 0; }}
   .volume-observations {{ grid-template-columns: minmax(0, 1fr); max-width: 100%; margin: 12px 0 0 34px; }}
   .volume-metric-row {{ grid-template-columns: minmax(0, 1fr) minmax(96px, 1fr); grid-template-areas: "label value" "explanation bar"; align-items: start; gap: 3px 8px; }}
@@ -2704,6 +2849,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
 
 <section id="tomorrow-watchlist">
   <div class="section-head"><div><p class="section-kicker">WATCHLIST</p><h2>今日新名单 · {watchlist_count}</h2><p class="section-subtitle">按 Score 从高到低；触发、止损、目标和 RR 为计划参数。</p></div></div>
+  {f'<p class="note">{_esc(_RESEARCH_OBSERVATION_NOTE)}</p>' if model.watchlist_rows else ''}
   <div class="toolbar"><label for="watchlist-search" class="note">搜索名单：</label><input id="watchlist-search" type="search" placeholder="输入代码、名称或行业" autocomplete="off"></div>
   {_watchlist_table(model.watchlist_rows, metadata.get('earliest_execution'))}
 </section>
@@ -3017,6 +3163,7 @@ def render_daily_close(
     review_failure: str | None = None,
     generated_at: datetime | None = None,
     calendar: TradingCalendar | None = None,
+    research_run_manifest: Path | None = None,
 ) -> tuple[ReportModel, Path, Path]:
     """Build and atomically write the dated report and complete latest copy."""
 
@@ -3027,6 +3174,7 @@ def render_daily_close(
         review_failure=review_failure,
         generated_at=generated_at,
         calendar=calendar,
+        research_run_manifest=research_run_manifest,
     )
     content = render_html(model)
     date_path = resolver.reports_dir() / f"daily_close_{_date_token(model.metadata['list_date'])}.html"
@@ -3039,6 +3187,7 @@ def render_daily_close(
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--date", required=True, help="canonical watchlist/report date, YYYYMMDD or YYYY-MM-DD")
+    parser.add_argument("--research-run-manifest", type=Path, help=argparse.SUPPRESS)
     parser.add_argument(
         "--review-failure",
         default=None,
@@ -3053,6 +3202,7 @@ def main(argv: list[str] | None = None) -> int:
         model, dated, latest = render_daily_close(
             args.date,
             review_failure=args.review_failure,
+            research_run_manifest=args.research_run_manifest,
         )
     except Exception as exc:
         print(f"DAILY_CLOSE_RENDER_FAILED: {type(exc).__name__}: {exc}")

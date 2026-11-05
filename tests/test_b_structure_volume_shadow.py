@@ -122,15 +122,130 @@ def test_all_qualified_retained_exact_volume_and_formal_semantic_byte_parity(tmp
     assert not keys.intersection({"score", "volume_quality", "rank", "priority", "bars", "open", "target", "stop"})
 
 
-def test_b_html_is_byte_identical_before_and_after_capture(tmp_path):
+def test_report_and_post_delivery_shadow_have_exact_feature_and_candidate_parity(tmp_path):
+    from c_daily_watchlist import write_report
     from data_paths import DataPaths
-    from render_daily_close_html import build_report_model, render_html
-    inputs = _inputs(tmp_path)
+    from render_daily_close_html import build_report_model, render_daily_close
+    from run_c_daily_watchlist import build_composite_delivery
+    from test_c_daily_watchlist import _record
+
+    inputs = _inputs(tmp_path, codes=("600002", "600001", "600000", "600003"), missing=("600003",))
+    b, _, state = inputs
     paths = DataPaths(inputs[2] / "data")
+    volume_path = paths.volume_observation_file(DAY)
+    volume_path.parent.mkdir(parents=True, exist_ok=True)
+    volume_path.write_bytes(Path(b["volume_observations"]["path"]).read_bytes())
+    manifest_path = Path(b["watchlist"]["run_manifest_path"])
+    canonical_path = paths.watchlist_file(DAY)
+    canonical_before = canonical_path.read_bytes()
     now = datetime.fromisoformat(DAY + "T19:00:00+08:00")
-    before = render_html(build_report_model(DAY, paths=paths, calendar=CAL, generated_at=now))
+    baseline = build_report_model(DAY, paths=paths, calendar=CAL, generated_at=now)
+    assert not (state / shadow.RELATIVE_ROOT).exists()
+    model, formal, latest = render_daily_close(
+        DAY, paths=paths, calendar=CAL, generated_at=now, research_run_manifest=manifest_path,
+    )
+    assert [
+        {key: value for key, value in row.items() if key != "structure_volume_research"}
+        for row in model.watchlist_rows
+    ] == baseline.watchlist_rows
+    assert [row["code"] for row in model.watchlist_rows] == ["600000", "600001", "600002", "600003"]
+    formal_bytes = formal.read_bytes()
+    assert latest.read_bytes() == formal_bytes
+
     _capture(inputs, tmp_path)
-    assert render_html(build_report_model(DAY, paths=paths, calendar=CAL, generated_at=now)) == before
+    _, observed = shadow.verify_artifacts(state, DAY)
+    displayed = {row["signal_id"]: row for row in model.watchlist_rows}
+    for captured in observed["rows"]:
+        card = displayed[captured["signal_id"]]
+        research = card["structure_volume_research"]
+        for field in ("structure", "volume", "coordinates"):
+            assert research[field] == captured[field]
+        assert research["volume"] == card["volume_observation"]
+    assert canonical_path.read_bytes() == canonical_before
+    _, after, _ = render_daily_close(
+        DAY, paths=paths, calendar=CAL, generated_at=now, research_run_manifest=manifest_path,
+    )
+    assert after.read_bytes() == formal_bytes
+
+    c_observation = tmp_path / "c-observation.json"
+    c_observation.write_bytes(shadow.canonical(_record(double=True)))
+    c_report = write_report(c_observation, tmp_path / "c-rendered")
+    prepared = build_composite_delivery(
+        {"as_of_date": DAY, "daily_close_bundle": {"dated_html": str(formal)}},
+        {"status": "C_DAILY_RESEARCH_REPORT_READY", "c_status": c_report["c_status"], "report": c_report},
+        delivery_root=tmp_path / "delivered",
+    )
+    delivered = Path(prepared["delivery_report_path"]).read_text(encoding="utf-8")
+    assert delivered.count('id="c-daily-research"') == 1
+    assert delivered.count("结构阶段：2→3 切换") == 3
+    assert delivered.count("结构阶段：结构待确认") == 1
+    assert "BALANCED_A" in delivered and "CONSERVATIVE_B" in delivered
+    assert not any(fragment in delivered for fragment in ("<script src=", "<iframe", 'rel="stylesheet"', "fetch("))
+    assert formal.read_bytes() == formal_bytes
+
+
+@pytest.mark.parametrize("failure", ["helper_exception", "wrong_watchlist_sha"])
+def test_presentation_failure_still_writes_formal_report(tmp_path, monkeypatch, failure):
+    import b_structure_volume_observation as observation
+    from data_paths import DataPaths
+    from render_daily_close_html import render_daily_close
+    from run_c_daily_watchlist import build_composite_delivery
+
+    b, _, state = _inputs(tmp_path)
+    paths = DataPaths(state / "data")
+    manifest_path = Path(b["watchlist"]["run_manifest_path"])
+    if failure == "helper_exception":
+        def fail(*args, **kwargs):
+            raise RuntimeError("research helper failed")
+        monkeypatch.setattr(observation, "observe", fail)
+    else:
+        run = json.loads(manifest_path.read_bytes())
+        run["output"]["file_sha256"] = "0" * 64
+        manifest_path.write_bytes(shadow.canonical(run))
+    model, report, latest = render_daily_close(
+        DAY, paths=paths, calendar=CAL, research_run_manifest=manifest_path,
+    )
+    assert [row["code"] for row in model.watchlist_rows] == ["600000"]
+    html = report.read_text(encoding="utf-8")
+    assert "研究观察暂不可用，不影响 Formal B 资格。" in html
+    assert "测试股份" in html and "结构阶段：" not in html
+    assert report.read_bytes() == latest.read_bytes()
+    prepared = build_composite_delivery(
+        {"as_of_date": DAY, "daily_close_bundle": {"dated_html": str(report)}},
+        None, delivery_root=tmp_path / "delivered",
+    )
+    assert prepared["status"] == "C_DELIVERY_READY"
+    assert "研究观察暂不可用" in Path(prepared["delivery_report_path"]).read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("legacy_hash_valid", [True, False])
+def test_frozen_recorder_pre_extraction_history_can_continue(tmp_path, legacy_hash_valid):
+    inputs = _inputs(tmp_path)
+    _capture(inputs, tmp_path)
+    state = inputs[2]
+    receipt, observed = shadow.verify_artifacts(state, DAY)
+    legacy = observed["feature_identity"]["source_lf_sha256"]
+    del legacy["b_structure_volume_observation.py"]
+    legacy["b_structure_volume_shadow.py"] = (
+        "4edda98a9ade23828b7d7a2388cb4ee40ee624f1059b7a830ccb3d46127ef79d"
+        if legacy_hash_valid else "0" * 64
+    )
+    receipt["feature_identity"] = observed["feature_identity"]
+    raw = shadow.canonical(observed)
+    receipt["observations"].update(sha256=shadow.sha(raw), bytes=len(raw))
+    del receipt["record_sha256"]
+    receipt["record_sha256"] = shadow.sha(shadow.canonical(receipt))
+    (state / shadow._relative(DAY, "observations")).write_bytes(raw)
+    receipt_path = state / shadow._relative(DAY, "daily")
+    receipt_path.write_bytes(shadow.canonical(receipt))
+    later = _inputs(tmp_path, day="2026-11-06")
+    if legacy_hash_valid:
+        assert _capture(later, tmp_path)["checkpoint"]["real_b_signal_sessions"] == 2
+    else:
+        with pytest.raises(ValueError, match="SHADOW_FROZEN_IDENTITY_CHANGED"):
+            _capture(later, tmp_path)
+    assert receipt_path.read_bytes() == shadow.canonical(receipt)
+    assert (state / shadow._relative(DAY, "observations")).read_bytes() == raw
 
 
 def test_actual_package_and_formal_generation_contract_with_synthetic_providers(tmp_path):
@@ -155,6 +270,10 @@ def test_actual_package_and_formal_generation_contract_with_synthetic_providers(
     assert run["generation_fingerprint"] != package.generation_fingerprint
     original = {p: p.read_bytes() for p in root.rglob("*.json")}
     volume = _capture_volume_observations(package, result, root, weekend_backfill=False)
+    from data_paths import DataPaths
+    from render_daily_close_html import build_report_model
+    report_model = build_report_model(DAY, paths=DataPaths(root), calendar=CAL,
+                                      research_run_manifest=result.run_manifest_path)
     b = {"status": "T_CLOSE_EVIDENCE_PACKAGE_AND_WATCHLIST_PERSISTED", "as_of_date": DAY,
          "code_git_sha": GENERATION_COMMIT,
          "input_package": {"path": str(persisted.path), "file_sha256": persisted.file_sha256},
@@ -170,7 +289,11 @@ def test_actual_package_and_formal_generation_contract_with_synthetic_providers(
     path.write_bytes(shadow.canonical(meta))
     staged = _capture((b, fixture[1], state), tmp_path)
     assert staged["rows"] == 1
-    receipt, _ = shadow.verify_artifacts(state, DAY)
+    receipt, observed = shadow.verify_artifacts(state, DAY)
+    assert len(report_model.watchlist_rows) == 1
+    displayed = report_model.watchlist_rows[0]["structure_volume_research"]
+    for field in ("structure", "volume", "coordinates"):
+        assert displayed[field] == observed["rows"][0][field]
     assert receipt["package_generation_fingerprint"] == package.generation_fingerprint
     assert receipt["generation_fingerprint"] == run["generation_fingerprint"]
     assert all(p.read_bytes() == raw for p, raw in original.items())
@@ -197,7 +320,16 @@ def test_coordinates_are_independent_field_specific_and_never_force_small_cross_
 
 
 def test_empty_day_and_partial_features_are_recorded_without_selection(tmp_path):
+    from data_paths import DataPaths
+    from render_daily_close_html import render_daily_close
+
     inputs = _inputs(tmp_path, codes=())
+    model, formal, _ = render_daily_close(
+        DAY, paths=DataPaths(inputs[2] / "data"), calendar=CAL,
+        research_run_manifest=Path(inputs[0]["watchlist"]["run_manifest_path"]),
+    )
+    assert model.watchlist_rows == []
+    assert "今日暂无新名单。" in formal.read_text(encoding="utf-8")
     assert _capture(inputs, tmp_path)["rows"] == 0
     receipt, rows = shadow.verify_artifacts(inputs[2], DAY)
     assert rows["rows"] == [] and receipt["checkpoint"]["real_b_signal_sessions"] == 1
@@ -306,6 +438,8 @@ def test_early_episode_can_later_supply_first_transition_without_double_count(tm
 
 
 def test_future_bar_values_and_forbidden_outcome_paths_never_read(tmp_path):
+    from render_daily_close_html import _load_b_research_observations
+
     class FutureBar(dict):
         def __getitem__(self, key):
             assert key == "date", "future OHLCV read"
@@ -317,6 +451,15 @@ def test_future_bar_values_and_forbidden_outcome_paths_never_read(tmp_path):
     row = shadow.observe(candidate, _bars() + [FutureBar()], DAY)
     assert row["structure"]["state"] == shadow.INVALID
     assert all(row["volume"][f] is None for f in shadow.FIELDS)
+    b = inputs[0]
+    run_path = Path(b["watchlist"]["run_manifest_path"])
+    run = json.loads(run_path.read_bytes())
+    run["input_manifest"]["stock_klines"][0]["bars"].append({"date": "2099-01-01"})
+    run_path.write_bytes(shadow.canonical(run))
+    watch_path = Path(b["watchlist"]["path"])
+    displayed = _load_b_research_observations(run_path, load_watchlist(watch_path), watch_path.read_bytes(), CAL)
+    shadow.add_coordinates([row])
+    assert displayed == {candidate["signal_id"]: row}
     with pytest.raises(ValueError, match="FORBIDDEN_INPUT_PATH"):
         shadow._read(tmp_path / "final_oos" / "never-created.json")
 

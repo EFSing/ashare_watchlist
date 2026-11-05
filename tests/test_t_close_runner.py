@@ -217,6 +217,7 @@ def test_authorized_weekend_backfill_is_provenanced_and_does_not_capture_shadow(
 def test_main_persists_daily_close_bundle_after_successful_tclose_run(monkeypatch, tmp_path, capsys):
     watchlist_path = tmp_path / "watchlist_20260910.json"
     watchlist_path.write_text("{}", encoding="utf-8")
+    run_manifest = str(tmp_path / "run.json")
     bundle = {"status": "READY", "dated_html": "daily_close_20260910.html"}
 
     monkeypatch.setattr(
@@ -224,10 +225,14 @@ def test_main_persists_daily_close_bundle_after_successful_tclose_run(monkeypatc
         "run",
         lambda as_of_date, data_root, evidence_root, now_bjt=None, **kwargs: {
             "status": runner.T_CLOSE_SUCCESS_STATUS,
-            "watchlist": {"path": str(watchlist_path)},
+            "watchlist": {"path": str(watchlist_path), "run_manifest_path": run_manifest},
         },
     )
-    monkeypatch.setattr(runner, "_run_daily_close_reporting", lambda as_of_date, data_root: bundle)
+    def fake_reporting(as_of_date, data_root, *, research_run_manifest):
+        assert research_run_manifest == run_manifest
+        return bundle
+
+    monkeypatch.setattr(runner, "_run_daily_close_reporting", fake_reporting)
 
     assert runner.main([
         "--as-of-date", "2026-09-10",

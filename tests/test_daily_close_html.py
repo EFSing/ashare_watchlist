@@ -652,6 +652,7 @@ def test_latest_is_unchanged_when_atomic_latest_replace_fails(tmp_path, monkeypa
 
 def test_t_close_reporting_runs_renderer_after_track_failure(monkeypatch, tmp_path):
     calls: list[list[str]] = []
+    manifest = str(tmp_path / "generation.json")
 
     def fake_run(command, **kwargs):
         calls.append(command)
@@ -660,14 +661,17 @@ def test_t_close_reporting_runs_renderer_after_track_failure(monkeypatch, tmp_pa
         return t_close_runner.subprocess.CompletedProcess(command, 0, "latest_html=ready", "")
 
     monkeypatch.setattr(t_close_runner.subprocess, "run", fake_run)
-    result = t_close_runner._run_daily_close_reporting("2026-09-10", tmp_path / "data")
+    result = t_close_runner._run_daily_close_reporting(
+        "2026-09-10", tmp_path / "data", research_run_manifest=manifest,
+    )
 
     assert result["status"] == "REVIEW_FAILED_REPORT_READY"
     assert len(calls) == 3
     assert any(str(part).endswith("b_shadow_monitor.py") for part in calls[1])
     assert "update" in calls[1]
     assert any("--review-failure" == item for item in calls[2])
-    assert "provider failure" in calls[2][-1]
+    assert "provider failure" in calls[2][calls[2].index("--review-failure") + 1]
+    assert calls[2][-2:] == ["--research-run-manifest", manifest]
 
 
 def test_t_close_reporting_marks_backfill_tracker_and_skips_shadow_update(monkeypatch, tmp_path):
@@ -1021,6 +1025,69 @@ def test_presentation_regression_has_compact_sections_and_collapsed_technical_de
     assert 'font-variant-numeric: tabular-nums' in text
     assert 'class="positive"' in text and 'class="negative"' in text
     assert dated.read_bytes() == latest.read_bytes()
+
+
+@pytest.mark.parametrize(("state", "label"), [
+    ("EARLY_PULLBACK", "回踩早期"),
+    ("W2_TO_W3_TRANSITION_PROXY", "2→3 切换"),
+    ("POST_H1_CONTINUATION_PROXY", "前高后延续"),
+    ("STRUCTURE_PROXY_UNAVAILABLE_OR_INVALID", "结构待确认"),
+])
+def test_structure_stage_uses_frozen_proxy_labels(state, label):
+    assert f"结构阶段：{label}" in renderer._structure_observation_html({"structure": {"state": state}})
+
+
+def test_research_volume_shows_facts_hypotheses_and_evidence_per_field():
+    from b_structure_volume_observation import add_coordinates
+
+    rows = [
+        {"is_w2w3_transition": True, "volume": {
+            "down_volume_share": share,
+            "up_down_volume_ratio": ratio,
+            "pullback_volume_decay_ratio": decay,
+        }}
+        for share, ratio, decay in [(0.533, 1.12, 0.59), (0.6, 1.0, 1.0), (0.7, 0.9, 1.2)]
+    ]
+    add_coordinates(rows)
+    html = renderer._volume_observations_html(None, research=rows[0])
+    assert html.count('class="volume-metric-row"') == 3
+    assert html.count("研究假设偏积极") == 3
+    assert html.count("证据状态：") == 3
+    assert html.count("当日同结构位置：低") == 2
+    assert html.count("当日同结构位置：高") == 1
+    assert "回踩下跌量占比" in html and "53.3%" in html and "下跌量偏少" in html
+    assert "涨／跌日均量比" in html and "1.12×" in html and "上涨日量能更活跃" in html
+    assert "历史证据较弱，待前瞻验证" in html
+    assert "回踩后半／前半量" in html and "0.59×" in html
+    assert "后半程缩量约 41%，后半程平均成交量约为前半程的 59%" in html
+    assert "收益优势待验证" in html and "保留中间水平" in html
+    assert not any(term in html for term in ("越低越好", "优秀", "已验证有效", "买入", "首选", "Top1"))
+
+    middle = renderer._volume_observations_html(None, research=rows[1])
+    assert "下跌量居中" in middle and "涨跌日量能接近" in middle and "前后量能接近" in middle
+    high_share = renderer._volume_observations_html(None, research=rows[2])
+    assert "下跌量偏重" in high_share and "下跌日量能更活跃" in high_share
+    assert "后半程放量约 20%" in high_share
+    assert high_share.count("与当前研究假设方向相反") == 3
+
+
+def test_research_volume_keeps_available_fields_when_samples_are_insufficient():
+    from b_structure_volume_observation import add_coordinates
+
+    rows = [
+        {"is_w2w3_transition": True, "volume": {
+            "down_volume_share": 0.533, "up_down_volume_ratio": ratio,
+            "pullback_volume_decay_ratio": 0.59,
+        }}
+        for ratio in (None, 1.12)
+    ]
+    add_coordinates(rows)
+    html = renderer._volume_observations_html(None, research=rows[0])
+    assert "研究数据不足" in html
+    assert "53.3%" in html and "0.59×" in html
+    assert html.count("当日同结构可比样本不足（N=2）") == 2
+    assert "当日同结构可比样本不足（N=1）" in html
+    assert "当日同结构位置：" not in html and "研究假设偏积极" not in html
 
 
 def test_mobile_responsive_css_preserves_core_fields_and_wide_table_fallback(tmp_path):
