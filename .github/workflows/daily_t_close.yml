@@ -719,8 +719,20 @@ jobs:
           echo "::warning::C presentation/publication failed after Formal B delivery: $status"
           printf '## C daily research report\nC presentation/publication outcome: %s\nFormal B delivery health: SUCCESS\n' "$status" >> "$GITHUB_STEP_SUMMARY" || true
 
-      - name: Record prospective C rule funnel after delivery and C publication
+      - name: Checkout clean runtime-state for C funnel capture
+        id: c_funnel_state
         if: always() && steps.c_daily.outcome == 'success' && vars.ENABLE_C_RULE_FUNNEL_CAPTURE_V1 == 'true'
+        continue-on-error: true
+        timeout-minutes: 3
+        uses: actions/checkout@v4
+        with:
+          ref: runtime-state
+          path: c-funnel-runtime-state
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Record prospective C rule funnel after delivery and C publication
+        if: always() && steps.c_funnel_state.outcome == 'success'
         continue-on-error: true
         timeout-minutes: 3
         env:
@@ -732,11 +744,24 @@ jobs:
             --b-result "$PRODUCTION_RESULT" \
             --prepared-result "$C_PRE_DELIVERY_RESULT" \
             --published-result "$C_DAILY_RESULT" \
-            --state-root "$GITHUB_WORKSPACE/runtime-state" > "$RUNNER_TEMP/c-rule-funnel-result.json"
+            --state-root "$GITHUB_WORKSPACE/c-funnel-runtime-state" > "$RUNNER_TEMP/c-rule-funnel-result.json"
           cat "$RUNNER_TEMP/c-rule-funnel-result.json" >> "$GITHUB_STEP_SUMMARY" || true
 
-      - name: Record independent B structure and volume after completed delivery
+      # Start from the remote ref after C finishes, regardless of C's outcome.
+      - name: Checkout clean runtime-state for B structure-volume Shadow
+        id: b_shadow_state
         if: always() && env.RUN_MODE == 'production' && env.ASHARE_SKIP_PRODUCTION != '1' && steps.b_production.outcome == 'success' && steps.b_output_validation.outcome == 'success' && steps.b_state_push.outcome == 'success' && steps.b_delivery.outcome == 'success' && steps.delivery_health.outcome == 'success' && steps.b_receipt_persist.outcome == 'success' && vars.ENABLE_B_STRUCTURE_VOLUME_SHADOW_V1 == 'true'
+        continue-on-error: true
+        timeout-minutes: 3
+        uses: actions/checkout@v4
+        with:
+          ref: runtime-state
+          path: b-shadow-runtime-state
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Record independent B structure and volume after completed delivery
+        if: always() && steps.b_shadow_state.outcome == 'success'
         continue-on-error: true
         timeout-minutes: 3
         env:
@@ -747,7 +772,7 @@ jobs:
           python scripts/b_structure_volume_shadow.py \
             --b-result "$PRODUCTION_RESULT" \
             --delivery-result "$DELIVERY_RESULT" \
-            --state-root "$GITHUB_WORKSPACE/runtime-state" > "$RUNNER_TEMP/b-structure-volume-shadow-result.json"
+            --state-root "$GITHUB_WORKSPACE/b-shadow-runtime-state" > "$RUNNER_TEMP/b-structure-volume-shadow-result.json"
           cat "$RUNNER_TEMP/b-structure-volume-shadow-result.json" >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Checkout clean runtime-state for failure notice
