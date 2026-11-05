@@ -397,11 +397,12 @@ def test_disabled_and_failed_cli_are_fail_soft(tmp_path, monkeypatch, capsys):
 
 def test_workflow_post_delivery_default_disabled_independent_of_c_and_narrow_allowlist():
     workflow = (shadow.SOURCE_ROOT / ".github/workflows/daily_t_close.yml").read_text(encoding="utf-8")
+    checkout = workflow.split("      - name: Checkout clean runtime-state for B structure-volume Shadow", 1)[1].split("      - name:", 1)[0]
     step = workflow.split("      - name: Record independent B structure and volume", 1)[1].split("      - name:", 1)[0]
     assert "continue-on-error: true" in step and "timeout-minutes: 3" in step
     assert "vars.ENABLE_B_STRUCTURE_VOLUME_SHADOW_V1 || 'false'" in step
-    assert "steps.delivery_health.outcome == 'success'" in step
-    assert "steps.c_daily" not in step and "c_rule_funnel_capture.py" not in step
+    assert "steps.delivery_health.outcome == 'success'" in checkout
+    assert "steps.c_daily" not in checkout and "steps.c_daily" not in step
     assert workflow.index("python scripts/c_rule_funnel_capture.py") < workflow.index("python scripts/b_structure_volume_shadow.py")
     for kind in ("daily", "observations"):
         assert _is_allowlisted_data_relative(Path(f"research/b_structure_volume_shadow_v1/{kind}/20261105.json"))

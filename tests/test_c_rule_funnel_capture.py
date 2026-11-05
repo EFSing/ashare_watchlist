@@ -503,9 +503,10 @@ def test_3000_stock_6000_observation_durable_capacity(tmp_path: Path, monkeypatc
 
 def test_fail_soft_workflow_after_publication_keeps_existing_scheduler_and_gates():
     workflow = (Path(__file__).resolve().parents[1] / ".github/workflows/daily_t_close.yml").read_text(encoding="utf-8")
+    checkout = workflow.split("      - name: Checkout clean runtime-state for C funnel capture", 1)[1].split("      - name:", 1)[0]
     step = workflow.split("      - name: Record prospective C rule funnel", 1)[1].split("      - name:", 1)[0]
     assert workflow.index("- name: Publish bounded C research") < workflow.index("- name: Record prospective C rule funnel")
-    assert "steps.c_daily.outcome == 'success'" in step
-    assert "vars.ENABLE_C_RULE_FUNNEL_CAPTURE_V1 == 'true'" in step
+    assert "steps.c_daily.outcome == 'success'" in checkout
+    assert "vars.ENABLE_C_RULE_FUNNEL_CAPTURE_V1 == 'true'" in checkout
     assert "continue-on-error: true" in step and "timeout-minutes: 3" in step
     assert "C_RULE_FUNNEL_CAPTURE_START_DATE" in step
