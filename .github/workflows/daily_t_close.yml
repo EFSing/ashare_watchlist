@@ -719,6 +719,22 @@ jobs:
           echo "::warning::C presentation/publication failed after Formal B delivery: $status"
           printf '## C daily research report\nC presentation/publication outcome: %s\nFormal B delivery health: SUCCESS\n' "$status" >> "$GITHUB_STEP_SUMMARY" || true
 
+      - name: Record prospective C rule funnel after delivery and C publication
+        if: always() && steps.c_daily.outcome == 'success' && vars.ENABLE_C_RULE_FUNNEL_CAPTURE_V1 == 'true'
+        continue-on-error: true
+        timeout-minutes: 3
+        env:
+          ENABLE_C_RULE_FUNNEL_CAPTURE_V1: ${{ vars.ENABLE_C_RULE_FUNNEL_CAPTURE_V1 || 'false' }}
+          C_RULE_FUNNEL_CAPTURE_START_DATE: ${{ vars.C_RULE_FUNNEL_CAPTURE_START_DATE || '' }}
+        shell: bash
+        run: |
+          python scripts/c_rule_funnel_capture.py \
+            --b-result "$PRODUCTION_RESULT" \
+            --prepared-result "$C_PRE_DELIVERY_RESULT" \
+            --published-result "$C_DAILY_RESULT" \
+            --state-root "$GITHUB_WORKSPACE/runtime-state" > "$RUNNER_TEMP/c-rule-funnel-result.json"
+          cat "$RUNNER_TEMP/c-rule-funnel-result.json" >> "$GITHUB_STEP_SUMMARY" || true
+
       - name: Checkout clean runtime-state for failure notice
         if: always() && env.RUN_MODE == 'production' && env.AS_OF_DATE != '' && env.ASHARE_SKIP_PRODUCTION != '1' && env.PRODUCTION_CANONICAL_READY != '1'
         uses: actions/checkout@v4
