@@ -1,5 +1,47 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-11-05 — ACTIVATE_C_LIGHTWEIGHT_FUNNEL_CAPTURE_V1
+
+- Research question (non-blocking) / STRICT PATH. User explicitly authorizes
+  activating the merged recorder only; no rule change or outcome study.
+- `PROJECT_GOVERNANCE_STATE_CONFLICT` minimally reconciled: live PR #106 is
+  merged, original head `8744731e3c55b02d1a3c1e19d3db8cc6f1efe457`, squash merge
+  `ba0a292837658cceba075bf8b80725b92451261f`, parent
+  `5ec3020f3173924c1ff1039fdf28c2e0b29e5b1f`. Master exact-head push correctness
+  run `41952030495` completed SUCCESS. The Draft/unmerged/pending-activation
+  instructions below are historical and superseded by this authorization.
+- Continue on remote `origin/master`; live intake master is the merge SHA above,
+  live `origin/runtime-state=8f32c5ade1ba44cd9b044b85d6821126e1140016`.
+  These are verification snapshots, not permanent live-head invariants.
+- Project `default_calendar()` / XSHG (`exchange-calendars==4.13.2`) confirms
+  2026-11-05 is a trading session, close 15:00 BJT. At verification 10:01 BJT,
+  today's real production had not run. Latest dated checkpoint/delivery is
+  2026-11-04; no 20261105 C publication or funnel artifact exists. Delayed
+  schedule run `41882340646` skipped production and C publication.
+- At 10:04 BJT, the two absent repository variables were created and read back:
+  `C_RULE_FUNNEL_CAPTURE_START_DATE=2026-11-05` and
+  `ENABLE_C_RULE_FUNNEL_CAPTURE_V1=true`. All other repository variables,
+  including the existing enabled daily C report flag, are unchanged.
+  No 2026-11-05 real production run has started; no dispatch, rerun, backfill,
+  provider call, recorder execution or runtime-state write was performed.
+- Static verification passed: post-B-delivery/post-C-publication, fail-soft,
+  timeout 3 minutes, flag defaults false, two JSON paths only, details refused,
+  combined cap 500,000 bytes, near-miss <=5 per rule/class. Recorder cannot feed
+  C matches or B/C completion. Code, rules, provider and schedules unchanged.
+- Terminal: `C_LIGHTWEIGHT_FUNNEL_CAPTURE_ACTIVATED_WAITING_FOR_FIRST_REAL_RUN`.
+  Production semantics change=0; Final OOS SEALED / UNREAD. Classification is
+  research question (non-blocking), corrected from the initial safety-blocker
+  label; no correctness/product blocker was established by this activation.
+- Remote recovery: this activation record is committed/pushed on `master`;
+  resolve its current remote HEAD with `git fetch origin` then
+  `git rev-parse origin/master`. No local-only state is required to continue.
+- Next: let the first normal production T-close run supply genuine evidence.
+  Do not wait/poll to close, monitor in the background or dispatch validation.
+  On a later authorized check, inspect only the real day's daily/near_miss JSON
+  identities, counts, bytes and unaffected B/C completion. Do not start funnel
+  interpretation, threshold selection, Score or outcomes. Use the existing
+  15-to-20-real-run review checkpoint; scarcity remains NEEDS_MORE_EVIDENCE.
+
 ## 2026-11-04 — C lightweight funnel capture, existing Draft PR #106
 
 - Research question / STRICT PATH, unchanged. Live GitHub confirms #105

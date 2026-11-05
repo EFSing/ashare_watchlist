@@ -1,5 +1,31 @@
 # CURRENT STATUS
 
+## 2026-11-05 — Lightweight C funnel capture activated; awaiting first real run
+
+- `PROJECT_GOVERNANCE_STATE_CONFLICT` minimally reconciled: PR #106 is merged
+  as `ba0a292837658cceba075bf8b80725b92451261f`, original PR head
+  `8744731e3c55b02d1a3c1e19d3db8cc6f1efe457`. Master exact-head push correctness
+  run `41952030495` is SUCCESS. Earlier Draft/unmerged/pending-user-activation
+  wording below is historical and superseded by the user's activation request.
+- Research question (non-blocking) / STRICT PATH. User authorizes only the
+  aggregate recorder's two repository variables. XSHG verifies 2026-11-05 as
+  a session; 10:01 BJT verification precedes its 15:00 close and real production.
+  At 10:04 BJT, created and read back only these two repository variables:
+  `ENABLE_C_RULE_FUNNEL_CAPTURE_V1=true` and
+  `C_RULE_FUNNEL_CAPTURE_START_DATE=2026-11-05`. Other variables are unchanged.
+  Live runtime-state verification snapshot:
+  `8f32c5ade1ba44cd9b044b85d6821126e1140016`; latest completed date 2026-11-04.
+- `C_LIGHTWEIGHT_FUNNEL_CAPTURE_ACTIVATED_WAITING_FOR_FIRST_REAL_RUN`.
+  Today's normal production has not started and no genuine first-day recorder
+  evidence exists yet. No manual validation dispatch, historical replay or
+  runtime-state mutation. Stop without waiting/polling/background monitoring.
+- Static safety checks pass; the frozen rules, C matched list, Formal B,
+  delivery/completion, provider and schedule remain unchanged. Production
+  semantics change=0; no dispatch/backfill/outcome study; Final OOS SEALED / UNREAD.
+- Scarcity/strictness conclusions remain NEEDS_MORE_EVIDENCE. Existing B/C
+  product paths and Delivery Ladder are unchanged. Review only after the
+  existing 15-to-20-real-run checkpoint; no analysis is started by activation.
+
 ## 2026-11-04 — Lightweight C funnel recorder; existing Draft #106
 
 - #105 was explicitly authorized and squash-merged at
