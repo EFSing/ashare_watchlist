@@ -1,0 +1,304 @@
+{
+  "actual_retrieved_at_bjt": "2026-11-09T17:26:06.450856+08:00",
+  "candidate_count": 0,
+  "checkpoint_created": false,
+  "coverage_status": "NO_VALID_INPUT",
+  "delivery_receipt_created": false,
+  "detail": "HiThink stock history source repeatedly failed; acquisition stopped early",
+  "evaluated_symbol_count": 0,
+  "excluded_reason_counts": {
+    "HISTORICAL_PROVIDER_FAILURE": 3
+  },
+  "excluded_symbol_count": 3,
+  "exclusions": [
+    {
+      "detail": "PROVIDER_FAILURE: HiThink historical acquisition failed for 000686.SZ; no alternate provider is permitted",
+      "display_name": "东北证券",
+      "evidence": {
+        "historical": {
+          "detail": "PROVIDER_FAILURE: HiThink historical acquisition failed for 000686.SZ; no alternate provider is permitted",
+          "exception_type": "_HiThinkReadFailure",
+          "provider": "HiThink Financial-API",
+          "retry_count": 0,
+          "symbol": "000686",
+          "target_date": "2026-11-09"
+        },
+        "quote": {
+          "chg_pct": 0.139276,
+          "code": "000686",
+          "high": 7.25,
+          "low": 7.17,
+          "name": "东北证券",
+          "open": 7.2,
+          "prev_close": 7.18,
+          "price": 7.19,
+          "quote_date": "2026-11-09",
+          "quote_date_evidence": "NOT_PROVIDER_VERIFIED",
+          "symbol": "000686",
+          "timestamp": null,
+          "trade_state": "TRADED",
+          "turnover_amount": 65892675.0,
+          "volume": 9141704.0
+        }
+      },
+      "failure_stage": "stock_kline",
+      "failure_status": "PROVIDER_FAILURE",
+      "latest_historical_date": null,
+      "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+      "provider": "HiThink Financial-API",
+      "provider_symbol": "000686.SZ",
+      "quote_trade_state": "TRADED",
+      "reason": "HISTORICAL_PROVIDER_FAILURE",
+      "status": "EXCLUDED_INPUT_ANOMALY",
+      "symbol": "000686",
+      "target_date": "2026-11-09"
+    },
+    {
+      "detail": "PROVIDER_FAILURE: HiThink historical acquisition failed for 000688.SZ; no alternate provider is permitted",
+      "display_name": "国城矿业",
+      "evidence": {
+        "historical": {
+          "detail": "PROVIDER_FAILURE: HiThink historical acquisition failed for 000688.SZ; no alternate provider is permitted",
+          "exception_type": "_HiThinkReadFailure",
+          "provider": "HiThink Financial-API",
+          "retry_count": 0,
+          "symbol": "000688",
+          "target_date": "2026-11-09"
+        },
+        "quote": {
+          "chg_pct": -3.318903,
+          "code": "000688",
+          "high": 21.13,
+          "low": 20.03,
+          "name": "国城矿业",
+          "open": 21.0,
+          "prev_close": 20.79,
+          "price": 20.1,
+          "quote_date": "2026-11-09",
+          "quote_date_evidence": "NOT_PROVIDER_VERIFIED",
+          "symbol": "000688",
+          "timestamp": null,
+          "trade_state": "TRADED",
+          "turnover_amount": 324767470.0,
+          "volume": 15891186.0
+        }
+      },
+      "failure_stage": "stock_kline",
+      "failure_status": "PROVIDER_FAILURE",
+      "latest_historical_date": null,
+      "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+      "provider": "HiThink Financial-API",
+      "provider_symbol": "000688.SZ",
+      "quote_trade_state": "TRADED",
+      "reason": "HISTORICAL_PROVIDER_FAILURE",
+      "status": "EXCLUDED_INPUT_ANOMALY",
+      "symbol": "000688",
+      "target_date": "2026-11-09"
+    },
+    {
+      "detail": "PROVIDER_FAILURE: HiThink historical acquisition failed for 000690.SZ; no alternate provider is permitted",
+      "display_name": "宝新能源",
+      "evidence": {
+        "historical": {
+          "detail": "PROVIDER_FAILURE: HiThink historical acquisition failed for 000690.SZ; no alternate provider is permitted",
+          "exception_type": "_HiThinkReadFailure",
+          "provider": "HiThink Financial-API",
+          "retry_count": 0,
+          "symbol": "000690",
+          "target_date": "2026-11-09"
+        },
+        "quote": {
+          "chg_pct": -1.745201,
+          "code": "000690",
+          "high": 5.79,
+          "low": 5.62,
+          "name": "宝新能源",
+          "open": 5.73,
+          "prev_close": 5.73,
+          "price": 5.63,
+          "quote_date": "2026-11-09",
+          "quote_date_evidence": "NOT_PROVIDER_VERIFIED",
+          "symbol": "000690",
+          "timestamp": null,
+          "trade_state": "TRADED",
+          "turnover_amount": 309602760.0,
+          "volume": 54423109.0
+        }
+      },
+      "failure_stage": "stock_kline",
+      "failure_status": "PROVIDER_FAILURE",
+      "latest_historical_date": null,
+      "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+      "provider": "HiThink Financial-API",
+      "provider_symbol": "000690.SZ",
+      "quote_trade_state": "TRADED",
+      "reason": "HISTORICAL_PROVIDER_FAILURE",
+      "status": "EXCLUDED_INPUT_ANOMALY",
+      "symbol": "000690",
+      "target_date": "2026-11-09"
+    }
+  ],
+  "formal_result_valid": false,
+  "formal_watchlist_created": false,
+  "global_failures": [
+    {
+      "detail": "the same provider failure repeated; remaining stock requests were not attempted",
+      "provider": "HiThink Financial-API",
+      "reason": "REPEATED_SYSTEM_FAILURE_FAST_FAIL",
+      "stage": "stock_kline",
+      "status": "PROVIDER_FAILURE",
+      "symbols_seen": [
+        "000001",
+        "000002",
+        "000006"
+      ]
+    }
+  ],
+  "input_coverage": {
+    "coverage_status": "NO_VALID_INPUT",
+    "evaluated_symbol_count": 0,
+    "excluded_reason_counts": {
+      "HISTORICAL_PROVIDER_FAILURE": 3
+    },
+    "excluded_symbol_count": 3,
+    "excluded_symbols": [
+      {
+        "detail": "PROVIDER_FAILURE: HiThink historical acquisition failed for 000686.SZ; no alternate provider is permitted",
+        "display_name": "东北证券",
+        "evidence": {
+          "historical": {
+            "detail": "PROVIDER_FAILURE: HiThink historical acquisition failed for 000686.SZ; no alternate provider is permitted",
+            "exception_type": "_HiThinkReadFailure",
+            "provider": "HiThink Financial-API",
+            "retry_count": 0,
+            "symbol": "000686",
+            "target_date": "2026-11-09"
+          },
+          "quote": {
+            "chg_pct": 0.139276,
+            "code": "000686",
+            "high": 7.25,
+            "low": 7.17,
+            "name": "东北证券",
+            "open": 7.2,
+            "prev_close": 7.18,
+            "price": 7.19,
+            "quote_date": "2026-11-09",
+            "quote_date_evidence": "NOT_PROVIDER_VERIFIED",
+            "symbol": "000686",
+            "timestamp": null,
+            "trade_state": "TRADED",
+            "turnover_amount": 65892675.0,
+            "volume": 9141704.0
+          }
+        },
+        "failure_stage": "stock_kline",
+        "failure_status": "PROVIDER_FAILURE",
+        "latest_historical_date": null,
+        "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+        "provider": "HiThink Financial-API",
+        "provider_symbol": "000686.SZ",
+        "quote_trade_state": "TRADED",
+        "reason": "HISTORICAL_PROVIDER_FAILURE",
+        "status": "EXCLUDED_INPUT_ANOMALY",
+        "symbol": "000686",
+        "target_date": "2026-11-09"
+      },
+      {
+        "detail": "PROVIDER_FAILURE: HiThink historical acquisition failed for 000688.SZ; no alternate provider is permitted",
+        "display_name": "国城矿业",
+        "evidence": {
+          "historical": {
+            "detail": "PROVIDER_FAILURE: HiThink historical acquisition failed for 000688.SZ; no alternate provider is permitted",
+            "exception_type": "_HiThinkReadFailure",
+            "provider": "HiThink Financial-API",
+            "retry_count": 0,
+            "symbol": "000688",
+            "target_date": "2026-11-09"
+          },
+          "quote": {
+            "chg_pct": -3.318903,
+            "code": "000688",
+            "high": 21.13,
+            "low": 20.03,
+            "name": "国城矿业",
+            "open": 21.0,
+            "prev_close": 20.79,
+            "price": 20.1,
+            "quote_date": "2026-11-09",
+            "quote_date_evidence": "NOT_PROVIDER_VERIFIED",
+            "symbol": "000688",
+            "timestamp": null,
+            "trade_state": "TRADED",
+            "turnover_amount": 324767470.0,
+            "volume": 15891186.0
+          }
+        },
+        "failure_stage": "stock_kline",
+        "failure_status": "PROVIDER_FAILURE",
+        "latest_historical_date": null,
+        "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+        "provider": "HiThink Financial-API",
+        "provider_symbol": "000688.SZ",
+        "quote_trade_state": "TRADED",
+        "reason": "HISTORICAL_PROVIDER_FAILURE",
+        "status": "EXCLUDED_INPUT_ANOMALY",
+        "symbol": "000688",
+        "target_date": "2026-11-09"
+      },
+      {
+        "detail": "PROVIDER_FAILURE: HiThink historical acquisition failed for 000690.SZ; no alternate provider is permitted",
+        "display_name": "宝新能源",
+        "evidence": {
+          "historical": {
+            "detail": "PROVIDER_FAILURE: HiThink historical acquisition failed for 000690.SZ; no alternate provider is permitted",
+            "exception_type": "_HiThinkReadFailure",
+            "provider": "HiThink Financial-API",
+            "retry_count": 0,
+            "symbol": "000690",
+            "target_date": "2026-11-09"
+          },
+          "quote": {
+            "chg_pct": -1.745201,
+            "code": "000690",
+            "high": 5.79,
+            "low": 5.62,
+            "name": "宝新能源",
+            "open": 5.73,
+            "prev_close": 5.73,
+            "price": 5.63,
+            "quote_date": "2026-11-09",
+            "quote_date_evidence": "NOT_PROVIDER_VERIFIED",
+            "symbol": "000690",
+            "timestamp": null,
+            "trade_state": "TRADED",
+            "turnover_amount": 309602760.0,
+            "volume": 54423109.0
+          }
+        },
+        "failure_stage": "stock_kline",
+        "failure_status": "PROVIDER_FAILURE",
+        "latest_historical_date": null,
+        "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+        "provider": "HiThink Financial-API",
+        "provider_symbol": "000690.SZ",
+        "quote_trade_state": "TRADED",
+        "reason": "HISTORICAL_PROVIDER_FAILURE",
+        "status": "EXCLUDED_INPUT_ANOMALY",
+        "symbol": "000690",
+        "target_date": "2026-11-09"
+      }
+    ],
+    "formal_result_valid": false,
+    "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+    "qualified_symbol_count": 3194,
+    "raw_symbol_count": 5580,
+    "schema_version": "INPUT_COVERAGE_V1"
+  },
+  "qualified_symbol_count": 3194,
+  "raw_symbol_count": 5580,
+  "report_generated_at_bjt": "2026-11-09T17:32:36.986652+08:00",
+  "run_type": "SAME_CALENDAR_DATE",
+  "schema_version": "DAILY_INPUT_DIAGNOSTIC_V1",
+  "target_date": "2026-11-09"
+}
