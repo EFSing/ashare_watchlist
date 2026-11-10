@@ -1,0 +1,203 @@
+{
+  "cloud_target": "ashare_watchlist/daily_checkpoints/20261110",
+  "code_git_sha": "20ac9d7ab5812f4fb0d4b04fb9deb3f18b0e3540",
+  "created_at_bjt": "2026-11-10T15:00:00+08:00",
+  "dated_html": {
+    "byte_length": 490300,
+    "filename": "daily_close_20261110.html",
+    "sha256": "b18fee7d0d87fe378daabfbd5ff2a2f280b4df4b67ede4d761854f484ae69e0e"
+  },
+  "earliest_execution": "2026-11-11",
+  "input_coverage": {
+    "coverage_status": "DEGRADED",
+    "evaluated_symbol_count": 3191,
+    "excluded_reason_counts": {
+      "TARGET_DAY_HISTORICAL_STALE": 3
+    },
+    "excluded_symbol_count": 3,
+    "excluded_symbols": [
+      {
+        "detail": "INPUT_DATE_MISMATCH: HiThink historical latest bar for 000831.SZ is 2026-10-30 != 2026-11-10",
+        "display_name": "中国稀土",
+        "evidence": {
+          "historical": {
+            "classification": "TARGET_DAY_HISTORICAL_STALE",
+            "detail": "INPUT_DATE_MISMATCH: HiThink historical latest bar for 000831.SZ is 2026-10-30 != 2026-11-10",
+            "historical_bar_count": 364,
+            "historical_quality": {
+              "future_data": false,
+              "non_empty": true,
+              "structure_valid": true
+            },
+            "latest_historical_date": "2026-10-30",
+            "provider": "HiThink Financial-API",
+            "retry_count": 1,
+            "symbol": "000831",
+            "target_date": "2026-11-10",
+            "thscode": "000831.SZ"
+          },
+          "quote": {
+            "chg_pct": null,
+            "code": "000831",
+            "high": null,
+            "low": null,
+            "name": "中国稀土",
+            "open": null,
+            "prev_close": 47.59,
+            "price": null,
+            "quote_date": "2026-11-10",
+            "quote_date_evidence": "NOT_PROVIDER_VERIFIED",
+            "symbol": "000831",
+            "timestamp": null,
+            "trade_state": "UNKNOWN",
+            "turnover_amount": 0.0,
+            "volume": 0.0
+          }
+        },
+        "failure_stage": "stock_kline",
+        "failure_status": "INPUT_DATE_MISMATCH",
+        "latest_historical_date": "2026-10-30",
+        "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+        "provider": "HiThink Financial-API",
+        "provider_symbol": "000831.SZ",
+        "quote_trade_state": "UNKNOWN",
+        "reason": "TARGET_DAY_HISTORICAL_STALE",
+        "status": "EXCLUDED_INPUT_ANOMALY",
+        "symbol": "000831",
+        "target_date": "2026-11-10"
+      },
+      {
+        "detail": "INPUT_DATE_MISMATCH: HiThink historical latest bar for 002129.SZ is 2026-10-30 != 2026-11-10",
+        "display_name": "TCL中环",
+        "evidence": {
+          "historical": {
+            "classification": "TARGET_DAY_HISTORICAL_STALE",
+            "detail": "INPUT_DATE_MISMATCH: HiThink historical latest bar for 002129.SZ is 2026-10-30 != 2026-11-10",
+            "historical_bar_count": 364,
+            "historical_quality": {
+              "future_data": false,
+              "non_empty": true,
+              "structure_valid": true
+            },
+            "latest_historical_date": "2026-10-30",
+            "provider": "HiThink Financial-API",
+            "retry_count": 1,
+            "symbol": "002129",
+            "target_date": "2026-11-10",
+            "thscode": "002129.SZ"
+          },
+          "quote": {
+            "chg_pct": null,
+            "code": "002129",
+            "high": null,
+            "low": null,
+            "name": "TCL中环",
+            "open": null,
+            "prev_close": 9.38,
+            "price": null,
+            "quote_date": "2026-11-10",
+            "quote_date_evidence": "NOT_PROVIDER_VERIFIED",
+            "symbol": "002129",
+            "timestamp": null,
+            "trade_state": "UNKNOWN",
+            "turnover_amount": 0.0,
+            "volume": 0.0
+          }
+        },
+        "failure_stage": "stock_kline",
+        "failure_status": "INPUT_DATE_MISMATCH",
+        "latest_historical_date": "2026-10-30",
+        "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+        "provider": "HiThink Financial-API",
+        "provider_symbol": "002129.SZ",
+        "quote_trade_state": "UNKNOWN",
+        "reason": "TARGET_DAY_HISTORICAL_STALE",
+        "status": "EXCLUDED_INPUT_ANOMALY",
+        "symbol": "002129",
+        "target_date": "2026-11-10"
+      },
+      {
+        "detail": "INPUT_DATE_MISMATCH: HiThink historical latest bar for 002717.SZ is 2026-10-12 != 2026-11-10",
+        "display_name": "*ST岭南",
+        "evidence": {
+          "historical": {
+            "classification": "TARGET_DAY_HISTORICAL_STALE",
+            "detail": "INPUT_DATE_MISMATCH: HiThink historical latest bar for 002717.SZ is 2026-10-12 != 2026-11-10",
+            "historical_bar_count": 349,
+            "historical_quality": {
+              "future_data": false,
+              "non_empty": true,
+              "structure_valid": true
+            },
+            "latest_historical_date": "2026-10-12",
+            "provider": "HiThink Financial-API",
+            "retry_count": 1,
+            "symbol": "002717",
+            "target_date": "2026-11-10",
+            "thscode": "002717.SZ"
+          },
+          "quote": {
+            "chg_pct": null,
+            "code": "002717",
+            "high": null,
+            "low": null,
+            "name": "*ST岭南",
+            "open": null,
+            "prev_close": 0.45,
+            "price": null,
+            "quote_date": "2026-11-10",
+            "quote_date_evidence": "NOT_PROVIDER_VERIFIED",
+            "symbol": "002717",
+            "timestamp": null,
+            "trade_state": "UNKNOWN",
+            "turnover_amount": 0.0,
+            "volume": 0.0
+          }
+        },
+        "failure_stage": "stock_kline",
+        "failure_status": "INPUT_DATE_MISMATCH",
+        "latest_historical_date": "2026-10-12",
+        "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+        "provider": "HiThink Financial-API",
+        "provider_symbol": "002717.SZ",
+        "quote_trade_state": "UNKNOWN",
+        "reason": "TARGET_DAY_HISTORICAL_STALE",
+        "status": "EXCLUDED_INPUT_ANOMALY",
+        "symbol": "002717",
+        "target_date": "2026-11-10"
+      }
+    ],
+    "formal_result_valid": true,
+    "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+    "qualified_symbol_count": 3194,
+    "raw_symbol_count": 5580,
+    "schema_version": "INPUT_COVERAGE_V1"
+  },
+  "latest_html": {
+    "byte_length": 490300,
+    "filename": "latest.html",
+    "sha256": "b18fee7d0d87fe378daabfbd5ff2a2f280b4df4b67ede4d761854f484ae69e0e"
+  },
+  "list_date": "2026-11-10",
+  "perf_tracker": {
+    "byte_length": 2804573,
+    "filename": "perf_tracker.json",
+    "sha256": "2815778bf22cc2970493731517a6328eee831760a64772b0e6d18e4bf9fa258f"
+  },
+  "schema_version": "DAILY_LIGHTWEIGHT_CLOUD_CHECKPOINT_V1",
+  "strategy_version": "B_BREAKOUT_RETEST_LEGACY_V1_1",
+  "upload_scope": [
+    "watchlist_20261110.json",
+    "perf_tracker.json",
+    "daily_close_20261110.html",
+    "daily_checkpoint_20261110.json",
+    "latest.html",
+    "latest_checkpoint.json"
+  ],
+  "verification_status": "LOCAL_INPUTS_VERIFIED",
+  "watchlist": {
+    "byte_length": 8351,
+    "filename": "watchlist_20261110.json",
+    "sha256": "a728f3e7b9466da615d5a7f30b89714ffa566e720f31c342119d796b94d20450"
+  }
+}
