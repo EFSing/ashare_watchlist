@@ -1,5 +1,15 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-11-12 — 首次 B+C 日报交付与独立 B Shadow 已记录
+
+- `PROJECT_GOVERNANCE_STATE_CONFLICT` 已校正。下方 11 月 5 日记录中的「等待首次交付和采集」
+  是启动时状态。[当日生产运行](https://github.com/EFSing/ashare_watchlist/actions/runs/42002331287)
+  成功准备 B+C HTML 并经邮件和 Bark 交付。远端 `runtime-state` 交付回执提交
+  `f03ddfcef325070dfcc3d0914039962c294825d3`，独立 B Shadow 提交
+  `e5b73687299854a8633316f448edbd56f1e0f79c`。
+- 已核验首次 B Shadow 的 10 条观察、文件字节数、SHA-256、协议和源码身份。日报交付由回执与
+  工作流状态佐证，历史 HTML 内容未逐项复核。量能收益证据仍为 `NEEDS_MORE_EVIDENCE`。
+
 ## 2026-11-05 — B 结构与量能研究观察进入每日 B+C HTML
 
 - Deferred improvement / STRICT PATH，分类保持。终点

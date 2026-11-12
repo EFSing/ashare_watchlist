@@ -10,7 +10,8 @@
   预注册倾向和证据状态，同结构可比样本不足逐项标注。展示故障时正式名单和交付仍可用。
 - Formal B 资格、Score、排序与操作参数 change=0，C change=0。
   日报用当轮 T-known manifest，B Shadow 继续在交付后持久化同义观察。研究证据仍为
-  NEEDS_MORE_EVIDENCE。首份真实日报待正常生产核验。Final OOS SEALED / UNREAD。
+  NEEDS_MORE_EVIDENCE。[2026-11-05 首次真实交付](https://github.com/EFSing/ashare_watchlist/actions/runs/42002331287)
+  的工作流与远端回执均显示成功，历史 HTML 内容未逐项复核。Final OOS SEALED / UNREAD。
 
 ## 2026-11-05 — B structure-first independent volume Shadow active
 
@@ -51,7 +52,9 @@
   `ENABLE_B_STRUCTURE_VOLUME_SHADOW_V1=true`. Normal production had yet to
   start. C variables read back as `ENABLE_C_RULE_FUNNEL_CAPTURE_V1=true` and
   `C_RULE_FUNNEL_CAPTURE_START_DATE=2026-11-05`.
-  Awaiting the first genuine prospective observation.
+  First prospective B Shadow observation recorded on 2026-11-05 in
+  `runtime-state` commit `e5b73687299854a8633316f448edbd56f1e0f79c`.
+  The receipt matches the 10-row observation file, protocol and source hashes.
 - Report change=NO, production semantics change=0, dispatch=NO, backfill=NO,
   outcome access=NO, Final OOS SEALED / UNREAD.
 
