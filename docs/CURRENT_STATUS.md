@@ -1,5 +1,12 @@
 # CURRENT STATUS
 
+## 2026-11-12 — B 候选卡显示量能基线偏差
+
+- [PR #112](https://github.com/EFSing/ashare_watchlist/pull/112) squash merge
+  `6af9859e0ebefcd22b93946e0b1d61aefb34fc4e`，交付范围为日报展示。
+- 结构待确认等非 2→3 阶段逐项展示可计算的量能基线偏差。下跌量占比参照 50%，两个均量比
+  参照 1.00×。同阶段研究判断适用于 2→3 切换，量能收益证据仍为 `NEEDS_MORE_EVIDENCE`。
+
 ## 2026-11-12 — B 候选卡显示样本不足的具体原因
 
 - [PR #111](https://github.com/EFSing/ashare_watchlist/pull/111) squash merge

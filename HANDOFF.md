@@ -1,14 +1,16 @@
 # HANDOFF — 跨设备最小恢复入口
 
-## 2026-11-12 — B 候选卡显示量能基线偏差
+## 2026-11-12 — B 候选卡量能基线偏差已合并
 
-- Deferred improvement / STRICT PATH，归类保持。分支 `codex/b-report-volume-baseline-deviation`，
-  基于 `master` 的 `e50860ba8b915681f96541be20696dcea40a7eb2`。同步后用
-  `git rev-parse origin/codex/b-report-volume-baseline-deviation` 获取远端 HEAD。
-- 已核对 #109–#111 合并来源、相关 correctness CI 和冻结研究协议。结构待确认等非 2→3
-  阶段按可用指标显示相对 50% 或 1.00× 的描述性偏差。2→3 的研究标签仍使用当日同阶段坐标。
-- 138 项定向测试通过。离线 HTML 在 Chrome 320、375、430、1280 px 通过标签显示及折叠检查。
-  下一步为审阅日报展示与该分支的 correctness CI，合并由用户决定。接续无本机文件依赖。
+- Deferred improvement / STRICT PATH（合并），归类保持。[PR #112](https://github.com/EFSing/ashare_watchlist/pull/112)
+  原 HEAD `b7c97309fdcd865325fe42537207293fda7bba84`，[PR correctness](https://github.com/EFSing/ashare_watchlist/actions/runs/43198767561)
+  与 [push correctness](https://github.com/EFSing/ashare_watchlist/actions/runs/43198700979) 均通过。用户授权后于
+  18:19:28 BJT squash merge 为 `6af9859e0ebefcd22b93946e0b1d61aefb34fc4e`。
+  [合并提交 correctness](https://github.com/EFSing/ashare_watchlist/actions/runs/43199342419)。
+- 结构待确认等非 2→3 阶段按可用指标显示相对 50% 或 1.00× 的描述性偏差。2→3 的研究标签使用当日同阶段坐标。
+  138 项定向测试通过。Chrome 320、375、430、1280 px 通过离线标签显示及折叠检查。
+- REMOTE_RECOVERY_CHECKPOINT 在 `master`。同步后用 `git rev-parse origin/master`
+  获取远端 HEAD。无待合并决定或本地文件依赖。
 
 ## 2026-11-12 — 日报样本不足提示改进已合并
 
