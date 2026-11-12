@@ -1,5 +1,27 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-11-12 — B 候选卡结构阶段与量能展示待合并决定
+
+- Deferred improvement / STRICT PATH，分类保持。恢复分支为 `origin/codex/b-structure-volume-card`。
+  Fetch 后用 `git rev-parse origin/codex/b-structure-volume-card` 读取远端 HEAD，
+  并在目标为 `master` 的对应 PR 核对 exact-head correctness 和 mergeability。
+- 仅修改日报 B 候选卡。2→3 切换逐项解释当日冻结分组，并用文字概括三项方向。
+  数据不足时保留实际量能；其余结构只显示实际量能及研究覆盖范围。研究定义与证据默认折叠。
+  Formal B、排序、Score、交易参数、量能公式、结构代理、Shadow、C 和调度均未改动。
+- 定向回归通过。离线 B+C 单文件通过 Chrome 320／375／430 px 布局和交互检查。
+  Outcome access=NO，Final OOS SEALED / UNREAD。
+- REMOTE_RECOVERY_CHECKPOINT。无下一设备依赖的本地文件。下一步为用户决定是否合并。
+
+## 2026-11-12 — 首次 B+C 日报交付与独立 B Shadow 已记录
+
+- `PROJECT_GOVERNANCE_STATE_CONFLICT` 已校正。下方 11 月 5 日记录中的「等待首次交付和采集」
+  是启动时状态。[当日生产运行](https://github.com/EFSing/ashare_watchlist/actions/runs/42002331287)
+  成功准备 B+C HTML 并经邮件和 Bark 交付。远端 `runtime-state` 交付回执提交
+  `f03ddfcef325070dfcc3d0914039962c294825d3`，独立 B Shadow 提交
+  `e5b73687299854a8633316f448edbd56f1e0f79c`。
+- 已核验首次 B Shadow 的 10 条观察、文件字节数、SHA-256、协议和源码身份。日报交付由回执与
+  工作流状态佐证，历史 HTML 内容未逐项复核。量能收益证据仍为 `NEEDS_MORE_EVIDENCE`。
+
 ## 2026-11-05 — B 结构与量能研究观察进入每日 B+C HTML
 
 - Deferred improvement / STRICT PATH，分类保持。终点

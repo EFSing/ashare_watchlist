@@ -1339,19 +1339,20 @@ _VOLUME_LEGACY_LABELS = {
     'up_down_volume_ratio': '上涨/下跌日均量比',
     'pullback_volume_decay_ratio': '回踩后半/前半均量比',
 }
+_TRANSITION_STAGE = 'W2_TO_W3_TRANSITION_PROXY'
 _STRUCTURE_STAGE_LABELS = {
     'EARLY_PULLBACK': '回踩早期',
-    'W2_TO_W3_TRANSITION_PROXY': '2→3 切换',
+    _TRANSITION_STAGE: '2→3 切换',
     'POST_H1_CONTINUATION_PROXY': '前高后延续',
     'STRUCTURE_PROXY_UNAVAILABLE_OR_INVALID': '结构待确认',
 }
 _RESEARCH_VOLUME_LABELS = {
     'down_volume_share': '回踩下跌量占比',
-    'up_down_volume_ratio': '涨／跌日均量比',
-    'pullback_volume_decay_ratio': '回踩后半／前半量',
+    'up_down_volume_ratio': '上涨／下跌日均量比',
+    'pullback_volume_decay_ratio': '回踩后半／前半均量比',
 }
 _RESEARCH_VOLUME_EVIDENCE = {
-    'down_volume_share': '待前瞻验证',
+    'down_volume_share': '历史证据相对较有希望，待前瞻验证',
     'up_down_volume_ratio': '历史证据较弱，待前瞻验证',
     'pullback_volume_decay_ratio': '收益优势待验证',
 }
@@ -1361,6 +1362,12 @@ _VOLUME_FAVOURED_BUCKET = {
     'pullback_volume_decay_ratio': 'LOW',
 }
 _COORDINATE_LABELS = {'LOW': '低', 'MID': '中', 'HIGH': '高'}
+_VOLUME_RESEARCH_DEFINITIONS = {
+    'down_volume_share': '下跌日成交量之和 ÷ 窗口内全部成交量（含平盘日）。',
+    'up_down_volume_ratio': '上涨日平均成交量 ÷ 下跌日平均成交量，需要同时有上涨日和下跌日。',
+    'pullback_volume_decay_ratio': '后半段平均成交量 ÷ 前半段平均成交量。窗口至少 4 个交易日，'
+                                  '奇数天时中间日归后半段。',
+}
 _RESEARCH_OBSERVATION_NOTE = (
     '研究观察，不参与 Formal B 筛选或正式排序，也不计入 Score。'
     '结构阶段是系统的客观结构代理，不是人工波浪计数。'
@@ -1462,54 +1469,72 @@ def _volume_bar_html(field: str, value: Any, reason: Any) -> str:
     )
 
 
-def _volume_research_detail(field: str, value: Any, coordinate: Mapping[str, Any]) -> str:
-    number = _volume_number(value)
+def _volume_research_judgment(field: str, value: Any, coordinate: Mapping[str, Any]) -> str:
     bucket = coordinate['bucket']
-    favoured = _VOLUME_FAVOURED_BUCKET[field]
-    if number is None:
-        shape = '研究数据不足'
-    elif field == 'down_volume_share':
-        shape = {'LOW': '下跌量偏少', 'MID': '下跌量居中', 'HIGH': '下跌量偏重'}.get(
-            bucket, f'约 {_volume_share_text(number)} 的回踩成交量发生在下跌日',
-        )
-    elif field == 'up_down_volume_ratio':
-        if _near_one(number):
-            shape = '涨跌日量能接近'
-        else:
-            shape = '上涨日量能更活跃' if number > 1 else '下跌日量能更活跃'
+    if (_volume_number(value) is None or coordinate['status'] != 'ANALYSIS_COORDINATE_ONLY'
+            or coordinate['cross_section_n'] < 3 or bucket not in _COORDINATE_LABELS):
+        return '无法判断'
+    if bucket == 'MID':
+        return '中性'
+    return '偏好' if bucket == _VOLUME_FAVOURED_BUCKET[field] else '偏差'
+
+
+def _volume_research_summary(judgments: Mapping[str, str]) -> str:
+    if '无法判断' in judgments.values():
+        summary = '数据或同阶段样本不足，整体无法判断。'
+    elif all(judgment == '偏好' for judgment in judgments.values()):
+        summary = '量能方向较一致（未验证）。'
+    elif '偏好' in judgments.values():
+        summary = '部分符合预期（未验证）。'
+    elif '偏差' in judgments.values():
+        summary = ''
     else:
-        if _near_one(number):
-            shape = '前后量能接近'
-        else:
-            direction = '缩量' if number < 1 else '放量'
-            shape = f'后半程{direction}约 {abs(1 - number):.0%}'
-        shape += f'，后半程平均成交量约为前半程的 {number:.0%}'
-
-    position = ''
-    if bucket in _COORDINATE_LABELS:
-        position = f'当日同结构位置：{_COORDINATE_LABELS[bucket]}'
-    elif coordinate['status'] != 'NOT_PRIMARY_COHORT' and coordinate['cross_section_n'] < 3:
-        position = f'当日同结构可比样本不足（N={coordinate["cross_section_n"]}）'
-
-    tendency = '当前无法判断'
-    if bucket == favoured:
-        tendency = '研究假设偏积极'
-    elif bucket == 'MID':
-        tendency = '研究假设中性' if field != 'pullback_volume_decay_ratio' else '保留中间水平的可能'
-    elif bucket in _COORDINATE_LABELS:
-        tendency = '与当前研究假设方向相反'
-    elif coordinate['status'] == 'NOT_PRIMARY_COHORT':
-        tendency = '仅在 2→3 候选中比较'
-    direction = f'预注册方向为同结构{_COORDINATE_LABELS[favoured]}位'
-    if field == 'pullback_volume_decay_ratio':
-        direction += '，也保留中间水平有收益优势的可能'
-    position_text = f' ｜ {position}' if position else ''
+        summary = '三项均为中性（未验证）。'
+    contrary = '、'.join(_RESEARCH_VOLUME_LABELS[field] for field in judgments if judgments[field] == '偏差')
+    if contrary:
+        summary += f'{contrary}与研究预期方向相反（未验证）。'
     return (
-        '<div class="volume-research-detail">'
-        f'<span>形态：{_esc(shape + position_text)}</span>'
-        f'<span>研究倾向：{_esc(tendency)}（{_esc(direction)}）</span>'
-        f'<span>证据状态：{_esc(_RESEARCH_VOLUME_EVIDENCE[field])}</span>'
-        '</div>'
+        '<div class="volume-research-summary"><strong>结构与量能综合判断</strong>'
+        f'<p>{_esc(summary)}</p></div>'
+    )
+
+
+def _volume_research_details(
+    research: Mapping[str, Any], reasons: Mapping[str, Any], window_html: str,
+) -> str:
+    fields = []
+    for index, (field, label) in enumerate(_RESEARCH_VOLUME_LABELS.items(), start=1):
+        value = research['volume'].get(field)
+        coordinate = research['coordinates'][field]
+        bucket = coordinate['bucket']
+        direction = _COORDINATE_LABELS[_VOLUME_FAVOURED_BUCKET[field]]
+        hypothesis = f'预注册比较方向为同结构{direction}位'
+        if field == 'pullback_volume_decay_ratio':
+            hypothesis += '，中间水平也可能有收益优势'
+        location = f'当日 2→3 可比样本 N={coordinate["cross_section_n"]}'
+        if bucket in _COORDINATE_LABELS:
+            location += f'，当日同结构位置：{_COORDINATE_LABELS[bucket]}，分位 {coordinate["percentile"]}'
+        reason = f' · 缺失原因：{reasons[field]}' if reasons.get(field) else ''
+        fields.append(
+            f'<li><strong>V{index} {_esc(label)}</strong> {_esc(_VOLUME_RESEARCH_DEFINITIONS[field])}'
+            f'<br>{_esc(hypothesis)}。证据状态：{_esc(_RESEARCH_VOLUME_EVIDENCE[field])}。'
+            f'<br>原始值：{_esc(value if value is not None else "缺失")} · {_esc(location)}'
+            f' · {_esc(coordinate["status"])}{_esc(reason)}</li>'
+        )
+    return (
+        '<details class="volume-research-details"><summary>查看研究详情</summary>'
+        f'{window_html}<p>{_esc(_RESEARCH_OBSERVATION_NOTE)}</p>'
+        '<p>结构按原始首次突破定位。L0 为突破前 60 日最低价，H1 为突破日至信号日前的最高价，'
+        'L2 为 H1 首次出现后至信号日前的最低价，这一段至少有一个完整交易日。'
+        '要求 L0 &lt; L2 &lt; H1。恢复比例为'
+        '（信号日收盘价 − L2）÷（H1 − L2）。低于 0.5 为回踩早期，0.5 至 1（含边界）为 2→3 切换，'
+        '高于 1 为前高后延续。数据缺失或结构无效时为结构待确认。</p>'
+        '<p>量能窗口从突破次日至信号日前一交易日。涨跌以相对前一交易日的收盘价判断。'
+        '窗口不足、分母为零或数据无效时，相应数值留空。'
+        '每项仅在当日 2→3 切换且有该项数值的候选中比较，分位为升序平均名次 ÷ 样本数。'
+        '少于 3 个样本时无分位。同值共享分位。分位不超过 1/3 为低位，超过 2/3 为高位，其余为中位。'
+        '缺少任一极端组时无法比较两端的收益差异。</p>'
+        f'<ul>{"".join(fields)}</ul></details>'
     )
 
 
@@ -1519,20 +1544,18 @@ def _volume_metric_html(
     reason: Any,
     *,
     sample_insufficient: bool,
-    coordinate: Mapping[str, Any] | None = None,
+    research: bool = False,
+    judgment: str | None = None,
 ) -> str:
-    if sample_insufficient:
-        display = '样本不足'
-        explanation = _volume_missing_explanation(field, reason)
-    elif value is None:
-        display = '—'
+    if _volume_number(value) is None:
+        display = '样本不足' if sample_insufficient else '—'
         explanation = _volume_missing_explanation(field, reason)
     else:
         display = _volume_share_text(value) if field == 'down_volume_share' else _volume_ratio_text(value)
         explanation = _volume_dynamic_explanation(field, value)
-    legacy = _volume_legacy_explanation(field, value) if coordinate is None else None
+    legacy = _volume_legacy_explanation(field, value) if not research else None
     legacy_html = f'<span class="sr-only">{_esc(legacy)}</span>' if legacy else ''
-    raw_reason = f' 原始原因：{reason}' if reason else ''
+    raw_reason = f' 原始原因：{reason}' if reason and not research else ''
     legacy_label = _VOLUME_LEGACY_LABELS[field]
     display_label = {
         'down_volume_share': '下跌日量占比',
@@ -1540,21 +1563,20 @@ def _volume_metric_html(
         'pullback_volume_decay_ratio': '后半/前半均量比',
     }[field]
     definition = _VOLUME_LABEL_DESCRIPTIONS[field]
-    research_detail = ''
-    definition_class = ''
-    if coordinate is not None:
+    judgment_html = ''
+    if research:
         display_label = legacy_label = _RESEARCH_VOLUME_LABELS[field]
-        if value is not None:
-            explanation = definition
-        research_detail = _volume_research_detail(field, value, coordinate)
-        definition_class = ' volume-research-definition'
+        if field == 'down_volume_share' and _volume_number(value) is not None:
+            explanation = '回踩成交量中发生在下跌日的份额。'
+        if judgment is not None:
+            judgment_html = f'<small class="volume-judgment">同阶段比较 · {_esc(judgment)}（未验证）</small>'
     return (
         f'<div class="volume-metric-row" title="{_esc(definition + raw_reason)}">'
         f'<div class="volume-metric-label"><span class="volume-label" aria-label="{_esc(legacy_label)}">{_esc(display_label)}</span>'
-        f'<small class="volume-explanation{definition_class}">{_esc(explanation)}</small></div>'
-        f'<div class="volume-metric-bar">{_volume_bar_html(field, value, reason)}</div>'
+        f'<small class="volume-explanation">{_esc(explanation)}</small></div>'
+        f'<div class="volume-metric-bar">{_volume_bar_html(field, value, None if research else reason)}</div>'
         f'<strong class="volume-value">{_esc(display)}</strong>'
-        f'{research_detail}'
+        f'{judgment_html}'
         f'{legacy_html}'
         '</div>'
     )
@@ -1591,6 +1613,13 @@ def _volume_observations_html(
     if not isinstance(reasons, Mapping):
         reasons = data.get('feature_unavailable')
     reasons = reasons if isinstance(reasons, Mapping) else {}
+    is_transition = research is not None and research['structure']['state'] == _TRANSITION_STAGE
+    judgments = {}
+    if is_transition:
+        judgments = {
+            field: _volume_research_judgment(field, data.get(field), research['coordinates'][field])
+            for field in _RESEARCH_VOLUME_LABELS
+        }
     try:
         window_days = int(data['window_days']) if data.get('window_days') is not None else None
     except (TypeError, ValueError):
@@ -1605,7 +1634,8 @@ def _volume_observations_html(
                 data.get(field),
                 reason,
                 sample_insufficient=sample_insufficient,
-                coordinate=research['coordinates'][field] if research is not None else None,
+                research=research is not None,
+                judgment=judgments.get(field),
             )
         )
     window = (
@@ -1616,35 +1646,43 @@ def _volume_observations_html(
         else '观察窗口：回踩区间'
     )
     window_html = f'<small class="volume-window">{_esc(window)}</small>'
+    stage = _structure_observation_html(research)
     if research is not None:
-        card_heading = window_html
-        card_footer = ''
-        summary = '回踩量能 · 研究观察'
-    else:
-        card_heading = (
-            f'<div class="volume-card-head"><strong>回踩量能 · 量能衰减</strong>{window_html}</div>'
-            '<small class="volume-observation-note">观察指标 · 不参与筛选/排名</small>'
+        guidance = (
+            '与今日同阶段候选相比，研究关注下跌量占比较低、上涨日相对下跌日成交更活跃、'
+            '回踩后半段更缩量。第三项的比值居中也可能更合适。'
+            if is_transition else
+            '量能方向研究目前只覆盖 2→3 切换。此处展示实际量能。'
         )
-        card_footer = f'<p class="volume-summary"><span>事实总结</span>{_esc(_volume_factual_summary(data))}</p>'
-        summary = _volume_summary_line(data)
+        judgment_summary = _volume_research_summary(judgments) if is_transition else ''
+        return (
+            '<div class="volume-observations"><div class="volume-card volume-card-research">'
+            f'{stage}<p class="volume-stage-guidance">{_esc(guidance)}</p>'
+            f'<div class="volume-metric-list">{"".join(metrics)}</div>'
+            f'{judgment_summary}{_volume_research_details(research, reasons, window_html)}'
+            '</div></div>'
+        )
     return (
-        f'<details class="volume-details-compact"{" open" if research is not None else ""}>'
-        f'<summary>{_esc(summary)}</summary>'
+        f'{stage}<details class="volume-details-compact">'
+        f'<summary>{_esc(_volume_summary_line(data))}</summary>'
         '<div class="volume-observations">'
         '<div class="volume-card">'
-        f'{card_heading}'
+        f'<div class="volume-card-head"><strong>回踩量能 · 量能衰减</strong>{window_html}</div>'
+        '<small class="volume-observation-note">观察指标 · 不参与筛选/排名</small>'
         f'<div class="volume-metric-list">{"".join(metrics)}</div>'
-        f'{card_footer}'
+        f'<p class="volume-summary"><span>事实总结</span>{_esc(_volume_factual_summary(data))}</p>'
         '</div></div></details>'
     )
 
 
 def _structure_observation_html(research: Mapping[str, Any] | None) -> str:
-    if research is None:
-        return '<p class="structure-observation">研究观察暂不可用，不影响 Formal B 资格。</p>'
-    state = research['structure']['state']
+    state = research['structure']['state'] if research is not None else None
     stage = _STRUCTURE_STAGE_LABELS.get(state, '结构待确认')
-    return f'<p class="structure-observation"><span>研究观察</span> <strong>结构阶段：{_esc(stage)}</strong></p>'
+    source = '按价格走势估算' if research is not None else '结构研究暂不可用'
+    return (
+        f'<p class="structure-observation"><strong>结构阶段：{_esc(stage)}</strong>'
+        f'<small>{_esc(source)}</small></p>'
+    )
 
 
 def _watchlist_table(rows, earliest_execution=None):
@@ -1676,7 +1714,6 @@ def _watchlist_table(rows, earliest_execution=None):
             f'<small>{_esc(_position(distance))}</small></span>'
             f'<span><label>T+1</label><strong>{_esc(earliest_execution)}</strong></span>'
             f'</div>'
-            f'{_structure_observation_html(research)}'
             f'{_volume_observations_html(row.get("volume_observation"), research=research)}'
             f'<div class="watch-meta"><span>{_esc(row.get("sector"))}</span>'
             f'<span>{_esc(row.get("status_explanation"))}</span></div>'
@@ -2659,10 +2696,20 @@ input[type=search] {{ width: min(360px, 100%); padding: 8px 10px; border: 1px so
 .volume-summary {{ margin: 9px 0 0; overflow-wrap: anywhere; color: var(--text); font-size: 11px; line-height: 1.4; }}
 .volume-summary span {{ margin-right: 5px; color: var(--muted); font-weight: 650; }}
 .volume-observation-note {{ display: block; margin-top: 9px; color: var(--muted); font-size: 11px; }}
-.structure-observation {{ margin: 10px 0 4px 38px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }}
-.structure-observation strong {{ margin-left: 4px; color: var(--text); }}
-.volume-research-detail {{ display: grid; grid-column: 1 / -1; gap: 2px; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }}
-.volume-explanation.volume-research-definition {{ white-space: normal; }}
+.structure-observation {{ display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin: 0; color: var(--accent); overflow-wrap: anywhere; }}
+.structure-observation strong {{ font-size: 16px; }}
+.structure-observation small {{ color: var(--muted); font-size: 11px; }}
+.watch-row > .structure-observation {{ margin: 10px 0 4px 38px; }}
+.volume-card-research {{ border-left: 3px solid var(--accent); }}
+.volume-stage-guidance {{ margin: 4px 0 0; color: var(--muted); font-size: 12px; }}
+.volume-card-research .volume-metric-row {{ row-gap: 4px; padding: 7px 0; border-top: 1px solid var(--border); }}
+.volume-card-research .volume-explanation {{ white-space: normal; }}
+.volume-judgment {{ grid-column: 1 / -1; color: var(--accent); font-size: 11px; font-weight: 650; }}
+.volume-research-summary {{ border-top: 1px solid var(--border); padding-top: 7px; font-size: 12px; }}
+.volume-research-summary p {{ margin: 3px 0 0; }}
+.volume-research-details {{ margin-top: 8px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }}
+.volume-research-details ul {{ margin: 6px 0 0; padding-inline-start: 20px; }}
+.volume-research-details li + li {{ margin-top: 5px; }}
 .action-list {{ display: grid; gap: 7px; }}
 .action-row {{ min-width: 0; padding: 12px 13px; border: 1px solid var(--border); border-left: 3px solid var(--accent); background: var(--surface); }}
 .action-row.positive {{ border-left-color: var(--positive); }}
@@ -2777,9 +2824,10 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   .watch-facts strong {{ overflow-wrap: anywhere; }}
   .watch-facts small {{ font-size: 11px; }}
   .watch-meta {{ margin-left: 34px; gap: 5px 12px; font-size: 12px; overflow-wrap: anywhere; }}
-  .structure-observation {{ margin-left: 34px; }}
+  .watch-row > .structure-observation {{ margin-left: 34px; }}
   .watch-meta > span {{ min-width: 0; }}
   .volume-observations {{ grid-template-columns: minmax(0, 1fr); max-width: 100%; margin: 12px 0 0 34px; }}
+  .watch-row > .volume-observations {{ margin-left: 0; }}
   .volume-metric-row {{ grid-template-columns: minmax(0, 1fr) minmax(96px, 1fr); grid-template-areas: "label value" "explanation bar"; align-items: start; gap: 3px 8px; }}
   .volume-metric-label {{ display: contents; }}
   .volume-label {{ grid-area: label; min-width: 0; overflow: visible; overflow-wrap: anywhere; text-overflow: clip; white-space: normal; }}
@@ -2849,7 +2897,6 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
 
 <section id="tomorrow-watchlist">
   <div class="section-head"><div><p class="section-kicker">WATCHLIST</p><h2>今日新名单 · {watchlist_count}</h2><p class="section-subtitle">按 Score 从高到低；触发、止损、目标和 RR 为计划参数。</p></div></div>
-  {f'<p class="note">{_esc(_RESEARCH_OBSERVATION_NOTE)}</p>' if model.watchlist_rows else ''}
   <div class="toolbar"><label for="watchlist-search" class="note">搜索名单：</label><input id="watchlist-search" type="search" placeholder="输入代码、名称或行业" autocomplete="off"></div>
   {_watchlist_table(model.watchlist_rows, metadata.get('earliest_execution'))}
 </section>
