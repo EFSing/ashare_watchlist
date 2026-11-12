@@ -1423,8 +1423,10 @@ def _volume_legacy_explanation(field: str, value: Any) -> str | None:
     return None
 
 
-def _volume_missing_explanation(field: str, reason: Any) -> str:
+def _volume_missing_explanation(field: str, reason: Any, window_days: int | None) -> str:
     if reason == 'PULLBACK_WINDOW_LT_4':
+        if window_days is not None:
+            return f'回踩窗口 {window_days} 个交易日，至少需 4 个'
         return '回踩窗口不足 4 个交易日'
     if reason == 'NO_PULLBACK_WINDOW':
         return '没有可用的回踩窗口'
@@ -1481,7 +1483,7 @@ def _volume_research_judgment(field: str, value: Any, coordinate: Mapping[str, A
 
 def _volume_research_summary(judgments: Mapping[str, str]) -> str:
     if '无法判断' in judgments.values():
-        summary = '数据或同阶段样本不足，整体无法判断。'
+        summary = '综合判断需要三项量能都可比较。'
     elif all(judgment == '偏好' for judgment in judgments.values()):
         summary = '量能方向较一致（未验证）。'
     elif '偏好' in judgments.values():
@@ -1543,13 +1545,14 @@ def _volume_metric_html(
     value: Any,
     reason: Any,
     *,
-    sample_insufficient: bool,
     research: bool = False,
-    judgment: str | None = None,
+    comparison: str | None = None,
+    window_days: int | None = None,
 ) -> str:
     if _volume_number(value) is None:
-        display = '样本不足' if sample_insufficient else '—'
-        explanation = _volume_missing_explanation(field, reason)
+        short_window = reason in {'PULLBACK_WINDOW_LT_4', 'NO_PULLBACK_WINDOW'}
+        display = '样本不足' if short_window and not research else '—'
+        explanation = _volume_missing_explanation(field, reason, window_days if research else None)
     else:
         display = _volume_share_text(value) if field == 'down_volume_share' else _volume_ratio_text(value)
         explanation = _volume_dynamic_explanation(field, value)
@@ -1563,20 +1566,20 @@ def _volume_metric_html(
         'pullback_volume_decay_ratio': '后半/前半均量比',
     }[field]
     definition = _VOLUME_LABEL_DESCRIPTIONS[field]
-    judgment_html = ''
+    comparison_html = ''
     if research:
         display_label = legacy_label = _RESEARCH_VOLUME_LABELS[field]
         if field == 'down_volume_share' and _volume_number(value) is not None:
             explanation = '回踩成交量中发生在下跌日的份额。'
-        if judgment is not None:
-            judgment_html = f'<small class="volume-judgment">同阶段比较 · {_esc(judgment)}（未验证）</small>'
+        if comparison is not None:
+            comparison_html = f'<small class="volume-judgment">{_esc(comparison)}</small>'
     return (
         f'<div class="volume-metric-row" title="{_esc(definition + raw_reason)}">'
         f'<div class="volume-metric-label"><span class="volume-label" aria-label="{_esc(legacy_label)}">{_esc(display_label)}</span>'
         f'<small class="volume-explanation">{_esc(explanation)}</small></div>'
         f'<div class="volume-metric-bar">{_volume_bar_html(field, value, None if research else reason)}</div>'
         f'<strong class="volume-value">{_esc(display)}</strong>'
-        f'{judgment_html}'
+        f'{comparison_html}'
         f'{legacy_html}'
         '</div>'
     )
@@ -1615,39 +1618,44 @@ def _volume_observations_html(
     reasons = reasons if isinstance(reasons, Mapping) else {}
     is_transition = research is not None and research['structure']['state'] == _TRANSITION_STAGE
     judgments = {}
-    if is_transition:
-        judgments = {
-            field: _volume_research_judgment(field, data.get(field), research['coordinates'][field])
-            for field in _RESEARCH_VOLUME_LABELS
-        }
     try:
         window_days = int(data['window_days']) if data.get('window_days') is not None else None
     except (TypeError, ValueError):
         window_days = None
     metrics = []
     for field in _RESEARCH_VOLUME_LABELS:
+        value = data.get(field)
         reason = reasons.get(field)
-        sample_insufficient = reason in {'PULLBACK_WINDOW_LT_4', 'NO_PULLBACK_WINDOW'}
+        comparison = None
+        if is_transition:
+            coordinate = research['coordinates'][field]
+            judgment = _volume_research_judgment(field, value, coordinate)
+            judgments[field] = judgment
+            if coordinate['status'] == 'INSUFFICIENT_CROSS_SECTION':
+                comparison = f'同阶段可比 {coordinate["cross_section_n"]} 只，至少需 3 只'
+            elif judgment != '无法判断':
+                comparison = f'同阶段比较 · {judgment}（未验证）'
         metrics.append(
             _volume_metric_html(
                 field,
-                data.get(field),
+                value,
                 reason,
-                sample_insufficient=sample_insufficient,
                 research=research is not None,
-                judgment=judgments.get(field),
+                comparison=comparison,
+                window_days=window_days,
             )
         )
     window = (
         f'观察窗口：{window_days} 个交易日'
-        if window_days is not None and window_days > 0
-        else '观察窗口：不足'
-        if window_days == 0
+        if window_days is not None and window_days >= 0
         else '观察窗口：回踩区间'
     )
     window_html = f'<small class="volume-window">{_esc(window)}</small>'
     stage = _structure_observation_html(research)
     if research is not None:
+        empty_window = window_days == 0 and all(
+            reasons.get(field) == 'NO_PULLBACK_WINDOW' for field in _RESEARCH_VOLUME_LABELS
+        )
         guidance = (
             '与今日同阶段候选相比，研究关注下跌量占比较低、上涨日相对下跌日成交更活跃、'
             '回踩后半段更缩量。第三项的比值居中也可能更合适。'
@@ -1655,11 +1663,14 @@ def _volume_observations_html(
             '量能方向研究目前只覆盖 2→3 切换。此处展示实际量能。'
         )
         judgment_summary = _volume_research_summary(judgments) if is_transition else ''
+        metrics_html = f'<div class="volume-metric-list">{"".join(metrics)}</div>{judgment_summary}'
+        if empty_window:
+            guidance = '回踩观察窗口为 0 个交易日。突破日与信号日之间没有交易日，三项量能均无法计算。'
+            metrics_html = ''
         return (
             '<div class="volume-observations"><div class="volume-card volume-card-research">'
             f'{stage}<p class="volume-stage-guidance">{_esc(guidance)}</p>'
-            f'<div class="volume-metric-list">{"".join(metrics)}</div>'
-            f'{judgment_summary}{_volume_research_details(research, reasons, window_html)}'
+            f'{metrics_html}{_volume_research_details(research, reasons, window_html)}'
             '</div></div>'
         )
     return (

@@ -1,5 +1,14 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-11-12 — 日报样本不足提示改进待审
+
+- Deferred improvement / FAST PATH，归类保持。分支 `codex/b-report-sample-explanations`，
+  远端 HEAD 以 `git rev-parse origin/codex/b-report-sample-explanations` 为准。
+- B 候选卡直接显示 0 天窗口、V3 的实际窗口与 4 天要求，以及每项同阶段可比人数与
+  3 只要求。已算出的量能继续显示。变更限日报渲染与对应测试。
+- 130 项定向测试通过。使用 11-10 和 11-11 的原始 Shadow 行离线验证实际缺样分支。
+  下一步在此分支的 Draft PR 核对 CI 和合并决定，接续所需文件均由远端分支提供。
+
 ## 2026-11-12 — 日报 B 候选卡样本不足已定位
 
 - STRICT PATH，疑似 correctness blocker 排查后归类为非阻塞研究问题。11-05、11-09、
