@@ -1,5 +1,12 @@
 # CURRENT STATUS
 
+## 2026-11-12 — B 候选卡显示样本不足的具体原因
+
+- [PR #111](https://github.com/EFSing/ashare_watchlist/pull/111) squash merge
+  `1c7e7ec7b60be80b798da7016bf70cfe1b0e476c`，交付范围为日报展示。
+- B 候选卡显示回踩窗口为 0 天或短于 4 天的具体原因，以及同阶段可比人数和 3 只要求。
+  同阶段比较不足时保留已算出的量能。
+
 ## 2026-11-12 — B 候选卡结构阶段与量能展示已更新
 
 - [PR #110](https://github.com/EFSing/ashare_watchlist/pull/110) squash merge
