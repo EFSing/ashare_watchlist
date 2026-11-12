@@ -1100,13 +1100,46 @@ def test_research_volume_keeps_per_field_comparisons_when_other_samples_are_insu
     main, detail = html.split('<details class="volume-research-details">')
     assert "上涨日与下跌日样本不同时存在" in main
     assert "70.0%" in main and "0.59×" in main and "回踩后期缩量约 41%" in main
-    assert main.count("同阶段比较 · 无法判断（未验证）") == 2
+    assert main.count("同阶段可比 2 只，至少需 3 只") == 1
+    assert "同阶段可比 1 只" not in main
     assert main.count("同阶段比较 · 偏差（未验证）") == 1
-    assert "整体无法判断" in main and "回踩下跌量占比与研究预期方向相反" in main
+    assert "综合判断需要三项量能都可比较" in main
+    assert "回踩下跌量占比与研究预期方向相反" in main
     assert "部分符合预期" not in main and "量能方向较一致" not in main
     assert detail.count("当日同结构位置：") == 1
     assert "N=2 · INSUFFICIENT_CROSS_SECTION" in detail and "N=1 · FEATURE_UNAVAILABLE" in detail
     assert "NO_UP_OR_DOWN_DAY" in detail and "NO_UP_OR_DOWN_DAY" not in main
+
+
+def test_research_volume_explains_empty_and_short_pullback_windows():
+    from b_structure_volume_observation import add_coordinates
+
+    empty, short = _research_volume_rows([(None, None, None), (0.53, 1.12, None)])
+    empty["structure"]["state"] = "STRUCTURE_PROXY_UNAVAILABLE_OR_INVALID"
+    empty["is_w2w3_transition"] = False
+    empty["volume"]["window_days"] = 0
+    empty["volume"]["missing_reason"] = {
+        field: "NO_PULLBACK_WINDOW" for field in renderer._RESEARCH_VOLUME_LABELS
+    }
+    short["volume"]["window_days"] = 3
+    short["volume"]["missing_reason"] = {"pullback_volume_decay_ratio": "PULLBACK_WINDOW_LT_4"}
+    add_coordinates([empty, short])
+
+    empty_main, empty_detail = renderer._volume_observations_html(None, research=empty).split(
+        '<details class="volume-research-details">'
+    )
+    assert "回踩观察窗口为 0 个交易日" in empty_main
+    assert "突破日与信号日之间没有交易日" in empty_main
+    assert "volume-metric-row" not in empty_main
+    assert "观察窗口：0 个交易日" in empty_detail
+    assert empty_detail.count("NO_PULLBACK_WINDOW") == 3
+
+    short_main = renderer._volume_observations_html(None, research=short).split(
+        '<details class="volume-research-details">'
+    )[0]
+    assert "回踩窗口 3 个交易日，至少需 4 个" in short_main
+    assert "53.0%" in short_main and "1.12×" in short_main
+    assert short_main.count("同阶段可比 1 只，至少需 3 只") == 2
 
 
 def test_research_volume_does_not_force_tied_values_into_opposite_directions():
