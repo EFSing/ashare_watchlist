@@ -179,6 +179,8 @@ def test_report_and_post_delivery_shadow_have_exact_feature_and_candidate_parity
     assert delivered.count('id="c-daily-research"') == 1
     assert delivered.count("结构阶段：2→3 切换") == 3
     assert delivered.count("结构阶段：结构待确认") == 1
+    assert delivered.count("结构与量能综合判断") == 3
+    assert delivered.count('<details class="volume-research-details"><summary>查看研究详情</summary>') == 4
     assert "BALANCED_A" in delivered and "CONSERVATIVE_B" in delivered
     assert not any(fragment in delivered for fragment in ("<script src=", "<iframe", 'rel="stylesheet"', "fetch("))
     assert formal.read_bytes() == formal_bytes
@@ -207,15 +209,15 @@ def test_presentation_failure_still_writes_formal_report(tmp_path, monkeypatch, 
     )
     assert [row["code"] for row in model.watchlist_rows] == ["600000"]
     html = report.read_text(encoding="utf-8")
-    assert "研究观察暂不可用，不影响 Formal B 资格。" in html
-    assert "测试股份" in html and "结构阶段：" not in html
+    assert "结构研究暂不可用" in html and "结构阶段：结构待确认" in html
+    assert "测试股份" in html and "同阶段比较" not in html
     assert report.read_bytes() == latest.read_bytes()
     prepared = build_composite_delivery(
         {"as_of_date": DAY, "daily_close_bundle": {"dated_html": str(report)}},
         None, delivery_root=tmp_path / "delivered",
     )
     assert prepared["status"] == "C_DELIVERY_READY"
-    assert "研究观察暂不可用" in Path(prepared["delivery_report_path"]).read_text(encoding="utf-8")
+    assert "结构研究暂不可用" in Path(prepared["delivery_report_path"]).read_text(encoding="utf-8")
 
 
 @pytest.mark.parametrize("legacy_hash_valid", [True, False])

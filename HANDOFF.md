@@ -1,5 +1,17 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-11-12 — B 候选卡结构阶段与量能展示待合并决定
+
+- Deferred improvement / STRICT PATH，分类保持。恢复分支为 `origin/codex/b-structure-volume-card`。
+  Fetch 后用 `git rev-parse origin/codex/b-structure-volume-card` 读取远端 HEAD，
+  并在目标为 `master` 的对应 PR 核对 exact-head correctness 和 mergeability。
+- 仅修改日报 B 候选卡。2→3 切换逐项解释当日冻结分组，并用文字概括三项方向。
+  数据不足时保留实际量能；其余结构只显示实际量能及研究覆盖范围。研究定义与证据默认折叠。
+  Formal B、排序、Score、交易参数、量能公式、结构代理、Shadow、C 和调度均未改动。
+- 定向回归通过。离线 B+C 单文件通过 Chrome 320／375／430 px 布局和交互检查。
+  Outcome access=NO，Final OOS SEALED / UNREAD。
+- REMOTE_RECOVERY_CHECKPOINT。无下一设备依赖的本地文件。下一步为用户决定是否合并。
+
 ## 2026-11-12 — 首次 B+C 日报交付与独立 B Shadow 已记录
 
 - `PROJECT_GOVERNANCE_STATE_CONFLICT` 已校正。下方 11 月 5 日记录中的「等待首次交付和采集」

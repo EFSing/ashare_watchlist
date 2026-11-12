@@ -1037,57 +1037,101 @@ def test_structure_stage_uses_frozen_proxy_labels(state, label):
     assert f"结构阶段：{label}" in renderer._structure_observation_html({"structure": {"state": state}})
 
 
-def test_research_volume_shows_facts_hypotheses_and_evidence_per_field():
+def _research_volume_rows(values):
     from b_structure_volume_observation import add_coordinates
 
     rows = [
-        {"is_w2w3_transition": True, "volume": {
-            "down_volume_share": share,
-            "up_down_volume_ratio": ratio,
-            "pullback_volume_decay_ratio": decay,
-        }}
-        for share, ratio, decay in [(0.533, 1.12, 0.59), (0.6, 1.0, 1.0), (0.7, 0.9, 1.2)]
+        {
+            "is_w2w3_transition": True,
+            "structure": {"state": "W2_TO_W3_TRANSITION_PROXY"},
+            "volume": {
+                "down_volume_share": share,
+                "up_down_volume_ratio": ratio,
+                "pullback_volume_decay_ratio": decay,
+            },
+        }
+        for share, ratio, decay in values
     ]
     add_coordinates(rows)
+    return rows
+
+
+def test_research_volume_shows_facts_and_relative_judgments_with_folded_evidence():
+    rows = _research_volume_rows([(0.533, 0.95, 0.59), (0.6, 0.9, 1.0), (0.7, 0.8, 1.2)])
     html = renderer._volume_observations_html(None, research=rows[0])
-    assert html.count('class="volume-metric-row"') == 3
-    assert html.count("研究假设偏积极") == 3
-    assert html.count("证据状态：") == 3
-    assert html.count("当日同结构位置：低") == 2
-    assert html.count("当日同结构位置：高") == 1
-    assert "回踩下跌量占比" in html and "53.3%" in html and "下跌量偏少" in html
-    assert "涨／跌日均量比" in html and "1.12×" in html and "上涨日量能更活跃" in html
-    assert "历史证据较弱，待前瞻验证" in html
-    assert "回踩后半／前半量" in html and "0.59×" in html
-    assert "后半程缩量约 41%，后半程平均成交量约为前半程的 59%" in html
-    assert "收益优势待验证" in html and "保留中间水平" in html
+    main, detail = html.split('<details class="volume-research-details"><summary>查看研究详情</summary>')
+    assert main.index("结构阶段：2→3 切换") < main.index("与今日同阶段候选相比") < main.index("回踩下跌量占比")
+    assert main.count('class="volume-metric-row"') == 3
+    assert main.count("同阶段比较 · 偏好（未验证）") == 3
+    assert "量能方向较一致（未验证）" in main
+    assert "53.3%" in main and "0.95×" in main and "0.59×" in main
+    # A ratio below one may still rank high relative to today's peers.
+    assert "下跌日平均成交更大" in main and "回踩后期缩量约 41%" in main
+    assert not any(term in main for term in ("预注册", "分位", "证据状态", "N=3"))
+    assert detail.count("证据状态：") == 3
+    assert detail.count("当日同结构位置：低") == 2
+    assert detail.count("当日同结构位置：高") == 1
+    assert "原始值：0.533" in detail and "N=3" in detail and "分位 " in detail
+    assert "含平盘日" in detail and "奇数天时中间日归后半段" in detail
+    assert "历史证据较弱，待前瞻验证" in detail
+    assert "收益优势待验证" in detail and "中间水平也可能有收益优势" in detail
     assert not any(term in html for term in ("越低越好", "优秀", "已验证有效", "买入", "首选", "Top1"))
 
     middle = renderer._volume_observations_html(None, research=rows[1])
-    assert "下跌量居中" in middle and "涨跌日量能接近" in middle and "前后量能接近" in middle
-    high_share = renderer._volume_observations_html(None, research=rows[2])
-    assert "下跌量偏重" in high_share and "下跌日量能更活跃" in high_share
-    assert "后半程放量约 20%" in high_share
-    assert high_share.count("与当前研究假设方向相反") == 3
+    assert middle.count("同阶段比较 · 中性（未验证）") == 3
+    assert "前后半段平均成交接近" in middle and "三项均为中性（未验证）" in middle
+    contrary = renderer._volume_observations_html(None, research=rows[2])
+    assert contrary.count("同阶段比较 · 偏差（未验证）") == 3
+    assert "回踩后期放量约 20%" in contrary
+    assert "回踩下跌量占比、上涨／下跌日均量比、回踩后半／前半均量比与研究预期方向相反" in contrary
 
 
-def test_research_volume_keeps_available_fields_when_samples_are_insufficient():
+def test_research_volume_summary_names_the_contrary_field_in_mixed_directions():
+    row, *_ = _research_volume_rows([(0.53, 0.95, 1.2), (0.6, 1.12, 0.7), (0.7, 0.8, 1.0)])
+    html = renderer._volume_observations_html(None, research=row)
+    assert "部分符合预期（未验证）" in html
+    assert "回踩后半／前半均量比与研究预期方向相反（未验证）" in html
+
+
+def test_research_volume_keeps_per_field_comparisons_when_other_samples_are_insufficient():
+    row, *_ = _research_volume_rows([(0.7, None, 0.59), (0.6, 1.12, 1.2), (0.5, None, None)])
+    row["volume"]["missing_reason"] = {"up_down_volume_ratio": "NO_UP_OR_DOWN_DAY"}
+    html = renderer._volume_observations_html(None, research=row)
+    main, detail = html.split('<details class="volume-research-details">')
+    assert "上涨日与下跌日样本不同时存在" in main
+    assert "70.0%" in main and "0.59×" in main and "回踩后期缩量约 41%" in main
+    assert main.count("同阶段比较 · 无法判断（未验证）") == 2
+    assert main.count("同阶段比较 · 偏差（未验证）") == 1
+    assert "整体无法判断" in main and "回踩下跌量占比与研究预期方向相反" in main
+    assert "部分符合预期" not in main and "量能方向较一致" not in main
+    assert detail.count("当日同结构位置：") == 1
+    assert "N=2 · INSUFFICIENT_CROSS_SECTION" in detail and "N=1 · FEATURE_UNAVAILABLE" in detail
+    assert "NO_UP_OR_DOWN_DAY" in detail and "NO_UP_OR_DOWN_DAY" not in main
+
+
+def test_research_volume_does_not_force_tied_values_into_opposite_directions():
+    rows = _research_volume_rows([(0.53, 1.12, 0.59)] * 3)
+    for row in rows:
+        html = renderer._volume_observations_html(None, research=row)
+        assert html.count("同阶段比较 · 中性（未验证）") == 3
+
+
+@pytest.mark.parametrize("state", [
+    "EARLY_PULLBACK", "POST_H1_CONTINUATION_PROXY", "STRUCTURE_PROXY_UNAVAILABLE_OR_INVALID",
+])
+def test_other_structure_stages_show_facts_and_coverage_without_direction_judgments(state):
     from b_structure_volume_observation import add_coordinates
 
-    rows = [
-        {"is_w2w3_transition": True, "volume": {
-            "down_volume_share": 0.533, "up_down_volume_ratio": ratio,
-            "pullback_volume_decay_ratio": 0.59,
-        }}
-        for ratio in (None, 1.12)
-    ]
-    add_coordinates(rows)
-    html = renderer._volume_observations_html(None, research=rows[0])
-    assert "研究数据不足" in html
-    assert "53.3%" in html and "0.59×" in html
-    assert html.count("当日同结构可比样本不足（N=2）") == 2
-    assert "当日同结构可比样本不足（N=1）" in html
-    assert "当日同结构位置：" not in html and "研究假设偏积极" not in html
+    rows = _research_volume_rows([(0.53, 1.12, 0.59), (0.6, 1.0, 1.0), (0.7, 0.8, 1.2)])
+    row = {**rows[0], "structure": {"state": state}, "is_w2w3_transition": False}
+    add_coordinates([*rows, row])
+    html = renderer._volume_observations_html(None, research=row)
+    main, detail = html.split('<details class="volume-research-details">')
+    assert "量能方向研究目前只覆盖 2→3 切换" in main
+    assert "53.0%" in main and "上涨日平均成交更大" in main and "回踩后期缩量约 41%" in main
+    assert "同阶段比较" not in main and "结构与量能综合判断" not in main
+    assert detail.count("NOT_PRIMARY_COHORT") == 3
+    assert "当日同结构位置：" not in detail
 
 
 def test_mobile_responsive_css_preserves_core_fields_and_wide_table_fallback(tmp_path):
