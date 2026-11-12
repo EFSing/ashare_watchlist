@@ -1,5 +1,14 @@
 # CURRENT STATUS
 
+## 2026-11-12 — B 候选卡结构阶段与量能展示已更新
+
+- [PR #110](https://github.com/EFSing/ashare_watchlist/pull/110) squash merge
+  `b58aba17db6f27206bd72962714538758fa8efa3`，交付范围为日报展示。
+- 2→3 切换使用冻结的当日同结构分组解释独立量能方向和综合文字判断。其他结构展示
+  实际量能与覆盖范围。完整定义、坐标与证据状态默认折叠。
+- Delivery Ladder 与 Formal B/C 运行路径保持原有状态。量能收益证据仍为
+  `NEEDS_MORE_EVIDENCE`。Final OOS SEALED / UNREAD。
+
 ## 2026-11-05 — B 结构与量能研究观察已合并到每日 B+C HTML
 
 - `B_STRUCTURE_VOLUME_RESEARCH_OBSERVATION_REPORT_V1 = ADOPTED_PRESENTATION_ONLY`。
