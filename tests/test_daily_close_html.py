@@ -1152,19 +1152,43 @@ def test_research_volume_does_not_force_tied_values_into_opposite_directions():
 @pytest.mark.parametrize("state", [
     "EARLY_PULLBACK", "POST_H1_CONTINUATION_PROXY", "STRUCTURE_PROXY_UNAVAILABLE_OR_INVALID",
 ])
-def test_other_structure_stages_show_facts_and_coverage_without_direction_judgments(state):
+def test_other_structure_stages_show_volume_baseline_deviations(state):
     from b_structure_volume_observation import add_coordinates
 
-    rows = _research_volume_rows([(0.53, 1.12, 0.59), (0.6, 1.0, 1.0), (0.7, 0.8, 1.2)])
+    rows = _research_volume_rows([(0.53, 1.12, 0.77), (0.6, 1.0, 1.0), (0.7, 0.8, 1.2)])
     row = {**rows[0], "structure": {"state": state}, "is_w2w3_transition": False}
     add_coordinates([*rows, row])
     html = renderer._volume_observations_html(None, research=row)
     main, detail = html.split('<details class="volume-research-details">')
     assert "量能方向研究目前只覆盖 2→3 切换" in main
-    assert "53.0%" in main and "上涨日平均成交更大" in main and "回踩后期缩量约 41%" in main
+    assert "53.0%" in main and "上涨日平均成交更大" in main and "回踩后期缩量约 23%" in main
+    assert "较 50% 偏差 +3.0 个百分点" in main
+    assert "较 1.00× 偏差 +12%" in main and "较 1.00× 偏差 -23%" in main
     assert "同阶段比较" not in main and "结构与量能综合判断" not in main
     assert detail.count("NOT_PRIMARY_COHORT") == 3
     assert "当日同结构位置：" not in detail
+
+
+def test_unconfirmed_structure_shows_deviation_only_for_available_volume():
+    from b_structure_volume_observation import add_coordinates
+
+    row, = _research_volume_rows([(0.5, None, None)])
+    row["structure"]["state"] = "STRUCTURE_PROXY_UNAVAILABLE_OR_INVALID"
+    row["is_w2w3_transition"] = False
+    row["volume"]["window_days"] = 3
+    row["volume"]["missing_reason"] = {
+        "up_down_volume_ratio": "NO_UP_OR_DOWN_DAY",
+        "pullback_volume_decay_ratio": "PULLBACK_WINDOW_LT_4",
+    }
+    add_coordinates([row])
+
+    html = renderer._volume_observations_html(None, research=row)
+    main = html.split('<details class="volume-research-details">')[0]
+    assert "结构阶段：结构待确认" in main
+    assert main.count('class="volume-judgment"') == 1
+    assert "较 50% 偏差 0.0 个百分点" in main
+    assert "上涨日与下跌日样本不同时存在" in main
+    assert "回踩窗口 3 个交易日，至少需 4 个" in main
 
 
 def test_mobile_responsive_css_preserves_core_fields_and_wide_table_fallback(tmp_path):
