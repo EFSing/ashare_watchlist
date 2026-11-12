@@ -67,7 +67,7 @@
 - Report change=NO, production semantics change=0, dispatch=NO, backfill=NO,
   outcome access=NO, Final OOS SEALED / UNREAD.
 
-## 2026-11-05 — Lightweight C funnel capture activated; awaiting first real run
+## 2026-11-05 — Lightweight C funnel capture activated; first real run recorded
 
 - `PROJECT_GOVERNANCE_STATE_CONFLICT` minimally reconciled: PR #106 is merged
   as `ba0a292837658cceba075bf8b80725b92451261f`, original PR head
@@ -82,10 +82,13 @@
   `C_RULE_FUNNEL_CAPTURE_START_DATE=2026-11-05`. Other variables are unchanged.
   Live runtime-state verification snapshot:
   `8f32c5ade1ba44cd9b044b85d6821126e1140016`; latest completed date 2026-11-04.
-- `C_LIGHTWEIGHT_FUNNEL_CAPTURE_ACTIVATED_WAITING_FOR_FIRST_REAL_RUN`.
-  Today's normal production has not started and no genuine first-day recorder
-  evidence exists yet. No manual validation dispatch, historical replay or
-  runtime-state mutation. Stop without waiting/polling/background monitoring.
+- The first genuine C funnel capture was persisted on 2026-11-05 in
+  `runtime-state` commit `a84eab9985a14380dbe7ad57f6d3e7d00793caf9`.
+  The daily summary binds the near-miss file by SHA-256 and byte length and
+  matches the published C manifest and input package identity.
+  The 2026-11-11 summary records 4 real C run dates and 24,326 complete
+  stock-day-rule observations. Status is `COLLECTING` because the frozen
+  review checkpoint also requires 15 real C run dates.
 - Static safety checks pass; the frozen rules, C matched list, Formal B,
   delivery/completion, provider and schedule remain unchanged. Production
   semantics change=0; no dispatch/backfill/outcome study; Final OOS SEALED / UNREAD.

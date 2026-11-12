@@ -24,6 +24,9 @@
   `e5b73687299854a8633316f448edbd56f1e0f79c`。
 - 已核验首次 B Shadow 的 10 条观察、文件字节数、SHA-256、协议和源码身份。日报交付由回执与
   工作流状态佐证，历史 HTML 内容未逐项复核。量能收益证据仍为 `NEEDS_MORE_EVIDENCE`。
+- 同日 C 漏斗首次采集也已验证。远端 `runtime-state` 提交
+  `a84eab9985a14380dbe7ad57f6d3e7d00793caf9` 保存汇总及近失样本，
+  两者通过文件哈希和当日 C 发布 manifest 身份核验。C 漏斗处于 `COLLECTING`。
 
 ## 2026-11-05 — B 结构与量能研究观察进入每日 B+C HTML
 
