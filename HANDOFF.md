@@ -1,5 +1,17 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-11-12 — 日报 B 候选卡样本不足已定位
+
+- STRICT PATH，疑似 correctness blocker 排查后归类为非阻塞研究问题。11-05、11-09、
+  11-10、11-11 四份 B+C HTML 可用远端正式 B 报告和 C 段逐字节复原，均与投递回执
+  SHA-256 相符。量能原始记录与当轮 B Shadow 逐字段一致。
+- 11-11 的 `603051`、`603131`、`603194` 于 11-10 首次突破，突破日与信号日之间
+  没有交易日，三项均为 `NO_PULLBACK_WINDOW`。当日 2→3 比较样本各为 4。
+  11-10 的 `600018`、`601825` 三项均有值，日报逐项显示 2→3 比较样本为 2。
+- 正式候选保留且交付成功。量能收益仍为 `NEEDS_MORE_EVIDENCE`，由既定前瞻研究检查点
+  使用成熟独立过渡样本。此次结论基于原始当日观察，无待办或本机依赖。
+  远端 `master` HEAD 以 `git rev-parse origin/master` 为准。
+
 ## 2026-11-12 — B 候选卡结构阶段与量能展示已合并
 
 - Deferred improvement / STRICT PATH，分类保持。[PR #110](https://github.com/EFSing/ashare_watchlist/pull/110)
