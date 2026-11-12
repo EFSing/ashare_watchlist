@@ -1481,6 +1481,17 @@ def _volume_research_judgment(field: str, value: Any, coordinate: Mapping[str, A
     return '偏好' if bucket == _VOLUME_FAVOURED_BUCKET[field] else '偏差'
 
 
+def _volume_baseline_comparison(field: str, value: Any) -> str | None:
+    number = _volume_number(value)
+    if number is None:
+        return None
+    if field == 'down_volume_share':
+        deviation = round(number * 100, 1) - 50
+        return f'较 50% 偏差 {_signed_number(deviation, 1)} 个百分点'
+    deviation = (round(number, 2) - 1) * 100
+    return f'较 1.00× 偏差 {_signed_number(deviation, 0)}%'
+
+
 def _volume_research_summary(judgments: Mapping[str, str]) -> str:
     if '无法判断' in judgments.values():
         summary = '综合判断需要三项量能都可比较。'
@@ -1635,6 +1646,8 @@ def _volume_observations_html(
                 comparison = f'同阶段可比 {coordinate["cross_section_n"]} 只，至少需 3 只'
             elif judgment != '无法判断':
                 comparison = f'同阶段比较 · {judgment}（未验证）'
+        elif research is not None:
+            comparison = _volume_baseline_comparison(field, value)
         metrics.append(
             _volume_metric_html(
                 field,
@@ -1660,7 +1673,7 @@ def _volume_observations_html(
             '与今日同阶段候选相比，研究关注下跌量占比较低、上涨日相对下跌日成交更活跃、'
             '回踩后半段更缩量。第三项的比值居中也可能更合适。'
             if is_transition else
-            '量能方向研究目前只覆盖 2→3 切换。此处展示实际量能。'
+            '量能方向研究目前只覆盖 2→3 切换。'
         )
         judgment_summary = _volume_research_summary(judgments) if is_transition else ''
         metrics_html = f'<div class="volume-metric-list">{"".join(metrics)}</div>{judgment_summary}'
