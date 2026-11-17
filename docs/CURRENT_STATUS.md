@@ -1,5 +1,11 @@
 # CURRENT STATUS
 
+## 2026-11-17 — 日常候选 Score 退场已形成 Draft
+
+- [Draft PR #114](https://github.com/EFSing/ashare_watchlist/pull/114) 提供无候选综合评分的
+  日报与轻量复盘。正式 B 全量候选按代码展示，持续跟踪沿用状态优先级。当前状态为 Draft，
+  [PR #113](https://github.com/EFSing/ashare_watchlist/pull/113) 继续作为独立短名单试验。
+
 ## 2026-11-12 — B 候选卡显示量能基线偏差
 
 - [PR #112](https://github.com/EFSing/ashare_watchlist/pull/112) squash merge

@@ -1,5 +1,18 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-11-17 — 日常候选 Score 退场
+
+- Deferred improvement / STRICT PATH，归类保持。今日正式 B 名单按代码升序展示，持续跟踪
+  按既有状态优先级、代码和 signal_id 排序。日报候选卡与轻量复盘撤下评分。
+- [Draft PR #114](https://github.com/EFSing/ashare_watchlist/pull/114) 从
+  `origin/master@27483f9` 建立，实施提交 `6a7c6570f2fd497a9b8a3ec9319f4638960f4006`。
+  228 项定向测试、Chrome 手机及桌面宽度离线检查、编译和 diff 检查通过。
+  最终 HEAD 的 CI 按 GitHub 实时状态读取。下一步审阅 Draft；[PR #113](https://github.com/EFSing/ashare_watchlist/pull/113)
+  继续单独审阅。
+- REMOTE_RECOVERY_CHECKPOINT 在 `codex/retire-daily-candidate-score`。Fetch 后用
+  `git rev-parse origin/codex/retire-daily-candidate-score` 获取当前远端 HEAD。
+  恢复所需内容均在该分支，无本机依赖。
+
 ## 2026-11-12 — B 候选卡量能基线偏差已合并
 
 - Deferred improvement / STRICT PATH（合并），归类保持。[PR #112](https://github.com/EFSing/ashare_watchlist/pull/112)

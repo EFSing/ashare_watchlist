@@ -261,7 +261,7 @@ def test_observation_does_not_change_candidate_order_or_mobile_layout(tmp_path):
         {"current_signal_context": {}},
     )
     assert [row["code"] for row in rows] == ["600001", "600002"]
-    assert [row["rank"] for row in rows] == [1, 2]
+    assert [row["display_index"] for row in rows] == [1, 2]
 
     paths, _watchlist, _capture = _captured_report_fixture(tmp_path)
     model = renderer.build_report_model("2026-09-10", paths=paths, calendar=CALENDAR)

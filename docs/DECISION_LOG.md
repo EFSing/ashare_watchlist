@@ -1,5 +1,15 @@
 # DECISION LOG
 
+## 2026-11-17 — ADOPT 旧候选 Score 退出日常产品展示
+
+- 现有证据不足以将旧候选 Score 的高低表达为推荐优先级。撤下日常候选综合评分，以股票代码
+  升序展示全量正式 B 候选，序号仅表示展示顺序。持续跟踪优先展示原有需关注的状态，
+  再按代码和 signal_id 稳定排序。
+- 为兼容既有数据与历史复核，canonical JSON、tracker 与历史记录继续使用原 `score`
+  字段和冻结计算。候选资格及交易参数沿用冻结规则。
+- 本决定的范围是产品展示。2–3 只短名单继续在 [PR #113](https://github.com/EFSing/ashare_watchlist/pull/113)
+  独立试验。展示实现见 [Draft PR #114](https://github.com/EFSing/ashare_watchlist/pull/114)。
+
 ## 2026-11-05 — ADOPT B 结构与量能的日报研究展示
 
 - `B_STRUCTURE_VOLUME_RESEARCH_OBSERVATION_REPORT_V1 = ADOPTED_PRESENTATION_ONLY`。

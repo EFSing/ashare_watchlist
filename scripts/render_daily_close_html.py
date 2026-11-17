@@ -540,15 +540,12 @@ def _watchlist_rows(
 ) -> list[dict[str, Any]]:
     signals = tracker.get("signals", {}) if isinstance(tracker, Mapping) else {}
     signals = signals if isinstance(signals, Mapping) else {}
-    candidates = sorted(
-        watchlist["candidates"],
-        key=lambda item: (-float(item.get("score", float("-inf"))), str(item.get("code", ""))),
-    )
+    candidates = sorted(watchlist["candidates"], key=lambda item: item["code"])
     rows: list[dict[str, Any]] = []
     shadow_context = shadow_monitor.get("current_signal_context", {}) if isinstance(shadow_monitor, Mapping) else {}
     shadow_context = shadow_context if isinstance(shadow_context, Mapping) else {}
     independent_context = volume_observations if isinstance(volume_observations, Mapping) else {}
-    for rank, candidate in enumerate(candidates, start=1):
+    for display_index, candidate in enumerate(candidates, start=1):
         shadow_entry = shadow_context.get(candidate.get("signal_id"))
         shadow_entry = shadow_entry if isinstance(shadow_entry, Mapping) else {}
         signal = signals.get(candidate.get("signal_id"))
@@ -569,10 +566,9 @@ def _watchlist_rows(
             independent_observation = shadow_entry.get("volume_observation")
         rows.append(
             {
-                "rank": rank,
+                "display_index": display_index,
                 "code": candidate.get("code"),
                 "name": candidate.get("name"),
-                "score": candidate.get("score"),
                 "close": candidate.get("price"),
                 "trigger": candidate.get("trigger"),
                 "stop": candidate.get("stop"),
@@ -714,7 +710,7 @@ def _daily_collections(tracker, report_date, previous_date, paths, failures):
         row = {
             'code': signal.get('code'), 'name': signal.get('name'),
             'signal_id': signal.get('signal_id'), 'list_date': list_date,
-            'score': signal.get('score'), 'original_trigger': signal.get('trigger'),
+            'original_trigger': signal.get('trigger'),
             'today_open': observation.get('open') if observation else None,
             'today_high': observation.get('high') if observation else None,
             'today_low': observation.get('low') if observation else None,
@@ -756,17 +752,13 @@ def _daily_collections(tracker, report_date, previous_date, paths, failures):
             groups[1].append(row)
         elif closed_today:
             groups[2].append(row)
-    def sort_key(row: Mapping[str, Any]) -> tuple[int, float, str, str]:
+    def sort_key(row: Mapping[str, Any]) -> tuple[int, str, str]:
         attention = (
             0 if row.get('raw_status') == 'AMBIGUOUS_SAME_BAR' or not row.get('observed')
             else 1 if row.get('raw_status') == 'triggered'
             else 2
         )
-        try:
-            score = -float(row.get('score'))
-        except (TypeError, ValueError):
-            score = float('inf')
-        return attention, score, str(row.get('code', '')), str(row.get('signal_id', ''))
+        return attention, str(row.get('code', '')), str(row.get('signal_id', ''))
 
     for rows in groups:
         rows.sort(key=sort_key)
@@ -1369,7 +1361,7 @@ _VOLUME_RESEARCH_DEFINITIONS = {
                                   '奇数天时中间日归后半段。',
 }
 _RESEARCH_OBSERVATION_NOTE = (
-    '研究观察，不参与 Formal B 筛选或正式排序，也不计入 Score。'
+    '研究观察仅供参考。'
     '结构阶段是系统的客观结构代理，不是人工波浪计数。'
     '当日同结构位置仅表示数值在今日 2→3 候选中的相对位置，不代表好坏。'
 )
@@ -1722,10 +1714,9 @@ def _watchlist_table(rows, earliest_execution=None):
         body.append(
             f'<article class="watch-row" data-search="{_esc(search)}">'
             f'<div class="watch-primary">'
-            f'<span class="watch-rank">{_esc(_integer(row.get("rank"), ""))}</span>'
+            f'<span class="watch-index">{_esc(_integer(row.get("display_index"), ""))}</span>'
             f'<div class="security"><strong>{_esc(row.get("code"))}</strong>'
             f'<span>{_esc(row.get("name"))}</span></div>'
-            f'<div class="watch-score"><span>Score</span><strong>{_esc(_integer(row.get("score")))}</strong></div>'
             f'<div class="watch-state">{_ui_badge(observation_status)}'
             f'<small>{_esc(_display_status(status))}</small></div>'
             f'</div>'
@@ -2455,11 +2446,7 @@ def _shadow_monitor_html(shadow: Mapping[str, Any]) -> str:
             '</div>'
         )
 
-    return (
-        stats
-        + '<div class="secondary-label"><span>Prospective shadow observation</span>'
-        + '<small>仅描述，不参与正式名单、评分、排序或交易参数</small></div>'
-    )
+    return stats + '<div class="secondary-label"><span>Prospective shadow observation</span></div>'
 
 
 def render_html(model: ReportModel) -> str:
@@ -2681,14 +2668,11 @@ input[type=search] {{ width: min(360px, 100%); padding: 8px 10px; border: 1px so
 .watchlist-list {{ display: grid; gap: 7px; }}
 .watch-row {{ min-width: 0; padding: 12px 13px; border: 1px solid var(--border); border-left: 3px solid var(--accent); background: var(--surface); }}
 .watch-row:hover, .action-row:hover {{ background: #fbfcfd; border-color: #bdcbd4; }}
-.watch-primary {{ display: grid; grid-template-columns: 28px minmax(0, 1fr) 90px minmax(150px, auto); align-items: center; gap: 10px; min-width: 0; }}
-.watch-rank {{ color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; text-align: center; }}
+.watch-primary {{ display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-width: 0; }}
+.watch-index {{ color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; text-align: center; }}
 .security {{ display: flex; align-items: baseline; gap: 8px; min-width: 0; }}
 .security strong {{ color: var(--text); font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; }}
 .security span {{ min-width: 0; overflow: hidden; color: var(--muted); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }}
-.watch-score {{ min-width: 0; text-align: right; }}
-.watch-score span {{ color: var(--muted); font-size: 11px; }}
-.watch-score strong {{ display: block; color: var(--accent); font-size: 19px; font-variant-numeric: tabular-nums; }}
 .watch-state {{ display: flex; align-items: center; justify-content: flex-end; gap: 7px; }}
 .watch-state small {{ color: var(--muted); font-size: 11px; }}
 .watch-facts {{ display: flex; flex-wrap: wrap; gap: 5px 24px; min-width: 0; margin: 10px 0 0 38px; }}
@@ -2811,7 +2795,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   .prospective-kpis {{ grid-template-columns: repeat(2, 1fr); }}
   .metric-strip {{ grid-template-columns: repeat(3, 1fr); }}
   .funnel {{ grid-template-columns: repeat(2, 1fr); }}
-  .watch-primary {{ grid-template-columns: 24px minmax(0, 1fr) auto; }}
+  .watch-primary {{ grid-template-columns: 24px minmax(0, 1fr); }}
   .watch-state {{ grid-column: 2 / -1; justify-content: flex-start; }}
   .watch-facts, .watch-meta {{ margin-left: 32px; }}
   .volume-observations {{ grid-template-columns: 1fr; margin-left: 32px; }}
@@ -2838,7 +2822,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   .metric-strip {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
   .funnel {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
   .watch-row {{ padding: 11px 10px; }}
-  .watch-primary {{ grid-template-columns: 26px minmax(0, 1fr) auto; align-items: start; gap: 8px; }}
+  .watch-primary {{ grid-template-columns: 26px minmax(0, 1fr); align-items: start; gap: 8px; }}
   .watch-state {{ grid-column: 2 / -1; justify-content: flex-start; flex-wrap: wrap; gap: 5px 7px; }}
   .security {{ display: block; }}
   .security strong {{ display: block; font-size: 15px; }}
@@ -2920,7 +2904,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
 </section>
 
 <section id="tomorrow-watchlist">
-  <div class="section-head"><div><p class="section-kicker">WATCHLIST</p><h2>今日新名单 · {watchlist_count}</h2><p class="section-subtitle">按 Score 从高到低；触发、止损、目标和 RR 为计划参数。</p></div></div>
+  <div class="section-head"><div><p class="section-kicker">WATCHLIST</p><h2>今日新名单 · {watchlist_count}</h2><p class="section-subtitle">按股票代码升序展示，序号仅表示展示顺序。触发、止损、目标和 RR 为计划参数。</p></div></div>
   <div class="toolbar"><label for="watchlist-search" class="note">搜索名单：</label><input id="watchlist-search" type="search" placeholder="输入代码、名称或行业" autocomplete="off"></div>
   {_watchlist_table(model.watchlist_rows, metadata.get('earliest_execution'))}
 </section>
@@ -2946,7 +2930,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   </details>
   <details id="shadow-monitor" class="research-data-details">
     <summary>Shadow · prospective 观察</summary>
-    <p class="model-explanation">仅记录 prospective shadow 样本与后续结果；不参与正式名单、评分、排序或交易参数。</p>
+    <p class="model-explanation">独立记录前瞻样本与后续结果。</p>
     {shadow_html}
   </details>
   <details id="anomalies" class="research-data-details">
