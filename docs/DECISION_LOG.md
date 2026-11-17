@@ -8,7 +8,7 @@
 - 为兼容既有数据与历史复核，canonical JSON、tracker 与历史记录继续使用原 `score`
   字段和冻结计算。候选资格及交易参数沿用冻结规则。
 - 本决定的范围是产品展示。2–3 只短名单继续在 [PR #113](https://github.com/EFSing/ashare_watchlist/pull/113)
-  独立试验。展示实现见 [Draft PR #114](https://github.com/EFSing/ashare_watchlist/pull/114)。
+  独立试验。展示实现见 [PR #114](https://github.com/EFSing/ashare_watchlist/pull/114)。
 
 ## 2026-11-05 — ADOPT B 结构与量能的日报研究展示
 

@@ -1,17 +1,20 @@
 # HANDOFF — 跨设备最小恢复入口
 
-## 2026-11-17 — 日常候选 Score 退场
+## 2026-11-17 — 日常候选 Score 退场已合并
 
 - Deferred improvement / STRICT PATH，归类保持。今日正式 B 名单按代码升序展示，持续跟踪
   按既有状态优先级、代码和 signal_id 排序。日报候选卡与轻量复盘撤下评分。
-- [Draft PR #114](https://github.com/EFSing/ashare_watchlist/pull/114) 从
-  `origin/master@27483f9` 建立，实施提交 `6a7c6570f2fd497a9b8a3ec9319f4638960f4006`。
-  228 项定向测试、Chrome 手机及桌面宽度离线检查、编译和 diff 检查通过。
-  最终 HEAD 的 CI 按 GitHub 实时状态读取。下一步审阅 Draft；[PR #113](https://github.com/EFSing/ashare_watchlist/pull/113)
+- [PR #114](https://github.com/EFSing/ashare_watchlist/pull/114) 原 HEAD
+  `e9efa7a1d618903b57e80df6af3c75b72548b958` 的
+  [PR correctness](https://github.com/EFSing/ashare_watchlist/actions/runs/44046996147) 和
+  [push correctness](https://github.com/EFSing/ashare_watchlist/actions/runs/44046988567) 均通过。
+  用户授权后于 16:34:50 BJT squash merge 为 `cdc22678afcfb7627730a72ef4baa5444704b5f4`。
+  [合并提交 correctness](https://github.com/EFSing/ashare_watchlist/actions/runs/44047956355)。
+- 228 项定向测试、Chrome 手机及桌面宽度离线检查、编译和 diff 检查通过。下一次正常日报
+  到达后核验正式 B 的代码顺序及候选卡。[PR #113](https://github.com/EFSing/ashare_watchlist/pull/113)
   继续单独审阅。
-- REMOTE_RECOVERY_CHECKPOINT 在 `codex/retire-daily-candidate-score`。Fetch 后用
-  `git rev-parse origin/codex/retire-daily-candidate-score` 获取当前远端 HEAD。
-  恢复所需内容均在该分支，无本机依赖。
+- REMOTE_RECOVERY_CHECKPOINT 在 `master`。Fetch 后用 `git rev-parse origin/master`
+  获取当前远端 HEAD。无本机依赖。
 
 ## 2026-11-12 — B 候选卡量能基线偏差已合并
 
