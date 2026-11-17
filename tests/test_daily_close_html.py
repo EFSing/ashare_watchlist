@@ -85,7 +85,7 @@ def _paths(root: Path) -> DataPaths:
     return DataPaths(root / "data")
 
 
-def test_canonical_watchlist_is_score_sorted_and_distance_is_display_only(tmp_path):
+def test_watchlist_displays_code_order_regardless_of_canonical_scores(tmp_path):
     candidates = [
         _candidate("600018", "上港集团", 31),
         _candidate("002124", "天邦食品", 70),
@@ -100,12 +100,21 @@ def test_canonical_watchlist_is_score_sorted_and_distance_is_display_only(tmp_pa
 
     model = renderer.build_report_model("20260910", paths=_paths(tmp_path), calendar=CALENDAR)
 
-    assert [row["code"] for row in model.watchlist_rows] == ["002124", "600278", "600018"]
+    assert [(row["display_index"], row["code"]) for row in model.watchlist_rows] == [
+        (1, "002124"), (2, "600018"), (3, "600278"),
+    ]
     assert model.watchlist_rows[0]["name"] == "天邦食品"
     assert model.watchlist_rows[0]["distance_to_trigger_pct"] == pytest.approx(2.0)
     assert model.metadata["package_sha"] == hashlib.sha256(b"package-bytes").hexdigest()
     assert model.metadata["generation_fingerprint"] == "a" * 64
     assert model.metadata["earliest_execution"] == "2026-09-11"
+
+    for candidate, new_score in zip(candidates, (90, 10, 50)):
+        candidate["score"] = new_score
+    watchlist = _write_watchlist(tmp_path, "20260910", candidates)
+    assert [candidate["score"] for candidate in watchlist["candidates"]] == [90, 10, 50]
+    rescored = renderer.build_report_model("20260910", paths=_paths(tmp_path), calendar=CALENDAR)
+    assert rescored.watchlist_rows == model.watchlist_rows
 
 
 def test_report_displays_main_board_universe_and_keeps_policy_literal_in_audit(tmp_path):
@@ -746,6 +755,46 @@ def test_older_active_and_closed_today_are_separate(tmp_path):
     assert model.daily_summary['target_hits'] == 1
 
 
+def test_active_signals_use_attention_then_code_and_signal_id_regardless_of_score(tmp_path):
+    older = _write_watchlist(tmp_path, "20260903", [
+        _candidate("600019", "已触发乙", 90),
+        _candidate("600018", "已触发甲", 30),
+        _candidate("600020", "待核验", 5),
+        _candidate("600001", "待触发", 95),
+    ])
+    later = _write_watchlist(tmp_path, "20260908", [_candidate("600018", "较晚信号", 35)])
+    tracker = _write_tracker(tmp_path, older)
+    another_signal = _signal_from_candidate(later, later["candidates"][0], CALENDAR)
+    tracker["signals"] = {another_signal["signal_id"]: another_signal, **tracker["signals"]}
+    observation = {"date": "2026-09-10", "price": 11, "high": 12, "low": 9}
+    for signal in tracker["signals"].values():
+        if signal["code"] in {"600018", "600019"}:
+            signal.update(status="triggered", observations=[observation])
+        elif signal["code"] == "600001":
+            signal.update(observations=[observation])
+    _write_watchlist(tmp_path, "20260910", [])
+
+    def active_signals():
+        (_paths(tmp_path).root / "perf_tracker.json").write_text(json.dumps(tracker), encoding="utf-8")
+        return renderer.build_report_model("20260910", paths=_paths(tmp_path), calendar=CALENDAR).active_signals
+
+    rows = active_signals()
+    assert [(row["code"], row["observed"], row["raw_status"]) for row in rows] == [
+        ("600020", False, "pending"),
+        ("600018", True, "triggered"),
+        ("600018", True, "triggered"),
+        ("600019", True, "triggered"),
+        ("600001", True, "pending"),
+    ]
+    assert [row["signal_id"] for row in rows[1:3]] == sorted([
+        older["candidates"][1]["signal_id"], another_signal["signal_id"],
+    ])
+
+    for signal in tracker["signals"].values():
+        signal["score"] = 100 - signal["score"]
+    assert active_signals() == rows
+
+
 def test_formal_empty_keeps_rolling_summary_and_primary_is_first(tmp_path):
     watchlist = _write_watchlist(tmp_path, '20260910', [_candidate('600001', 'New', 60)])
     _write_tracker(tmp_path, watchlist)
@@ -933,14 +982,17 @@ def test_34_candidates_preserve_exact_identity_and_values(tmp_path):
     path = tmp_path / 'data/watchlist_20260922.json'
     before = path.read_bytes()
     _write_tracker(tmp_path, watchlist)
+    tracker_path = _paths(tmp_path).perf_tracker_file()
+    tracker_before = tracker_path.read_bytes()
     model, dated, latest = renderer.render_daily_close('20260922', paths=_paths(tmp_path), calendar=CALENDAR)
     assert len(model.watchlist_rows) == 34
     expected = {r['signal_id']: r for r in watchlist['candidates']}
     assert {r['signal_id'] for r in model.watchlist_rows} == set(expected)
     for row in model.watchlist_rows:
-        for key in ('code', 'name', 'score', 'trigger', 'stop', 'target', 'rr'):
+        for key in ('code', 'name', 'trigger', 'stop', 'target', 'rr'):
             assert row[key] == expected[row['signal_id']][key]
     assert path.read_bytes() == before
+    assert tracker_path.read_bytes() == tracker_before
     assert dated.read_bytes() == latest.read_bytes()
     assert not model.previous_signals and not model.active_signals and not model.closed_today
     assert model.daily_summary['tracked'] == 0
@@ -1219,7 +1271,7 @@ def test_mobile_responsive_css_preserves_core_fields_and_wide_table_fallback(tmp
     assert_mobile_rule('.primary-kpis', 'grid-template-columns: repeat(2, minmax(0, 1fr));')
     assert_mobile_rule('.metric-strip', 'grid-template-columns: repeat(2, minmax(0, 1fr));')
     assert_mobile_rule('.funnel', 'grid-template-columns: repeat(2, minmax(0, 1fr));')
-    assert_mobile_rule('.watch-primary', 'grid-template-columns: 26px minmax(0, 1fr) auto;')
+    assert_mobile_rule('.watch-primary', 'grid-template-columns: 26px minmax(0, 1fr);')
     assert_mobile_rule('.watch-state', 'grid-column: 2 / -1;')
     assert_mobile_rule('.watch-facts', 'grid-template-columns: repeat(2, minmax(0, 1fr));')
     assert_mobile_rule('.action-facts', 'grid-template-columns: repeat(2, minmax(0, 1fr));')
@@ -1239,11 +1291,14 @@ def test_mobile_responsive_css_preserves_core_fields_and_wide_table_fallback(tmp
     for marker in (
         str(row['code']),
         str(row['name']),
-        renderer._integer(row['score']),
         *(renderer._number(row[key]) for key in ('trigger', 'stop', 'target', 'rr')),
     ):
         assert marker in text
     assert all(marker in text for marker in ('触发', '止损', '目标'))
+    assert '<span class="watch-index">1</span>' in text
+    assert '按股票代码升序展示，序号仅表示展示顺序' in text
+    assert 'watch-score' not in text
+    assert 'Score' not in text
     assert dated.read_bytes() == latest.read_bytes()
     assert renderer.render_html(model) == renderer.render_html(model)
 
