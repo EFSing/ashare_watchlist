@@ -1,5 +1,16 @@
 # CURRENT STATUS
 
+## 2026-11-17 — 独立 B 短名单预览已形成 Draft
+
+- [Draft PR #113](https://github.com/EFSing/ashare_watchlist/pull/113)，分支
+  `codex/b-shortlist-preview-v1`，实现 checkpoint `69e55b05427d7a6a8ed9e17022c7ba194e846f68`。
+  Research question / STRICT PATH，非阻塞；`ADOPT` 仅限试验预览实现。
+- 独立 CLI 从单日 canonical B 与原始结构/量能记录选最多 2 或 3 只，保留全部候选及去留原因。
+  2026-11-16 样例：12 候选 / 10 可比较 / 3 入选，覆盖 `DEGRADED`；明确为离线重放。
+- 65 项定向测试、编译与 diff 检查通过。PR 当前 HEAD / CI 是 live state，按远端实时读取。
+  优选收益仍为 `NEEDS_MORE_EVIDENCE`，不等于找到未来收益最好的股票；生产排名未采纳。
+  没有读取后续收益或 Final OOS。现有 B/C、独立量能采集和 Delivery Ladder 保持原有状态。
+
 ## 2026-11-12 — B 候选卡显示量能基线偏差
 
 - [PR #112](https://github.com/EFSing/ashare_watchlist/pull/112) squash merge

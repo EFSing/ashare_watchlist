@@ -34,6 +34,13 @@
   `runtime-state@41217316bff22bd26c3a304f8229fc4b14d8020d`，12 候选 / 10 可比较 / 3 入选。
   原始覆盖 `DEGRADED`；这里只验证原始记录 hash 与历史源码身份，未重算 K 线。
   全部候选和理由保留；未读取收益、tracker 或 Final OOS。归类保持非阻塞 research question。
+- 独立 [Draft PR #113](https://github.com/EFSing/ashare_watchlist/pull/113) 已建立，
+  实现 checkpoint `69e55b05427d7a6a8ed9e17022c7ba194e846f68`。CI 状态按 PR 当前 HEAD
+  实时读取，不把本快照当作未来 HEAD 约束。没有合并或生产激活决定。
+- REMOTE_RECOVERY_CHECKPOINT 在 `codex/b-shortlist-preview-v1`；fetch 后以
+  `git rev-parse origin/codex/b-shortlist-preview-v1` 获取远端 HEAD。代码、样例及原始输入
+  均可从远端恢复，无仅存本机的依赖。下一步为审阅短名单及明确未来优选有效性评估；
+  本轮停在独立预览，不自行开新研究或接入日报。
 
 ## 2026-11-12 — B 候选卡量能基线偏差已合并
 
