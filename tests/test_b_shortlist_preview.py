@@ -1,6 +1,10 @@
 """User-visible shortlist behavior and original-input identity boundaries."""
 import copy
+from datetime import datetime
+import html
 import json
+from pathlib import Path
+import re
 import subprocess
 
 import pytest
@@ -272,3 +276,139 @@ def test_cli_refuses_production_output_before_reading_inputs(monkeypatch):
     for output in (preview.ROOT / "data" / "preview", preview.ROOT / ".git" / "preview"):
         with pytest.raises(SystemExit):
             preview.main(["--date", DAY, "--output-dir", str(output)])
+
+
+@pytest.fixture
+def daily_inputs(tmp_path):
+    from data_paths import DataPaths
+    from test_b_structure_volume_shadow import _inputs as original_inputs, CAL
+
+    day = "2026-11-05"
+    b, _, state = original_inputs(tmp_path, codes=("600005", "600003", "600001", "600004", "600002"),
+                                  missing=("600005",))
+    paths = DataPaths(state / "data")
+    watch_path = paths.watchlist_file(day)
+    watch = json.loads(watch_path.read_bytes())
+    for c in watch["candidates"]:
+        c.pop("signal_id")
+        c.update(setup="B_BREAKOUT_RETEST", price=10.4)
+    watch = validate_watchlist(watch)
+    watch_path.write_bytes(canonical(watch))
+    run_path = Path(b["watchlist"]["run_manifest_path"])
+    run = json.loads(run_path.read_bytes())
+    run["output"]["file_sha256"] = sha(watch_path.read_bytes())
+    run_path.write_bytes(canonical(run))
+    return day, CAL, paths, watch_path, run_path
+
+
+def test_daily_report_selects_before_shadow_delivery_and_retains_all_inputs(daily_inputs, tmp_path, monkeypatch):
+    import requests
+    import render_daily_close_html as renderer
+
+    day, cal, paths, watch_path, run_path = daily_inputs
+    monkeypatch.setattr(requests.sessions.Session, "request", lambda *a, **k: pytest.fail("network not permitted"))
+    monkeypatch.setattr(preview, "load_inputs", lambda *a, **k: pytest.fail("do not load post-delivery Git records"))
+    originals = {p: p.read_bytes() for p in tmp_path.rglob("*.json")}
+    assert not (paths.root.parent / preview.shadow.RELATIVE_ROOT).exists()
+    model, dated, latest = renderer.render_daily_close(
+        day, paths=paths, calendar=cal, research_run_manifest=run_path,
+        generated_at=datetime.fromisoformat(day + "T19:00:00+08:00"),
+    )
+    assert model.shortlist["selected_codes"] == ["600001", "600002", "600003"]
+    assert model.shortlist["eligible_count"] == 4
+    assert len(model.watchlist_rows) == model.metadata["candidate_count"] == 5
+    assert all(p.read_bytes() == raw for p, raw in originals.items())
+    text = dated.read_text(encoding="utf-8")
+    assert dated.read_bytes() == latest.read_bytes()
+    main, more = renderer._shortlist_watchlist_html(model).split('<details id="remaining-candidates-details"')
+    assert main.count('class="watch-row"') == 3 and more.count('class="watch-row"') == 2
+    assert more.startswith(' class="audit-details">')  # Folded by default.
+    assert "600004" in more and "排在重点名额之后" in more
+    assert "600005" in more and "量能资料不完整" in more
+    assert "今日重点观察 · 3" in text and "正式候选共 5 只" in text
+    assert "收益优势尚未验证" in text and "每日重点名单不代表新增买入配额" in text
+    assert "不能当作这份重点名单的收益验证" in text
+    assert "Score" not in text and "watch-score" not in text and "名单评分" not in text
+    saved = json.loads(html.unescape(re.search(r'<meta name="b-shortlist-json" content="([^"]*)">', text)[1]))
+    assert saved == model.shortlist and saved["mode"] == "REPORT_AS_OF_SELECTION"
+    assert saved["source"]["watchlist_sha256"] == sha(watch_path.read_bytes())
+    assert saved["production_validated"] is False
+
+
+def test_daily_limit_two_and_score_changes_do_not_affect_selection(daily_inputs):
+    import render_daily_close_html as renderer
+
+    day, cal, paths, watch_path, run_path = daily_inputs
+    first = renderer.build_report_model(day, paths=paths, calendar=cal,
+                                       research_run_manifest=run_path, shortlist_limit=2)
+    watch = json.loads(watch_path.read_bytes())
+    for index, c in enumerate(watch["candidates"]):
+        c["score"] = 10000 - index * 999
+    watch["candidates"].reverse()
+    watch_path.write_bytes(canonical(watch))
+    run = json.loads(run_path.read_bytes())
+    run["output"]["file_sha256"] = sha(watch_path.read_bytes())
+    run_path.write_bytes(canonical(run))
+    changed = renderer.build_report_model(day, paths=paths, calendar=cal,
+                                         research_run_manifest=run_path, shortlist_limit=2)
+    assert first.shortlist["selected_codes"] == changed.shortlist["selected_codes"] == ["600001", "600002"]
+    assert first.shortlist["rows"] == changed.shortlist["rows"]
+    assert [r["code"] for r in changed.watchlist_rows] == [r["code"] for r in first.watchlist_rows]
+
+
+@pytest.mark.parametrize("failure", ["missing_manifest", "watch_hash", "date", "spec", "selector"])
+def test_daily_selection_unavailable_never_falls_back_to_score(daily_inputs, monkeypatch, failure):
+    import render_daily_close_html as renderer
+
+    day, cal, paths, _, run_path = daily_inputs
+    run = json.loads(run_path.read_bytes())
+    if failure == "missing_manifest":
+        run_path = None
+    elif failure == "selector":
+        def fail(*args, **kwargs):
+            raise RuntimeError("synthetic selector failure")
+        monkeypatch.setattr(preview, "build_preview", fail)
+    else:
+        if failure == "watch_hash":
+            run["output"]["file_sha256"] = "0" * 64
+        elif failure == "date":
+            run["signal_date"] = "2026-11-06"
+        else:
+            run["strategy_spec_sha256"] = "0" * 64
+        run_path.write_bytes(canonical(run))
+    model, dated, _ = renderer.render_daily_close(day, paths=paths, calendar=cal, research_run_manifest=run_path)
+    assert model.shortlist["status"] == "UNAVAILABLE" and model.shortlist["selected_codes"] == []
+    assert len(model.watchlist_rows) == 5
+    text = dated.read_text(encoding="utf-8")
+    assert "暂无法筛选重点候选" in text and "其余候选 · 5" in text
+    assert text.count('class="watch-row"') == 5 and "Score" not in text
+
+
+def test_future_bars_cannot_enter_daily_shortlist(daily_inputs):
+    import render_daily_close_html as renderer
+
+    day, cal, paths, _, run_path = daily_inputs
+    run = json.loads(run_path.read_bytes())
+    for item in run["input_manifest"]["stock_klines"]:
+        item["bars"].append({**item["bars"][-1], "date": "2026-11-06"})
+    run_path.write_bytes(canonical(run))
+    model = renderer.build_report_model(day, paths=paths, calendar=cal, research_run_manifest=run_path)
+    assert model.shortlist["selected_codes"] == [] and len(model.watchlist_rows) == 5
+    assert model.shortlist["eligible_count"] == 0
+    assert "今日不补足重点名额" in renderer.render_html(model)
+
+
+def test_followup_order_keeps_status_priority_but_ignores_score(tmp_path):
+    import render_daily_close_html as renderer
+    from test_daily_close_html import _candidate, _write_watchlist, _write_tracker, _paths
+
+    watch = _write_watchlist(tmp_path, "20260909", [
+        _candidate("600003", "异常", 0), _candidate("600001", "低分", 1), _candidate("600002", "高分", 999),
+    ])
+    tracker = _write_tracker(tmp_path, watch)
+    for s in tracker["signals"].values():
+        s.update(status="triggered", observations=[{"date": "2026-09-10", "price": 10}])
+    tracker["signals"][watch["candidates"][0]["signal_id"]]["status"] = "AMBIGUOUS_SAME_BAR"
+    _write_watchlist(tmp_path, "20260910", [])
+    previous, _, _ = renderer._daily_collections(tracker, "2026-09-10", "2026-09-09", _paths(tmp_path), [])
+    assert [r["code"] for r in previous] == ["600003", "600001", "600002"]

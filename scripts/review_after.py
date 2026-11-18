@@ -67,7 +67,6 @@ def review_watchlist(cands: list[dict[str, Any]], quotes: dict[str, dict[str, An
             "代码": code,
             "名称": quote["name"],
             "买点": candidate["buy_type"],
-            "名单评分": candidate["score"],
             "今日涨跌%": round(quote["chg_pct"], 2),
             "现价": round(price_now, 2),
             "触发价": trigger,

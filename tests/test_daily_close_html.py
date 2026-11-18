@@ -85,7 +85,7 @@ def _paths(root: Path) -> DataPaths:
     return DataPaths(root / "data")
 
 
-def test_canonical_watchlist_is_score_sorted_and_distance_is_display_only(tmp_path):
+def test_canonical_watchlist_is_code_sorted_and_distance_is_display_only(tmp_path):
     candidates = [
         _candidate("600018", "上港集团", 31),
         _candidate("002124", "天邦食品", 70),
@@ -100,7 +100,7 @@ def test_canonical_watchlist_is_score_sorted_and_distance_is_display_only(tmp_pa
 
     model = renderer.build_report_model("20260910", paths=_paths(tmp_path), calendar=CALENDAR)
 
-    assert [row["code"] for row in model.watchlist_rows] == ["002124", "600278", "600018"]
+    assert [row["code"] for row in model.watchlist_rows] == ["002124", "600018", "600278"]
     assert model.watchlist_rows[0]["name"] == "天邦食品"
     assert model.watchlist_rows[0]["distance_to_trigger_pct"] == pytest.approx(2.0)
     assert model.metadata["package_sha"] == hashlib.sha256(b"package-bytes").hexdigest()
@@ -1219,7 +1219,7 @@ def test_mobile_responsive_css_preserves_core_fields_and_wide_table_fallback(tmp
     assert_mobile_rule('.primary-kpis', 'grid-template-columns: repeat(2, minmax(0, 1fr));')
     assert_mobile_rule('.metric-strip', 'grid-template-columns: repeat(2, minmax(0, 1fr));')
     assert_mobile_rule('.funnel', 'grid-template-columns: repeat(2, minmax(0, 1fr));')
-    assert_mobile_rule('.watch-primary', 'grid-template-columns: 26px minmax(0, 1fr) auto;')
+    assert_mobile_rule('.watch-primary', 'grid-template-columns: 26px minmax(0, 1fr);')
     assert_mobile_rule('.watch-state', 'grid-column: 2 / -1;')
     assert_mobile_rule('.watch-facts', 'grid-template-columns: repeat(2, minmax(0, 1fr));')
     assert_mobile_rule('.action-facts', 'grid-template-columns: repeat(2, minmax(0, 1fr));')

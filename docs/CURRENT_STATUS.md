@@ -1,6 +1,17 @@
 # CURRENT STATUS
 
-## 2026-11-17 — 独立 B 短名单预览已形成 Draft
+## 2026-11-18 — 日报短名单接入与候选评分退场待合并
+
+- 用户明确授权“我要接入”，扩展 [PR #113](https://github.com/EFSing/ashare_watchlist/pull/113)
+  为日报接入。归类 deferred improvement / STRICT PATH，非阻塞；不再仅限独立预览。
+- 默认展示最多 3 只重点候选，其余折叠且保留原因；复用同轮 generation manifest 的
+  T-known 结构/量能，数据缺失或身份不符时不给出优选。Score 退出产品展示与排序。
+- canonical B 全集、交易参数、绩效口径、冻结记录与 C 不变。收益优势仍为
+  `NEEDS_MORE_EVIDENCE`，日更短名单不等于实际账户持仓或新增买入配额。
+- 189 项定向测试通过，Chrome 320/375/1280 px 布局、搜索及折叠复位通过。
+  当前等待实现 HEAD 的远端 CI 和合并；生效依赖现有每日流程从 master 读取代码。
+
+## 历史检查点 — 2026-11-17 — 独立 B 短名单预览已形成 Draft
 
 - [Draft PR #113](https://github.com/EFSing/ashare_watchlist/pull/113)，分支
   `codex/b-shortlist-preview-v1`，实现 checkpoint `69e55b05427d7a6a8ed9e17022c7ba194e846f68`。

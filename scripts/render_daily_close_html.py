@@ -113,6 +113,7 @@ class ReportModel:
     trade_performance: dict[str, Any] | None = None
     execution_audit: dict[str, Any] | None = None
     shadow_monitor: dict[str, Any] | None = None
+    shortlist: dict[str, Any] | None = None
 
 
 def _normalize_date(value: date | datetime | str) -> str:
@@ -542,7 +543,7 @@ def _watchlist_rows(
     signals = signals if isinstance(signals, Mapping) else {}
     candidates = sorted(
         watchlist["candidates"],
-        key=lambda item: (-float(item.get("score", float("-inf"))), str(item.get("code", ""))),
+        key=lambda item: str(item.get("code", "")),
     )
     rows: list[dict[str, Any]] = []
     shadow_context = shadow_monitor.get("current_signal_context", {}) if isinstance(shadow_monitor, Mapping) else {}
@@ -592,6 +593,38 @@ def _watchlist_rows(
             }
         )
     return rows
+
+
+def _daily_shortlist(watchlist, observations, watchlist_bytes, limit):
+    """Use only this run's verified T-known observations, never tracker state."""
+    if type(limit) is not int or limit not in (2, 3):
+        raise ValueError("SHORTLIST_LIMIT_MUST_BE_2_OR_3")
+    from b_structure_volume_observation import canonical, sha
+    import preview_b_shortlist as selector
+
+    source_rows = [observations[key] for key in sorted(observations)]
+    source = {"watchlist_sha256": sha(watchlist_bytes)}
+    try:
+        source.update(
+            observations_sha256=sha(canonical(source_rows)),
+            selector_source_lf_sha256=sha(Path(selector.__file__).read_bytes().replace(b"\r\n", b"\n")),
+            feature_identity=selector.shadow.feature_identity(),
+        )
+        result = selector.build_preview(
+            watchlist, {"signal_date": watchlist["date"], "rows": source_rows}, limit=limit,
+        )
+    except Exception as exc:
+        # Fail closed for the shortlist, while retaining the formal report.
+        result = {"schema_version": selector.VERSION, "signal_date": watchlist["date"],
+                  "limit": limit, "candidate_count": len(watchlist["candidates"]),
+                  "selected_codes": [], "rows": [], "status": "UNAVAILABLE",
+                  "failure_reason": f"{type(exc).__name__}: {exc}",
+                  "evidence_status": "NEEDS_MORE_EVIDENCE", "production_validated": False}
+    else:
+        result["status"] = "AVAILABLE"
+    # This mode describes a report-time calculation, not a prospective return sample.
+    result.update(mode="REPORT_AS_OF_SELECTION", source=source)
+    return result
 
 
 def _review_rows(
@@ -756,17 +789,13 @@ def _daily_collections(tracker, report_date, previous_date, paths, failures):
             groups[1].append(row)
         elif closed_today:
             groups[2].append(row)
-    def sort_key(row: Mapping[str, Any]) -> tuple[int, float, str, str]:
+    def sort_key(row: Mapping[str, Any]) -> tuple[int, str, str]:
         attention = (
             0 if row.get('raw_status') == 'AMBIGUOUS_SAME_BAR' or not row.get('observed')
             else 1 if row.get('raw_status') == 'triggered'
             else 2
         )
-        try:
-            score = -float(row.get('score'))
-        except (TypeError, ValueError):
-            score = float('inf')
-        return attention, score, str(row.get('code', '')), str(row.get('signal_id', ''))
+        return attention, str(row.get('code', '')), str(row.get('signal_id', ''))
 
     for rows in groups:
         rows.sort(key=sort_key)
@@ -815,6 +844,7 @@ def build_report_model(
     generated_at: datetime | None = None,
     calendar: TradingCalendar | None = None,
     research_run_manifest: Path | None = None,
+    shortlist_limit: int = 3,
 ) -> ReportModel:
     """Load canonical inputs and build a report without writing any files."""
 
@@ -834,6 +864,7 @@ def build_report_model(
     research_observations = _load_b_research_observations(
         research_run_manifest, watchlist, watchlist_bytes, cal,
     )
+    shortlist = _daily_shortlist(watchlist, research_observations, watchlist_bytes, shortlist_limit)
     tracker, review_failures = _load_review_tracker(resolver, review_failure)
     performance_tracker = tracker if tracker is not None else {"version": 2, "signals": {}}
     canonical_watchlists = current_prospective_watchlists(resolver)
@@ -1180,6 +1211,7 @@ def build_report_model(
         trade_performance=trade_performance,
         execution_audit=execution_audit,
         shadow_monitor=shadow_monitor,
+        shortlist=shortlist,
     )
 
 
@@ -1369,7 +1401,8 @@ _VOLUME_RESEARCH_DEFINITIONS = {
                                   '奇数天时中间日归后半段。',
 }
 _RESEARCH_OBSERVATION_NOTE = (
-    '研究观察，不参与 Formal B 筛选或正式排序，也不计入 Score。'
+    '结构与量能不改变正式候选资格；重点观察按固定试验规则比较结构、两项量能及参考买卖距离，'
+    '收益优势尚未验证。第三项量能只展示，不参与重点筛选。'
     '结构阶段是系统的客观结构代理，不是人工波浪计数。'
     '当日同结构位置仅表示数值在今日 2→3 候选中的相对位置，不代表好坏。'
 )
@@ -1709,7 +1742,7 @@ def _structure_observation_html(research: Mapping[str, Any] | None) -> str:
     )
 
 
-def _watchlist_table(rows, earliest_execution=None):
+def _watchlist_table(rows, earliest_execution=None, *, table_id='watchlist-table'):
     body = []
     for row in rows:
         distance = row['distance_to_trigger_pct']
@@ -1725,15 +1758,15 @@ def _watchlist_table(rows, earliest_execution=None):
             f'<span class="watch-rank">{_esc(_integer(row.get("rank"), ""))}</span>'
             f'<div class="security"><strong>{_esc(row.get("code"))}</strong>'
             f'<span>{_esc(row.get("name"))}</span></div>'
-            f'<div class="watch-score"><span>Score</span><strong>{_esc(_integer(row.get("score")))}</strong></div>'
             f'<div class="watch-state">{_ui_badge(observation_status)}'
             f'<small>{_esc(_display_status(status))}</small></div>'
             f'</div>'
+            f'{_shortlist_reason_html(row.get("shortlist_detail"))}'
             f'<div class="watch-facts">'
             f'<span><label>触发</label><strong>{_esc(_number(row.get("trigger")))}</strong></span>'
             f'<span><label>止损</label><strong class="negative">{_esc(_number(row.get("stop")))}</strong></span>'
             f'<span><label>目标</label><strong class="positive">{_esc(_number(row.get("target")))}</strong></span>'
-            f'<span><label>RR</label><strong>{_esc(_number(row.get("rr")))}</strong></span>'
+            f'<span><label>计划 RR</label><strong>{_esc(_number(row.get("rr")))}</strong></span>'
             f'<span><label>距触发</label><strong class="{distance_tone}">{_esc(distance_value)}</strong>'
             f'<small>{_esc(_position(distance))}</small></span>'
             f'<span><label>T+1</label><strong>{_esc(earliest_execution)}</strong></span>'
@@ -1744,8 +1777,63 @@ def _watchlist_table(rows, earliest_execution=None):
             f'</article>'
         )
     if not body:
-        return '<div id="watchlist-table" class="empty-state">今日暂无新名单。</div>'
-    return f'<div id="watchlist-table" class="watchlist-list">{"".join(body)}</div>'
+        return f'<div id="{_esc(table_id)}" class="empty-state">今日暂无新名单。</div>'
+    return f'<div id="{_esc(table_id)}" class="watchlist-list">{"".join(body)}</div>'
+
+
+def _shortlist_reason_html(detail):
+    if detail is None:
+        return ''
+    if detail.get('selected'):
+        reason = (
+            f"按本轮固定比较顺序入选；参考买价 {_number(detail['reference_entry'])}，"
+            f"参考止损距离 {_percent(detail['reference_risk_fraction'] * 100)}，"
+            f"参考收益风险比 {_number(detail['reference_reward_risk'])}。"
+        )
+    else:
+        explanations = {
+            'OUTSIDE_COMPARISON_STAGE': '结构阶段不在本轮比较范围',
+            'V1_V2_UNAVAILABLE_OR_INVALID': '两项主要量能资料不完整，暂不比较',
+            'INVALID_REFERENCE_PRICES': '参考买价与止损、目标的关系不满足比较条件',
+            'LIMIT_REACHED': '按本轮比较顺序排在重点名额之后',
+            'UNAVAILABLE': '短名单资料缺失或未通过核验，保留原始候选供核对',
+        }
+        reason = '；'.join(explanations.get(key, '暂未进入重点观察') for key in detail['reasons'])
+    return f'<p class="shortlist-reason">{_esc(reason)}</p>'
+
+
+def _shortlist_watchlist_html(model):
+    shortlist = model.shortlist or {'status': 'UNAVAILABLE', 'rows': [], 'selected_codes': []}
+    details = {r['signal_id']: r for r in shortlist['rows']}
+    selected, remaining = [], []
+    for row in model.watchlist_rows:
+        detail = details.get(row['signal_id'], {'selected': False, 'reasons': ['UNAVAILABLE']})
+        displayed = {**row, 'shortlist_detail': detail}
+        if detail['selected']:
+            displayed['rank'] = detail['comparison_order']
+            selected.append(displayed)
+        else:
+            remaining.append(displayed)
+    selected.sort(key=lambda r: r['shortlist_detail']['comparison_order'])
+    remaining.sort(key=lambda r: (str(r['code']), str(r['signal_id'])))
+    for index, row in enumerate(remaining, 1):
+        row['rank'] = index
+    if selected:
+        main = _watchlist_table(selected, model.metadata.get('earliest_execution'), table_id='shortlist-candidates')
+    else:
+        note = ('今日暂无新名单。' if not model.watchlist_rows else
+                '当轮结构或量能资料缺失、未通过核验，暂无法筛选重点候选。' if shortlist['status'] != 'AVAILABLE' else
+                '本轮没有符合比较条件的候选，今日不补足重点名额。')
+        main = f'<div class="empty-state">{note}</div>'
+    more = (
+        '<details id="remaining-candidates-details" class="audit-details">'
+        f'<summary>其余候选 · {len(remaining)}（查看未入选原因）</summary><div class="audit-content">'
+        '<p class="note">按代码展示，序号不代表推荐优先级。</p>'
+        + _watchlist_table(remaining, model.metadata.get('earliest_execution'), table_id='remaining-candidates')
+        + '</div></details>'
+        if remaining else ''
+    )
+    return f'<div id="watchlist-table">{main}{more}</div>'
 
 
 def _daily_note(row: Mapping[str, Any]) -> str:
@@ -2458,7 +2546,7 @@ def _shadow_monitor_html(shadow: Mapping[str, Any]) -> str:
     return (
         stats
         + '<div class="secondary-label"><span>Prospective shadow observation</span>'
-        + '<small>仅描述，不参与正式名单、评分、排序或交易参数</small></div>'
+        + '<small>仅描述，不参与正式名单、重点筛选或交易参数</small></div>'
     )
 
 
@@ -2541,6 +2629,13 @@ def render_html(model: ReportModel) -> str:
         ' warning' if model.review_status in {'REVIEW_FAILED', REVIEW_OBSERVATION_INCOMPLETE} else ''
     )
     watchlist_count = len(model.watchlist_rows)
+    shortlist = model.shortlist or {'status': 'UNAVAILABLE', 'limit': 3, 'selected_codes': []}
+    shortlist_count = len(shortlist['selected_codes'])
+    shortlist_meta_tag = (
+        '<meta name="b-shortlist-json" content="'
+        + _esc(json.dumps(shortlist, ensure_ascii=False, allow_nan=False, sort_keys=True, separators=(',', ':')))
+        + '">\n'
+    )
     shadow_monitor = model.shadow_monitor or {}
     shadow_html = _shadow_monitor_html(shadow_monitor)
     daily_review_html = _daily_review_html(model)
@@ -2564,7 +2659,7 @@ def render_html(model: ReportModel) -> str:
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-{coverage_meta_tag}<meta name="viewport" content="width=device-width, initial-scale=1">
+{coverage_meta_tag}{shortlist_meta_tag}<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>A股策略复盘 · { _esc(metadata.get('review_date')) }</title>
 <style>
 :root {{
@@ -2681,14 +2776,12 @@ input[type=search] {{ width: min(360px, 100%); padding: 8px 10px; border: 1px so
 .watchlist-list {{ display: grid; gap: 7px; }}
 .watch-row {{ min-width: 0; padding: 12px 13px; border: 1px solid var(--border); border-left: 3px solid var(--accent); background: var(--surface); }}
 .watch-row:hover, .action-row:hover {{ background: #fbfcfd; border-color: #bdcbd4; }}
-.watch-primary {{ display: grid; grid-template-columns: 28px minmax(0, 1fr) 90px minmax(150px, auto); align-items: center; gap: 10px; min-width: 0; }}
+.watch-primary {{ display: grid; grid-template-columns: 28px minmax(0, 1fr) minmax(150px, auto); align-items: center; gap: 10px; min-width: 0; }}
 .watch-rank {{ color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; text-align: center; }}
 .security {{ display: flex; align-items: baseline; gap: 8px; min-width: 0; }}
 .security strong {{ color: var(--text); font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; }}
 .security span {{ min-width: 0; overflow: hidden; color: var(--muted); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }}
-.watch-score {{ min-width: 0; text-align: right; }}
-.watch-score span {{ color: var(--muted); font-size: 11px; }}
-.watch-score strong {{ display: block; color: var(--accent); font-size: 19px; font-variant-numeric: tabular-nums; }}
+.shortlist-reason {{ margin: 10px 0 0 38px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }}
 .watch-state {{ display: flex; align-items: center; justify-content: flex-end; gap: 7px; }}
 .watch-state small {{ color: var(--muted); font-size: 11px; }}
 .watch-facts {{ display: flex; flex-wrap: wrap; gap: 5px 24px; min-width: 0; margin: 10px 0 0 38px; }}
@@ -2838,7 +2931,8 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   .metric-strip {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
   .funnel {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
   .watch-row {{ padding: 11px 10px; }}
-  .watch-primary {{ grid-template-columns: 26px minmax(0, 1fr) auto; align-items: start; gap: 8px; }}
+  .watch-primary {{ grid-template-columns: 26px minmax(0, 1fr); align-items: start; gap: 8px; }}
+  .shortlist-reason {{ margin-left: 34px; }}
   .watch-state {{ grid-column: 2 / -1; justify-content: flex-start; flex-wrap: wrap; gap: 5px 7px; }}
   .security {{ display: block; }}
   .security strong {{ display: block; font-size: 15px; }}
@@ -2920,9 +3014,11 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
 </section>
 
 <section id="tomorrow-watchlist">
-  <div class="section-head"><div><p class="section-kicker">WATCHLIST</p><h2>今日新名单 · {watchlist_count}</h2><p class="section-subtitle">按 Score 从高到低；触发、止损、目标和 RR 为计划参数。</p></div></div>
+  <div class="section-head"><div><p class="section-kicker">WATCHLIST</p><h2>今日重点观察 · {shortlist_count}</h2><p class="section-subtitle">正式候选共 {watchlist_count} 只，重点最多 {shortlist['limit']} 只；资料不足或条件不符时不凑满。</p></div></div>
+  <p class="note">试验筛选，收益优势尚未验证。每日重点名单不代表新增买入配额；已持有的股票再次出现时，不应仅凭重复入选加仓。</p>
+  <details class="audit-details"><summary>查看筛选依据</summary><div class="audit-content"><p>仅比较回踩后重新走强的同结构候选，分别比较下跌量占比、涨跌日均量比、参考止损距离与收益风险比。先取没有被其他候选在四项上同时不差且至少一项更好地超过的候选，再逐层比较；同层按参考收益风险比、止损距离、代码依次确定次序。第三项量能只展示。</p><p>参考买价取收盘价与触发价中较高者，不代表实际成交价或最高买价；参考比值未计费用与滑点。目标由原策略规则给出，相同风险倍数不提供额外区分。触发、止损、目标及计划 RR 保留原计划参数。</p><p>现有绩效统计覆盖正式候选全集，不能当作这份重点名单的收益验证。</p></div></details>
   <div class="toolbar"><label for="watchlist-search" class="note">搜索名单：</label><input id="watchlist-search" type="search" placeholder="输入代码、名称或行业" autocomplete="off"></div>
-  {_watchlist_table(model.watchlist_rows, metadata.get('earliest_execution'))}
+  {_shortlist_watchlist_html(model)}
 </section>
 
 <section id="daily-review">
@@ -2946,7 +3042,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   </details>
   <details id="shadow-monitor" class="research-data-details">
     <summary>Shadow · prospective 观察</summary>
-    <p class="model-explanation">仅记录 prospective shadow 样本与后续结果；不参与正式名单、评分、排序或交易参数。</p>
+    <p class="model-explanation">仅记录 prospective shadow 样本与后续结果；不参与正式名单、重点筛选或交易参数。</p>
     {shadow_html}
   </details>
   <details id="anomalies" class="research-data-details">
@@ -2965,7 +3061,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
     </div>
   </details>
 </section>
-<footer>本报告仅整理正式观察名单与 tracker 的真实记录。缺少记录统一显示为 —，不回填历史行情。</footer>
+<footer>本报告整理正式观察名单与真实跟踪记录，并按固定试验规则生成重点观察。缺少记录统一显示为 —，不回填历史行情。</footer>
 </main>
 <script>
 (function () {{
@@ -2976,6 +3072,8 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   search.addEventListener('input', function () {{
     const query = search.value.trim().toLowerCase();
     rows().forEach(function (row) {{ row.hidden = query !== '' && !(row.dataset.search || '').includes(query); }});
+    const more = document.getElementById('remaining-candidates-details');
+    if (more) more.open = query !== '';
   }});
 }})();
 </script>
@@ -3235,6 +3333,7 @@ def render_daily_close(
     generated_at: datetime | None = None,
     calendar: TradingCalendar | None = None,
     research_run_manifest: Path | None = None,
+    shortlist_limit: int = 3,
 ) -> tuple[ReportModel, Path, Path]:
     """Build and atomically write the dated report and complete latest copy."""
 
@@ -3246,6 +3345,7 @@ def render_daily_close(
         generated_at=generated_at,
         calendar=calendar,
         research_run_manifest=research_run_manifest,
+        shortlist_limit=shortlist_limit,
     )
     content = render_html(model)
     date_path = resolver.reports_dir() / f"daily_close_{_date_token(model.metadata['list_date'])}.html"
@@ -3259,6 +3359,8 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--date", required=True, help="canonical watchlist/report date, YYYYMMDD or YYYY-MM-DD")
     parser.add_argument("--research-run-manifest", type=Path, help=argparse.SUPPRESS)
+    parser.add_argument("--shortlist-limit", type=int, choices=(2, 3), default=3,
+                        help="重点观察上限（默认 3）；不改变正式候选全集")
     parser.add_argument(
         "--review-failure",
         default=None,
@@ -3274,6 +3376,7 @@ def main(argv: list[str] | None = None) -> int:
             args.date,
             review_failure=args.review_failure,
             research_run_manifest=args.research_run_manifest,
+            shortlist_limit=args.shortlist_limit,
         )
     except Exception as exc:
         print(f"DAILY_CLOSE_RENDER_FAILED: {type(exc).__name__}: {exc}")

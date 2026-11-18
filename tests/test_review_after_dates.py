@@ -56,6 +56,7 @@ def test_explicit_date_is_list_date_only_and_report_keeps_runtime_quote_date(tmp
     assert "--date 仅选择名单" in report
     assert "MISSING_HISTORICAL_OBSERVATION / UNVERIFIED" in report
     assert "每日轻量状态记录" in report
+    assert "名单评分" not in report
     assert "持仓" not in report
     assert "配对指标" not in report
     assert "14:45" not in report
