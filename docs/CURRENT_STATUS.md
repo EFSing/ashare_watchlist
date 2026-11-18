@@ -1,5 +1,14 @@
 # CURRENT STATUS
 
+## 2026-11-18 — C研究模拟已合并
+
+- [PR #115](https://github.com/EFSing/ashare_watchlist/pull/115) 已 squash merge 为
+  `30eba2df02868132d52c743610f9a0ee906b8ee2`。B+C 日报新增「C研究模拟」分区，复用 B
+  日报的理论买卖结算，买卖价位由 C 信号结构生成，收益以毛收益展示。
+- 正常 C 日报默认启用。日报交付及 C 名单发布后追加独立账本
+  `runtime-state:data/research/c_simulation_v1/`。首次实际日报和账本验收待正常运行。
+  该交付属于研究功能改进，合成行情和 CI 验证覆盖功能行为，策略效果仍待未来证据。
+
 ## 2026-11-18 — 日报重点短名单接入已合并
 
 - [PR #113](https://github.com/EFSing/ashare_watchlist/pull/113) 已 squash merge 为
