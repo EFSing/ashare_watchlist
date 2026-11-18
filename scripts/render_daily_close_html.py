@@ -541,15 +541,12 @@ def _watchlist_rows(
 ) -> list[dict[str, Any]]:
     signals = tracker.get("signals", {}) if isinstance(tracker, Mapping) else {}
     signals = signals if isinstance(signals, Mapping) else {}
-    candidates = sorted(
-        watchlist["candidates"],
-        key=lambda item: str(item.get("code", "")),
-    )
+    candidates = sorted(watchlist["candidates"], key=lambda item: item["code"])
     rows: list[dict[str, Any]] = []
     shadow_context = shadow_monitor.get("current_signal_context", {}) if isinstance(shadow_monitor, Mapping) else {}
     shadow_context = shadow_context if isinstance(shadow_context, Mapping) else {}
     independent_context = volume_observations if isinstance(volume_observations, Mapping) else {}
-    for rank, candidate in enumerate(candidates, start=1):
+    for display_index, candidate in enumerate(candidates, start=1):
         shadow_entry = shadow_context.get(candidate.get("signal_id"))
         shadow_entry = shadow_entry if isinstance(shadow_entry, Mapping) else {}
         signal = signals.get(candidate.get("signal_id"))
@@ -570,10 +567,9 @@ def _watchlist_rows(
             independent_observation = shadow_entry.get("volume_observation")
         rows.append(
             {
-                "rank": rank,
+                "display_index": display_index,
                 "code": candidate.get("code"),
                 "name": candidate.get("name"),
-                "score": candidate.get("score"),
                 "close": candidate.get("price"),
                 "trigger": candidate.get("trigger"),
                 "stop": candidate.get("stop"),
@@ -747,7 +743,7 @@ def _daily_collections(tracker, report_date, previous_date, paths, failures):
         row = {
             'code': signal.get('code'), 'name': signal.get('name'),
             'signal_id': signal.get('signal_id'), 'list_date': list_date,
-            'score': signal.get('score'), 'original_trigger': signal.get('trigger'),
+            'original_trigger': signal.get('trigger'),
             'today_open': observation.get('open') if observation else None,
             'today_high': observation.get('high') if observation else None,
             'today_low': observation.get('low') if observation else None,
@@ -1755,7 +1751,7 @@ def _watchlist_table(rows, earliest_execution=None, *, table_id='watchlist-table
         body.append(
             f'<article class="watch-row" data-search="{_esc(search)}">'
             f'<div class="watch-primary">'
-            f'<span class="watch-rank">{_esc(_integer(row.get("rank"), ""))}</span>'
+            f'<span class="watch-index">{_esc(_integer(row.get("display_index"), ""))}</span>'
             f'<div class="security"><strong>{_esc(row.get("code"))}</strong>'
             f'<span>{_esc(row.get("name"))}</span></div>'
             f'<div class="watch-state">{_ui_badge(observation_status)}'
@@ -1810,14 +1806,14 @@ def _shortlist_watchlist_html(model):
         detail = details.get(row['signal_id'], {'selected': False, 'reasons': ['UNAVAILABLE']})
         displayed = {**row, 'shortlist_detail': detail}
         if detail['selected']:
-            displayed['rank'] = detail['comparison_order']
+            displayed['display_index'] = detail['comparison_order']
             selected.append(displayed)
         else:
             remaining.append(displayed)
     selected.sort(key=lambda r: r['shortlist_detail']['comparison_order'])
     remaining.sort(key=lambda r: (str(r['code']), str(r['signal_id'])))
     for index, row in enumerate(remaining, 1):
-        row['rank'] = index
+        row['display_index'] = index
     if selected:
         main = _watchlist_table(selected, model.metadata.get('earliest_execution'), table_id='shortlist-candidates')
     else:
@@ -1828,7 +1824,7 @@ def _shortlist_watchlist_html(model):
     more = (
         '<details id="remaining-candidates-details" class="audit-details">'
         f'<summary>其余候选 · {len(remaining)}（查看未入选原因）</summary><div class="audit-content">'
-        '<p class="note">按代码展示，序号不代表推荐优先级。</p>'
+        '<p class="note">按股票代码升序展示，序号仅表示展示顺序。</p>'
         + _watchlist_table(remaining, model.metadata.get('earliest_execution'), table_id='remaining-candidates')
         + '</div></details>'
         if remaining else ''
@@ -2543,11 +2539,7 @@ def _shadow_monitor_html(shadow: Mapping[str, Any]) -> str:
             '</div>'
         )
 
-    return (
-        stats
-        + '<div class="secondary-label"><span>Prospective shadow observation</span>'
-        + '<small>仅描述，不参与正式名单、重点筛选或交易参数</small></div>'
-    )
+    return stats + '<div class="secondary-label"><span>Prospective shadow observation</span></div>'
 
 
 def render_html(model: ReportModel) -> str:
@@ -2776,8 +2768,8 @@ input[type=search] {{ width: min(360px, 100%); padding: 8px 10px; border: 1px so
 .watchlist-list {{ display: grid; gap: 7px; }}
 .watch-row {{ min-width: 0; padding: 12px 13px; border: 1px solid var(--border); border-left: 3px solid var(--accent); background: var(--surface); }}
 .watch-row:hover, .action-row:hover {{ background: #fbfcfd; border-color: #bdcbd4; }}
-.watch-primary {{ display: grid; grid-template-columns: 28px minmax(0, 1fr) minmax(150px, auto); align-items: center; gap: 10px; min-width: 0; }}
-.watch-rank {{ color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; text-align: center; }}
+.watch-primary {{ display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-width: 0; }}
+.watch-index {{ color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; text-align: center; }}
 .security {{ display: flex; align-items: baseline; gap: 8px; min-width: 0; }}
 .security strong {{ color: var(--text); font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; }}
 .security span {{ min-width: 0; overflow: hidden; color: var(--muted); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }}
@@ -2904,7 +2896,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   .prospective-kpis {{ grid-template-columns: repeat(2, 1fr); }}
   .metric-strip {{ grid-template-columns: repeat(3, 1fr); }}
   .funnel {{ grid-template-columns: repeat(2, 1fr); }}
-  .watch-primary {{ grid-template-columns: 24px minmax(0, 1fr) auto; }}
+  .watch-primary {{ grid-template-columns: 24px minmax(0, 1fr); }}
   .watch-state {{ grid-column: 2 / -1; justify-content: flex-start; }}
   .watch-facts, .watch-meta {{ margin-left: 32px; }}
   .volume-observations {{ grid-template-columns: 1fr; margin-left: 32px; }}
@@ -3042,7 +3034,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   </details>
   <details id="shadow-monitor" class="research-data-details">
     <summary>Shadow · prospective 观察</summary>
-    <p class="model-explanation">仅记录 prospective shadow 样本与后续结果；不参与正式名单、重点筛选或交易参数。</p>
+    <p class="model-explanation">独立记录前瞻样本与后续结果。</p>
     {shadow_html}
   </details>
   <details id="anomalies" class="research-data-details">

@@ -1,6 +1,6 @@
 # HANDOFF — 跨设备最小恢复入口
 
-## 2026-11-18 — 日报短名单接入与候选评分退场待合并
+## 2026-11-18 — 日报短名单接入待合并
 
 - 用户在确认 #113 尚未合并后明确要求“我要接入”；此前“仅独立预览、不合并/接入”的
   范围现由本次授权扩展。继续现有 `codex/b-shortlist-preview-v1` / PR #113，完成日报
@@ -8,16 +8,33 @@
 - 产品目标：日报默认展开最多 3 只重点候选，其余正式候选折叠且保留去留原因；采用已有
   固定比较规则，不调参。复用当轮经验证的 generation manifest 计算 T-known 结构/量能，
   不依赖交付后才写入的 Shadow。输入不足时短名单不可用且不补位，正式全集仍可查。
-- 移除候选 Score 展示及其新名单/持续跟踪排序作用；旧 JSON/tracker 字段和冻结计算保留。
-  同时移除日常轻量复盘的评分列。canonical B 资格、全集、交易参数、绩效分母与 C 均不变。
+- 接续已合并的 #114 去评分行为：旧 JSON/tracker 字段和冻结计算保留；新短名单不使用
+  Score。canonical B 资格、全集、交易参数、绩效分母与 C 均不变。已合入
+  `origin/master@1262208cc610e74d2bbf88a080250b2054f9c7f6`，保留 #114 的展示与测试更新。
 - ADOPT 用户授权的日报重点展示；收益优势仍为 NEEDS_MORE_EVIDENCE。页面必须说明是
   试验筛选、不能把每日名单当作新增买入配额；尚未接入实际持仓或跨日加仓决策。
   不启动新收益研究、采集、生产补跑或通知重发。停止于合并、可恢复交接和下一轮生效说明。
 - 已实现同轮来源核验、默认 3 只（CLI 可选 2/3）、折叠其余候选、去留解释和可检索页面；
   报告内保存选择结果与来源校验值。原始观察 store、canonical JSON、tracker 和策略未迁移。
-  189 项定向测试通过；Chrome 320/375/1280 px 检查无横向溢出，搜索和折叠复位通过。
+  190 项定向测试通过；Chrome 320/375/1280 px 检查无横向溢出，搜索和折叠复位通过。
   离线界面样例：`docs/examples/b_shortlist_daily_report_20261116.html`，用 11-16 原始保存记录
   演示，明确非今日新名单、非当时前瞻选择，未加载历史收益/持仓。待当前 HEAD CI 后合并。
+
+## 历史检查点 — 2026-11-17 — 日常候选 Score 退场已合并
+
+- Deferred improvement / STRICT PATH，归类保持。今日正式 B 名单按代码升序展示，持续跟踪
+  按既有状态优先级、代码和 signal_id 排序。日报候选卡与轻量复盘撤下评分。
+- [PR #114](https://github.com/EFSing/ashare_watchlist/pull/114) 原 HEAD
+  `e9efa7a1d618903b57e80df6af3c75b72548b958` 的
+  [PR correctness](https://github.com/EFSing/ashare_watchlist/actions/runs/44046996147) 和
+  [push correctness](https://github.com/EFSing/ashare_watchlist/actions/runs/44046988567) 均通过。
+  用户授权后于 16:34:50 BJT squash merge 为 `cdc22678afcfb7627730a72ef4baa5444704b5f4`。
+  [合并提交 correctness](https://github.com/EFSing/ashare_watchlist/actions/runs/44047956355)。
+- 228 项定向测试、Chrome 手机及桌面宽度离线检查、编译和 diff 检查通过。下一次正常日报
+  到达后核验正式 B 的代码顺序及候选卡。[PR #113](https://github.com/EFSing/ashare_watchlist/pull/113)
+  继续单独审阅。
+- REMOTE_RECOVERY_CHECKPOINT 在 `master`。Fetch 后用 `git rev-parse origin/master`
+  获取当前远端 HEAD。无本机依赖。
 
 ## 历史检查点 — 2026-11-17 — 每日 2–3 只优选的独立试验预览
 
