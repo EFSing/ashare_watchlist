@@ -69,6 +69,7 @@ jobs:
       DISPATCH_TRIGGER_SOURCE: ${{ github.event_name == 'workflow_dispatch' && inputs.trigger_source || 'manual' }}
       DISPATCH_ALLOW_WEEKEND_BACKFILL: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_weekend_backfill || false }}
       ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1: ${{ vars.ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1 || 'false' }}
+      ENABLE_C_RESEARCH_SIMULATION: ${{ github.ref == 'refs/heads/master' && vars.ENABLE_C_RESEARCH_SIMULATION != 'false' && 'true' || 'false' }}
       PRODUCTION_CANONICAL_READY: "0"
       RUNTIME_STATE_PERSISTED: "NO"
       PRODUCTION_FAILURE_STAGE: "NOT_STARTED"
@@ -695,6 +696,10 @@ jobs:
               print("C HTML: [download HTML and open locally](https://github.com/${{ github.repository }}/blob/runtime-state/" + path + ")")
           if result.get("matched_stock_count") is not None:
               print("C research matches: " + str(result["matched_stock_count"]))
+          if result.get("simulation_status"):
+              print("C research simulation: " + result["simulation_status"])
+              if result.get("simulation_error"):
+                  print("C simulation details: " + str(result["simulation_error"]))
           PY
 
       - name: Preserve C failure diagnosis without changing Formal B health

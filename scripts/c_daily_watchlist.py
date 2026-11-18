@@ -438,7 +438,7 @@ def _research_data_details(c_section: str) -> tuple[str, str]:
     return styles, body.strip()
 
 
-def compose_delivery_html(formal_html: bytes | str, c_section: str) -> bytes:
+def compose_delivery_html(formal_html: bytes | str, c_section: str, *, simulation_section: str = "") -> bytes:
     """Inline C into an existing self-contained Formal B document without changing B bytes."""
 
     text = formal_html.decode("utf-8") if isinstance(formal_html, bytes) else str(formal_html)
@@ -474,6 +474,10 @@ def compose_delivery_html(formal_html: bytes | str, c_section: str) -> bytes:
             text = text[:head.start()] + c_style + "\n" + text[head.start():]
         else:
             text = c_style + text
+    additional = f"\n{c_details}\n"
+    if simulation_section:
+        additional += f"{simulation_section}\n"
+        text = text.replace('</nav>', '<a href="#c-research-simulation">C研究模拟</a></nav>', 1)
     research_open = re.search(
         r"<section\b[^>]*id=[\"']research-data[\"'][^>]*>",
         text,
@@ -484,14 +488,14 @@ def compose_delivery_html(formal_html: bytes | str, c_section: str) -> bytes:
         if closing is None:
             raise ValueError("Research/data section has no closing tag")
         close_at = research_open.end() + closing.start()
-        composite = text[:close_at] + f"\n{c_details}\n" + text[close_at:]
+        composite = text[:close_at] + additional + text[close_at:]
     else:
         closing = re.search(r"</main\s*>", text, flags=re.IGNORECASE)
         if closing is None:
             closing = re.search(r"</body\s*>", text, flags=re.IGNORECASE)
         if closing is None:
             raise ValueError("Formal B report has no main or body closing tag")
-        composite = text[:closing.start()] + f"\n{c_details}\n" + text[closing.start():]
+        composite = text[:closing.start()] + additional + text[closing.start():]
     return composite.encode("utf-8")
 
 

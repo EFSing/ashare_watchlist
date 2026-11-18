@@ -6,6 +6,7 @@ import argparse
 from datetime import datetime, timedelta, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -25,6 +26,7 @@ from c_daily_watchlist import (
     write_report,
 )
 from c_prospective_capture import _safe_output_root
+import c_research_simulation as c_simulation
 from daily_report_delivery import DeliveryError, delivery_receipt_path, load_delivery_receipt
 from c_daily_watchlist import publish_report
 from cloud_runtime_state import allowlisted_data_files, validate_state_tree
@@ -181,8 +183,14 @@ def run(result: Mapping[str, Any], delivery: Mapping[str, Any], *,
         report = write_report(record, report_root)
         if any(_sha(Path(path)) != digest for path, digest in before.items()):
             raise RuntimeError("B_FORMAL_BYTES_CHANGED")
-        return {"status": "C_DAILY_RESEARCH_REPORT_READY", "c_status": report["c_status"],
-                "observation": consumed, "report": report}
+        response = {"status": "C_DAILY_RESEARCH_REPORT_READY", "c_status": report["c_status"],
+                    "observation": consumed, "report": report}
+        if _simulation_enabled():
+            try:
+                response["simulation"] = c_simulation.capture(result, consumed, record, state_root, report)
+            except (OSError, ValueError, RuntimeError, TypeError, KeyError) as exc:
+                response["simulation_error"] = str(exc)
+        return response
     except Exception as exc:
         if any(not Path(path).is_file() or _sha(Path(path)) != digest for path, digest in before.items()):
             return {"status": "C_FAILED_B_MUTATION_DETECTED", "reason": f"{type(exc).__name__}: {exc}"}
@@ -233,6 +241,10 @@ def _c_section(c_result: Mapping[str, Any] | None, c_status: str) -> str | None:
     return section
 
 
+def _simulation_enabled() -> bool:
+    return os.environ.get("ENABLE_C_RESEARCH_SIMULATION", "").lower() == "true"
+
+
 def build_composite_delivery(
     result: Mapping[str, Any],
     c_result: Mapping[str, Any] | None,
@@ -249,7 +261,19 @@ def build_composite_delivery(
     section = _c_section(c_result, c_status)
     if section is None:
         section = render_unavailable_section(str(result["as_of_date"]), c_status)
-    composite = compose_delivery_html(formal_bytes, section)
+    simulation_section = ""
+    simulation_rendered = False
+    if _simulation_enabled():
+        simulation = (c_result or {}).get("simulation")
+        try:
+            if simulation:
+                simulation_section = c_simulation.read_section(simulation)
+                simulation_rendered = True
+        except (OSError, ValueError, KeyError):
+            pass
+        if not simulation_section:
+            simulation_section = c_simulation.render_section(str(result["as_of_date"]))
+    composite = compose_delivery_html(formal_bytes, section, simulation_section=simulation_section)
     delivery_root.mkdir(parents=True, exist_ok=True)
     token = str(result["as_of_date"]).replace("-", "")
     delivery_path = delivery_root / f"delivery_daily_{token}.html"
@@ -263,6 +287,7 @@ def build_composite_delivery(
         "delivery_report_kind": DELIVERY_REPORT_KIND,
         "delivery_report_path": str(delivery_path),
         "delivery_report_sha256": _sha(delivery_path),
+        "simulation_rendered": simulation_rendered,
     }
 
 
@@ -402,13 +427,26 @@ def post_b(*, b_result: Path, delivery_result: Path, data_root: Path, state_root
             remote = _git(state_root, "show", f"FETCH_HEAD:{path}")
             if remote != local:
                 raise ValueError("C remote readback SHA mismatch")
-        return {"status": "C_DAILY_REPORT_PUBLISHED", "runtime_state_sha": remote_head,
+        response = {"status": "C_DAILY_REPORT_PUBLISHED", "runtime_state_sha": remote_head,
                 "paths": published["paths"], "signal_date": published["signal_date"],
                 "package_sha256": report["package_sha256"],
                 "html_sha256": published["html_sha256"],
                 "manifest_sha256": published["manifest_sha256"],
                 "matched_stock_count": published["matched_stock_count"],
                 "c_status": c_status}
+        if _simulation_enabled():
+            simulation = c_result.get("simulation")
+            if simulation and prepared.get("simulation_rendered") is True:
+                try:
+                    c_simulation.publish(simulation, state_root, published["signal_date"], published["manifest_sha256"])
+                    response["simulation_status"] = "C_SIMULATION_PUBLISHED"
+                except (OSError, ValueError, KeyError, subprocess.SubprocessError) as exc:
+                    response["simulation_status"] = "C_SIMULATION_PUBLISH_FAILED"
+                    response["simulation_error"] = str(exc)
+            else:
+                response["simulation_status"] = "C_SIMULATION_UNAVAILABLE"
+                response["simulation_error"] = c_result.get("simulation_error")
+        return response
     except (OSError, ValueError, subprocess.CalledProcessError, subprocess.TimeoutExpired, KeyError) as exc:
         return {"status": "C_REPORT_PUBLISH_FAILED_B_UNCHANGED", "stage": stage,
                 "reason": type(exc).__name__}

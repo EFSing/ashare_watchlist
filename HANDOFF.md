@@ -1,5 +1,21 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-11-18 — C研究模拟待合并
+
+- Deferred improvement / STRICT PATH，归类保持。用户指定沿用 B 日报的理论规则模拟，
+  在合并日报增加「C研究模拟」区与导航。C 信号按日期、代码和 C 规则分别记录。
+- 复用 B 的日线结算函数：从信号次一交易日起按触发价模拟买入，买入次日起按止损或
+  目标价模拟卖出，同日两价都触及记顺序不明。无固定到期退出。价位在 T 日确定：
+  触发参考 C 回踩反弹高点与 MA5 的较高值，止损为 C 结构支撑下方 2%，目标为满足
+  距离条件的 C 阶段前高，否则按收盘参考风险的 2.5 倍。价位不合法或行情不足单列。
+- 仅用已有同轮 QFQ 输入，校验原信号日价格基准，日报标注毛收益。通过 B+C
+  日报交付及 C 名单发布后，向 `runtime-state:data/research/c_simulation_v1/` 追加信号和
+  已结案记录。既有 B tracker 与 C 筛选路径独立。没有启动历史补录或生产运行。
+- REMOTE_RECOVERY_CHECKPOINT 在 `codex/c-paper-trading`；fetch 后用
+  `git rev-parse origin/codex/c-paper-trading` 获取当前远端 HEAD。待审阅和合并，随后首个
+  正常交易日检查日报分区、远端账本及下一交易日状态。master 默认随 C 日报启用模拟，
+  可用 `ENABLE_C_RESEARCH_SIMULATION=false` 暂停。无本机依赖。
+
 ## 2026-11-18 — 日报重点短名单接入已合并
 
 - Deferred improvement / STRICT PATH，归类保持。用户明确要求“我要接入”，此前独立预览
