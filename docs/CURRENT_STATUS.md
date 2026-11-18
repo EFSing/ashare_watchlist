@@ -1,11 +1,33 @@
 # CURRENT STATUS
 
-## 2026-11-17 — 日常候选 Score 退场已合并
+## 2026-11-18 — 日报短名单接入待合并
+
+- 用户明确授权“我要接入”，扩展 [PR #113](https://github.com/EFSing/ashare_watchlist/pull/113)
+  为日报接入。归类 deferred improvement / STRICT PATH，非阻塞；不再仅限独立预览。
+- 默认展示最多 3 只重点候选，其余折叠且保留原因；复用同轮 generation manifest 的
+  T-known 结构/量能，数据缺失或身份不符时不给出优选。延续 #114 已交付的去评分行为。
+- canonical B 全集、交易参数、绩效口径、冻结记录与 C 不变。收益优势仍为
+  `NEEDS_MORE_EVIDENCE`，日更短名单不等于实际账户持仓或新增买入配额。
+- 190 项定向测试通过，Chrome 320/375/1280 px 布局、搜索及折叠复位通过。
+  当前等待实现 HEAD 的远端 CI 和合并；生效依赖现有每日流程从 master 读取代码。
+
+## 历史检查点 — 2026-11-17 — 日常候选 Score 退场已合并
 
 - [PR #114](https://github.com/EFSing/ashare_watchlist/pull/114) squash merge
   `cdc22678afcfb7627730a72ef4baa5444704b5f4`，移除日报与轻量复盘中的候选评分。
   正式 B 全量候选按代码展示，持续跟踪沿用状态优先级。正常日报的首次验收待运行。
   [PR #113](https://github.com/EFSing/ashare_watchlist/pull/113) 继续作为独立短名单试验。
+
+## 历史检查点 — 2026-11-17 — 独立 B 短名单预览已形成 Draft
+
+- [Draft PR #113](https://github.com/EFSing/ashare_watchlist/pull/113)，分支
+  `codex/b-shortlist-preview-v1`，实现 checkpoint `69e55b05427d7a6a8ed9e17022c7ba194e846f68`。
+  Research question / STRICT PATH，非阻塞；`ADOPT` 仅限试验预览实现。
+- 独立 CLI 从单日 canonical B 与原始结构/量能记录选最多 2 或 3 只，保留全部候选及去留原因。
+  2026-11-16 样例：12 候选 / 10 可比较 / 3 入选，覆盖 `DEGRADED`；明确为离线重放。
+- 65 项定向测试、编译与 diff 检查通过。PR 当前 HEAD / CI 是 live state，按远端实时读取。
+  优选收益仍为 `NEEDS_MORE_EVIDENCE`，不等于找到未来收益最好的股票；生产排名未采纳。
+  没有读取后续收益或 Final OOS。现有 B/C、独立量能采集和 Delivery Ladder 保持原有状态。
 
 ## 2026-11-12 — B 候选卡显示量能基线偏差
 

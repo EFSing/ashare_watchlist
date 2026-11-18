@@ -1,6 +1,26 @@
 # HANDOFF — 跨设备最小恢复入口
 
-## 2026-11-17 — 日常候选 Score 退场已合并
+## 2026-11-18 — 日报短名单接入待合并
+
+- 用户在确认 #113 尚未合并后明确要求“我要接入”；此前“仅独立预览、不合并/接入”的
+  范围现由本次授权扩展。继续现有 `codex/b-shortlist-preview-v1` / PR #113，完成日报
+  接入、验证、exact-head CI 后合并，不另开同义 PR。归类 deferred improvement / STRICT PATH。
+- 产品目标：日报默认展开最多 3 只重点候选，其余正式候选折叠且保留去留原因；采用已有
+  固定比较规则，不调参。复用当轮经验证的 generation manifest 计算 T-known 结构/量能，
+  不依赖交付后才写入的 Shadow。输入不足时短名单不可用且不补位，正式全集仍可查。
+- 接续已合并的 #114 去评分行为：旧 JSON/tracker 字段和冻结计算保留；新短名单不使用
+  Score。canonical B 资格、全集、交易参数、绩效分母与 C 均不变。已合入
+  `origin/master@1262208cc610e74d2bbf88a080250b2054f9c7f6`，保留 #114 的展示与测试更新。
+- ADOPT 用户授权的日报重点展示；收益优势仍为 NEEDS_MORE_EVIDENCE。页面必须说明是
+  试验筛选、不能把每日名单当作新增买入配额；尚未接入实际持仓或跨日加仓决策。
+  不启动新收益研究、采集、生产补跑或通知重发。停止于合并、可恢复交接和下一轮生效说明。
+- 已实现同轮来源核验、默认 3 只（CLI 可选 2/3）、折叠其余候选、去留解释和可检索页面；
+  报告内保存选择结果与来源校验值。原始观察 store、canonical JSON、tracker 和策略未迁移。
+  190 项定向测试通过；Chrome 320/375/1280 px 检查无横向溢出，搜索和折叠复位通过。
+  离线界面样例：`docs/examples/b_shortlist_daily_report_20261116.html`，用 11-16 原始保存记录
+  演示，明确非今日新名单、非当时前瞻选择，未加载历史收益/持仓。待当前 HEAD CI 后合并。
+
+## 历史检查点 — 2026-11-17 — 日常候选 Score 退场已合并
 
 - Deferred improvement / STRICT PATH，归类保持。今日正式 B 名单按代码升序展示，持续跟踪
   按既有状态优先级、代码和 signal_id 排序。日报候选卡与轻量复盘撤下评分。
@@ -15,6 +35,48 @@
   继续单独审阅。
 - REMOTE_RECOVERY_CHECKPOINT 在 `master`。Fetch 后用 `git rev-parse origin/master`
   获取当前远端 HEAD。无本机依赖。
+
+## 历史检查点 — 2026-11-17 — 每日 2–3 只优选的独立试验预览
+
+- Research question / STRICT PATH，用户在讨论具体筛选路线后授权“继续”。问题：能否从
+  当日合格 B 候选中生成可解释、最多 2–3 只的试验短名单，减少人工筛选，并为以后比较
+  选中/未选中候选留下确定性选择规则。此轮不证明收益优势、不升级现有观察流程的 gate。
+- 从 `origin/master@27483f959258c2d4e155cbc582ef650a60807ae5` 开始，工作分支
+  `codex/b-shortlist-preview-v1`。输入仅为远端已有 canonical B 名单及同日独立结构/量能
+  原始记录和回执；不读取 tracker、outcomes、Final OOS，不获取 provider 数据。
+- 在查看本轮真实候选特征前固定试验规则：仅比较既有 `W2_TO_W3_TRANSITION_PROXY`
+  阶段、V1/V2 有效且买卖价格关系合法的候选。V1 较低、V2 较高、参考风险距离较低、
+  参考收益风险比较高作为四个独立的暂定方向，逐层取不被其他候选逐项优于的候选；
+  同层按参考收益风险比降序、参考风险距离升序、代码升序确定操作次序，最多取 2 或 3。
+  同层代表维度之间存在取舍，次序不声称统计优势；代码只用于完全相同情形的确定性展示。
+  不生成加权分数，不用旧 Score。V3 保留原值/缺失原因，不假定越低越好，不参与选择。
+- 参考买价固定为 `max(T日收盘价, Trigger)`，只表示 T 时的可见参考，不是次日成交价或
+  最高买价；参考收益风险比不含费用与滑点。各方向及同层次序均为未验证试验假设。
+  非比较阶段、缺字段、参数非法、未进入上限的候选全部保留并说明原因；不凑满名额。
+- 实现采用独立只读预览入口：已有 V0 harness 绑定冻结历史重建/outcome 协议，现有
+  renderer/Shadow 则在正式生产路径。复用原有 schema、hash/readback 校验，独立小脚本
+  可避免修改这两类既有语义；不新增协议、registry、Shadow 或调度。
+- 停止条件：固定规则、关键行为/身份校验测试、最近一期真实输入的离线 JSON/Markdown
+  样例、可恢复的远端代码及 Draft PR。历史日期上现在计算的选择必须标为离线重放，
+  不伪称当时前瞻选择。生产接入、自动采集和收益验证不由本次预览启动。
+- Decision 为 `ADOPT` 独立试验预览实现；优选有效性仍为 `NEEDS_MORE_EVIDENCE`。
+  后续 decision 需要提前记录的独立选择和同口径、完整、计入已确定成本的未来执行结果；
+  当前 B/C 日报及既有独立特征采集可以继续。没有生产排名采纳或激活。
+- 实现核验发现同一 `TREND_2_5R` 目标公式产生的浮点尾差会错误决定支配关系和同层次序。
+  比较坐标统一保留 12 位小数，原始值仍保留；这是数值一致性修正，不改变四个假设方向，
+  未据收益调参。该规则生成的参考收益风险比不是独立收益预测，相同倍数时无区分能力。
+- 已完成独立 CLI `scripts/preview_b_shortlist.py`、65 项定向测试和真实离线样例
+  `docs/examples/b_shortlist_preview_20261116_top3.{json,md}`。2026-11-16 输入固定来自
+  `runtime-state@41217316bff22bd26c3a304f8229fc4b14d8020d`，12 候选 / 10 可比较 / 3 入选。
+  原始覆盖 `DEGRADED`；这里只验证原始记录 hash 与历史源码身份，未重算 K 线。
+  全部候选和理由保留；未读取收益、tracker 或 Final OOS。归类保持非阻塞 research question。
+- 独立 [Draft PR #113](https://github.com/EFSing/ashare_watchlist/pull/113) 已建立，
+  实现 checkpoint `69e55b05427d7a6a8ed9e17022c7ba194e846f68`。CI 状态按 PR 当前 HEAD
+  实时读取，不把本快照当作未来 HEAD 约束。没有合并或生产激活决定。
+- REMOTE_RECOVERY_CHECKPOINT 在 `codex/b-shortlist-preview-v1`；fetch 后以
+  `git rev-parse origin/codex/b-shortlist-preview-v1` 获取远端 HEAD。代码、样例及原始输入
+  均可从远端恢复，无仅存本机的依赖。下一步为审阅短名单及明确未来优选有效性评估；
+  本轮停在独立预览，不自行开新研究或接入日报。
 
 ## 2026-11-12 — B 候选卡量能基线偏差已合并
 
