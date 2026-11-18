@@ -1,24 +1,29 @@
 # HANDOFF — 跨设备最小恢复入口
 
-## 2026-11-18 — 日报短名单接入待合并
+## 2026-11-18 — 日报重点短名单接入已合并
 
-- 用户在确认 #113 尚未合并后明确要求“我要接入”；此前“仅独立预览、不合并/接入”的
-  范围现由本次授权扩展。继续现有 `codex/b-shortlist-preview-v1` / PR #113，完成日报
-  接入、验证、exact-head CI 后合并，不另开同义 PR。归类 deferred improvement / STRICT PATH。
-- 产品目标：日报默认展开最多 3 只重点候选，其余正式候选折叠且保留去留原因；采用已有
-  固定比较规则，不调参。复用当轮经验证的 generation manifest 计算 T-known 结构/量能，
-  不依赖交付后才写入的 Shadow。输入不足时短名单不可用且不补位，正式全集仍可查。
-- 接续已合并的 #114 去评分行为：旧 JSON/tracker 字段和冻结计算保留；新短名单不使用
-  Score。canonical B 资格、全集、交易参数、绩效分母与 C 均不变。已合入
-  `origin/master@1262208cc610e74d2bbf88a080250b2054f9c7f6`，保留 #114 的展示与测试更新。
-- ADOPT 用户授权的日报重点展示；收益优势仍为 NEEDS_MORE_EVIDENCE。页面必须说明是
-  试验筛选、不能把每日名单当作新增买入配额；尚未接入实际持仓或跨日加仓决策。
-  不启动新收益研究、采集、生产补跑或通知重发。停止于合并、可恢复交接和下一轮生效说明。
-- 已实现同轮来源核验、默认 3 只（CLI 可选 2/3）、折叠其余候选、去留解释和可检索页面；
-  报告内保存选择结果与来源校验值。原始观察 store、canonical JSON、tracker 和策略未迁移。
-  190 项定向测试通过；Chrome 320/375/1280 px 检查无横向溢出，搜索和折叠复位通过。
-  离线界面样例：`docs/examples/b_shortlist_daily_report_20261116.html`，用 11-16 原始保存记录
-  演示，明确非今日新名单、非当时前瞻选择，未加载历史收益/持仓。待当前 HEAD CI 后合并。
+- Deferred improvement / STRICT PATH，归类保持。用户明确要求“我要接入”，此前独立预览
+  已扩展为正式日报中的试验重点展示；[PR #113](https://github.com/EFSing/ashare_watchlist/pull/113)
+  已 squash merge 为 `baf51d648b728560f4a2523e91ceb95adccb8625`。
+- 原 PR HEAD `10b9f8a9bcbc07638db2722278748fb509cee2a3` 的
+  [PR correctness](https://github.com/EFSing/ashare_watchlist/actions/runs/44231247884) 与
+  [push correctness](https://github.com/EFSing/ashare_watchlist/actions/runs/44231241712) 均成功；
+  合并时 PR 为 CLEAN / MERGEABLE。190 项定向测试、编译及 diff 检查通过，手机与桌面
+  页面、候选序号、全名单搜索和折叠复位通过。
+- 默认展开最多 3 只重点候选（单次渲染可选 2/3），其余按代码折叠并保留去留原因；资料
+  缺失或校验失败时不补位。复用当轮 generation manifest 的 T-known 结构/量能与已固定
+  规则；报告保存选择结果和来源校验值。延续 #114 的去评分行为。
+- canonical B 全集、资格、交易参数、绩效分母、原始观察记录、C 与调度保持原有口径。
+  收益优势仍为 NEEDS_MORE_EVIDENCE；重点名单不代表新增买入配额，不推断实际持仓或
+  因跨日重复入选自动加仓。没有启动新研究、采集、生产补跑或通知重发。
+- 现有每日流程自动从 master 读取代码并传入同轮 manifest，无需新增开关；下一次正常
+  日报会使用新展示。首次实际日报验收待该轮运行，检查重点不超过 3 只、其余可展开，
+  且不显示评分。离线样例 `docs/examples/b_shortlist_daily_report_20261116.html` 仅用于
+  检查界面，不是今日新名单、当时前瞻选择或收益验证。
+- REMOTE_RECOVERY_CHECKPOINT 在远端 `master`。当前开发目录使用
+  `codex/b-shortlist-handoff` 跟踪 `origin/master`（本机 master 已由另一工作区使用）。
+  Fetch 后用 `git rev-parse origin/master` 获取当前远端 HEAD；另一设备直接同步 master
+  即可恢复。代码、样例和所需原始记录均在远端，无仅存本机的依赖，无待批准事项。
 
 ## 历史检查点 — 2026-11-17 — 日常候选 Score 退场已合并
 

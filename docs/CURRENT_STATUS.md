@@ -1,15 +1,18 @@
 # CURRENT STATUS
 
-## 2026-11-18 — 日报短名单接入待合并
+## 2026-11-18 — 日报重点短名单接入已合并
 
-- 用户明确授权“我要接入”，扩展 [PR #113](https://github.com/EFSing/ashare_watchlist/pull/113)
-  为日报接入。归类 deferred improvement / STRICT PATH，非阻塞；不再仅限独立预览。
-- 默认展示最多 3 只重点候选，其余折叠且保留原因；复用同轮 generation manifest 的
-  T-known 结构/量能，数据缺失或身份不符时不给出优选。延续 #114 已交付的去评分行为。
-- canonical B 全集、交易参数、绩效口径、冻结记录与 C 不变。收益优势仍为
-  `NEEDS_MORE_EVIDENCE`，日更短名单不等于实际账户持仓或新增买入配额。
-- 190 项定向测试通过，Chrome 320/375/1280 px 布局、搜索及折叠复位通过。
-  当前等待实现 HEAD 的远端 CI 和合并；生效依赖现有每日流程从 master 读取代码。
+- [PR #113](https://github.com/EFSing/ashare_watchlist/pull/113) 已 squash merge 为
+  `baf51d648b728560f4a2523e91ceb95adccb8625`。Deferred improvement / STRICT PATH，归类保持。
+  用户授权将独立试验接入日报；默认最多 3 只，其他正式候选折叠并保留去留原因。
+- 当轮 generation manifest 核验通过后计算 T-known 筛选，输入不足时不补足名额。
+  延续 #114 的去评分行为；canonical B 全集、交易参数、绩效口径、冻结记录与 C 不变。
+- 190 项定向测试及手机/桌面界面检查通过；原 HEAD `10b9f8a` 的
+  [PR correctness](https://github.com/EFSing/ashare_watchlist/actions/runs/44231247884) 和
+  [push correctness](https://github.com/EFSing/ashare_watchlist/actions/runs/44231241712) 均成功。
+- 现有每日流程读取 master，下一次正常日报生效，首次实际日报验收待运行；未补跑或重发。
+  收益优势仍为 `NEEDS_MORE_EVIDENCE`，不等于已找到未来最优股票；日更重点名单不代表
+  账户持仓或新增买入配额。现有 Delivery Ladder 和其他产品路径继续。
 
 ## 历史检查点 — 2026-11-17 — 日常候选 Score 退场已合并
 
