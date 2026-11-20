@@ -1,16 +1,21 @@
 # HANDOFF — 跨设备最小恢复入口
 
-## 2026-11-20 — B+C 日报通知分流待审
+## 2026-11-20 — B+C 日报通知分流已合并
 
-- Correctness blocker / STRICT PATH，归类保持。修复正式产物已就绪后，邮件耗尽重试时
-  Bark 告警被跳过的问题。有效日报只走 Email，含 0 候选及有效的部分输入；生成失败、
-  `NO_VALID_INPUT`、邮件最终失败走 Bark。已邮件交付和正常跳过均静默。
-- 从 `master@85abb04acb86e3396f635218e7087c00a0d8339a` 分支开发。远端
-  `runtime-state@db5426997f74ffb2b7ef9f695cdce8b29b64c1c4` 的 38 份交付回执和
-  9 份故障回执通过现有 schema 读取。两类回执均沿用 V1 与原路径。
-- 恢复分支为 `codex/bc-report-notification-routing`。Fetch 后用
-  `git rev-parse origin/codex/bc-report-notification-routing` 读取远端 HEAD，在独立 PR
-  上核验该提交的 correctness CI。下一步为 PR 审阅。未合并，未触发真实生产。
+- Correctness blocker / STRICT PATH，归类保持。用户授权后，[PR #116](https://github.com/EFSing/ashare_watchlist/pull/116)
+  于 16:29:18 BJT squash merge 至 `master`，合并提交 `d3c895fa5052c038713219614baca9e34c42c63f`。
+  PR 原提交 `bb71d28721176578f6054c22c5d2a2f2cb533430` 的
+  [PR correctness](https://github.com/EFSing/ashare_watchlist/actions/runs/44700029536) 和
+  [push correctness](https://github.com/EFSing/ashare_watchlist/actions/runs/44699984830) 均成功，
+  合并时状态为 CLEAN / MERGEABLE。[合并提交 correctness](https://github.com/EFSing/ashare_watchlist/actions/runs/44702922923)。
+- 有效日报只走 Email，含 0 候选及有效的部分输入。生成失败、`NO_VALID_INPUT` 或邮件最终
+  失败走 Bark。已邮件交付和正常跳过均静默。两类回执沿用 V1 与原路径，合并前已读回
+  38 份历史交付回执和 9 份故障回执。
+- 首次实际交付验收等现有调度。核对当日邮件成功回执与 Bark 未尝试，再查看同日重复运行
+  是否跳过投递。本次未手动触发生产或发送测试通知。
+- REMOTE_RECOVERY_CHECKPOINT 在远端 `master`。当前开发分支
+  `codex/bc-report-notification-handoff` 跟踪 `origin/master`，fetch 后运行
+  `git rev-parse origin/master` 获取远端 HEAD。无仅存本机的依赖。
 
 ## 2026-11-18 — C研究模拟已合并
 

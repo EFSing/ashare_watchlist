@@ -1,12 +1,13 @@
 # CURRENT STATUS
 
-## 2026-11-20 — B+C 日报通知分流待审
+## 2026-11-20 — B+C 日报通知分流已合并
 
-- 当前 `master` 仍使用旧通知规则。11 月 19 日的远端日报回执中 Email 与 Bark 均为
-  `SUCCESS`。旧工作流仅在正式产物未就绪时进入故障通知，邮件最终失败时该分支被跳过。
-- 独立分支 `codex/bc-report-notification-routing` 修复该问题。有效 B+C 日报由 Email
-  交付，失败由 Bark 告警。日报投递成功由邮件回执判定，Bark 故障回执按目标日去重。
-  已投递日报与正常跳过保持静默。变更待 PR 审阅，交付阶段沿用目前的 Delivery Ladder。
+- [PR #116](https://github.com/EFSing/ashare_watchlist/pull/116) 已 squash merge 至
+  `master`，合并提交 `d3c895fa5052c038713219614baca9e34c42c63f`。有效 B+C 日报只发
+  Email，生成失败、`NO_VALID_INPUT` 或邮件最终失败只发 Bark。
+- 日报交付由邮件回执判定，Bark 告警按目标日去重。已交付日报与正常跳过保持静默。旧规则下
+  11 月 19 日的日报回执记录 Email 与 Bark 均为 `SUCCESS`，历史回执继续可读。
+- 首次实际交付验收待下一次正常调度。交付阶段沿用目前的 Delivery Ladder。
 
 ## 2026-11-18 — C研究模拟已合并
 
