@@ -139,7 +139,7 @@ def test_workflow_uses_independent_fail_soft_checkouts_after_delivery():
     b_record = "Record independent B structure and volume after completed delivery"
     order = list(steps)
     sequence = [
-        "Run genuine XSHG T-close production chain", "Deliver production report by Email and Bark",
+        "Run genuine XSHG T-close production chain", "Deliver production report by Email",
         "Persist delivery receipt to runtime-state", "Enforce production delivery health",
         "Publish bounded C research report after B delivery", c_checkout, c_record, b_checkout, b_record,
     ]

@@ -71,6 +71,7 @@ jobs:
       ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1: ${{ vars.ENABLE_C_DAILY_RESEARCH_WATCHLIST_V1 || 'false' }}
       ENABLE_C_RESEARCH_SIMULATION: ${{ github.ref == 'refs/heads/master' && vars.ENABLE_C_RESEARCH_SIMULATION != 'false' && 'true' || 'false' }}
       PRODUCTION_CANONICAL_READY: "0"
+      REPORT_EMAIL_ALREADY_DELIVERED: "0"
       RUNTIME_STATE_PERSISTED: "NO"
       PRODUCTION_FAILURE_STAGE: "NOT_STARTED"
       AS_OF_DATE: ""
@@ -195,6 +196,9 @@ jobs:
             echo "PRODUCTION_CANONICAL_READY=1" >> "$GITHUB_ENV"
             echo "RUNTIME_STATE_PERSISTED=YES" >> "$GITHUB_ENV"
             echo "RUNTIME_STATE_SHA=$(git -C runtime-state rev-parse HEAD)" >> "$GITHUB_ENV"
+            if python -c 'import json, sys; sys.exit(not json.load(open(sys.argv[1], encoding="utf-8"))["email_delivered"])' "$output"; then
+              echo "REPORT_EMAIL_ALREADY_DELIVERED=1" >> "$GITHUB_ENV"
+            fi
           fi
 
       - name: Cloud preflight before any provider production call
@@ -494,7 +498,7 @@ jobs:
 
       - name: Prepare self-contained B+C delivery HTML
         id: c_pre_delivery
-        if: always() && env.RUN_MODE == 'production' && env.PRODUCTION_CANONICAL_READY == '1' && (env.ASHARE_SKIP_PRODUCTION == '1' || (steps.b_production.outcome == 'success' && steps.b_output_validation.outcome == 'success' && steps.b_state_push.outcome == 'success'))
+        if: always() && env.RUN_MODE == 'production' && env.PRODUCTION_CANONICAL_READY == '1' && env.REPORT_EMAIL_ALREADY_DELIVERED != '1' && (env.ASHARE_SKIP_PRODUCTION == '1' || (steps.b_production.outcome == 'success' && steps.b_output_validation.outcome == 'success' && steps.b_state_push.outcome == 'success'))
         continue-on-error: true
         shell: bash
         run: |
@@ -541,35 +545,34 @@ jobs:
           fi
           exit "$rc"
 
-      - name: Deliver production report by Email and Bark
+      - name: Deliver production report by Email
         id: b_delivery
-        if: always() && env.RUN_MODE == 'production' && env.PRODUCTION_CANONICAL_READY == '1' && (env.ASHARE_SKIP_PRODUCTION == '1' || (steps.b_production.outcome == 'success' && steps.b_output_validation.outcome == 'success' && steps.b_state_push.outcome == 'success'))
+        if: always() && env.RUN_MODE == 'production' && env.PRODUCTION_CANONICAL_READY == '1' && env.REPORT_EMAIL_ALREADY_DELIVERED != '1' && (env.ASHARE_SKIP_PRODUCTION == '1' || (steps.b_production.outcome == 'success' && steps.b_output_validation.outcome == 'success' && steps.b_state_push.outcome == 'success'))
         shell: bash
         run: |
           set +e
           output="$RUNNER_TEMP/delivery.json"
+          echo "DELIVERY_RESULT=$output" >> "$GITHUB_ENV"
           result_file="${PRODUCTION_RESULT:-${ASHARE_SUMMARY_RESULT:-}}"
           result_args=()
           if [[ -n "$result_file" && -f "$result_file" ]]; then
             result_args+=(--result-file "$result_file")
           fi
-          delivery_args=()
           if [[ -z "${C_DELIVERY_REPORT:-}" || ! -f "$C_DELIVERY_REPORT" ]]; then
             echo "self-contained B+C delivery report is missing"
+            printf '%s\n' '{"status":"REPORT_DELIVERY_ERROR","reason":"DELIVERY_REPORT_NOT_READY"}' > "$output"
             exit 1
           fi
-          delivery_args+=(--delivery-report-path "$C_DELIVERY_REPORT")
           python scripts/daily_report_delivery.py deliver \
             --mode production \
             --date "$AS_OF_DATE" \
             --data-root "$ASHARE_DATA_ROOT" \
             --runtime-state-persisted "$RUNTIME_STATE_PERSISTED" \
             --run-url "$ACTIONS_RUN_URL" \
-            "${delivery_args[@]}" \
+            --delivery-report-path "$C_DELIVERY_REPORT" \
             "${result_args[@]}" > "$output"
           rc=$?
           set -e
-          echo "DELIVERY_RESULT=$output" >> "$GITHUB_ENV"
           cat "$output"
           if (( rc != 0 )); then
             exit "$rc"
@@ -577,7 +580,7 @@ jobs:
 
       - name: Persist delivery receipt to runtime-state
         id: b_receipt_persist
-        if: always() && env.RUN_MODE == 'production' && env.PRODUCTION_CANONICAL_READY == '1'
+        if: always() && env.RUN_MODE == 'production' && env.PRODUCTION_CANONICAL_READY == '1' && steps.b_delivery.outcome != 'skipped'
         shell: bash
         run: |
           set -euo pipefail
@@ -634,7 +637,7 @@ jobs:
 
       - name: Enforce production delivery health
         id: delivery_health
-        if: always() && env.RUN_MODE == 'production' && env.PRODUCTION_CANONICAL_READY == '1'
+        if: always() && env.RUN_MODE == 'production' && env.PRODUCTION_CANONICAL_READY == '1' && env.REPORT_EMAIL_ALREADY_DELIVERED != '1'
         shell: bash
         run: |
           set -euo pipefail
@@ -646,7 +649,11 @@ jobs:
           import json
           import sys
           lines = open(sys.argv[1], encoding="utf-8").read().strip().splitlines()
-          print(json.loads(lines[-1]).get("status", "DELIVERY_RESULT_MISSING") if lines else "DELIVERY_RESULT_MISSING")
+          result = json.loads(lines[-1]) if lines else {}
+          status = result.get("status", "DELIVERY_RESULT_MISSING")
+          if status in {"DELIVERY_SUCCESS", "ALREADY_DELIVERED"} and result.get("receipt_status") != "PERSISTED":
+              status = "DELIVERY_RECEIPT_NOT_PERSISTED"
+          print(status)
           PY
           )"
           case "$status" in
@@ -781,7 +788,7 @@ jobs:
           cat "$RUNNER_TEMP/b-structure-volume-shadow-result.json" >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Checkout clean runtime-state for failure notice
-        if: always() && env.RUN_MODE == 'production' && env.AS_OF_DATE != '' && env.ASHARE_SKIP_PRODUCTION != '1' && env.PRODUCTION_CANONICAL_READY != '1'
+        if: always() && env.RUN_MODE == 'production' && env.AS_OF_DATE != '' && ((env.ASHARE_SKIP_PRODUCTION != '1' && env.PRODUCTION_CANONICAL_READY != '1') || steps.b_delivery.outcome == 'failure')
         uses: actions/checkout@v4
         with:
           ref: runtime-state
@@ -789,13 +796,20 @@ jobs:
           fetch-depth: 1
           persist-credentials: true
 
-      - name: Send production failure notification
-        if: always() && env.RUN_MODE == 'production' && env.AS_OF_DATE != '' && env.ASHARE_SKIP_PRODUCTION != '1' && env.PRODUCTION_CANONICAL_READY != '1'
+      - name: Send production failure notification by Bark
+        if: always() && env.RUN_MODE == 'production' && env.AS_OF_DATE != '' && ((env.ASHARE_SKIP_PRODUCTION != '1' && env.PRODUCTION_CANONICAL_READY != '1') || steps.b_delivery.outcome == 'failure')
         shell: bash
         run: |
           set +e
           output="$RUNNER_TEMP/failure-delivery.json"
           result_file="${PRODUCTION_RESULT:-${PREFLIGHT_RESULT:-}}"
+          failure_stage="${PRODUCTION_FAILURE_STAGE:-production}"
+          production_status="${ASHARE_SUMMARY_STATUS:-}"
+          if [[ "$PRODUCTION_CANONICAL_READY" == "1" ]]; then
+            result_file="${DELIVERY_RESULT:-}"
+            failure_stage="report-delivery"
+            production_status="DELIVERY_FAILED"
+          fi
           result_args=()
           if [[ -n "$result_file" && -f "$result_file" ]]; then
             result_args+=(--result-file "$result_file")
@@ -803,10 +817,10 @@ jobs:
           python scripts/daily_report_delivery.py failure \
             --date "$AS_OF_DATE" \
             --data-root "$ASHARE_DATA_ROOT" \
-            --failure-stage "${PRODUCTION_FAILURE_STAGE:-production}" \
+            --failure-stage "$failure_stage" \
             --error-summary "PRODUCTION_RUNTIME_FAILURE" \
             --run-url "$ACTIONS_RUN_URL" \
-            --production-status "${ASHARE_SUMMARY_STATUS:-}" \
+            --production-status "$production_status" \
             "${result_args[@]}" > "$output"
           rc=$?
           set -e
@@ -817,7 +831,7 @@ jobs:
           fi
 
       - name: Persist operational failure notice in clean runtime-state checkout
-        if: always() && env.RUN_MODE == 'production' && env.AS_OF_DATE != '' && env.ASHARE_SKIP_PRODUCTION != '1' && env.PRODUCTION_CANONICAL_READY != '1'
+        if: always() && env.RUN_MODE == 'production' && env.AS_OF_DATE != '' && ((env.ASHARE_SKIP_PRODUCTION != '1' && env.PRODUCTION_CANONICAL_READY != '1') || steps.b_delivery.outcome == 'failure')
         shell: bash
         run: |
           set +e
@@ -918,7 +932,7 @@ jobs:
           echo "INPUT_DIAGNOSTIC_RUNTIME_STATE_SHA=$state_sha" >> "$GITHUB_ENV"
 
       - name: Write production failure delivery summary
-        if: always() && env.RUN_MODE == 'production' && env.AS_OF_DATE != '' && env.ASHARE_SKIP_PRODUCTION != '1' && env.PRODUCTION_CANONICAL_READY != '1'
+        if: always() && env.RUN_MODE == 'production' && env.AS_OF_DATE != '' && ((env.ASHARE_SKIP_PRODUCTION != '1' && env.PRODUCTION_CANONICAL_READY != '1') || steps.b_delivery.outcome == 'failure')
         shell: bash
         run: |
           set -euo pipefail
@@ -927,6 +941,9 @@ jobs:
             cat "$FAILURE_DELIVERY_RESULT" >> "$GITHUB_STEP_SUMMARY"
           fi
           echo "failure notice runtime-state persisted = ${FAILURE_NOTICE_STATE_PERSISTED:-NO}" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$PRODUCTION_CANONICAL_READY" == "1" ]]; then
+            exit 0
+          fi
           echo "input diagnostic runtime-state persisted = ${INPUT_DIAGNOSTIC_STATE_PERSISTED:-NO}" >> "$GITHUB_STEP_SUMMARY"
           result_file="${PRODUCTION_RESULT:-${PREFLIGHT_RESULT:-}}"
           result_args=()

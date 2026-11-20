@@ -1,4 +1,4 @@
-"""Deliver the canonical daily close report through Email and Bark.
+"""Email the daily close report and send production failure alerts through Bark.
 
 This module is intentionally small and provider-neutral.  Market-data
 acquisition and canonical runtime-state persistence happen outside it.  The
@@ -37,7 +37,6 @@ RECEIPT_SCHEMA_VERSION = "DAILY_REPORT_DELIVERY_RECEIPT_V1"
 DELIVERY_REPORT_KIND = "B_PLUS_C_PRESENTATION_V1"
 FAILURE_NOTICE_SCHEMA_VERSION = "DAILY_FAILURE_NOTICE_V1"
 DELIVERY_SUCCESS = "DELIVERY_SUCCESS"
-DELIVERY_DEGRADED = "DELIVERY_DEGRADED"
 DELIVERY_FAILED = "DELIVERY_FAILED"
 ALREADY_DELIVERED = "ALREADY_DELIVERED"
 ALREADY_FAILURE_NOTIFIED = "ALREADY_FAILURE_NOTIFIED"
@@ -656,10 +655,6 @@ def success_subject(report_date: str, sent_at: datetime, *, degraded: bool) -> s
     return f"{subject} - 数据不完整" if degraded else subject
 
 
-def failure_subject(sent_at: datetime) -> str:
-    return f"{_now_bjt(sent_at):%Y-%m-%d %H:%M} - A股云端运行失败"
-
-
 def delivery_test_subject(sent_at: datetime) -> str:
     return f"{_now_bjt(sent_at):%Y-%m-%d %H:%M} - A股报告投递测试"
 
@@ -667,12 +662,6 @@ def delivery_test_subject(sent_at: datetime) -> str:
 def success_attachment_filename(report_date: str, *, delivery_test: bool = False) -> str:
     prefix = "TEST_" if delivery_test else ""
     return f"{prefix}{normalize_date(report_date)}_A股每日收盘复盘报告.html"
-
-
-def bark_title(report_date: str, sent_at: datetime, *, degraded: bool) -> str:
-    del report_date
-    suffix = " - A股每日复盘完成（数据不完整）" if degraded else " - A股每日收盘复盘完成"
-    return f"{_short_time(sent_at)}{suffix}"
 
 
 def failure_bark_title(sent_at: datetime) -> str:
@@ -721,56 +710,6 @@ def build_success_email_body(
     lines.extend(["", "完整复盘见附件：", filename])
     if _run_url(run_url):
         lines.extend(["", f"GitHub Actions run URL：{_run_url(run_url)}"])
-    return "\n".join(lines) + "\n"
-
-
-def build_success_bark_body(context: ReportContext, *, runtime_state_persisted: str) -> str:
-    lines = [
-        f"日期 {context.report_date}",
-        f"候选数量 {context.candidate_count}",
-        f"Review {context.review_status}",
-        f"Shadow {context.shadow_status}",
-        f"runtime-state persisted {runtime_state_persisted}",
-    ]
-    if isinstance(context.input_coverage, Mapping) and context.input_coverage.get("coverage_status") == INPUT_COVERAGE_DEGRADED:
-        lines.append(f"数据覆盖降级：排除 {context.input_coverage.get('excluded_symbol_count')} 只")
-    return "\n".join(lines)
-
-
-def build_failure_email_body(
-    report_date: str,
-    sent_at: datetime,
-    *,
-    failure_stage: str,
-    error_summary: str,
-    run_url: str | None,
-    production_status: str = "FAILED",
-    diagnostic_attached: bool = False,
-) -> str:
-    is_no_valid = production_status == "NO_VALID_INPUT"
-    lines = [
-        f"目标交易日：{normalize_date(report_date)}",
-        f"失败时间（北京时间）：{_now_bjt(sent_at):%Y-%m-%d %H:%M:%S}",
-        f"运行状态：{_safe_label(production_status, 'FAILED')}",
-        f"失败阶段：{_safe_label(failure_stage, 'UNKNOWN_STAGE')}",
-        f"bounded error summary：{_safe_label(error_summary, 'PRODUCTION_RUNTIME_FAILURE')}",
-        f"GitHub Actions run URL：{_run_url(run_url) or 'UNAVAILABLE'}",
-    ]
-    if is_no_valid:
-        lines.extend(
-            [
-                "正式结果有效性：NO",
-                "数据覆盖：NO_VALID_INPUT",
-                "本次没有任何有效股票输入；未生成正式 B 空名单、正式 checkpoint 或 delivery receipt。",
-                (
-                    "已附加有限异常样本诊断 HTML；完整 exclusion record 保存在机器诊断记录中。"
-                    if diagnostic_attached
-                    else "诊断 HTML 未能附加，请查看 runtime-state/Actions artifact。"
-                ),
-            ]
-        )
-    else:
-        lines.append("本次运行未生成可交付的正式日报 HTML，未附加任何 HTML。")
     return "\n".join(lines) + "\n"
 
 
@@ -917,7 +856,7 @@ def _safe_label(
     *,
     env: Mapping[str, str] | None = None,
 ) -> str:
-    text = str(value or "").strip().splitlines()[0] if value is not None else ""
+    text = (str(value or "").strip().splitlines() or [""])[0]
     if env is not None:
         secret_names = (*REQUIRED_SECRET_NAMES, "SMTP_FROM", "BARK_SERVER_URL")
         for name in secret_names:
@@ -965,44 +904,7 @@ def _attempt(
     return {"status": "FAILED", "attempts": attempts, "error_summary": last_error}
 
 
-def _base_receipt(context: ReportContext, now: datetime) -> dict[str, Any]:
-    receipt = {
-        "schema_version": RECEIPT_SCHEMA_VERSION,
-        "report_date": context.report_date,
-        "report_sha256": context.report_sha256,
-        "candidate_count": context.candidate_count,
-        "review_status": context.review_status,
-        "shadow_status": context.shadow_status,
-        "email_status": "MISSING",
-        "email_sent_at_bjt": None,
-        "bark_status": "MISSING",
-        "bark_sent_at_bjt": None,
-        "last_attempt_at_bjt": _timestamp(now),
-        "email_error_summary": None,
-        "bark_error_summary": None,
-    }
-    if context.delivery_report_kind == DELIVERY_REPORT_KIND:
-        receipt.update(
-            {
-                "delivery_report_sha256": context.delivery_report_sha256,
-                "delivery_report_kind": DELIVERY_REPORT_KIND,
-            }
-        )
-    return receipt
-
-
-def _overall_delivery_status(receipt: Mapping[str, Any]) -> str:
-    email_ok = receipt.get("email_status") == "SUCCESS"
-    bark_ok = receipt.get("bark_status") == "SUCCESS"
-    if email_ok and bark_ok:
-        return DELIVERY_SUCCESS
-    if email_ok or bark_ok:
-        return DELIVERY_DEGRADED
-    return DELIVERY_FAILED
-
-
-def _channel_result(
-    channel: str,
+def _report_email_result(
     *,
     context: ReportContext,
     sent_at: datetime,
@@ -1012,41 +914,31 @@ def _channel_result(
     max_attempts: int,
     sleep_fn: Callable[[float], None],
 ) -> dict[str, Any]:
-    missing = _channel_missing_secret_names(channel, env)
-    if missing:
-        return {"status": "NOT_CONFIGURED", "attempts": 0, "error_summary": "NOT_CONFIGURED"}
     try:
-        settings = _channel_settings(channel, env)
-        if channel == "email":
-            message = build_email_message(
-                subject=success_subject(context.report_date, sent_at, degraded=context.degraded),
-                body=build_success_email_body(
-                    context,
-                    sent_at,
-                    runtime_state_persisted=runtime_state_persisted,
-                    run_url=run_url,
-                ),
-                recipient=settings.report_email_to,
-                sender=settings.smtp_from,
-                attachment_path=context.delivery_report_path,
-                attachment_filename=success_attachment_filename(context.report_date),
-            )
-            operation = lambda: send_email_message(message, settings)
-        else:
-            operation = lambda: send_bark_notification(
-                settings=settings,
-                title=bark_title(context.report_date, sent_at, degraded=context.degraded),
-                body=build_success_bark_body(context, runtime_state_persisted=runtime_state_persisted),
+        settings = _channel_settings("email", env)
+        message = build_email_message(
+            subject=success_subject(context.report_date, sent_at, degraded=context.degraded),
+            body=build_success_email_body(
+                context,
+                sent_at,
+                runtime_state_persisted=runtime_state_persisted,
                 run_url=run_url,
-            )
-        return _attempt(
-            operation,
-            channel=channel,
-            max_attempts=max_attempts,
-            sleep_fn=sleep_fn,
+            ),
+            recipient=settings.report_email_to,
+            sender=settings.smtp_from,
+            attachment_path=context.delivery_report_path,
+            attachment_filename=success_attachment_filename(context.report_date),
         )
+    except SecretsRequired:
+        return {"status": "NOT_CONFIGURED", "attempts": 0, "error_summary": "NOT_CONFIGURED"}
     except (DeliveryError, OSError, ValueError) as exc:
-        return {"status": "NOT_CONFIGURED", "attempts": 0, "error_summary": _error_summary(channel, exc)}
+        return {"status": "FAILED", "attempts": 0, "error_summary": _error_summary("email", exc)}
+    return _attempt(
+        lambda: send_email_message(message, settings),
+        channel="email",
+        max_attempts=max_attempts,
+        sleep_fn=sleep_fn,
+    )
 
 
 def deliver_production(
@@ -1073,20 +965,10 @@ def deliver_production(
     existing = load_delivery_receipt(data_root, context.report_date)
     if existing is not None and existing["report_sha256"] != context.report_sha256:
         raise DeliveryReceiptIdentityConflict()
-    existing_delivery_sha = existing.get("delivery_report_sha256") if existing is not None else None
-    if existing_delivery_sha is not None and existing_delivery_sha != context.delivery_report_sha256:
-        raise DeliveryReceiptPresentationIdentityConflict()
-    if (
-        existing is not None
-        and existing["email_status"] == "SUCCESS"
-        and existing["bark_status"] == "SUCCESS"
-        and context.delivery_report_kind == DELIVERY_REPORT_KIND
-        and existing_delivery_sha is None
-    ):
-        raise DeliveryReceiptPresentationIdentityConflict()
-    if existing is not None and (
-        existing["email_status"] == "SUCCESS" and existing["bark_status"] == "SUCCESS"
-    ):
+    if existing is not None and existing["email_status"] == "SUCCESS":
+        delivered_sha = existing.get("delivery_report_sha256")
+        if delivery_report_path is not None and delivered_sha and delivered_sha != context.delivery_report_sha256:
+            raise DeliveryReceiptPresentationIdentityConflict()
         return {
             "status": ALREADY_DELIVERED,
             "report_date": context.report_date,
@@ -1103,7 +985,12 @@ def deliver_production(
             "attempted_channels": [],
         }
 
-    receipt = dict(existing) if existing is not None else _base_receipt(context, now)
+    receipt = dict(existing) if existing is not None else {
+        "schema_version": RECEIPT_SCHEMA_VERSION,
+        "bark_status": "NOT_ATTEMPTED",
+        "bark_sent_at_bjt": None,
+        "bark_error_summary": None,
+    }
     receipt.update(
         {
             "report_date": context.report_date,
@@ -1114,6 +1001,7 @@ def deliver_production(
             "last_attempt_at_bjt": _timestamp(now),
         }
     )
+    # No email has succeeded yet. Bind the receipt to this attempt's presentation.
     if context.delivery_report_kind == DELIVERY_REPORT_KIND:
         receipt.update(
             {
@@ -1121,35 +1009,28 @@ def deliver_production(
                 "delivery_report_kind": DELIVERY_REPORT_KIND,
             }
         )
-    attempted: list[str] = []
-    results: dict[str, dict[str, Any]] = {}
-    for channel in ("email", "bark"):
-        status_key = f"{channel}_status"
-        if receipt.get(status_key) == "SUCCESS":
-            results[channel] = {
-                "status": "SUCCESS",
-                "attempts": 0,
-                "error_summary": receipt.get(f"{channel}_error_summary"),
-            }
-            continue
-        attempted.append(channel)
-        results[channel] = _channel_result(
-            channel,
-            context=context,
-            sent_at=now,
-            runtime_state_persisted=runtime_state_persisted,
-            run_url=run_url,
-            env=environ,
-            max_attempts=max_attempts,
-            sleep_fn=sleep_fn,
-        )
-        receipt[status_key] = results[channel]["status"]
-        receipt[f"{channel}_error_summary"] = results[channel]["error_summary"]
-        if results[channel]["status"] == "SUCCESS":
-            receipt[f"{channel}_sent_at_bjt"] = _timestamp(now)
-    receipt_path = write_delivery_receipt(data_root, receipt)
+    else:
+        receipt.pop("delivery_report_sha256", None)
+        receipt.pop("delivery_report_kind", None)
+    email = _report_email_result(
+        context=context,
+        sent_at=now,
+        runtime_state_persisted=runtime_state_persisted,
+        run_url=run_url,
+        env=environ,
+        max_attempts=max_attempts,
+        sleep_fn=sleep_fn,
+    )
+    email_delivered = email["status"] == "SUCCESS"
+    receipt["email_status"] = email["status"]
+    receipt["email_error_summary"] = email["error_summary"]
+    receipt["email_sent_at_bjt"] = _timestamp(now) if email_delivered else None
+    try:
+        receipt_path = str(write_delivery_receipt(data_root, receipt))
+    except (DeliveryError, OSError):
+        receipt_path = None
     return {
-        "status": _overall_delivery_status(receipt),
+        "status": DELIVERY_SUCCESS if email_delivered else DELIVERY_FAILED,
         "report_date": context.report_date,
         "report_sha256": context.report_sha256,
         "delivery_report_sha256": receipt.get("delivery_report_sha256"),
@@ -1159,9 +1040,9 @@ def deliver_production(
         "shadow_status": context.shadow_status,
         "email_status": receipt["email_status"],
         "bark_status": receipt["bark_status"],
-        "receipt_status": "PERSISTED",
-        "receipt_path": str(receipt_path),
-        "attempted_channels": attempted,
+        "receipt_status": "PERSISTED" if receipt_path else "NOT_PERSISTED",
+        "receipt_path": receipt_path,
+        "attempted_channels": ["email"] if email["attempts"] else [],
         "receipt": receipt,
     }
 
@@ -1175,79 +1056,16 @@ def _failure_error_summary(
 ) -> str:
     if isinstance(result, Mapping):
         status = _safe_label(result.get("status"), "PRODUCTION_RUNTIME_FAILURE", env=env)
-        error_type = _safe_label(result.get("error_type"), "", env=env)
+        detail = result.get("error_type")
+        if failure_stage == "report-delivery":
+            detail = result.get("reason") or _mapping(result.get("receipt")).get("email_error_summary")
+        error_type = _safe_label(detail, "", env=env)
         if error_type:
             return f"{status}/{error_type}"[:120]
     return (
         f"{_safe_label(failure_stage, 'UNKNOWN_STAGE', env=env)}/"
         f"{_safe_label(error_summary, 'PRODUCTION_RUNTIME_FAILURE', env=env)}"
     )[:120]
-
-
-def _failure_channel_result(
-    channel: str,
-    *,
-    report_date: str,
-    sent_at: datetime,
-    failure_stage: str,
-    error_summary: str,
-    result: Mapping[str, Any] | None,
-    production_status: str,
-    diagnostic_report_path: Path | None,
-    run_url: str | None,
-    env: Mapping[str, str],
-    max_attempts: int,
-    sleep_fn: Callable[[float], None],
-) -> dict[str, Any]:
-    if _channel_missing_secret_names(channel, env):
-        return {"status": "NOT_CONFIGURED", "attempts": 0, "error_summary": "NOT_CONFIGURED"}
-    try:
-        settings = _channel_settings(channel, env)
-        bounded = _failure_error_summary(failure_stage, error_summary, result, env=env)
-        if channel == "email":
-            diagnostic_attached = diagnostic_report_path is not None
-            message = build_email_message(
-                subject=failure_subject(sent_at),
-                body=build_failure_email_body(
-                    report_date,
-                    sent_at,
-                    failure_stage=failure_stage,
-                    error_summary=bounded,
-                    run_url=run_url,
-                    production_status=production_status,
-                    diagnostic_attached=diagnostic_attached,
-                ),
-                recipient=settings.report_email_to,
-                sender=settings.smtp_from,
-                attachment_path=diagnostic_report_path,
-                attachment_filename=(
-                    f"{normalize_date(report_date)}_A股输入诊断.html"
-                    if diagnostic_report_path is not None
-                    else None
-                ),
-            )
-            operation = lambda: send_email_message(message, settings)
-        else:
-            operation = lambda: send_bark_notification(
-                settings=settings,
-                title=failure_bark_title(sent_at),
-                body="\n".join(
-                    [
-                        f"日期 {normalize_date(report_date)}",
-                        f"{_safe_label(production_status, 'FAILED')}",
-                        f"错误分类 {_safe_label(bounded, 'PRODUCTION_RUNTIME_FAILURE', env=env)}",
-                        (
-                            "正式结果无效：NO_VALID_INPUT；诊断报告已落地，未创建正式名单。"
-                            if production_status == "NO_VALID_INPUT"
-                            else ""
-                        ),
-                    ]
-                ),
-                run_url=run_url,
-            )
-        return _attempt(operation, channel=channel, max_attempts=max_attempts, sleep_fn=sleep_fn)
-    except (DeliveryError, OSError, ValueError) as exc:
-        return {"status": "FAILED", "attempts": 0, "error_summary": _error_summary(channel, exc)}
 
 
 def send_failure_notification(
@@ -1279,19 +1097,8 @@ def send_failure_notification(
             "failure_notification": 0,
         }
     now = _now_bjt(now_bjt)
-    diagnostic_report_path: Path | None = None
-    if status_text == "NO_VALID_INPUT":
-        candidate_path = result.get("diagnostic_report") if isinstance(result, Mapping) else None
-        if candidate_path:
-            candidate = Path(str(candidate_path)).expanduser()
-            if candidate.is_file() and candidate.stat().st_size > 0:
-                diagnostic_report_path = candidate
-        if diagnostic_report_path is None and data_root is not None:
-            derived = Path(data_root).expanduser().resolve() / "reports" / f"daily_close_{_date_token(normalized_date)}.html"
-            if derived.is_file() and derived.stat().st_size > 0:
-                diagnostic_report_path = derived
     existing = load_failure_notice(data_root, normalized_date) if data_root is not None else None
-    if existing is not None and existing["email_status"] == "SUCCESS" and existing["bark_status"] == "SUCCESS":
+    if existing is not None and existing["bark_status"] == "SUCCESS":
         return {
             "status": ALREADY_FAILURE_NOTIFIED,
             "report_date": normalized_date,
@@ -1302,85 +1109,70 @@ def send_failure_notification(
             "receipt_status": "PERSISTED",
             "failure_notice_status": ALREADY_FAILURE_NOTIFIED,
             "failure_notice_path": str(failure_notice_path(data_root, normalized_date)),
-            "diagnostic_report_attached": diagnostic_report_path is not None,
         }
+
     bounded = _failure_error_summary(failure_stage, error_summary, result, env=environ)
-    results: dict[str, dict[str, Any]] = {}
-    for channel in ("email", "bark"):
-        if existing is not None and existing[f"{channel}_status"] == "SUCCESS":
-            results[channel] = {"status": "SUCCESS", "attempts": 0, "error_summary": None}
-            continue
-        results[channel] = _failure_channel_result(
-            channel,
-            report_date=normalized_date,
-            sent_at=now,
-            failure_stage=failure_stage,
-            error_summary=error_summary,
-            result=result,
-            production_status=status_text or "FAILED",
-            diagnostic_report_path=diagnostic_report_path,
-            run_url=run_url,
-            env=environ,
+    try:
+        settings = _channel_settings("bark", environ)
+    except SecretsRequired:
+        bark = {"status": "NOT_CONFIGURED", "attempts": 0}
+    else:
+        lines = [
+            f"日期 {normalized_date}",
+            _safe_label(status_text, "FAILED", env=environ),
+            f"错误分类 {bounded}",
+        ]
+        if status_text == "NO_VALID_INPUT":
+            lines.append("正式结果无效：NO_VALID_INPUT；请查看本次 Actions 运行中的诊断。")
+        bark = _attempt(
+            lambda: send_bark_notification(
+                settings=settings,
+                title=failure_bark_title(now),
+                body="\n".join(lines),
+                run_url=run_url,
+            ),
+            channel="bark",
             max_attempts=max_attempts,
             sleep_fn=sleep_fn,
         )
-    statuses = {channel: value["status"] for channel, value in results.items()}
-    if statuses["email"] == "SUCCESS" and statuses["bark"] == "SUCCESS":
-        status = "FAILURE_NOTIFICATION_SENT"
-    elif "SUCCESS" in statuses.values():
-        status = "FAILURE_NOTIFICATION_DEGRADED"
-    else:
-        status = "FAILURE_NOTIFICATION_FAILED"
+
+    bark_sent = bark["status"] == "SUCCESS"
     receipt_status = "NOT_CREATED"
     notice_path = None
+    notice = dict(existing) if existing is not None else {
+        "schema_version": FAILURE_NOTICE_SCHEMA_VERSION,
+        "report_date": normalized_date,
+        "target_date": normalized_date,
+        "first_failure_stage": _safe_label(failure_stage, "UNKNOWN_STAGE", env=environ),
+        "error_summary": bounded,
+        "email_status": "NOT_ATTEMPTED",
+        "first_attempt_at_bjt": _timestamp(now),
+        "email_sent_at_bjt": None,
+        "run_url": _run_url(run_url),
+    }
+    notice.update(
+        bark_status=bark["status"],
+        bark_sent_at_bjt=_timestamp(now) if bark_sent else None,
+        last_attempt_at_bjt=_timestamp(now),
+        run_url=notice["run_url"] or _run_url(run_url),
+    )
     if data_root is not None:
-        notice = dict(existing) if existing is not None else {
-            "schema_version": FAILURE_NOTICE_SCHEMA_VERSION,
-            "report_date": normalized_date,
-            "target_date": normalized_date,
-            "first_failure_stage": _safe_label(failure_stage, "UNKNOWN_STAGE", env=environ)[:160],
-            "error_summary": bounded[:160],
-            "email_status": "NOT_ATTEMPTED",
-            "bark_status": "NOT_ATTEMPTED",
-            "first_attempt_at_bjt": _timestamp(now),
-            "last_attempt_at_bjt": _timestamp(now),
-            "email_sent_at_bjt": None,
-            "bark_sent_at_bjt": None,
-            "run_url": _run_url(run_url),
-        }
-        notice.update(
-            {
-                "report_date": normalized_date,
-                "target_date": normalized_date,
-                "last_attempt_at_bjt": _timestamp(now),
-            }
-        )
-        if not notice.get("run_url") and _run_url(run_url):
-            notice["run_url"] = _run_url(run_url)
-        for channel in ("email", "bark"):
-            notice[f"{channel}_status"] = results[channel]["status"]
-            if results[channel]["status"] == "SUCCESS" and not (
-                existing is not None and existing[f"{channel}_status"] == "SUCCESS"
-            ):
-                notice[f"{channel}_sent_at_bjt"] = _timestamp(now)
         try:
-            persisted_path = write_failure_notice(data_root, notice)
+            notice_path = str(write_failure_notice(data_root, notice))
         except (DeliveryError, OSError, ValueError):
             receipt_status = "NOT_PERSISTED"
         else:
             receipt_status = "PERSISTED"
-            notice_path = str(persisted_path)
     return {
-        "status": status,
+        "status": "FAILURE_NOTIFICATION_SENT" if bark_sent else "FAILURE_NOTIFICATION_FAILED",
         "report_date": normalized_date,
         "target_date": normalized_date,
-        "email_status": statuses["email"],
-        "bark_status": statuses["bark"],
-        "attempted_channels": [channel for channel, value in results.items() if value["attempts"]],
+        "email_status": notice["email_status"],
+        "bark_status": bark["status"],
+        "attempted_channels": ["bark"] if bark["attempts"] else [],
         "receipt_status": receipt_status,
         "failure_notice_status": receipt_status,
         "failure_notice_path": notice_path,
-        "diagnostic_report_attached": diagnostic_report_path is not None,
     }
 
 
@@ -1460,8 +1252,9 @@ def build_delivery_summary(
     receipt = load_delivery_receipt(data_root, normalized_date)
     report_ready = "READY" if (Path(data_root).expanduser().resolve() / "reports" / f"daily_close_{_date_token(normalized_date)}.html").is_file() else "NOT_READY"
     watchlist_ready = "READY" if (Path(data_root).expanduser().resolve() / f"watchlist_{_date_token(normalized_date)}.json").is_file() else "NOT_READY"
-    status = str(value.get("status") or "NOT_RUN")
     email_status = str(value.get("email_status") or (receipt or {}).get("email_status") or "NOT_RUN")
+    default_status = ALREADY_DELIVERED if production_status == "ALREADY_COMPLETED" and email_status == "SUCCESS" else "NOT_RUN"
+    status = str(value.get("status") or default_status)
     bark_status = str(value.get("bark_status") or (receipt or {}).get("bark_status") or "NOT_RUN")
     candidate_count = value.get("candidate_count", (receipt or {}).get("candidate_count", "—"))
     receipt_status = str(value.get("receipt_status") or ("PERSISTED" if receipt else "NOT_CREATED"))
@@ -1569,7 +1362,7 @@ def main(argv: list[str] | None = None) -> int:
                 delivery_report_path=args.delivery_report_path,
             )
             print(json.dumps(result, ensure_ascii=False, sort_keys=True))
-            return 0
+            return 1 if result["status"] == DELIVERY_FAILED else 0
         if args.command == "delivery-test":
             result = send_delivery_test(
                 args.data_root,

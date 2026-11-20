@@ -156,6 +156,7 @@ def b_is_complete(result: Mapping[str, Any], delivery: Mapping[str, Any], data_r
         if (delivery.get("status") not in {"DELIVERY_SUCCESS", "ALREADY_DELIVERED"}
                 or delivery.get("receipt_status") != "PERSISTED"
                 or not receipt
+                or receipt["email_status"] != "SUCCESS"
                 or receipt["report_sha256"] != _sha(report_path)
                 or not persisted_receipt.is_file()
                 or persisted_receipt.read_bytes() != receipt_path.read_bytes()):

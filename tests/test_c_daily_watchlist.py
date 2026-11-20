@@ -163,8 +163,8 @@ def _b_result(tmp_path: Path) -> tuple[dict, dict]:
     receipt = {"schema_version": RECEIPT_SCHEMA_VERSION, "report_date": "2026-09-22",
                "report_sha256": sha256(paths[2].read_bytes()).hexdigest(), "candidate_count": 0,
                "review_status": "READY", "shadow_status": "READY", "email_status": "SUCCESS",
-               "email_sent_at_bjt": "2026-09-22T17:30:00+08:00", "bark_status": "SUCCESS",
-               "bark_sent_at_bjt": "2026-09-22T17:30:00+08:00",
+               "email_sent_at_bjt": "2026-09-22T17:30:00+08:00", "bark_status": "NOT_ATTEMPTED",
+               "bark_sent_at_bjt": None,
                "last_attempt_at_bjt": "2026-09-22T17:30:00+08:00"}
     receipt_path = delivery_receipt_path(data, "2026-09-22")
     receipt_path.parent.mkdir(parents=True)
@@ -205,6 +205,13 @@ def test_b_formal_gate_is_independent_of_delivery_receipt(tmp_path: Path, monkey
              ({**result, "daily_close_bundle": {**result["daily_close_bundle"], "renderer": {"status": "FAILED"}}}, delivery)]
     for b_result, b_delivery in cases:
         assert run(b_result, b_delivery, data_root=data, state_root=state, evidence_root=tmp_path, report_root=tmp_path)["status"] == "C_NOT_STARTED_B_FORMAL_GATE_INCOMPLETE"
+    relative = Path("delivery/daily_delivery_20260922.json")
+    receipt = json.loads((data / relative).read_text(encoding="utf-8"))
+    receipt.update(email_status="FAILED", email_sent_at_bjt=None,
+                   bark_status="SUCCESS", bark_sent_at_bjt=receipt["last_attempt_at_bjt"])
+    for root in (data, state / "data"):
+        (root / relative).write_text(json.dumps(receipt), encoding="utf-8")
+    assert not b_is_complete(result, delivery, data, state)
     (state / "data" / "delivery" / "daily_delivery_20260922.json").unlink()
     assert b_formal_is_complete(result, data, state)
     monkeypatch.setattr("run_c_daily_watchlist.consume_b_input", lambda *a, **k: (_ for _ in ()).throw(TimeoutError("C")))

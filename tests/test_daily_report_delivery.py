@@ -141,8 +141,6 @@ def test_degraded_subject_and_body_identify_incomplete_channels(tmp_path):
     assert "运行状态：DEGRADED" in body
     assert "Review=REVIEW_OBSERVATION_INCOMPLETE" in body
     assert "Shadow=SHADOW_CAPTURE_INCOMPLETE" in body
-    assert delivery.bark_title(DATE, NOW, degraded=False) == "17:31 - A股每日收盘复盘完成"
-    assert delivery.bark_title(DATE, NOW, degraded=True) == "17:31 - A股每日复盘完成（数据不完整）"
 
 
 def test_degraded_input_coverage_is_success_delivery_metadata_not_failure(tmp_path, monkeypatch):
@@ -174,12 +172,10 @@ def test_degraded_input_coverage_is_success_delivery_metadata_not_failure(tmp_pa
 
     context = delivery.load_report_context(root, DATE, result=_success_result())
     body = delivery.build_success_email_body(context, NOW, runtime_state_persisted="YES", run_url=None)
-    bark = delivery.build_success_bark_body(context, runtime_state_persisted="YES")
 
     assert context.degraded is True
     assert "InputCoverage=DEGRADED/excluded=1" in body
     assert "数据覆盖降级：排除 1 只" in body
-    assert "数据覆盖降级：排除 1 只" in bark
     assert "云端运行失败" not in body
 
     counts, _messages, _bark = _capture_transports(monkeypatch)
@@ -187,6 +183,7 @@ def test_degraded_input_coverage_is_success_delivery_metadata_not_failure(tmp_pa
         root, DATE, result=_success_result(), env=_env(), now_bjt=NOW, sleep_fn=lambda _seconds: None
     )
     assert first["status"] == delivery.DELIVERY_SUCCESS
+    assert counts == {"email": 1, "bark": 0}
     counts["email"] = 0
     counts["bark"] = 0
     second = delivery.deliver_production(
@@ -196,33 +193,36 @@ def test_degraded_input_coverage_is_success_delivery_metadata_not_failure(tmp_pa
     assert counts == {"email": 0, "bark": 0}
 
 
-def test_failure_email_has_no_attachment_even_when_stale_reports_exist(tmp_path, monkeypatch):
+def test_failed_report_sends_only_bark_with_run_link(tmp_path, monkeypatch):
     root = _data_root(tmp_path)
-    _counts, messages, _bark = _capture_transports(monkeypatch)
+    counts, _messages, bark = _capture_transports(monkeypatch)
+    run_url = "https://github.com/EFSing/ashare_watchlist/actions/runs/456"
 
     result = delivery.send_failure_notification(
         DATE,
         failure_stage="production",
         error_summary="T_CLOSE_RUN_FAILED",
-        run_url="https://github.com/EFSing/ashare_watchlist/actions/runs/456",
-        env=_env(),
+        run_url=run_url,
+        data_root=root,
+        env={"BARK_DEVICE_KEY": _env()["BARK_DEVICE_KEY"]},
         now_bjt=NOW,
-        sleep_fn=lambda _seconds: None,
     )
 
     assert result["status"] == "FAILURE_NOTIFICATION_SENT"
-    assert messages
-    for message in messages:
-        assert not [part for part in message.walk() if part.get_content_disposition() == "attachment"]
-        assert "未附加任何 HTML" in message.get_body(preferencelist=("plain",)).get_content()
-    assert (root / "reports" / "latest.html").is_file()
+    assert result["email_status"] == "NOT_ATTEMPTED"
+    assert result["attempted_channels"] == ["bark"]
+    assert counts == {"email": 0, "bark": 1}
+    assert bark[0][0] == "17:31 - A股云端运行失败"
+    assert "T_CLOSE_RUN_FAILED" in bark[0][1]
+    assert bark[0][2] == run_url
+    assert delivery.load_delivery_receipt(root, DATE) is None
 
 
-def test_no_valid_input_failure_notifies_with_diagnostic_attachment_and_no_success_receipt(tmp_path, monkeypatch):
+def test_no_valid_input_sends_only_bark_and_keeps_diagnostic(tmp_path, monkeypatch):
     root = _data_root(tmp_path)
     diagnostic_path = root / "reports" / f"daily_close_{DATE.replace('-', '')}.html"
     diagnostic_path.write_text("<html>NO_VALID_INPUT diagnostic</html>\n", encoding="utf-8")
-    counts, messages, bark = _capture_transports(monkeypatch)
+    counts, _messages, bark = _capture_transports(monkeypatch)
 
     result = delivery.send_failure_notification(
         DATE,
@@ -243,12 +243,8 @@ def test_no_valid_input_failure_notifies_with_diagnostic_attachment_and_no_succe
     )
 
     assert result["status"] == "FAILURE_NOTIFICATION_SENT"
-    assert result["diagnostic_report_attached"] is True
-    assert counts == {"email": 1, "bark": 1}
-    attachments = [part for part in messages[0].walk() if part.get_content_disposition() == "attachment"]
-    assert len(attachments) == 1
-    assert attachments[0].get_filename() == "2026-09-14_A股输入诊断.html"
-    assert "正式结果有效性：NO" in messages[0].get_body(preferencelist=("plain",)).get_content()
+    assert counts == {"email": 0, "bark": 1}
+    assert diagnostic_path.read_text(encoding="utf-8") == "<html>NO_VALID_INPUT diagnostic</html>\n"
     assert "NO_VALID_INPUT" in bark[0][1]
     assert not (root / "delivery" / f"daily_delivery_{DATE.replace('-', '')}.json").exists()
 
@@ -264,31 +260,11 @@ def test_no_valid_input_failure_notifies_with_diagnostic_attachment_and_no_succe
         sleep_fn=lambda _seconds: None,
     )
     assert repeated["status"] == delivery.ALREADY_FAILURE_NOTIFIED
-    assert counts == {"email": 1, "bark": 1}
-
-
-def test_failure_subject_and_bark_title_are_bjt_and_secret_free(monkeypatch):
-    counts, messages, bark = _capture_transports(monkeypatch)
-    result = delivery.send_failure_notification(
-        DATE,
-        failure_stage="cloud-preflight",
-        error_summary="SCHEDULED_TASK_CREDENTIAL_CONTEXT_NOT_READY",
-        run_url="https://github.com/EFSing/ashare_watchlist/actions/runs/789",
-        env=_env(),
-        now_bjt=NOW,
-        sleep_fn=lambda _seconds: None,
-    )
-
-    assert result["status"] == "FAILURE_NOTIFICATION_SENT"
-    assert counts == {"email": 1, "bark": 1}
-    assert messages[0]["Subject"] == "2026-09-14 17:31 - A股云端运行失败"
-    assert bark[0][0] == "17:31 - A股云端运行失败"
-    assert "bark-device-secret" not in json.dumps(result, ensure_ascii=False)
-    assert "smtp-password-secret" not in json.dumps(result, ensure_ascii=False)
+    assert counts == {"email": 0, "bark": 1}
 
 
 def test_failure_message_redacts_secret_if_transport_input_contains_one(monkeypatch):
-    _counts, messages, bark = _capture_transports(monkeypatch)
+    counts, _messages, bark = _capture_transports(monkeypatch)
     secret = "smtp-password-secret"
     env = _env()
 
@@ -302,11 +278,12 @@ def test_failure_message_redacts_secret_if_transport_input_contains_one(monkeypa
         sleep_fn=lambda _seconds: None,
     )
 
-    assert secret not in messages[0].get_body(preferencelist=("plain",)).get_content()
+    assert counts["email"] == 0
     assert secret not in bark[0][1]
 
 
-def test_failure_notification_dedupes_both_channels_by_target_date(tmp_path, monkeypatch):
+@pytest.mark.parametrize("legacy_email_status", [None, "SUCCESS", "FAILED"])
+def test_failure_notification_dedupes_bark_by_target_date(tmp_path, monkeypatch, legacy_email_status):
     root = _data_root(tmp_path)
     counts, _messages, _bark = _capture_transports(monkeypatch)
 
@@ -322,7 +299,14 @@ def test_failure_notification_dedupes_both_channels_by_target_date(tmp_path, mon
     )
     assert first["status"] == "FAILURE_NOTIFICATION_SENT"
     assert first["receipt_status"] == "PERSISTED"
-    assert counts == {"email": 1, "bark": 1}
+    assert counts == {"email": 0, "bark": 1}
+    if legacy_email_status is not None:
+        notice = delivery.load_failure_notice(root, DATE)
+        notice["email_status"] = legacy_email_status
+        notice["email_sent_at_bjt"] = NOW.isoformat() if legacy_email_status == "SUCCESS" else None
+        delivery.write_failure_notice(root, notice)
+    notice_path = delivery.failure_notice_path(root, DATE)
+    prior_bytes = notice_path.read_bytes()
 
     counts["email"] = 0
     counts["bark"] = 0
@@ -341,9 +325,10 @@ def test_failure_notification_dedupes_both_channels_by_target_date(tmp_path, mon
     notice = delivery.load_failure_notice(root, DATE)
     assert notice is not None
     assert notice["first_failure_stage"] == "production"
+    assert notice_path.read_bytes() == prior_bytes
 
 
-def test_failure_notification_partial_channel_failure_only_retries_failed_channel(tmp_path, monkeypatch):
+def test_failure_notification_retries_bark_after_failed_alert(tmp_path, monkeypatch):
     root = _data_root(tmp_path)
     first_counts, _messages, _bark = _capture_transports(monkeypatch, bark_failures=3)
 
@@ -356,8 +341,13 @@ def test_failure_notification_partial_channel_failure_only_retries_failed_channe
         now_bjt=NOW,
         sleep_fn=lambda _seconds: None,
     )
-    assert first["status"] == "FAILURE_NOTIFICATION_DEGRADED"
-    assert first_counts == {"email": 1, "bark": 3}
+    assert first["status"] == "FAILURE_NOTIFICATION_FAILED"
+    assert first_counts == {"email": 0, "bark": 3}
+
+    # A historical failure email does not substitute for a Bark alert.
+    notice = delivery.load_failure_notice(root, DATE)
+    notice.update(email_status="SUCCESS", email_sent_at_bjt=NOW.isoformat())
+    delivery.write_failure_notice(root, notice)
 
     second_counts, _messages, _bark = _capture_transports(monkeypatch)
     second = delivery.send_failure_notification(
@@ -372,6 +362,7 @@ def test_failure_notification_partial_channel_failure_only_retries_failed_channe
     assert second["status"] == "FAILURE_NOTIFICATION_SENT"
     assert second["attempted_channels"] == ["bark"]
     assert second_counts == {"email": 0, "bark": 1}
+    assert delivery.load_failure_notice(root, DATE)["email_sent_at_bjt"] == NOW.isoformat()
 
 
 @pytest.mark.parametrize(
@@ -543,8 +534,9 @@ def test_bark_uses_current_json_push_endpoint_without_critical_level(monkeypatch
     assert seen["closed"] is True
 
 
-def test_delivery_success_creates_sha_bound_receipt(tmp_path, monkeypatch):
-    root = _data_root(tmp_path)
+@pytest.mark.parametrize("candidate_count", [0, 2])
+def test_delivery_success_creates_sha_bound_receipt(tmp_path, monkeypatch, candidate_count):
+    root = _data_root(tmp_path, candidate_count=candidate_count)
     counts, _messages, _bark = _capture_transports(monkeypatch)
 
     result = delivery.deliver_production(
@@ -558,13 +550,14 @@ def test_delivery_success_creates_sha_bound_receipt(tmp_path, monkeypatch):
 
     receipt = delivery.load_delivery_receipt(root, DATE)
     assert result["status"] == delivery.DELIVERY_SUCCESS
-    assert counts == {"email": 1, "bark": 1}
+    assert counts == {"email": 1, "bark": 0}
     assert receipt is not None
     assert receipt["schema_version"] == delivery.RECEIPT_SCHEMA_VERSION
     assert receipt["report_sha256"] == delivery.file_sha256(root / "reports" / "daily_close_20260914.html")
-    assert receipt["candidate_count"] == 2
+    assert receipt["candidate_count"] == candidate_count
     assert receipt["email_status"] == "SUCCESS"
-    assert receipt["bark_status"] == "SUCCESS"
+    assert receipt["bark_status"] == "NOT_ATTEMPTED"
+    assert receipt["bark_sent_at_bjt"] is None
     assert receipt["email_sent_at_bjt"].startswith("2026-09-14T17:31:42+08:00")
 
 
@@ -591,7 +584,7 @@ def test_delivery_attaches_composite_but_receipt_keeps_formal_b_sha(tmp_path, mo
     receipt = delivery.load_delivery_receipt(root, DATE)
     attachment = next(part for part in messages[0].walk() if part.get_content_disposition() == "attachment")
     assert result["status"] == delivery.DELIVERY_SUCCESS
-    assert counts == {"email": 1, "bark": 1}
+    assert counts == {"email": 1, "bark": 0}
     assert receipt is not None
     assert receipt["report_sha256"] == delivery.file_sha256(root / "reports" / "daily_close_20260914.html")
     assert receipt["delivery_report_sha256"] == delivery.file_sha256(composite)
@@ -600,55 +593,61 @@ def test_delivery_attaches_composite_but_receipt_keeps_formal_b_sha(tmp_path, mo
     assert not (root / "reports" / "delivery_daily_20260914.html").exists()
 
 
-def test_same_report_with_two_successful_channels_is_already_delivered(tmp_path, monkeypatch):
+@pytest.mark.parametrize("legacy_bark_status", ["NOT_ATTEMPTED", "SUCCESS", "FAILED"])
+def test_existing_email_delivery_is_silent_and_keeps_receipt(tmp_path, monkeypatch, legacy_bark_status):
     root = _data_root(tmp_path)
     counts, _messages, _bark = _capture_transports(monkeypatch)
-    delivery.deliver_production(root, DATE, result=_success_result(), env=_env(), now_bjt=NOW, sleep_fn=lambda _seconds: None)
-    counts["email"] = 0
-    counts["bark"] = 0
+    delivery.deliver_production(root, DATE, result=_success_result(), env=_env(), now_bjt=NOW)
+    receipt = delivery.load_delivery_receipt(root, DATE)
+    receipt.update(
+        bark_status=legacy_bark_status,
+        bark_sent_at_bjt=NOW.isoformat() if legacy_bark_status == "SUCCESS" else None,
+    )
+    receipt_path = delivery.write_delivery_receipt(root, receipt)
+    prior_bytes = receipt_path.read_bytes()
 
+    # Historical receipts can predate the composite fields.
+    composite = tmp_path / "composite.html"
+    composite.write_text("<html>new composite</html>", encoding="utf-8")
     result = delivery.deliver_production(
-        root, DATE, result=_success_result(), env=_env(), now_bjt=NOW, sleep_fn=lambda _seconds: None
+        root, DATE, result=_success_result(), delivery_report_path=composite, env={}, now_bjt=NOW,
     )
 
     assert result["status"] == delivery.ALREADY_DELIVERED
-    assert counts == {"email": 0, "bark": 0}
+    assert counts == {"email": 1, "bark": 0}
     assert result["attempted_channels"] == []
+    assert receipt_path.read_bytes() == prior_bytes
 
 
-@pytest.mark.parametrize(
-    ("first_email_failures", "first_bark_failures", "expected_retry"),
-    [(0, 3, "bark"), (3, 0, "email")],
-)
-def test_next_run_retries_only_failed_channel(
-    tmp_path,
-    monkeypatch,
-    first_email_failures,
-    first_bark_failures,
-    expected_retry,
-):
+def test_failed_email_can_retry_with_current_composite(tmp_path, monkeypatch):
     root = _data_root(tmp_path)
-    first_counts, _messages, _bark = _capture_transports(
-        monkeypatch,
-        email_failures=first_email_failures,
-        bark_failures=first_bark_failures,
-    )
+    counts, _messages, _bark = _capture_transports(monkeypatch, email_failures=3)
+    composite = tmp_path / "composite.html"
+    composite.write_text("<html>initial composite</html>", encoding="utf-8")
+
     first = delivery.deliver_production(
-        root, DATE, result=_success_result(), env=_env(), now_bjt=NOW, sleep_fn=lambda _seconds: None
+        root, DATE, result=_success_result(), delivery_report_path=composite,
+        env=_env(), now_bjt=NOW, sleep_fn=lambda _seconds: None,
     )
-    assert first["status"] == delivery.DELIVERY_DEGRADED
-    assert first_counts[expected_retry] == 3
+    assert first["status"] == delivery.DELIVERY_FAILED
+    assert counts == {"email": 3, "bark": 0}
 
-    second_counts, _messages, _bark = _capture_transports(monkeypatch)
+    # A retry can rebuild the fallback presentation without changing Formal B bytes.
+    composite.write_text("<html>retry composite</html>", encoding="utf-8")
     second = delivery.deliver_production(
-        root, DATE, result=_success_result(), env=_env(), now_bjt=NOW, sleep_fn=lambda _seconds: None
+        root, DATE, result=_success_result(), delivery_report_path=composite,
+        env=_env(), now_bjt=NOW, sleep_fn=lambda _seconds: None,
     )
-
     assert second["status"] == delivery.DELIVERY_SUCCESS
-    assert second["attempted_channels"] == [expected_retry]
-    other = "bark" if expected_retry == "email" else "email"
-    assert second_counts[expected_retry] == 1
-    assert second_counts[other] == 0
+    assert second["attempted_channels"] == ["email"]
+    assert counts == {"email": 4, "bark": 0}
+    assert second["delivery_report_sha256"] == delivery.file_sha256(composite)
+    assert first["report_sha256"] == second["report_sha256"]
+
+    composite.write_text("<html>different bytes after delivery</html>", encoding="utf-8")
+    with pytest.raises(delivery.DeliveryReceiptPresentationIdentityConflict):
+        delivery.deliver_production(root, DATE, delivery_report_path=composite, env=_env(), now_bjt=NOW)
+    assert counts == {"email": 4, "bark": 0}
 
 
 def test_channel_retry_is_bounded_to_three_attempts(tmp_path, monkeypatch):
@@ -665,9 +664,9 @@ def test_channel_retry_is_bounded_to_three_attempts(tmp_path, monkeypatch):
         sleep_fn=sleeps.append,
     )
 
-    assert result["status"] == delivery.DELIVERY_DEGRADED
+    assert result["status"] == delivery.DELIVERY_FAILED
     assert counts["email"] == 3
-    assert counts["bark"] == 1
+    assert counts["bark"] == 0
     assert len(sleeps) == 2
 
 
@@ -685,9 +684,70 @@ def test_channel_retry_cannot_exceed_three_attempts_when_requested(tmp_path, mon
         sleep_fn=lambda _seconds: None,
     )
 
-    assert result["status"] == delivery.DELIVERY_DEGRADED
+    assert result["status"] == delivery.DELIVERY_FAILED
     assert counts["email"] == 3
-    assert counts["bark"] == 1
+    assert counts["bark"] == 0
+
+
+@pytest.mark.parametrize("smtp_configured", [True, False])
+def test_cli_email_failure_reaches_bark_failure_path(tmp_path, monkeypatch, capsys, smtp_configured):
+    root = _data_root(tmp_path)
+    env = _env()
+    for key, value in env.items():
+        monkeypatch.setenv(key, value)
+    if not smtp_configured:
+        monkeypatch.delenv("SMTP_PASSWORD")
+    counts, _messages, bark = _capture_transports(monkeypatch, email_failures=3)
+    monkeypatch.setattr(delivery.time, "sleep", lambda _seconds: None)
+    args = ["--date", DATE, "--data-root", str(root)]
+    # A nonzero step outcome enables the workflow's failure notice even with canonical state ready.
+    assert delivery.main(["deliver", *args]) == 1
+    output = capsys.readouterr().out
+    assert json.loads(output)["status"] == delivery.DELIVERY_FAILED
+    assert counts == {"email": 3 if smtp_configured else 0, "bark": 0}
+    result_file = tmp_path / "delivery.json"
+    result_file.write_text(output, encoding="utf-8")
+
+    assert delivery.main([
+        "failure", *args, "--production-status", delivery.DELIVERY_FAILED,
+        "--failure-stage", "report-delivery", "--result-file", str(result_file),
+    ]) == 0
+    assert json.loads(capsys.readouterr().out)["status"] == "FAILURE_NOTIFICATION_SENT"
+    assert counts == {"email": 3 if smtp_configured else 0, "bark": 1}
+    assert delivery.DELIVERY_FAILED in bark[0][1]
+    assert ("EMAIL_RUNTIMEERROR" if smtp_configured else "NOT_CONFIGURED") in bark[0][1]
+    assert delivery.load_failure_notice(root, DATE)["first_failure_stage"] == "report-delivery"
+
+
+def test_email_recovery_within_retries_succeeds_without_bark_configuration(tmp_path, monkeypatch):
+    root = _data_root(tmp_path)
+    env = _env()
+    env.pop("BARK_DEVICE_KEY")
+    counts, _messages, _bark = _capture_transports(monkeypatch, email_failures=2)
+    result = delivery.deliver_production(
+        root, DATE, result=_success_result(), env=env, now_bjt=NOW, sleep_fn=lambda _seconds: None,
+    )
+
+    assert result["status"] == delivery.DELIVERY_SUCCESS
+    assert counts == {"email": 3, "bark": 0}
+    assert delivery.load_failure_notice(root, DATE) is None
+
+
+def test_accepted_email_with_unwritten_receipt_is_not_an_email_failure(tmp_path, monkeypatch, capsys):
+    root = _data_root(tmp_path)
+    counts, _messages, _bark = _capture_transports(monkeypatch)
+    for key, value in _env().items():
+        monkeypatch.setenv(key, value)
+
+    def fail_write(*_args):
+        raise delivery.DeliveryError("DELIVERY_RECEIPT_WRITE_FAILED")
+
+    monkeypatch.setattr(delivery, "write_delivery_receipt", fail_write)
+    assert delivery.main(["deliver", "--date", DATE, "--data-root", str(root)]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["email_status"] == "SUCCESS"
+    assert result["receipt_status"] == "NOT_PERSISTED"
+    assert counts == {"email": 1, "bark": 0}
 
 
 def test_receipt_report_sha_mismatch_fails_closed_without_sending(tmp_path, monkeypatch):
@@ -714,10 +774,10 @@ def test_production_missing_delivery_secrets_is_not_configured_but_receipt_is_sa
     receipt = delivery.load_delivery_receipt(root, DATE)
     assert result["status"] == delivery.DELIVERY_FAILED
     assert result["email_status"] == "NOT_CONFIGURED"
-    assert result["bark_status"] == "NOT_CONFIGURED"
+    assert result["bark_status"] == "NOT_ATTEMPTED"
     assert counts == {"email": 0, "bark": 0}
     assert receipt["email_status"] == "NOT_CONFIGURED"
-    assert receipt["bark_status"] == "NOT_CONFIGURED"
+    assert receipt["bark_status"] == "NOT_ATTEMPTED"
     assert "REPORT_EMAIL_TO" not in delivery.delivery_receipt_path(root, DATE).read_text(encoding="utf-8")
 
 
@@ -845,3 +905,22 @@ def test_workflow_keeps_schedule_and_xshg_gate_while_adding_delivery_test():
     assert "git add -A" not in workflow
     assert "HITHINK_FINANCE_API_KEY" in workflow
     assert "DAILY_REPORT_DELIVERY_RECEIPT_V1" not in workflow
+
+
+def test_workflow_routes_email_step_failure_to_bark_and_skips_delivered_reports():
+    workflow = (Path(__file__).resolve().parents[1] / ".github" / "workflows" / "daily_t_close.yml").read_text(encoding="utf-8")
+    _, *blocks = workflow.split("\n      - name: ")
+    steps = dict(block.split("\n", 1) for block in blocks)
+    failure = steps["Send production failure notification by Bark"]
+    gate = next(line for line in failure.splitlines() if line.strip().startswith("if:"))
+    assert "((env.ASHARE_SKIP_PRODUCTION != '1' && env.PRODUCTION_CANONICAL_READY != '1') || steps.b_delivery.outcome == 'failure')" in gate
+    for step in ("Checkout clean runtime-state for failure notice",
+                 "Persist operational failure notice in clean runtime-state checkout",
+                 "Write production failure delivery summary"):
+        assert gate in steps[step].splitlines()
+    assert 'production_status="DELIVERY_FAILED"' in failure
+    assert 'result_file="${DELIVERY_RESULT:-}"' in failure
+    context = steps["Check same-day completion before provider calls"]
+    assert '["email_delivered"]' in context and "REPORT_EMAIL_ALREADY_DELIVERED=1" in context
+    for step in ("Prepare self-contained B+C delivery HTML", "Deliver production report by Email"):
+        assert "env.REPORT_EMAIL_ALREADY_DELIVERED != '1'" in steps[step]
