@@ -898,7 +898,7 @@ def bootstrap_allowlist(state_root: str | Path, data_root: str | Path) -> dict[s
 
 
 def completed_run_status(data_root: str | Path, date_value: str | date | datetime) -> dict[str, Any]:
-    """Verify the dated watchlist, tracker/report checkpoint, and HTML agree."""
+    """Verify canonical completion and report whether an email was already sent."""
 
     root = _resolved(data_root)
     list_date, token = _date_parts(date_value)
@@ -926,6 +926,8 @@ def completed_run_status(data_root: str | Path, date_value: str | date | datetim
         )
         tracker = load_tracker(paths.perf_tracker_file())
         current_prospective_tracker(tracker, paths)
+        report = _hash_record(html_path)
+        receipt = load_delivery_receipt(root, list_date)
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError, RuntimeStateError) as exc:
         return {
             "status": INCOMPLETE_SAME_DAY_STATE,
@@ -939,9 +941,12 @@ def completed_run_status(data_root: str | Path, date_value: str | date | datetim
         "input_coverage": watchlist.get("input_coverage"),
         "watchlist": _hash_record(watchlist_path),
         "tracker": _hash_record(paths.perf_tracker_file()),
-        "dated_html": _hash_record(html_path),
+        "dated_html": report,
         "checkpoint": _hash_record(manifest_path),
         "checkpoint_code_git_sha": manifest.get("code_git_sha"),
+        "email_delivered": bool(
+            receipt and receipt["report_sha256"] == report["sha256"] and receipt["email_status"] == "SUCCESS"
+        ),
         "provider_calls": 0,
     }
 

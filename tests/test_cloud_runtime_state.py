@@ -37,7 +37,7 @@ from upload_daily_checkpoint import (
     persist_checkpoint_manifest,
 )
 from watchlist_schema import validate_watchlist
-from daily_report_delivery import write_failure_notice
+from daily_report_delivery import RECEIPT_SCHEMA_VERSION, write_delivery_receipt, write_failure_notice
 
 
 CALENDAR = TradingCalendar(holidays=set())
@@ -512,7 +512,14 @@ def test_historical_checkpoint_corruption_still_fails_closed(tmp_path, corruptio
         validate_runtime_data(data_root)
 
 
-def test_two_consecutive_production_day_lifecycle_validates_and_completes(tmp_path):
+@pytest.mark.parametrize(
+    ("email_status", "bark_status", "email_delivered"),
+    [(None, None, False), ("SUCCESS", "NOT_ATTEMPTED", True), ("SUCCESS", "SUCCESS", True),
+     ("FAILED", "SUCCESS", False)],
+)
+def test_two_consecutive_production_day_lifecycle_validates_and_completes(
+    tmp_path, email_status, bark_status, email_delivered,
+):
     data_root, _d1, d2, _d1_payload, _d2_payload = _two_day_fixture(tmp_path)
     manifest = build_daily_checkpoint_manifest(
         d2,
@@ -521,6 +528,22 @@ def test_two_consecutive_production_day_lifecycle_validates_and_completes(tmp_pa
         code_git_sha="c" * 40,
     )
     persist_checkpoint_manifest(manifest, checkpoint_manifest_path(data_root, d2))
+    if email_status is not None:
+        report = data_root / "reports" / f"daily_close_{d2.replace('-', '')}.html"
+        sent_at = f"{d2}T17:30:00+08:00"
+        write_delivery_receipt(data_root, {
+            "schema_version": RECEIPT_SCHEMA_VERSION,
+            "report_date": d2,
+            "report_sha256": file_sha256(report),
+            "candidate_count": 1,
+            "review_status": "READY",
+            "shadow_status": "READY",
+            "email_status": email_status,
+            "email_sent_at_bjt": sent_at if email_status == "SUCCESS" else None,
+            "bark_status": bark_status,
+            "bark_sent_at_bjt": sent_at if bark_status == "SUCCESS" else None,
+            "last_attempt_at_bjt": sent_at,
+        })
 
     validation = validate_runtime_data(data_root)
     completion = completed_run_status(data_root, d2)
@@ -528,6 +551,8 @@ def test_two_consecutive_production_day_lifecycle_validates_and_completes(tmp_pa
     assert validation["status"] == "RUNTIME_STATE_VALID"
     assert validation["checkpoint_count"] == 2
     assert completion["status"] == ALREADY_COMPLETED
+    assert completion["email_delivered"] is email_delivered
+    assert completion["provider_calls"] == 0
 
 
 def test_bootstrap_reuses_historical_checkpoint_after_mutable_state_advances(tmp_path):
@@ -811,7 +836,7 @@ def test_runtime_state_commit_gate_preserves_allowlist_idempotency_and_delivery_
     assert workflow.index("Validate production outputs before state copy") < workflow.index(
         "Copy allowlisted durable outputs into runtime-state checkout"
     ) < workflow.index("Atomically commit and push runtime-state with GITHUB_TOKEN") < workflow.index(
-        "Deliver production report by Email and Bark"
+        "Deliver production report by Email"
     )
 
 

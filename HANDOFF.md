@@ -1,5 +1,17 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-11-20 — B+C 日报通知分流待审
+
+- Correctness blocker / STRICT PATH，归类保持。修复正式产物已就绪后，邮件耗尽重试时
+  Bark 告警被跳过的问题。有效日报只走 Email，含 0 候选及有效的部分输入；生成失败、
+  `NO_VALID_INPUT`、邮件最终失败走 Bark。已邮件交付和正常跳过均静默。
+- 从 `master@85abb04acb86e3396f635218e7087c00a0d8339a` 分支开发。远端
+  `runtime-state@db5426997f74ffb2b7ef9f695cdce8b29b64c1c4` 的 38 份交付回执和
+  9 份故障回执通过现有 schema 读取。两类回执均沿用 V1 与原路径。
+- 恢复分支为 `codex/bc-report-notification-routing`。Fetch 后用
+  `git rev-parse origin/codex/bc-report-notification-routing` 读取远端 HEAD，在独立 PR
+  上核验该提交的 correctness CI。下一步为 PR 审阅。未合并，未触发真实生产。
+
 ## 2026-11-18 — C研究模拟已合并
 
 - Deferred improvement / STRICT PATH，归类保持。用户授权后，[PR #115](https://github.com/EFSing/ashare_watchlist/pull/115)
