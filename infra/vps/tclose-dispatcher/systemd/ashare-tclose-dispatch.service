@@ -1,0 +1,13 @@
+[Unit]
+Description=Dispatch the A-share close workflow on GitHub Actions
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+DynamicUser=yes
+NoNewPrivileges=yes
+EnvironmentFile=/etc/ashare-tclose-dispatch/github-app.env
+LoadCredential=github-app-key:/etc/ashare-tclose-dispatch/github-app.pem
+ExecStart=/usr/bin/python3 /usr/local/lib/ashare-tclose-dispatch/github_dispatch.py
+TimeoutStartSec=45s

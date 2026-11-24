@@ -1,0 +1,9 @@
+[Unit]
+Description=Dispatch the A-share close workflow at 17:25 Asia/Shanghai
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 17:25:00 Asia/Shanghai
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target
