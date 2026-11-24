@@ -1,5 +1,14 @@
 # CURRENT STATUS
 
+## 2026-11-24 — A 股日报 VPS 定时已启用
+
+- [PR #117](https://github.com/EFSing/ashare_watchlist/pull/117) 已合并，
+  [master CI](https://github.com/EFSing/ashare_watchlist/actions/runs/45336767037) 通过。
+  VPS 使用 GitHub App 在北京时间工作日 17:25 发起外部调度，Cloudflare 对应 Cron 已停用。
+- GitHub 原生定时仍提供北京时间 17:17 主入口与 18:17 重试入口。
+  首次自然 VPS 触发尚待运行收据，验收步骤见 [部署与回滚](../infra/vps/tclose-dispatcher/README.md)。
+
+
 ## 2026-11-20 — B+C 日报通知分流已合并
 
 - [PR #116](https://github.com/EFSing/ashare_watchlist/pull/116) 已 squash merge 至
