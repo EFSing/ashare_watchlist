@@ -1,5 +1,19 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-11-24 — A 股 VPS 调度已切换
+
+- P1 日报运行可靠性，STRICT PATH。用户授权后，[PR #117](https://github.com/EFSing/ashare_watchlist/pull/117)
+  已 squash merge 至 `master`，合并提交 `c462236c4304bc142cc65ea640e5153dff08f757`，
+  [master correctness](https://github.com/EFSing/ashare_watchlist/actions/runs/45336767037) 通过。
+- 14:00 BJT 回读 `ashare-tclose-dispatch.timer` 为启用并等待，首轮预计 11-24 17:25 BJT。
+  Cloudflare `ashare-tclose-dispatcher` 的 Cron 已保存并回读为空。VPS 上的 GitHub App
+  认证检查成功。收盘前的 [预检](https://github.com/EFSing/ashare_watchlist/actions/runs/45335902166)
+  已确认 GitHub 接受 `external-scheduler` 与目标日，请求在收盘校验处结束。
+- 首次自然 VPS 触发待验收。从 timer 服务日志取得运行链接，核对该日的生产、已完成或休市结果。
+  部署与恢复见 [VPS 运行手册](infra/vps/tclose-dispatcher/README.md)。
+  Cloudflare 配置与重新部署以 VPS 切换状态为准。
+
+
 ## 2026-11-20 — B+C 日报通知分流已合并
 
 - Correctness blocker / STRICT PATH，归类保持。用户授权后，[PR #116](https://github.com/EFSing/ashare_watchlist/pull/116)
