@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 from html import escape
 import json
+import math
 from pathlib import Path
 from statistics import mean
 from typing import Any, Mapping
@@ -75,7 +76,20 @@ def _signals(watchlist: Mapping[str, Any], histories: Mapping[str, Any]) -> list
         close = bars[-1]["close"]
         ma5 = mean(bar["close"] for bar in bars[-5:])
         for rule_name in candidate["matched_rules"]:
-            structure = candidate["rules"][rule_name]["structure"]
+            rules = candidate.get("rules")
+            rule = rules.get(rule_name) if isinstance(rules, Mapping) else None
+            observation = rule.get("price_structure_observation") if isinstance(rule, Mapping) else None
+            structure = observation.get("structure") if isinstance(observation, Mapping) else None
+            if not isinstance(structure, Mapping):
+                raise ValueError(
+                    f"C research candidate {code}/{rule_name} lacks price_structure_observation.structure"
+                )
+            for field in ("rebound_high", "support_floor", "stage_prior_high"):
+                value = structure.get(field)
+                if not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(value):
+                    raise ValueError(
+                        f"C research candidate {code}/{rule_name} lacks numeric structure.{field}"
+                    )
             trigger = round(max(structure["rebound_high"], ma5), 2)
             stop = round(structure["support_floor"] * .98, 2)
             pressure = structure["stage_prior_high"]

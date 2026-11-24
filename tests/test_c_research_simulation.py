@@ -4,13 +4,16 @@ from datetime import datetime, time, timedelta, timezone
 from hashlib import sha256
 import json
 from pathlib import Path
+from statistics import mean
 
 import pytest
 
+from c_b_input_adapter import _price_only_observation
 import c_research_simulation as simulation
 import run_c_daily_watchlist as runner
 from c_daily_watchlist import write_report
 from test_c_daily_watchlist import _init_c_state_repo
+from test_c_pre_outcome_design import _synthetic_entry_bars
 from track_perf import RULE_STATUS_AMBIGUOUS, RULE_STATUS_CLOSED, RULE_STATUS_OPEN
 from trading_calendar import TradingCalendar
 
@@ -35,9 +38,9 @@ def _inputs(tmp_path, day, bars, *, match):
         "normalized_data_sha256": "a" * 64,
     }]}}), encoding="utf-8")
     package_sha = sha256(package.read_bytes()).hexdigest()
-    rules = {"BALANCED_A": {"price_structure_match": match, "structure": {
+    rules = {"BALANCED_A": {"price_structure_match": match, "price_structure_observation": {"structure": {
         "rebound_high": 10.2, "support_floor": 9.7, "stage_prior_high": 11.5,
-    }}, "CONSERVATIVE_B": {"price_structure_match": False}}
+    }}}, "CONSERVATIVE_B": {"price_structure_match": False}}
     record = directory / "observation.json"
     record.write_text(json.dumps({
         "schema_version": "C_B_FROZEN_INPUT_READER_V1",
@@ -136,3 +139,101 @@ def test_c_simulation_same_bar_ambiguity_and_missing_or_rebased_prices():
         missing = evaluate(bars, T2)
         assert missing["status"] == "PERFORMANCE_DATA_INCOMPLETE"
         assert missing["realized_return_pct"] is None
+
+
+def test_c_simulation_consumes_real_price_only_observation_schema(tmp_path, monkeypatch):
+    monkeypatch.setattr(simulation, "default_calendar", lambda: TradingCalendar([], session_close_time=time(15)))
+    bars = _synthetic_entry_bars()
+    day = bars[-1]["date"]
+    balanced = _price_only_observation(CODE, day, bars, "BALANCED_A")
+    conservative = _price_only_observation(CODE, day, bars, "CONSERVATIVE_B")
+    assert balanced["price_structure_match"] is True
+    assert "structure" not in balanced
+    assert "structure" in balanced["price_structure_observation"]
+
+    directory = tmp_path / day
+    directory.mkdir()
+    package = directory / "package.json"
+    package.write_text(json.dumps({"generation_input_manifest": {"stock_klines": [{
+        "symbol": CODE, "adjustment_mode": "PROVIDER_QFQ_SNAPSHOT", "bars": bars,
+        "normalized_data_sha256": "a" * 64,
+    }]}}), encoding="utf-8")
+    package_sha = sha256(package.read_bytes()).hexdigest()
+    record = directory / "observation.json"
+    record.write_text(json.dumps({
+        "schema_version": "C_B_FROZEN_INPUT_READER_V1",
+        "status": "PRICE_OBSERVATION_VOLUME_UNVERIFIED",
+        "source": {
+            "target_date": day,
+            "b_package_actual_sha256": package_sha,
+            "handoff": {"mode": "SAME_RUNNER_READ_ONLY"},
+            "b_acquired_at_bjt": f"{day}T17:20:00+08:00",
+            "c_read_at_bjt": f"{day}T17:30:00+08:00",
+        },
+        "observations": [{
+            "symbol": CODE,
+            "name": "浦发银行",
+            "rules": {"BALANCED_A": balanced, "CONSERVATIVE_B": conservative},
+        }],
+    }), encoding="utf-8")
+    report = write_report(record, directory / "rendered")
+    result = {"as_of_date": day, "input_package": {"path": str(package), "file_sha256": package_sha}}
+    consumed = {"record_sha256": sha256(record.read_bytes()).hexdigest()}
+    state = tmp_path / "runtime-state"
+    state.mkdir()
+
+    files = simulation.capture(
+        result,
+        consumed,
+        record,
+        state,
+        report,
+        now=datetime.fromisoformat(f"{day}T18:00:00+08:00"),
+    )
+    ledger = json.loads(Path(files["ledger"]).read_bytes())
+    assert len(ledger["signals"]) == 1
+    signal = ledger["signals"][0]
+    structure = balanced["price_structure_observation"]["structure"]
+    close = bars[-1]["close"]
+    ma5 = mean(bar["close"] for bar in bars[-5:])
+    expected_trigger = round(max(structure["rebound_high"], ma5), 2)
+    expected_stop = round(structure["support_floor"] * 0.98, 2)
+    expected_target = (
+        structure["stage_prior_high"]
+        if structure["stage_prior_high"] > close * 1.03
+        else close + 2.5 * (close - expected_stop)
+    )
+    assert (signal["code"], signal["setup"]) == (CODE, "BALANCED_A")
+    assert signal["trigger"] == expected_trigger
+    assert signal["stop"] == expected_stop
+    assert signal["target"] == expected_target
+
+    section = simulation.read_section(files)
+    assert '<h2>C研究模拟</h2>' in section
+    assert "待次一交易日" in section
+    assert f"{CODE} 浦发银行" in section
+    assert "BALANCED_A" in section
+
+
+@pytest.mark.parametrize("rule_payload", [
+    {"price_structure_match": True, "structure": {"rebound_high": 10.2, "support_floor": 9.7, "stage_prior_high": 11.5}},
+    {"price_structure_match": True, "price_structure_observation": {}},
+    {"price_structure_match": True, "price_structure_observation": {"structure": None}},
+    {"price_structure_match": True, "price_structure_observation": {"structure": {"support_floor": 9.7, "stage_prior_high": 11.5}}},
+    {"price_structure_match": True, "price_structure_observation": {"structure": {"rebound_high": 10.2, "support_floor": None, "stage_prior_high": 11.5}}},
+    {"price_structure_match": True, "price_structure_observation": {"structure": {"rebound_high": 10.2, "support_floor": 9.7, "stage_prior_high": True}}},
+    {"price_structure_match": True, "price_structure_observation": {"structure": {"rebound_high": float("nan"), "support_floor": 9.7, "stage_prior_high": 11.5}}},
+])
+def test_c_simulation_signals_rejects_missing_structure_or_numeric_fields(rule_payload):
+    watchlist = {
+        "signal_date": T,
+        "rows": [{
+            "symbol": CODE,
+            "name": "模拟测试",
+            "matched_rules": ["BALANCED_A"],
+            "rules": {"BALANCED_A": rule_payload, "CONSERVATIVE_B": {"price_structure_match": False}},
+        }],
+    }
+    histories = {CODE: {"bars": [_bar(T, 9.9, 10.1)]}}
+    with pytest.raises(ValueError, match=r"price_structure_observation\.structure|numeric structure\."):
+        simulation._signals(watchlist, histories)
