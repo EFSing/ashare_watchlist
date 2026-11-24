@@ -1374,6 +1374,12 @@ _STRUCTURE_STAGE_LABELS = {
     'POST_H1_CONTINUATION_PROXY': '前高后延续',
     'STRUCTURE_PROXY_UNAVAILABLE_OR_INVALID': '结构待确认',
 }
+_STRUCTURE_STAGE_GLOSS = {
+    'EARLY_PULLBACK': '刚回踩',
+    _TRANSITION_STAGE: '回踩转强',
+    'POST_H1_CONTINUATION_PROXY': '已过前高',
+    'STRUCTURE_PROXY_UNAVAILABLE_OR_INVALID': '形态待确认',
+}
 _RESEARCH_VOLUME_LABELS = {
     'down_volume_share': '回踩下跌量占比',
     'up_down_volume_ratio': '上涨／下跌日均量比',
@@ -1646,6 +1652,55 @@ def _volume_summary_line(data: Mapping[str, Any]) -> str:
     return '量能：' + ' · '.join(values) + f' → {factual}'
 
 
+def _volume_brief_summary(
+    data: Mapping[str, Any],
+    *,
+    is_transition: bool = False,
+    judgments: Mapping[str, str] | None = None,
+    empty_window: bool = False,
+) -> str:
+    """Build a single plain-Chinese volume summary line for the collapsed card surface."""
+    if empty_window:
+        return '回踩窗口 0 天，暂无法计算量能'
+    if is_transition and judgments:
+        if '无法判断' in judgments.values():
+            factual = _volume_factual_summary(data).rstrip('。')
+            if factual == '量能观察数据不足，暂不作事实总结':
+                return '部分量能样本不足，暂无法完整比较'
+            return f'{factual}（部分项样本不足）'
+        if all(judgment == '偏好' for judgment in judgments.values()):
+            return '三项量能方向较一致（未验证）'
+        if '偏好' in judgments.values():
+            return '部分符合预期（未验证）'
+        if '偏差' in judgments.values():
+            return '量能与研究预期相反（未验证）'
+        return '三项量能均为中性（未验证）'
+    factual = _volume_factual_summary(data).rstrip('。')
+    if factual == '量能观察数据不足，暂不作事实总结':
+        return '回踩量能数据不足'
+    return factual
+
+
+def _watch_brief_html(
+    research: Mapping[str, Any] | None,
+    brief_volume: str,
+) -> str:
+    state = research['structure']['state'] if research is not None else None
+    stage = _STRUCTURE_STAGE_LABELS.get(state, '结构待确认')
+    gloss = (
+        _STRUCTURE_STAGE_GLOSS.get(state, '形态待确认')
+        if research is not None
+        else '结构研究暂不可用'
+    )
+    return (
+        '<div class="watch-brief">'
+        f'<span class="watch-brief-stage"><strong>结构阶段：{_esc(stage)}</strong>'
+        f'<small>（{_esc(gloss)}）</small></span>'
+        f'<span class="watch-brief-volume">量能：{_esc(brief_volume)}</span>'
+        '</div>'
+    )
+
+
 def _volume_observations_html(
     observation: Mapping[str, Any] | None, *, research: Mapping[str, Any] | None = None,
 ) -> str:
@@ -1693,7 +1748,6 @@ def _volume_observations_html(
         else '观察窗口：回踩区间'
     )
     window_html = f'<small class="volume-window">{_esc(window)}</small>'
-    stage = _structure_observation_html(research)
     if research is not None:
         empty_window = window_days == 0 and all(
             reasons.get(field) == 'NO_PULLBACK_WINDOW' for field in _RESEARCH_VOLUME_LABELS
@@ -1709,15 +1763,27 @@ def _volume_observations_html(
         if empty_window:
             guidance = '回踩观察窗口为 0 个交易日。突破日与信号日之间没有交易日，三项量能均无法计算。'
             metrics_html = ''
-        return (
-            '<div class="volume-observations"><div class="volume-card volume-card-research">'
-            f'{stage}<p class="volume-stage-guidance">{_esc(guidance)}</p>'
-            f'{metrics_html}{_volume_research_details(research, reasons, window_html)}'
-            '</div></div>'
+        brief = _watch_brief_html(
+            research,
+            _volume_brief_summary(
+                data,
+                is_transition=is_transition,
+                judgments=judgments,
+                empty_window=empty_window,
+            ),
         )
+        return (
+            f'{brief}<details class="volume-details-compact">'
+            '<summary>展开形态与量能明细</summary>'
+            '<div class="volume-observations"><div class="volume-card volume-card-research">'
+            f'<p class="volume-stage-guidance">{_esc(guidance)}</p>'
+            f'{metrics_html}{_volume_research_details(research, reasons, window_html)}'
+            '</div></div></details>'
+        )
+    brief = _watch_brief_html(None, _volume_brief_summary(data))
     return (
-        f'{stage}<details class="volume-details-compact">'
-        f'<summary>{_esc(_volume_summary_line(data))}</summary>'
+        f'{brief}<details class="volume-details-compact">'
+        '<summary>展开形态与量能明细</summary>'
         '<div class="volume-observations">'
         '<div class="volume-card">'
         f'<div class="volume-card-head"><strong>回踩量能 · 量能衰减</strong>{window_html}</div>'
@@ -1759,13 +1825,13 @@ def _watchlist_table(rows, earliest_execution=None, *, table_id='watchlist-table
             f'</div>'
             f'{_shortlist_reason_html(row.get("shortlist_detail"))}'
             f'<div class="watch-facts">'
-            f'<span><label>触发</label><strong>{_esc(_number(row.get("trigger")))}</strong></span>'
-            f'<span><label>止损</label><strong class="negative">{_esc(_number(row.get("stop")))}</strong></span>'
-            f'<span><label>目标</label><strong class="positive">{_esc(_number(row.get("target")))}</strong></span>'
-            f'<span><label>计划 RR</label><strong>{_esc(_number(row.get("rr")))}</strong></span>'
-            f'<span><label>距触发</label><strong class="{distance_tone}">{_esc(distance_value)}</strong>'
+            f'<span><label>触发价</label><strong>{_esc(_number(row.get("trigger")))}</strong></span>'
+            f'<span><label>止损价</label><strong class="negative">{_esc(_number(row.get("stop")))}</strong></span>'
+            f'<span><label>目标价</label><strong class="positive">{_esc(_number(row.get("target")))}</strong></span>'
+            f'<span><label>计划盈亏比</label><strong>{_esc(_number(row.get("rr")))}</strong></span>'
+            f'<span><label>距触发幅度</label><strong class="{distance_tone}">{_esc(distance_value)}</strong>'
             f'<small>{_esc(_position(distance))}</small></span>'
-            f'<span><label>T+1</label><strong>{_esc(earliest_execution)}</strong></span>'
+            f'<span><label>最早执行日</label><strong>{_esc(earliest_execution)}</strong></span>'
             f'</div>'
             f'{_volume_observations_html(row.get("volume_observation"), research=research)}'
             f'<div class="watch-meta"><span>{_esc(row.get("sector"))}</span>'
@@ -1782,17 +1848,17 @@ def _shortlist_reason_html(detail):
         return ''
     if detail.get('selected'):
         reason = (
-            f"按本轮固定比较顺序入选；参考买价 {_number(detail['reference_entry'])}，"
-            f"参考止损距离 {_percent(detail['reference_risk_fraction'] * 100)}，"
-            f"参考收益风险比 {_number(detail['reference_reward_risk'])}。"
+            f"入选重点观察：参考买价 {_number(detail['reference_entry'])}，"
+            f"参考止损幅度 {_percent(detail['reference_risk_fraction'] * 100)}，"
+            f"参考盈亏比 {_number(detail['reference_reward_risk'])}。"
         )
     else:
         explanations = {
-            'OUTSIDE_COMPARISON_STAGE': '结构阶段不在本轮比较范围',
-            'V1_V2_UNAVAILABLE_OR_INVALID': '两项主要量能资料不完整，暂不比较',
-            'INVALID_REFERENCE_PRICES': '参考买价与止损、目标的关系不满足比较条件',
-            'LIMIT_REACHED': '按本轮比较顺序排在重点名额之后',
-            'UNAVAILABLE': '短名单资料缺失或未通过核验，保留原始候选供核对',
+            'OUTSIDE_COMPARISON_STAGE': '未入选：形态不在本轮重点比较阶段',
+            'V1_V2_UNAVAILABLE_OR_INVALID': '未入选：两项主要量能资料不完整，暂不比较',
+            'INVALID_REFERENCE_PRICES': '未入选：参考买卖价位关系不满足比较条件',
+            'LIMIT_REACHED': '未入选：按本轮比较顺序排在重点名额之后',
+            'UNAVAILABLE': '未筛选：短名单资料缺失或未通过核验，保留原始候选供核对',
         }
         reason = '；'.join(explanations.get(key, '暂未进入重点观察') for key in detail['reasons'])
     return f'<p class="shortlist-reason">{_esc(reason)}</p>'
@@ -1920,8 +1986,8 @@ def _daily_review_html(model: ReportModel) -> str:
         ('前瞻路径止盈', _integer(summary.get('target_hits'), '0')),
         ('前瞻路径止损', _integer(summary.get('stop_hits'), '0')),
         ('路径待核验', _integer(summary.get('daily_missing'), '0')),
-        ('T+1 待观察', _integer(summary.get('today_t1_pending'), '0')),
-        ('前瞻到期未触发', _integer(summary.get('expired'), '0')),
+        ('今日新股待观察', _integer(summary.get('today_t1_pending'), '0')),
+        ('10天到期未触发', _integer(summary.get('expired'), '0')),
     )
     path_cards_html = ''.join(
         f'<article><span>{_esc(label)}</span><strong>{_esc(value)}</strong></article>'
@@ -1941,25 +2007,26 @@ def _daily_review_html(model: ReportModel) -> str:
         f'共 {_esc(_integer(summary.get("previous_total"), "0"))} 个信号</p>'
         '<div class="model-panel model-p-panel">'
         f'<div class="model-panel-head"><div><span class="model-label">{MODEL_P} · {MODEL_P_LABEL}</span>'
-        '<h3>前瞻执行路径变化</h3></div>'
-        '<span class="badge neutral">来源：prospective tracker/path</span></div>'
+        '<h3>前瞻执行路径变化（10天限时跟踪）</h3></div>'
+        '<span class="badge neutral">10天限时逐日跟踪</span></div>'
+        '<p class="model-explanation">信号发出后 10 个交易日内触及触发价才进入跟踪，满 10 天未触发自动到期；若缺某日实时记录则标「待核验」，不事后补算。</p>'
         '<div class="review-summary-grid">' + path_cards_html + '</div>'
-        '<div class="subsection-head"><h4>今日发生变化</h4><small>只显示 tracker/path 的触发、结案与缺口</small></div>'
+        '<div class="subsection-head"><h4>今日发生变化</h4><small>只显示 10 天限时跟踪下的新触发、结案与数据缺口</small></div>'
         f'{changed_html}'
         '<div class="subsection-head"><h4>今日前瞻路径结案</h4>'
-        f'<span class="count-label">{_integer(len(model.closed_today), "0")} 笔 · 不含理论规则模拟收益</span></div>'
+        f'<span class="count-label">{_integer(len(model.closed_today), "0")} 笔 · 仅 10 天限时跟踪，不含理论规则模拟收益</span></div>'
         f'{closed_html}'
         '<details class="review-details"><summary>昨日名单当前前瞻状态 · '
         f'{_integer(len(model.previous_signals), "0")} 个 · 展开明细</summary>{_daily_table(model.previous_signals)}</details>'
         '<div class="subsection-head"><h4>历史仍在观察</h4>'
-        f'<span class="count-label">{_integer(len(model.active_signals), "0")} 个 · 前瞻路径状态</span></div>'
+        f'<span class="count-label">{_integer(len(model.active_signals), "0")} 个 · 10天限时跟踪中</span></div>'
         f'{_active_review_html(model.active_signals)}'
         '</div>'
         '<div class="model-panel model-r-panel">'
         f'<div class="model-panel-head"><div><span class="model-label">{MODEL_R} · {MODEL_R_LABEL}</span>'
-        '<h3>理论规则模拟变化</h3></div>'
-        '<span class="badge neutral">来源：build_strategy_rule_performance</span></div>'
-        '<p class="model-explanation">当日结案仅按理论 Trigger 价与规则退出语义展示；收益标记为“理论模拟收益”，不代表前瞻执行收益。</p>'
+        '<h3>理论规则模拟变化（不限时规则模拟）</h3></div>'
+        '<span class="badge neutral">不限时规则模拟 · 非实盘持仓</span></div>'
+        '<p class="model-explanation">按理论触发价模拟买入，不到目标价或止损价就一直持有（不设 10 天期限，不代表真实账户持仓）；当日结案收益标记为“理论模拟收益”，不代表前瞻执行收益。</p>'
         f'{_rule_daily_close_html(model.trade_performance or {}, report_date)}'
         '</div>'
     )
@@ -1983,30 +2050,30 @@ def _quality_table(
         items = [
             ('策略规则复算数据缺失', performance.get('performance_data_incomplete', 0),
              PERFORMANCE_DATA_INCOMPLETE,
-             '历史 daily OHLC 不完整，不猜测策略规则路径。'),
+             '历史日线数据不完整，不猜测策略规则路径。'),
             ('策略规则配置错误', performance.get('strategy_config_errors', 0),
              STRATEGY_RULE_CONFIG_ERROR,
-             'trigger / stop / target 配置不满足多头规则约束。'),
+             '触发价、止损价或目标价不满足规则约束。'),
             ('同日顺序不明', performance.get('ambiguous', 0),
              'AMBIGUOUS_SAME_BAR',
-             '保留安全口径，不猜测日内先后顺序。'),
-            ('prospective observation 缺失', audit_performance.get('execution_unverified', 0),
+             '同日同时触及多个价位，保留安全口径，不猜测先后顺序。'),
+            ('前瞻实时记录缺失', audit_performance.get('execution_unverified', 0),
              UNVERIFIED_MISSING_EXECUTION_OBSERVATION,
-             '实时 prospective 跟踪不完整；不影响规则价策略绩效复算。'),
-            ('prospective T+1 等待', audit_performance.get('execution_pending', 0),
+             '逐日实时跟踪记录不完整；不影响独立规则价模拟复算。'),
+            ('今日新信号待观察', audit_performance.get('execution_pending', 0),
              EXECUTION_T_PLUS_1_PENDING,
-             '正常状态：新信号等待下一交易日 observation。'),
+             '正常状态：新信号等待下一交易日开盘观察。'),
             ('历史节点 / 当日数据缺失', summary.get('daily_missing', 0) + summary.get('missing_observations', 0),
              _MISSING,
-             'prospective review observation 缺失，不回填历史节点。'),
+             '前瞻复盘记录缺失，不事后回填历史节点。'),
         ]
         shadow_capture = shadow_monitor.get('capture', {}) if isinstance(shadow_monitor, Mapping) else {}
         if shadow_capture.get('status') == 'SHADOW_CAPTURE_INCOMPLETE':
             items.append((
-                'Prospective Shadow Monitor',
+                'Shadow 后台观察',
                 shadow_capture.get('incomplete', 0),
                 'SHADOW_CAPTURE_INCOMPLETE',
-                f"Shadow monitor data incomplete: {shadow_capture.get('complete', 0)}/{shadow_capture.get('expected', 0)}",
+                f"后台观察采集不完整：{shadow_capture.get('complete', 0)}/{shadow_capture.get('expected', 0)}",
             ))
         if acquisition_status != 'COMPLETE':
             items.append(('行情证据', 1, acquisition_status, '行情证据采集状态待确认。'))
@@ -2014,8 +2081,8 @@ def _quality_table(
             items.append(('复盘读取', 1, review_status, '复盘读取未完成，名单仍可查看。'))
         visible = [(label, count, status, reason) for label, count, status, reason in items if count]
         ok_html = (
-            '<div class="quality-ok"><span class="badge positive">质量分层正常</span>'
-            '<span>规则价绩效与 prospective observation audit 已分开。</span></div>'
+            '<div class="quality-ok"><span class="badge positive">数据检查正常</span>'
+            '<span>规则模拟复算与前瞻实时跟踪记录已分开核对。</span></div>'
             if acquisition_status == 'COMPLETE' else ''
         )
     else:
@@ -2026,7 +2093,7 @@ def _quality_table(
         ok_html = ''
 
     if not visible:
-        return ok_html or '<div class="quality-ok"><span class="badge positive">质量分层正常</span><span>未发现新的数据质量异常。</span></div>'
+        return ok_html or '<div class="quality-ok"><span class="badge positive">数据检查正常</span><span>未发现新的数据质量异常。</span></div>'
 
     body = []
     for label, count, status, reason in visible:
@@ -2084,14 +2151,14 @@ def _prospective_execution_html(performance: Mapping[str, Any]) -> str:
 
     counters = _prospective_path_counters(performance)
     cards = (
-        ("全部信号", counters.get("total_signals"), "canonical tracker"),
-        ("等待触发", counters.get("waiting_trigger"), "未触发且仍在观察窗口"),
-        ("已触发 · 活跃", counters.get("triggered_active"), "已有前瞻入场路径，尚未结案"),
-        ("前瞻路径 · 止盈", counters.get("terminal_win"), "tracker terminal path"),
-        ("前瞻路径 · 止损", counters.get("terminal_loss"), "tracker terminal path"),
-        ("到期未触发", counters.get("expired_untriggered"), "T+10 expiry"),
-        ("T+1 待观察", counters.get("pending"), "pending / incomplete"),
-        ("路径待核验", counters.get("incomplete"), "missing prospective observation"),
+        ("全部信号", counters.get("total_signals"), "纳入前瞻跟踪的信号总数"),
+        ("等待触发", counters.get("waiting_trigger"), "未触发且仍在 10 天观察期内"),
+        ("已触发 · 活跃", counters.get("triggered_active"), "已触价进入跟踪，尚未结案"),
+        ("前瞻路径 · 止盈", counters.get("terminal_win"), "10天限时跟踪达到目标价"),
+        ("前瞻路径 · 止损", counters.get("terminal_loss"), "10天限时跟踪触及止损价"),
+        ("到期未触发", counters.get("expired_untriggered"), "满 10 个交易日仍未触价"),
+        ("今日新股待观察", counters.get("pending"), "等待下一交易日开盘观察"),
+        ("路径待核验", counters.get("incomplete"), "缺当日实时记录，不事后补算"),
     )
     body = ''.join(
         f'<article class="kpi-card prospective-kpi"><div class="kpi-label">{_esc(label)}</div>'
@@ -2102,11 +2169,11 @@ def _prospective_execution_html(performance: Mapping[str, Any]) -> str:
     return (
         '<div class="model-panel model-p-panel">'
         f'<div class="model-panel-head"><div><span class="model-label">{MODEL_P} · {MODEL_P_LABEL}</span>'
-        '<h3>前瞻执行路径</h3></div>'
-        '<span class="badge neutral">canonical tracker</span></div>'
-        '<p class="model-explanation">T+1..T+10 首次触发搜索、T+10 未触发到期、A 股下一交易日可卖；只展示已有前瞻路径状态，不创建累计收益指标。</p>'
+        '<h3>前瞻执行路径（10天限时跟踪）</h3></div>'
+        '<span class="badge neutral">10天限时跟踪 · 仅计状态</span></div>'
+        '<p class="model-explanation">10 个交易日内触及触发价才算触发、满 10 天未触发自动到期、A 股买入次日方可卖出；此处只统计真实跟踪状态，不编造累计收益率。</p>'
         f'<div class="primary-kpis prospective-kpis">{body}</div>'
-        '<p class="model-footnote">以上计数来自 prospective tracker/path；理论规则模拟的 open/closed 不计入前瞻路径计数。</p>'
+        '<p class="model-footnote">以上计数仅来自前瞻逐日跟踪记录；下方「不限时规则模拟」的未结案与已结案不计入此处。</p>'
         '</div>'
     )
 
@@ -2161,8 +2228,8 @@ def _performance_cards(performance: Mapping[str, Any]) -> str:
         ("平均收益", "avg_return_pct", True, True, sample_note),
         ("盈亏比", "payoff_ratio", False, False, sample_note),
         ("Profit Factor", "profit_factor", False, False, f"盈利因子 · {sample_note}"),
-        ("理论规则模拟已结案", "resolved_closed_trades", False, False, f"TARGET / STOP · {sample_note}"),
-        ("理论规则模拟未结案", "open_rule_trades", False, False, "MODEL_R · 不代表账户实际持仓"),
+        ("理论规则模拟已结案", "resolved_closed_trades", False, False, f"已止盈或止损 · {sample_note}"),
+        ("理论规则模拟未结案", "open_rule_trades", False, False, "不限时规则模拟 · 不代表真实账户持仓"),
     ]
     integer_keys = {"resolved_closed_trades", "open_rule_trades"}
     return ''.join(
@@ -2213,7 +2280,7 @@ def _performance_funnel(performance: Mapping[str, Any]) -> str:
         triggered_value = f'{_integer(triggered_value, "0")}*'
     items = [
         ('总信号', performance.get('total_signals')),
-        ('T+1 可机会', eligible),
+        ('进入次日观察', eligible),
         ('已触发', triggered_value),
         ('已结案', performance.get('resolved_closed_trades', performance.get('confirmed_closed_count'))),
         ('理论规则模拟未结案', performance.get('open_rule_trades', performance.get('open_positions_count'))),
@@ -2233,14 +2300,14 @@ def _performance_detail_table(performance: Mapping[str, Any]) -> str:
         ("胜 / 负", f'{_integer(performance.get("win_count"), "—")} / {_integer(performance.get("loss_count"), "—")}'),
         ("中位收益", _performance_value(performance, "median_return_pct", percent=True, signed=True)),
         ("中位 R", _performance_value(performance, "median_r", signed=True)),
-        ("止盈次数 / resolved", _integer(performance.get("resolved_target"), "0")),
-        ("止损次数 / resolved", _integer(performance.get("resolved_stop"), "0")),
+        ("止盈次数", _integer(performance.get("resolved_target"), "0")),
+        ("止损次数", _integer(performance.get("resolved_stop"), "0")),
         ("中位持有交易日", _performance_value(performance, "median_holding_sessions")),
         ("中位 MFE", _performance_value(performance, "median_mfe_pct", percent=True, signed=True)),
         ("中位 MAE", _performance_value(performance, "median_mae_pct", percent=True, signed=True)),
         ("理论规则模拟未结案平均浮动收益", _performance_value(performance, "open_mtm_avg_return_pct", percent=True, signed=True)),
         ("历史日线来源", _text(performance.get("historical_data_source"))),
-        ("策略绩效 provider calls", _integer(performance.get("historical_provider_calls"), "0")),
+        ("复算联网查询次数", _integer(performance.get("historical_provider_calls"), "0")),
     ]
     body = [f"<tr><td>{_esc(label)}</td><td>{value if '<' in str(value) else _esc(value)}</td></tr>" for label, value in rows]
     return _simple_table(("补充交易绩效指标", "值"), body, table_class='metric-detail-table')
@@ -2248,8 +2315,8 @@ def _performance_detail_table(performance: Mapping[str, Any]) -> str:
 
 def _trade_closed_table(rows: list[Mapping[str, Any]]) -> str:
     headers = (
-        "信号日", "代码", "名称", "触发日", "trigger", "最早可卖日", "退出日", "exit price",
-        "退出类型", "return %", "R", "holding sessions", "MFE", "MAE",
+        "信号日", "代码", "名称", "触发日", "触发价", "最早可卖日", "退出日", "退出价",
+        "退出类型", "模拟收益 %", "盈亏倍数 R", "持有交易日", "最大浮盈 MFE", "最大浮亏 MAE",
     )
     if not rows:
         return '<div class="empty-state">暂无已结案策略交易。</div>'
@@ -2268,11 +2335,11 @@ def _trade_closed_table(rows: list[Mapping[str, Any]]) -> str:
 
 def _trade_open_table(rows: list[Mapping[str, Any]]) -> str:
     headers = (
-        "信号日", "代码", "名称", "触发日", "trigger", "stop", "target", "当前 close",
-        "浮动收益 %", "MFE", "MAE",
+        "信号日", "代码", "名称", "触发日", "触发价", "止损价", "目标价", "最新收盘",
+        "浮动收益 %", "最大浮盈 MFE", "最大浮亏 MAE",
     )
     if not rows:
-        return '<div class="empty-state">当前无理论规则模拟未结案（不代表账户实际持仓）。</div>'
+        return '<div class="empty-state">当前无理论规则模拟未结案（不代表真实账户持仓）。</div>'
     body = []
     for row in rows:
         values = [_esc(row.get("signal_date")), _esc(row.get("code")), _esc(row.get("name")),
@@ -2286,7 +2353,7 @@ def _trade_open_table(rows: list[Mapping[str, Any]]) -> str:
 
 
 def _trade_ambiguous_table(rows: list[Mapping[str, Any]]) -> str:
-    headers = ("date", "code", "名称", "stop", "target", "daily low", "daily high")
+    headers = ("日期", "代码", "名称", "止损价", "目标价", "当日最低", "当日最高")
     if not rows:
         return '<div class="empty-state">暂无同日顺序不明策略交易。</div>'
     body = []
@@ -2326,20 +2393,20 @@ def _trade_performance_html(
             '<div class="performance-status warning">'
             '<span class="badge warning">样本不足</span>'
             '<div><strong>当前暂无可用于理论规则模拟统计的已结案交易。</strong>'
-            '<small>MODEL_R 指标只基于 resolved TARGET / STOP；未结案、未触发、歧义和数据缺失不进入已结案统计。</small></div>'
+            '<small>仅统计已明确止盈或止损的模拟结案；尚未结案、未触发、同日顺序不明或行情缺失的记录不计入收益率。</small></div>'
             '</div>'
         )
     elif closed_count < 10:
         status_html = (
             f'<div class="performance-status warning"><span class="badge warning">样本较小</span>'
             f'<div><strong>当前理论规则模拟已结案 {closed_count} 笔，结果仅供阶段性参考。</strong>'
-            '<small>按理论 Trigger 价模拟，只使用 resolved TARGET / STOP。</small></div></div>'
+            '<small>按理论触发价模拟，仅使用已明确止盈或止损的结案样本。</small></div></div>'
         )
     else:
         status_html = (
             f'<div class="performance-status ready"><span class="badge positive">统计可用</span>'
             f'<div><strong>当前理论规则模拟已结案 {closed_count} 笔。</strong>'
-            '<small>结果按理论 Trigger / stop / target 规则价与 A 股 T+1 展示。</small></div></div>'
+            '<small>按理论触发价、止损价、目标价与 A 股次日可卖规则展示。</small></div></div>'
     )
 
     closed_empty = _trade_closed_table(performance.get('closed_trades', []))
@@ -2356,21 +2423,24 @@ def _trade_performance_html(
     )
     ambiguous_summary = f'理论规则模拟同日顺序不明 · {_integer(performance.get("ambiguous"), "0")} 笔 · 展开明细'
     return (
-        '<div class="model-panel model-r-panel">' +
-        status_html +
+        '<div class="model-panel model-r-panel">'
+        f'<div class="model-panel-head"><div><span class="model-label">{MODEL_R} · {MODEL_R_LABEL}</span>'
+        '<h3>理论规则模拟（不限时规则模拟 · 不代表真实账户持仓）</h3></div>'
+        '<span class="badge neutral">不限时规则回测 · 非实盘持仓</span></div>'
+        + status_html +
         f'<div class="model-explanation"><strong>{MODEL_R} · {MODEL_R_LABEL}</strong> · '
         f'{_esc(MODEL_R_EXPLANATION)}。两个模型入场价与退出边界不同，收益指标不可直接作优劣比较。'
         f'<br><span>{_esc(_closed_sample_note(performance))}</span></div>'
         f'<div class="primary-kpis">{_performance_cards(performance)}</div>'
-        f'<div class="secondary-label"><span>理论规则模拟辅助指标</span><small>closed n 是所有 MODEL_R 收益统计的分母；没有样本时显示 —</small></div>'
+        f'<div class="secondary-label"><span>理论规则模拟辅助指标</span><small>以下均以已结案样本（closed n）为分母；暂无样本时显示 —</small></div>'
         f'{_performance_metric_strip(performance)}'
-        '<div class="subsection-head"><h3>理论规则模拟样本漏斗</h3><small>prospective observation 完整性不作为 MODEL_R 样本准入门槛。</small></div>'
+        '<div class="subsection-head"><h3>理论规则模拟样本漏斗</h3><small>统计所有正式信号进入规则模拟后的去向，不受前瞻实时记录缺口影响。</small></div>'
         f'{_performance_funnel(performance)}'
         '<details class="metric-details"><summary>查看补充统计</summary>'
         f'{_performance_detail_table(performance)}'
         '</details>'
         '<div class="performance-block"><div class="subsection-head"><h3>理论规则模拟未结案</h3>'
-        f'<span class="count-label">{_integer(performance.get("open_rule_trades"), "0")} 笔 · MODEL_R，不代表账户实际持仓</span></div>'
+        f'<span class="count-label">{_integer(performance.get("open_rule_trades"), "0")} 笔 · 不限时规则模拟，不代表真实账户持仓</span></div>'
         f'<details class="performance-list-details"><summary>{_esc(open_summary)}</summary>'
         f'{_trade_open_table(performance.get("open_position_rows", []))}</details></div>'
         '<div class="performance-block"><div class="subsection-head"><h3>理论规则模拟已结案</h3>'
@@ -2382,7 +2452,7 @@ def _trade_performance_html(
         f'<details class="performance-list-details"><summary>{_esc(ambiguous_summary)}</summary>'
         f'{_trade_ambiguous_table(ambiguous_rows)}</details></div>'
         f'<details id="unverified-excluded" class="subtle-details"><summary>规则复算未纳入统计 · { _integer(len(excluded_rows), "0") }<span class="sr-only">排除 / 未核验</span></summary>'
-        '<p class="note">以下是 MODEL_R 的未触发、数据缺失、配置错误或 T+1 尚未到达记录；不改写 prospective tracker。</p>'
+        '<p class="note">以下是规则模拟中未触发、行情缺失、配置异常或尚未到次日观察的记录；不改写前瞻跟踪状态。</p>'
         f'{_trade_excluded_table([])}'
         '</details></div>'
     )
@@ -2461,24 +2531,24 @@ def _action_summary(summary: Mapping[str, Any]) -> str:
     if summary.get('stop_hits'):
         actions.append(f"今日止损 {summary['stop_hits']} 个")
     if summary.get('active_signals'):
-        actions.append(f"前瞻路径活跃观察 {summary['active_signals']} 个")
+        actions.append(f"仍在观察 {summary['active_signals']} 个")
     if summary.get('previous_pending'):
-        actions.append(f"继续等待 {summary['previous_pending']} 个")
-    return '；'.join(actions) if actions else '昨日无需要执行的已核验交易事件'
+        actions.append(f"继续等待触发 {summary['previous_pending']} 个")
+    return '；'.join(actions) if actions else '老信号今日暂无新的触发或结案'
 
 
 def _friendly_data_state(model: ReportModel, overview: Mapping[str, Any]) -> str:
     if model.review_status == 'REVIEW_FAILED':
-        return '待处理'
+        return '复盘异常'
     if model.review_status == REVIEW_OBSERVATION_INCOMPLETE:
-        return '覆盖不完整'
+        return '复盘部分缺失'
     if overview.get('input_coverage_status') == INPUT_COVERAGE_DEGRADED:
-        return '覆盖降级'
+        return '部分覆盖'
     if overview.get('input_coverage_status') not in {INPUT_COVERAGE_COMPLETE}:
         return '待核验'
     if overview.get('acquisition_status') != 'COMPLETE':
         return '待核验'
-    return 'READY'
+    return '正常'
 
 
 def _status_pill(label: str, value: str, tone: str = 'neutral') -> str:
@@ -2610,10 +2680,11 @@ def render_html(model: ReportModel) -> str:
     cloud_verified = overview.get('cloud_checkpoint_status') == 'VERIFIED'
     review_ready = model.review_status == 'READY'
     data_state = _friendly_data_state(model, overview)
+    data_state_tone = 'positive' if data_state == '正常' else 'warning'
     visible_review_note = (
         '复盘读取未完成，名单仍可查看；待核验记录不会被当作正式交易。'
         if model.review_status == 'REVIEW_FAILED' else
-        'prospective observation 尚未完整覆盖；策略规则绩效仍按 canonical 参数与历史日线独立复算。'
+        '前瞻实时记录尚未完整覆盖；下方理论规则模拟仍按既定规则与历史日线独立复算。'
         if model.review_status == REVIEW_OBSERVATION_INCOMPLETE else
         _action_summary(summary)
     )
@@ -2623,6 +2694,37 @@ def render_html(model: ReportModel) -> str:
     watchlist_count = len(model.watchlist_rows)
     shortlist = model.shortlist or {'status': 'UNAVAILABLE', 'limit': 3, 'selected_codes': []}
     shortlist_count = len(shortlist['selected_codes'])
+    strategy_heading = (
+        'B 突破回踩日报'
+        if metadata.get('strategy') == _FROZEN_STRATEGY
+        else _text(metadata.get('strategy'))
+    )
+    earliest_execution_display = _text(metadata.get('earliest_execution'))
+    if shortlist_count > 0:
+        overview_headline = (
+            f'今日重点观察 {shortlist_count} 只（正式 B 候选共 {watchlist_count} 只），'
+            f'最早 {earliest_execution_display} 观察触发'
+        )
+    elif watchlist_count > 0:
+        overview_headline = (
+            f'今日暂无重点观察（正式 B 候选共 {watchlist_count} 只），'
+            f'最早 {earliest_execution_display} 观察触发'
+        )
+    else:
+        overview_headline = '今日暂无正式 B 候选，先关注老信号动态'
+    coverage_status_raw = str(metadata.get('input_coverage_status') or _UNVERIFIED)
+    coverage_pill_label = (
+        '完整' if coverage_status_raw == INPUT_COVERAGE_COMPLETE else
+        '部分覆盖' if coverage_status_raw == INPUT_COVERAGE_DEGRADED else
+        '待核验'
+    )
+    coverage_html = _input_coverage_html(metadata)
+    overview_warning_html = (
+        f'<div class="review-callout warning">{_esc(visible_review_note)}</div>'
+        if review_callout_class else ''
+    )
+    overview_coverage_main_html = '' if coverage_status_raw == INPUT_COVERAGE_COMPLETE else coverage_html
+    overview_coverage_folded_html = coverage_html if coverage_status_raw == INPUT_COVERAGE_COMPLETE else ''
     shortlist_meta_tag = (
         '<meta name="b-shortlist-json" content="'
         + _esc(json.dumps(shortlist, ensure_ascii=False, allow_nan=False, sort_keys=True, separators=(',', ':')))
@@ -2705,13 +2807,23 @@ input[type=search] {{ width: min(360px, 100%); padding: 8px 10px; border: 1px so
 .section-subtitle, .note {{ margin: 5px 0 0; color: var(--muted); font-size: 13px; }}
 .overview-grid {{ display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(340px, 1fr); gap: 1px; min-width: 0; border: 1px solid var(--border); background: var(--border); }}
 .overview-lead, .overview-facts {{ min-width: 0; padding: 16px; background: var(--surface-2); }}
-.overview-lead strong {{ display: block; margin: 2px 0 4px; font-size: 20px; }}
+.overview-lead strong {{ display: block; margin: 2px 0 4px; font-size: 19px; line-height: 1.35; }}
 .overview-lead p:last-child {{ margin-bottom: 0; color: var(--muted); font-size: 13px; }}
 .overview-facts {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; background: var(--surface); }}
 .overview-facts span, .metric-item span, .funnel-item span, .research-stats span, .watch-facts label {{ display: block; color: var(--muted); font-size: 12px; }}
 .overview-facts strong {{ display: block; margin-top: 4px; font-size: 14px; font-variant-numeric: tabular-nums; }}
 .review-callout {{ margin: 14px 0 0; padding: 11px 13px; border-left: 3px solid var(--accent); background: #eef5f9; color: var(--text); font-size: 14px; }}
 .review-callout.warning {{ border-left-color: var(--warning); background: #fff8e8; }}
+.guide-details, .overview-supplement {{ margin-top: 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); }}
+.guide-details > summary, .overview-supplement > summary {{ padding: 9px 12px; color: var(--accent); font-size: 13px; font-weight: 650; }}
+.guide-list {{ margin: 0; padding: 0 14px 12px 28px; color: var(--text); font-size: 13px; line-height: 1.55; }}
+.guide-list li + li {{ margin-top: 6px; }}
+.overview-supplement-body {{ padding: 0 12px 12px; }}
+.supplement-grid {{ display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }}
+.supplement-grid article {{ min-width: 0; padding: 9px 10px; border: 1px solid var(--border); background: var(--surface); }}
+.supplement-grid span {{ display: block; color: var(--muted); font-size: 11px; }}
+.supplement-grid strong {{ display: block; margin-top: 3px; font-size: 15px; font-variant-numeric: tabular-nums; }}
+.supplement-grid small {{ display: block; margin-top: 2px; color: var(--muted); font-size: 10px; }}
 .decision-grid, .review-summary-grid {{ display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }}
 .decision-grid article, .review-summary-grid article {{ min-width: 0; padding: 11px 12px; border: 1px solid var(--border); background: var(--surface-2); }}
 .decision-grid span, .review-summary-grid span {{ display: block; color: var(--muted); font-size: 12px; }}
@@ -2734,7 +2846,7 @@ input[type=search] {{ width: min(360px, 100%); padding: 8px 10px; border: 1px so
 .theoretical-close-card {{ background: #fffdf7; }}
 .theoretical-result {{ border-left-color: var(--warning); }}
 .theoretical-result strong {{ color: var(--text); }}
-.primary-kpis {{ display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }}
+.primary-kpis {{ display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }}
 .kpi-card {{ min-width: 0; padding: 13px 13px 12px; border: 1px solid var(--border); border-top: 2px solid var(--accent); border-radius: var(--radius); background: var(--surface); }}
 .kpi-label {{ color: var(--muted); font-size: 12px; }}
 .kpi-value {{ margin-top: 7px; color: var(--text); font-size: 25px; font-weight: 720; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }}
@@ -2742,7 +2854,7 @@ input[type=search] {{ width: min(360px, 100%); padding: 8px 10px; border: 1px so
 .kpi-value.negative, .number.negative, .metric-item strong.negative, .watch-facts strong.negative, .research-stats strong.negative {{ color: var(--negative); }}
 .kpi-value.neutral, .number.neutral, .metric-item strong.neutral {{ color: var(--text); }}
 .kpi-card small, .performance-status small {{ display: block; margin-top: 5px; color: var(--muted); font-size: 11px; }}
-.performance-status {{ display: flex; align-items: flex-start; gap: 10px; margin-bottom: 14px; padding: 11px 13px; border: 1px solid var(--border); border-left: 3px solid var(--accent); background: var(--surface-2); }}
+.performance-status {{ display: flex; align-items: flex-start; gap: 10px; margin: 12px 0 14px; padding: 11px 13px; border: 1px solid var(--border); border-left: 3px solid var(--accent); background: var(--surface-2); }}
 .performance-status.warning {{ border-left-color: var(--warning); background: #fff8e8; }}
 .performance-status strong {{ display: block; font-size: 14px; }}
 .badge {{ display: inline-block; border: 1px solid currentColor; border-radius: 999px; padding: 2px 7px; color: var(--muted); font-size: 11px; line-height: 1.35; white-space: nowrap; }}
@@ -2781,6 +2893,13 @@ input[type=search] {{ width: min(360px, 100%); padding: 8px 10px; border: 1px so
 .watch-facts strong {{ display: block; margin-top: 2px; font-size: 14px; font-variant-numeric: tabular-nums; }}
 .watch-facts span:last-child strong {{ color: var(--text); }}
 .watch-facts small {{ display: block; color: var(--muted); font-size: 10px; }}
+.watch-brief {{ display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 10px 0 0 38px; padding: 7px 10px; border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 4px; background: var(--surface-2); font-size: 12px; overflow-wrap: anywhere; }}
+.watch-brief-stage strong {{ color: var(--accent); font-size: 13px; }}
+.watch-brief-stage small {{ margin-left: 2px; color: var(--muted); font-size: 11px; }}
+.watch-brief-volume {{ color: var(--text); }}
+.volume-details-compact {{ margin: 6px 0 0 38px; min-width: 0; }}
+.volume-details-compact > summary {{ padding: 4px 0; color: var(--accent); font-size: 12px; font-weight: 600; }}
+.volume-details-compact > .volume-observations {{ margin: 6px 0 0; }}
 .watch-meta {{ display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 7px 0 0 38px; color: var(--muted); font-size: 11px; }}
 .volume-observations {{ display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; min-width: 0; margin: 11px 0 0 38px; }}
 .volume-card {{ min-width: 0; max-width: 100%; overflow: hidden; padding: 10px 11px; border: 1px solid var(--border); background: var(--surface-2); }}
@@ -2879,7 +2998,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
 .sr-only {{ position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }}
 @media (max-width: 1050px) {{
   .primary-kpis {{ grid-template-columns: repeat(3, 1fr); }}
-  .decision-grid, .review-summary-grid {{ grid-template-columns: repeat(3, 1fr); }}
+  .decision-grid, .review-summary-grid, .supplement-grid {{ grid-template-columns: repeat(3, 1fr); }}
   .prospective-kpis {{ grid-template-columns: repeat(2, 1fr); }}
   .funnel {{ grid-template-columns: repeat(4, 1fr); }}
   .quality-grid {{ grid-template-columns: repeat(2, 1fr); }}
@@ -2891,15 +3010,16 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   section {{ padding: 13px; }}
   .overview-grid {{ grid-template-columns: 1fr; }}
   .overview-facts {{ grid-template-columns: repeat(3, 1fr); }}
-  .decision-grid, .review-summary-grid {{ grid-template-columns: repeat(2, 1fr); }}
+  .decision-grid, .review-summary-grid, .supplement-grid {{ grid-template-columns: repeat(2, 1fr); }}
   .primary-kpis {{ grid-template-columns: repeat(2, 1fr); }}
   .prospective-kpis {{ grid-template-columns: repeat(2, 1fr); }}
   .metric-strip {{ grid-template-columns: repeat(3, 1fr); }}
   .funnel {{ grid-template-columns: repeat(2, 1fr); }}
   .watch-primary {{ grid-template-columns: 24px minmax(0, 1fr); }}
   .watch-state {{ grid-column: 2 / -1; justify-content: flex-start; }}
-  .watch-facts, .watch-meta {{ margin-left: 32px; }}
+  .watch-facts, .watch-meta, .watch-brief, .volume-details-compact {{ margin-left: 32px; }}
   .volume-observations {{ grid-template-columns: 1fr; margin-left: 32px; }}
+  .volume-details-compact > .volume-observations {{ margin-left: 0; }}
   .action-facts {{ grid-template-columns: repeat(3, 1fr); }}
   .research-panels {{ grid-template-columns: 1fr; }}
   .coverage-strip {{ grid-template-columns: repeat(2, 1fr); }}
@@ -2916,7 +3036,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   section {{ margin: 13px 0; padding: 11px; }}
   .overview-grid {{ grid-template-columns: 1fr; }}
   .overview-facts {{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }}
-  .decision-grid, .review-summary-grid {{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }}
+  .decision-grid, .review-summary-grid, .supplement-grid {{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }}
   .primary-kpis {{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }}
   .kpi-card {{ padding: 11px 10px; }}
   .kpi-value {{ font-size: 23px; }}
@@ -2933,6 +3053,10 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   .watch-facts span {{ min-width: 0; }}
   .watch-facts strong {{ overflow-wrap: anywhere; }}
   .watch-facts small {{ font-size: 11px; }}
+  .watch-brief {{ margin: 10px 0 0 34px; }}
+  .volume-details-compact {{ margin: 6px 0 0 0; }}
+  .volume-details-compact > summary {{ margin-left: 34px; }}
+  .volume-details-compact > .volume-observations {{ margin: 6px 0 0; }}
   .watch-meta {{ margin-left: 34px; gap: 5px 12px; font-size: 12px; overflow-wrap: anywhere; }}
   .watch-row > .structure-observation {{ margin-left: 34px; }}
   .watch-meta > span {{ min-width: 0; }}
@@ -2950,6 +3074,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   .volume-ratio-scale span, .volume-bar-scale span {{ min-width: 0; overflow-wrap: anywhere; text-align: center; }}
   .volume-summary {{ max-width: 100%; overflow-wrap: anywhere; word-break: break-word; }}
   .volume-window {{ white-space: normal; text-align: right; }}
+  .model-panel-head {{ flex-direction: column; align-items: flex-start; gap: 6px; }}
   .action-top {{ flex-direction: column; align-items: flex-start; gap: 8px; }}
   .action-status {{ justify-content: flex-start; }}
   .action-facts {{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }}
@@ -2966,17 +3091,17 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
 <header class="site-header">
   <div class="eyebrow">A 股策略复盘</div>
   <div class="header-main">
-    <div><h1>{_esc(metadata.get('review_date'))} · {_esc(metadata.get('strategy'))}</h1>
+    <div><h1>{_esc(metadata.get('review_date'))} · {_esc(strategy_heading)}</h1>
       <div class="header-strategy">{_esc(metadata.get('review_date'))} {_esc('周' + '一二三四五六日'[parse_date(metadata.get('review_date')).weekday()])} · T-close</div>
       <div class="header-universe">股票池：<strong>{_esc(metadata.get('universe'))}</strong></div></div>
-    <div class="header-aside"><span>新名单 <strong>{_esc(_integer(watchlist_count, '0'))}</strong> 只</span><span>最早执行 <strong>{_esc(metadata.get('earliest_execution'))}</strong></span></div>
+    <div class="header-aside"><span>重点观察 <strong>{_esc(_integer(shortlist_count, '0'))}</strong> 只</span><span>正式候选 <strong>{_esc(_integer(watchlist_count, '0'))}</strong> 只</span><span>最早执行 <strong>{_esc(earliest_execution_display)}</strong></span></div>
   </div>
   <div class="status-pills">
-    {_status_pill('T+1', '日线', 'neutral')}
+    {_status_pill('执行', '次日日线', 'neutral')}
     {_status_pill('证据', acquisition_label, 'positive' if acquisition_complete else 'warning')}
     {_status_pill('复盘', '就绪' if review_ready else '待处理', 'positive' if review_ready else 'warning')}
     {_status_pill('云端', '已验证' if cloud_verified else '仅本地', 'positive' if cloud_verified else 'neutral')}
-    {_status_pill('输入覆盖', metadata.get('input_coverage_status', 'UNVERIFIED'), 'warning' if metadata.get('input_coverage_status') == 'DEGRADED' else 'positive' if metadata.get('input_coverage_status') == 'COMPLETE' else 'neutral')}
+    {_status_pill('输入覆盖', coverage_pill_label, 'warning' if coverage_status_raw == INPUT_COVERAGE_DEGRADED else 'positive' if coverage_status_raw == INPUT_COVERAGE_COMPLETE else 'neutral')}
   </div>
 </header>
 
@@ -2985,64 +3110,92 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
 </nav>
 
 <section id="overview">
-  <div class="section-head"><div><p class="section-kicker">OVERVIEW</p><h2>今日总览</h2><p class="section-subtitle">先看行动信息，再看交易结果；技术细节收纳在审计区。</p></div><span class="badge {_status_class(data_state)}">数据状态：{_esc(data_state)}</span></div>
-  <div class="overview-grid"><div class="overview-lead"><span class="eyebrow">当前阅读重点 · MODEL_P</span><strong>{_esc(visible_review_note)}</strong><p>今日总览的触发、止盈、止损与等待状态只来自前瞻执行路径；理论规则模拟单独展示。</p></div><div class="overview-facts"><div><span>名单日期</span><strong>{_esc(metadata.get('list_date'))}</strong></div><div><span>最早执行</span><strong>{_esc(metadata.get('earliest_execution'))}</strong></div><div><span>候选数量</span><strong>{_esc(_integer(watchlist_count, '0'))}</strong></div></div></div>
-  <div class="decision-grid">
-    <article><span>今日新名单</span><strong>{_esc(_integer(watchlist_count, '0'))}</strong></article>
-    <article><span>前瞻新触发</span><strong>{_esc(_integer(summary.get('new_triggered'), '0'))}</strong></article>
-    <article><span>前瞻路径 · 止盈</span><strong>{_esc(_integer(summary.get('target_hits'), '0'))}</strong></article>
-    <article><span>前瞻路径 · 止损</span><strong>{_esc(_integer(summary.get('stop_hits'), '0'))}</strong></article>
-    <article><span>前瞻已触发 · 活跃</span><strong>{_esc(_integer(prospective_counters.get('triggered_active'), '—'))}</strong></article>
-    <article><span>前瞻等待触发</span><strong>{_esc(_integer(prospective_counters.get('waiting_trigger'), '—'))}</strong></article>
-    <article><span>固定节点 T+3</span><strong>{_esc(_integer(summary.get('t3_count'), '0'))}</strong><small>独立研究节点</small></article>
-    <article><span>固定节点 T+5</span><strong>{_esc(_integer(summary.get('t5_count'), '0'))}</strong><small>独立研究节点</small></article>
-    <article><span>固定节点 T+10</span><strong>{_esc(_integer(summary.get('t10_count'), '0'))}</strong><small>独立研究节点</small></article>
-    <article><span>路径待核验</span><strong>{_esc(_integer(prospective_counters.get('incomplete'), '—'))}</strong></article>
-    <article><span>T+1 待观察</span><strong>{_esc(_integer(prospective_counters.get('pending'), '—'))}</strong></article>
-    <article><span>数据质量</span><strong>{_esc(_integer(overview.get('quality_exception_count'), '0'))}</strong><small>项需要注意</small></article>
+  <div class="section-head"><div><p class="section-kicker">OVERVIEW</p><h2>今日总览</h2><p class="section-subtitle">30 秒先看三件事：① 今日看哪只、② 老信号咋样、③ 数据是否正常。</p></div><span class="badge {data_state_tone}">数据状态：{_esc(data_state)}</span></div>
+  <div class="overview-grid">
+    <div class="overview-lead">
+      <span class="eyebrow">今日核心速览 · 主策略 B 突破回踩</span>
+      <strong>{_esc(overview_headline)}</strong>
+      <p>老信号今日动态（10天限时跟踪）：{_esc(visible_review_note)}</p>
+    </div>
+    <div class="overview-facts">
+      <div><span>今日重点观察</span><strong>{_esc(_integer(shortlist_count, '0'))} 只</strong></div>
+      <div><span>正式 B 候选</span><strong>{_esc(_integer(watchlist_count, '0'))} 只</strong></div>
+      <div><span>最早执行日</span><strong>{_esc(earliest_execution_display)}</strong></div>
+    </div>
   </div>
-  <div class="review-callout{review_callout_class}">{_esc(visible_review_note)}</div>
-  {_input_coverage_html(metadata)}
+  <div class="decision-grid">
+    <article><span>今日重点观察</span><strong>{_esc(_integer(shortlist_count, '0'))}</strong><small>今日新名单 {_esc(_integer(watchlist_count, '0'))} 只</small></article>
+    <article><span>老信号新触发</span><strong>{_esc(_integer(summary.get('new_triggered'), '0'))}</strong><small>10天限时跟踪</small></article>
+    <article><span>老信号今日止盈</span><strong>{_esc(_integer(summary.get('target_hits'), '0'))}</strong><small>10天限时跟踪</small></article>
+    <article><span>老信号今日止损</span><strong>{_esc(_integer(summary.get('stop_hits'), '0'))}</strong><small>10天限时跟踪</small></article>
+    <article><span>已触发 · 仍在观察</span><strong>{_esc(_integer(prospective_counters.get('triggered_active'), '—'))}</strong><small>10天限时跟踪中</small></article>
+    <article><span>等待触发</span><strong>{_esc(_integer(prospective_counters.get('waiting_trigger'), '—'))}</strong><small>10天观察期内</small></article>
+  </div>
+  {overview_warning_html}
+  {overview_coverage_main_html}
+  <details class="guide-details">
+    <summary>一分钟看懂本报告各模块（主策略 / 两套复盘 / 副线研究）</summary>
+    <ul class="guide-list">
+      <li><strong>「今日重点观察 &amp; 正式候选」</strong>：当前主策略（B 突破回踩），正式候选列出全部达标股，重点最多挑 {shortlist['limit']} 只方便先看（试验排序，不代表新增买额）。</li>
+      <li><strong>「前瞻执行路径（MODEL_P）」</strong>：10 天限时跟踪——10 个交易日内触价算买、满 10 天按到期处理，缺某天实时记录则标待核验，不事后回填。</li>
+      <li><strong>「理论规则模拟（MODEL_R）」</strong>：不限时规则回测——按触发价模拟入场，不到目标价或止损价就一直持有，不代表真实单账户持仓或实盘收益。</li>
+      <li><strong>底部的「C 研究 / C 模拟 / 固定节点 / Shadow」</strong>：独立副线研究或后台攒数据模块，与主策略 B 相互隔离；日常只需先看上半部分。</li>
+    </ul>
+  </details>
+  <details class="overview-supplement">
+    <summary>展开数据覆盖与研发补充计数（固定节点 / 待核验）</summary>
+    <div class="overview-supplement-body">
+      <div class="supplement-grid">
+        <article><span>固定节点 T+3</span><strong>{_esc(_integer(summary.get('t3_count'), '0'))}</strong><small>独立研究节点</small></article>
+        <article><span>固定节点 T+5</span><strong>{_esc(_integer(summary.get('t5_count'), '0'))}</strong><small>独立研究节点</small></article>
+        <article><span>固定节点 T+10</span><strong>{_esc(_integer(summary.get('t10_count'), '0'))}</strong><small>独立研究节点</small></article>
+        <article><span>路径待核验</span><strong>{_esc(_integer(prospective_counters.get('incomplete'), '—'))}</strong><small>缺当日实时记录</small></article>
+        <article><span>今日新股待观察</span><strong>{_esc(_integer(prospective_counters.get('pending'), '—'))}</strong><small>等下一交易日</small></article>
+        <article><span>数据质量提醒</span><strong>{_esc(_integer(overview.get('quality_exception_count'), '0'))}</strong><small>项需要注意</small></article>
+      </div>
+      {overview_coverage_folded_html}
+    </div>
+  </details>
 </section>
 
 <section id="tomorrow-watchlist">
-  <div class="section-head"><div><p class="section-kicker">WATCHLIST</p><h2>今日重点观察 · {shortlist_count}</h2><p class="section-subtitle">正式候选共 {watchlist_count} 只，重点最多 {shortlist['limit']} 只；资料不足或条件不符时不凑满。</p></div></div>
+  <div class="section-head"><div><p class="section-kicker">WATCHLIST</p><h2>今日重点观察 · {shortlist_count}</h2><p class="section-subtitle">主策略（B 突破回踩）正式候选共 {watchlist_count} 只，重点最多 {shortlist['limit']} 只；资料不足或条件不符时不凑满。</p></div></div>
   <p class="note">试验筛选，收益优势尚未验证。每日重点名单不代表新增买入配额；已持有的股票再次出现时，不应仅凭重复入选加仓。</p>
-  <details class="audit-details"><summary>查看筛选依据</summary><div class="audit-content"><p>仅比较回踩后重新走强的同结构候选，分别比较下跌量占比、涨跌日均量比、参考止损距离与收益风险比。先取没有被其他候选在四项上同时不差且至少一项更好地超过的候选，再逐层比较；同层按参考收益风险比、止损距离、代码依次确定次序。第三项量能只展示。</p><p>参考买价取收盘价与触发价中较高者，不代表实际成交价或最高买价；参考比值未计费用与滑点。目标由原策略规则给出，相同风险倍数不提供额外区分。触发、止损、目标及计划 RR 保留原计划参数。</p><p>现有绩效统计覆盖正式候选全集，不能当作这份重点名单的收益验证。</p></div></details>
+  <details class="audit-details"><summary>查看筛选依据</summary><div class="audit-content"><p>仅比较回踩后重新走强的同结构候选，分别比较下跌量占比、涨跌日均量比、参考止损距离与收益风险比。先取没有被其他候选在四项上同时不差且至少一项更好地超过的候选，再逐层比较；同层按参考收益风险比、止损距离、代码依次确定次序。第三项量能只展示。</p><p>参考买价取收盘价与触发价中较高者，不代表实际成交价或最高买价；参考比值未计费用与滑点。目标由原策略规则给出，相同风险倍数不提供额外区分。触发、止损、目标及计划盈亏比保留原计划参数。</p><p>现有绩效统计覆盖正式候选全集，不能当作这份重点名单的收益验证。</p></div></details>
   <div class="toolbar"><label for="watchlist-search" class="note">搜索名单：</label><input id="watchlist-search" type="search" placeholder="输入代码、名称或行业" autocomplete="off"></div>
   {_shortlist_watchlist_html(model)}
 </section>
 
 <section id="daily-review">
-  <div class="section-head"><div><p class="section-kicker">REVIEW</p><h2>今日复盘</h2><p class="section-subtitle">先看前瞻执行路径变化，再看理论规则模拟当日结案。</p></div></div>
+  <div class="section-head"><div><p class="section-kicker">REVIEW</p><h2>今日复盘</h2><p class="section-subtitle">老信号今日动态：上栏看「10天限时跟踪（MODEL_P）」逐日变化，下栏看「不限时规则模拟（MODEL_R）」当日结案，两套口径相互独立。</p></div></div>
   {daily_review_html}
 </section>
 
 <section id="trade-performance">
-  <div class="section-head"><div><p class="section-kicker">PERFORMANCE · MODEL_P + MODEL_R</p><h2>策略表现</h2><p class="section-subtitle">{_esc(MODEL_SEPARATION_NOTE)}</p></div></div>
+  <div class="section-head"><div><p class="section-kicker">PERFORMANCE · MODEL_P + MODEL_R</p><h2>策略表现</h2><p class="section-subtitle">{_esc(MODEL_SEPARATION_NOTE)}上栏为 10 天限时跟踪状态统计，下栏为不限时规则模拟（不代表真实账户持仓）。</p></div></div>
   {_prospective_execution_html(audit_performance)}
   {_trade_performance_html(trade_performance, new_signal_count=watchlist_count, list_date=metadata.get('list_date', '—'), earliest_execution=metadata.get('earliest_execution', '—'))}
 </section>
 
 <section id="research-data">
-  <div class="section-head"><div><p class="section-kicker">RESEARCH &amp; DATA</p><h2>研究与数据</h2><p class="section-subtitle">固定节点、Shadow、数据质量、C 与 provenance 均收纳于此；默认折叠以保持日报主路径紧凑。</p></div></div>
+  <div class="section-head"><div><p class="section-kicker">RESEARCH &amp; DATA</p><h2>研究与数据</h2><p class="section-subtitle">独立副线研究与后台数据记录（固定节点、Shadow、数据质量、C 副线与审计明细）均收纳于此，默认折叠，日常只需先看上半部分。</p></div></div>
   <details id="formal-review" class="research-data-details">
-    <summary>固定节点研究 · T+3 / T+5 / T+10</summary>
+    <summary>固定节点研究 · T+3 / T+5 / T+10（独立研究节点）</summary>
     <p class="model-explanation">按信号日固定节点观察，不属于前瞻执行路径，也不属于理论规则模拟持仓周期。</p>
     <div class="research-panels">{research_panels}</div>
     <details class="metric-details"><summary>查看节点覆盖</summary>{_rolling_review_html(rolling_review)}</details>
   </details>
   <details id="shadow-monitor" class="research-data-details">
-    <summary>Shadow · prospective 观察</summary>
+    <summary>Shadow 后台观察 · 前瞻样本积累</summary>
     <p class="model-explanation">独立记录前瞻样本与后续结果。</p>
     {shadow_html}
   </details>
   <details id="anomalies" class="research-data-details">
-    <summary>数据质量 · 异常与缺口</summary>
+    <summary>数据质量 · 异常与缺口检查</summary>
     {_quality_table(quality_rows, performance=trade_performance, audit_performance=audit_performance, summary=summary, acquisition_status=overview.get('acquisition_status', _UNVERIFIED), review_status=model.review_status, shadow_monitor=shadow_monitor)}
   </details>
   <details id="audit">
-    <summary>技术与审计信息 · provenance / checkpoint</summary>
+    <summary>技术与审计信息 · 来源校验与原始状态码</summary>
     <div class="audit-content">
       {_audit_metadata_html(metadata)}
       {technical_audit}
