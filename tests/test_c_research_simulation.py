@@ -237,3 +237,62 @@ def test_c_simulation_signals_rejects_missing_structure_or_numeric_fields(rule_p
     histories = {CODE: {"bars": [_bar(T, 9.9, 10.1)]}}
     with pytest.raises(ValueError, match=r"price_structure_observation\.structure|numeric structure\."):
         simulation._signals(watchlist, histories)
+
+
+def test_c_simulation_render_section_plain_chinese_holdings_and_states():
+    unavailable = simulation.render_section(T2, None)
+    assert 'id="c-research-simulation"' in unavailable
+    assert '<h2>C研究模拟</h2>' in unavailable
+    assert "本期暂不可用" in unavailable
+    assert "主策略 B 正式名单与复盘不受影响" in unavailable
+
+    empty = simulation.render_section(T2, [])
+    assert "暂无模拟信号" in empty
+    assert "一分钟看懂 C 模拟规则" in empty
+    assert "当前模拟持仓" not in empty
+
+    rows = [
+        {
+            "signal_date": T,
+            "code": "600000",
+            "name": "浦发银行",
+            "setup": "BALANCED_A",
+            "trigger": 10.2,
+            "stop": 9.5,
+            "target": 11.5,
+            "status": RULE_STATUS_OPEN,
+            "entry_date": T1,
+            "entry_price": 10.2,
+            "exit_date": None,
+            "exit_reason": None,
+            "realized_return_pct": None,
+            "mark_return_pct": 3.92,
+        },
+        {
+            "signal_date": "2026-11-03",
+            "code": "600019",
+            "name": "宝钢股份",
+            "setup": "CONSERVATIVE_B",
+            "trigger": 7.1,
+            "stop": 6.6,
+            "target": 8.0,
+            "status": RULE_STATUS_CLOSED,
+            "entry_date": T,
+            "entry_price": 7.1,
+            "exit_date": T2,
+            "exit_reason": "TARGET",
+            "realized_return_pct": 12.68,
+            "mark_return_pct": None,
+        },
+    ]
+    rendered = simulation.render_section(T2, rows)
+    assert "<style data-c-simulation-inline-style>" in rendered
+    assert "当前模拟持仓 · 1 只" in rendered
+    assert "600000 浦发银行" in rendered
+    assert "BALANCED_A · 平衡版" in rendered
+    assert "浮动 +3.92%" in rendered
+    assert "模拟止盈 1 · 模拟止损 0" in rendered
+    assert "一分钟看懂 C 模拟规则" in rendered
+    assert "展开全部模拟明细（共 2 条）" in rendered
+    assert "模拟持有 1" in rendered
+    assert "+12.68%" in rendered
