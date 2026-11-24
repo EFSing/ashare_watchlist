@@ -1111,9 +1111,16 @@ def _research_volume_rows(values):
 def test_research_volume_shows_facts_and_relative_judgments_with_folded_evidence():
     rows = _research_volume_rows([(0.533, 0.95, 0.59), (0.6, 0.9, 1.0), (0.7, 0.8, 1.2)])
     html = renderer._volume_observations_html(None, research=rows[0])
+    surface, folded_rest = html.split('<details class="volume-details-compact"><summary>展开形态与量能明细</summary>')
+    assert "结构阶段：2→3 切换" in surface
+    assert "量能：三项量能方向较一致（未验证）" in surface
+    assert 'class="volume-metric-row"' not in surface
+    assert 'class="volume-bar' not in surface
+    assert "同阶段比较" not in surface
+    assert '<details class="volume-details-compact" open' not in html
     main, detail = html.split('<details class="volume-research-details"><summary>查看研究详情</summary>')
     assert main.index("结构阶段：2→3 切换") < main.index("与今日同阶段候选相比") < main.index("回踩下跌量占比")
-    assert main.count('class="volume-metric-row"') == 3
+    assert folded_rest.count('class="volume-metric-row"') == 3
     assert main.count("同阶段比较 · 偏好（未验证）") == 3
     assert "量能方向较一致（未验证）" in main
     assert "53.3%" in main and "0.95×" in main and "0.59×" in main
@@ -1363,3 +1370,32 @@ def test_scroll_spy_uses_plain_dom_and_keeps_anchor_navigation_working(tmp_path)
     assert 'import ' not in script
     # Anchors stay plain, so navigation works with JavaScript disabled.
     assert text.count('<a href="#overview">今日总览</a>') == 1
+
+
+def test_plain_chinese_overview_guide_and_dual_model_readability() -> None:
+    text = renderer.render_html(_dual_model_report_fixture())
+    main = text.split('<details id="audit">', 1)[0]
+    overview = text.split('<section id="overview">', 1)[1].split('</section>', 1)[0]
+    decision_grid = overview.split('<div class="decision-grid">', 1)[1].split('</div>', 1)[0]
+    guide = overview.split('<details class="guide-details">', 1)[1].split('</details>', 1)[0]
+    supplement = overview.split('<details class="overview-supplement">', 1)[1].split('</details>', 1)[0]
+
+    # Overview highlights the 3 core questions and keeps research counters folded.
+    assert decision_grid.count('<article>') == 6
+    assert '固定节点 T+3' not in decision_grid and '路径待核验' not in decision_grid
+    assert '固定节点 T+3' in supplement and '路径待核验' in supplement
+    assert '<details class="overview-supplement" open' not in overview
+    assert '<details class="guide-details" open' not in overview
+    assert '<summary>一分钟看懂本报告各模块（主策略 / 两套复盘 / 副线研究）</summary>' in guide
+    for marker in ('B 突破回踩', '10 天限时跟踪', '不限时规则回测', '不代表真实单账户持仓', 'C 研究 / C 模拟 / 固定节点 / Shadow'):
+        assert marker in guide
+
+    # Dual-model headings explain MODEL_P vs MODEL_R in plain Chinese without leaking Python identifiers.
+    review = text.split('<section id="daily-review">', 1)[1].split('</section>', 1)[0]
+    trade = text.split('<section id="trade-performance">', 1)[1].split('</section>', 1)[0]
+    assert '10天限时跟踪' in review and '不限时规则模拟' in review
+    assert '10天限时跟踪' in trade and '不限时规则模拟 · 不代表真实账户持仓' in trade
+    for internal_jargon in ('build_strategy_rule_performance', 'prospective tracker/path'):
+        assert internal_jargon not in main
+    assert '数据状态：正常' in overview
+    assert '<meta name="b-shortlist-json"' in text
