@@ -2667,6 +2667,11 @@ def _single_account_performance_html(performance: Mapping[str, Any]) -> str:
         f'止损平均 {_performance_value(performance, "avg_loss_pct", percent=True, signed=True)} · 展开明细'
     )
     skipped_summary = f'自动过滤的同股重复 / 冷却期信号 · {_integer(skipped_count, "0")} 笔 · 展开明细'
+    open_detail_html = (
+        _trade_open_table(open_rows, table_class="account-trade-table")
+        if open_rows
+        else '<div class="empty-state">当前无单账户模拟持仓。</div>'
+    )
     return (
         '<div class="model-panel model-s-panel">'
         f'<div class="model-panel-head"><div><span class="model-label">{MODEL_S} · {MODEL_S_LABEL}（核心主展示）</span>'
@@ -2683,7 +2688,7 @@ def _single_account_performance_html(performance: Mapping[str, Any]) -> str:
         '<div class="performance-block"><div class="subsection-head"><h3>当前单票模拟持仓</h3>'
         f'<span class="count-label">{_integer(open_count, "0")} 只独立股票 · 同股至多 1 笔</span></div>'
         f'<details class="performance-list-details"><summary>{_esc(open_summary)}</summary>'
-        f'{_trade_open_table(open_rows, table_class="account-trade-table") if open_rows else "<div class=\"empty-state\">当前无单账户模拟持仓。</div>"}</details></div>'
+        f'{open_detail_html}</details></div>'
         '<div class="performance-block"><div class="subsection-head"><h3>单账户已结案交易</h3>'
         f'<span class="count-label">{_integer(closed_count, "0")} 笔</span></div>'
         f'<details class="performance-list-details"><summary>{_esc(closed_summary)}</summary>'
