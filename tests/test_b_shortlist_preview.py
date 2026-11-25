@@ -412,3 +412,61 @@ def test_followup_order_keeps_status_priority_but_ignores_score(tmp_path):
     _write_watchlist(tmp_path, "20260910", [])
     previous, _, _ = renderer._daily_collections(tracker, "2026-09-10", "2026-09-09", _paths(tmp_path), [])
     assert [r["code"] for r in previous] == ["600003", "600001", "600002"]
+
+
+def test_daily_shortlist_excludes_holding_and_cooldown_stocks_so_fresh_candidates_get_slots(
+    daily_inputs, monkeypatch,
+):
+    import render_daily_close_html as renderer
+    from test_daily_close_html import _candidate
+
+    day, cal, paths, watch_path, run_path = daily_inputs
+    originals = json.loads(watch_path.read_bytes())
+
+    # 600001 was accepted on 2026-10-20, triggered on 2026-10-21, and is still OPEN on 2026-11-05.
+    # 600002 was accepted on 2026-11-03 (within 5-session signal cooldown on 2026-11-05).
+    prior_hold = validate_watchlist({
+        "date": "2026-10-20", "mode": "close", "market_env": {"grade": "B"}, "sectors": [],
+        "strategy_version": preview.STRATEGY_VERSION,
+        "candidates": [_candidate("600001", "持仓老票", 70)],
+    })
+    prior_cooldown = validate_watchlist({
+        "date": "2026-11-03", "mode": "close", "market_env": {"grade": "B"}, "sectors": [],
+        "strategy_version": preview.STRATEGY_VERSION,
+        "candidates": [_candidate("600002", "冷却老票", 70)],
+    })
+    paths.watchlist_file("2026-10-20").write_bytes(canonical(prior_hold))
+    paths.watchlist_file("2026-11-03").write_bytes(canonical(prior_cooldown))
+
+    hold_days = []
+    cur = cal.parse("2026-10-21") if hasattr(cal, "parse") else None
+    from track_perf import _rule_sessions_after, parse_date
+
+    sessions = _rule_sessions_after(parse_date("2026-10-20"), parse_date(day), cal)
+    bars_600001 = [
+        {"date": s.isoformat(), "open": 10.1, "high": 10.4, "low": 9.9, "close": 10.3}
+        for s in sessions
+    ]
+    monkeypatch.setattr(
+        renderer,
+        "load_strategy_rule_historical_ohlc",
+        lambda *a, **k: ({"600001": bars_600001}, {"__meta__": {"provider_calls": 0}}),
+    )
+
+    model, dated, _ = renderer.render_daily_close(
+        day, paths=paths, calendar=cal, research_run_manifest=run_path,
+    )
+    # Without dedup, selected_codes was ["600001", "600002", "600003"] and 600004 was pushed out.
+    # With dedup, 600001 (holding) and 600002 (cooldown) yield slots to fresh 600003 & 600004,
+    # while 600005 (missing volume) still does not pad the shortlist.
+    assert model.shortlist["selected_codes"] == ["600003", "600004"]
+    assert model.shortlist["account_excluded_codes"] == ["600001", "600002"]
+    assert len(model.watchlist_rows) == len(originals["candidates"]) == 5
+
+    text = dated.read_text(encoding="utf-8")
+    assert "单账户去重提示 · 自动让出重点名额 2 只" in text
+    assert "已在单账户模拟持仓中" in text
+    assert "近 5 个交易日内刚入选过" in text
+    main, more = renderer._shortlist_watchlist_html(model).split('<details id="remaining-candidates-details"')
+    assert main.count('class="watch-row"') == 2
+    assert more.count('class="watch-row"') == 3

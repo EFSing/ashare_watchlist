@@ -1399,3 +1399,36 @@ def test_plain_chinese_overview_guide_and_dual_model_readability() -> None:
         assert internal_jargon not in main
     assert '数据状态：正常' in overview
     assert '<meta name="b-shortlist-json"' in text
+
+
+def test_daily_report_presents_single_account_first_and_folds_model_r_reference(tmp_path, monkeypatch):
+    _write_watchlist(tmp_path, "20260903", [_candidate("601033", "永兴股份", 70)])
+    _write_watchlist(tmp_path, "20260904", [_candidate("601033", "永兴股份", 70)])
+    last = _write_watchlist(tmp_path, "20260908", [_candidate("601033", "永兴股份", 70)])
+    _write_tracker(tmp_path, last)
+
+    bars = [
+        {"date": "2026-09-04", "open": 10.1, "high": 10.4, "low": 9.9, "close": 10.3},
+        {"date": "2026-09-08", "open": 10.3, "high": 10.6, "low": 10.1, "close": 10.5},
+    ]
+    monkeypatch.setattr(
+        renderer,
+        "load_strategy_rule_historical_ohlc",
+        lambda *a, **k: ({"601033": bars}, {"__meta__": {"provider_calls": 0}}),
+    )
+
+    model = renderer.build_report_model("20260908", paths=_paths(tmp_path), calendar=CALENDAR)
+    assert model.trade_performance["open_rule_trades"] == 2  # Raw MODEL_R holds duplicate positions
+    assert model.single_account_performance["open_rule_trades"] == 1  # Single-account holds at most 1
+    assert model.single_account_performance["skipped_dedup_count"] == 2
+
+    text = renderer.render_html(model)
+    review = text.split('<section id="daily-review">', 1)[1].split('</section>', 1)[0]
+    trade = text.split('<section id="trade-performance">', 1)[1].split('</section>', 1)[0]
+
+    # Single-account panel is rendered first, before MODEL_P and before folded MODEL_R.
+    assert review.index('model-s-panel') < review.index('model-p-panel') < review.index('model-r-fold')
+    assert trade.index('model-s-panel') < trade.index('model-p-panel') < trade.index('model-r-fold')
+    assert '<details class="model-r-fold" open' not in text
+    assert '单票持有 · 2 天' in review
+    assert '自动过滤重复信号 2 笔' in trade

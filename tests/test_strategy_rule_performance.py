@@ -411,3 +411,149 @@ def test_rule_history_cache_integrity_error_cannot_be_repaired_by_refetch(monkey
     monkeypatch.setattr(live, "_resolve_market_bars", forbidden_refetch)
     with pytest.raises(live.LiveAcquisitionError, match=status):
         load_strategy_rule_historical_ohlc([signal()], "2026-09-07", paths=paths, calendar=CALENDAR)
+
+
+def test_single_account_blocks_duplicate_position_while_holding_and_enforces_exit_cooldown():
+    from track_perf import (
+        RULE_STATUS_SKIPPED_DEDUP,
+        SINGLE_ACCOUNT_PERFORMANCE_MODEL,
+        SKIP_REASON_ALREADY_HOLDING,
+        SKIP_REASON_RECENT_EXIT_COOLDOWN,
+        build_single_account_rule_performance,
+    )
+
+    # S1 enters on 09-04 and stays OPEN until stopping out on 09-15 (8 sessions after S1).
+    # S2 (09-07) and S3 (09-14, >5 sessions after S1) occur while S1 is OPEN -> skipped as ALREADY_HOLDING.
+    # S4 (09-18, 3 sessions after 09-15 exit) -> skipped as RECENT_EXIT_COOLDOWN.
+    # S5 (09-22, 5 sessions after 09-15 exit) -> skipped as RECENT_EXIT_COOLDOWN (5D boundary inclusive).
+    # S6 (09-23, 6 sessions after 09-15 exit) -> accepted and enters on 09-24!
+    signals = [
+        signal(code="601033", signal_date="2026-09-03", trigger=100, stop=95, target=110),
+        signal(code="601033", signal_date="2026-09-07", trigger=100, stop=95, target=110),
+        signal(code="601033", signal_date="2026-09-14", trigger=100, stop=95, target=110),
+        signal(code="601033", signal_date="2026-09-18", trigger=96, stop=92, target=106),
+        signal(code="601033", signal_date="2026-09-22", trigger=96, stop=92, target=106),
+        signal(code="601033", signal_date="2026-09-23", trigger=96, stop=92, target=106),
+    ]
+    bars = [
+        bar("2026-09-04", opening=99, high=101, low=98, close=100),  # S1 enters
+        bar("2026-09-07", opening=100, high=102, low=98, close=101),
+        bar("2026-09-08", opening=101, high=102, low=98, close=100),
+        bar("2026-09-09", opening=100, high=102, low=98, close=100),
+        bar("2026-09-10", opening=100, high=102, low=98, close=100),
+        bar("2026-09-11", opening=100, high=102, low=98, close=100),
+        bar("2026-09-14", opening=100, high=102, low=98, close=99),
+        bar("2026-09-15", opening=97, high=98, low=94, close=95),   # S1 stops out at 95
+        bar("2026-09-16", opening=95, high=97, low=94, close=96),   # post-exit 1
+        bar("2026-09-17", opening=96, high=97, low=95, close=96),   # post-exit 2
+        bar("2026-09-18", opening=96, high=97, low=95, close=96),   # post-exit 3
+        bar("2026-09-21", opening=96, high=97, low=95, close=96),   # post-exit 4
+        bar("2026-09-22", opening=96, high=97, low=95, close=96),   # post-exit 5
+        bar("2026-09-23", opening=95, high=95.5, low=94, close=95), # post-exit 6 (S6 accepted)
+        bar("2026-09-24", opening=95, high=97, low=95, close=96.5), # S6 enters and stays OPEN
+    ]
+    dedup = build_single_account_rule_performance(
+        signals, {"601033": bars}, "2026-09-24", calendar=CALENDAR,
+    )
+    raw = build_strategy_rule_performance(
+        signals, {"601033": bars}, "2026-09-24", calendar=CALENDAR,
+    )
+
+    assert dedup["performance_model"] == SINGLE_ACCOUNT_PERFORMANCE_MODEL
+    assert dedup["total_signals"] == 6
+    assert dedup["accepted_signals"] == 2
+    assert dedup["skipped_dedup_count"] == 4
+    assert [r["skip_reason"] for r in dedup["skipped_rows"]] == [
+        SKIP_REASON_ALREADY_HOLDING,
+        SKIP_REASON_ALREADY_HOLDING,
+        SKIP_REASON_RECENT_EXIT_COOLDOWN,
+        SKIP_REASON_RECENT_EXIT_COOLDOWN,
+    ]
+    assert all(r["status"] == RULE_STATUS_SKIPPED_DEDUP for r in dedup["skipped_rows"])
+    assert dedup["resolved_closed_trades"] == 1
+    assert dedup["open_rule_trades"] == 1
+    assert [r["signal_date"] for r in dedup["open_position_rows"]] == ["2026-09-23"]
+    assert dedup["open_position_rows"][0]["holding_sessions"] == 1
+    # Underlying raw MODEL_R remains unchanged (opens 5 trades and holds 3 duplicate open positions).
+    assert raw["triggered"] == 5
+    assert raw["open_rule_trades"] == 3
+
+
+def test_single_account_signal_cooldown_pending_order_and_10d_untriggered_expiry():
+    from track_perf import (
+        RULE_STATUS_EXPIRED_UNTRIGGERED,
+        SKIP_REASON_PENDING_ORDER_ACTIVE,
+        SKIP_REASON_RECENT_SIGNAL_COOLDOWN,
+        build_single_account_rule_performance,
+    )
+
+    # S1 on 09-03 with high trigger=120 never triggers within 10 sessions (09-04..09-17).
+    # S2 on 09-08 (3 sessions after S1) -> skipped as RECENT_SIGNAL_COOLDOWN.
+    # S3 on 09-14 (7 sessions after S1) -> skipped as PENDING_ORDER_ACTIVE (still inside 10D window).
+    # On 09-17 (10th session), S1 expires as EXPIRED_UNTRIGGERED.
+    # Even though 09-18 surges to 125, S1 must NOT fill late; S4 on 09-18 (with trigger=102) is accepted!
+    signals = [
+        signal(code="600398", signal_date="2026-09-03", trigger=120, stop=95, target=135),
+        signal(code="600398", signal_date="2026-09-08", trigger=101, stop=95, target=112),
+        signal(code="600398", signal_date="2026-09-14", trigger=101, stop=95, target=112),
+        signal(code="600398", signal_date="2026-09-18", trigger=102, stop=97, target=115),
+    ]
+    ten_sessions = [
+        "2026-09-04", "2026-09-07", "2026-09-08", "2026-09-09", "2026-09-10",
+        "2026-09-11", "2026-09-14", "2026-09-15", "2026-09-16", "2026-09-17",
+    ]
+    bars = [bar(d, opening=100, high=105, low=98, close=101) for d in ten_sessions] + [
+        bar("2026-09-18", opening=101, high=125, low=100, close=103),
+        bar("2026-09-21", opening=102, high=104, low=101, close=103),
+    ]
+    dedup = build_single_account_rule_performance(
+        signals, {"600398": bars}, "2026-09-21", calendar=CALENDAR,
+    )
+
+    assert dedup["accepted_signals"] == 2
+    assert dedup["expired_untriggered"] == 1
+    assert dedup["expired_untriggered_rows"][0]["signal_date"] == "2026-09-03"
+    assert dedup["expired_untriggered_rows"][0]["status"] == RULE_STATUS_EXPIRED_UNTRIGGERED
+    assert dedup["expired_untriggered_rows"][0]["exit_date"] == "2026-09-17"
+    assert [r["skip_reason"] for r in dedup["skipped_rows"]] == [
+        SKIP_REASON_RECENT_SIGNAL_COOLDOWN,
+        SKIP_REASON_PENDING_ORDER_ACTIVE,
+    ]
+    assert [r["signal_date"] for r in dedup["open_position_rows"]] == ["2026-09-18"]
+    assert dedup["open_position_rows"][0]["entry_price"] == 102
+
+
+def test_single_account_admission_is_strictly_causal_across_report_dates():
+    from track_perf import build_single_account_rule_performance, single_account_shortlist_exclusions
+
+    signals = [
+        signal(code="600809", signal_date="2026-09-03", trigger=100, stop=95, target=110),
+        signal(code="600809", signal_date="2026-09-08", trigger=100, stop=95, target=110),
+    ]
+    bars = [
+        bar("2026-09-04", opening=99, high=101, low=98, close=100),
+        bar("2026-09-07", opening=100, high=102, low=98, close=101),
+        bar("2026-09-08", opening=101, high=103, low=99, close=102),
+        bar("2026-09-09", opening=102, high=112, low=101, close=111),  # S1 hits target AFTER 09-08
+    ]
+    at_signal_day = build_single_account_rule_performance(
+        signals, {"600809": bars}, "2026-09-08", calendar=CALENDAR,
+    )
+    later = build_single_account_rule_performance(
+        signals, {"600809": bars}, "2026-09-09", calendar=CALENDAR,
+    )
+
+    assert single_account_shortlist_exclusions(at_signal_day, "2026-09-08") == {
+        "600809": {
+            "skip_reason": "ALREADY_HOLDING",
+            "blocking_signal_id": signals[0]["signal_id"],
+            "blocking_signal_date": "2026-09-03",
+            "blocking_entry_date": "2026-09-04",
+            "blocking_exit_date": None,
+            "blocking_exit_reason": None,
+            "sessions_since_signal": 3,
+            "sessions_since_exit": None,
+        }
+    }
+    assert later["skipped_rows"][0]["skip_reason"] == "ALREADY_HOLDING"
+    assert later["accepted_signals"] == 1

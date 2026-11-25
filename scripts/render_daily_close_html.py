@@ -39,10 +39,20 @@ from track_perf import (
     UNVERIFIED_MISSING_EXECUTION_OBSERVATION,
     EXIT_REASON_AMBIGUOUS,
     STRATEGY_RULE_PERFORMANCE_MODEL,
+    SINGLE_ACCOUNT_PERFORMANCE_MODEL,
+    SINGLE_ACCOUNT_COOLDOWN_SESSIONS,
+    SINGLE_ACCOUNT_ENTRY_EXPIRY_SESSIONS,
+    SKIP_REASON_ALREADY_HOLDING,
+    SKIP_REASON_RECENT_SIGNAL_COOLDOWN,
+    SKIP_REASON_PENDING_ORDER_ACTIVE,
+    SKIP_REASON_RECENT_EXIT_COOLDOWN,
+    SKIP_REASON_PRIOR_POSITION_UNRESOLVED,
     PERFORMANCE_DATA_INCOMPLETE,
     STRATEGY_RULE_CONFIG_ERROR,
     build_trade_performance_summary,
     build_strategy_rule_performance,
+    build_single_account_rule_performance,
+    single_account_shortlist_exclusions,
     load_strategy_rule_historical_ohlc,
     load_tracker,
     parse_date,
@@ -82,10 +92,16 @@ _HORIZON_OFFSETS = dict(REVIEW_HORIZONS)
 # model facts.
 MODEL_P = "MODEL_P"
 MODEL_R = "MODEL_R"
+MODEL_S = "MODEL_S"
 MODEL_P_LABEL = "前瞻执行路径"
 MODEL_R_LABEL = "理论规则模拟"
+MODEL_S_LABEL = "单账户去重模拟"
 MODEL_R_EXPLANATION = (
     "按理论触发价模拟；无首次触发期限；无 T+10 强制退出；不代表前瞻执行收益"
+)
+MODEL_S_EXPLANATION = (
+    f"同一股票持仓期间不重复开仓；入选或平仓后冷却 {SINGLE_ACCOUNT_COOLDOWN_SESSIONS} 个交易日；"
+    f"满 {SINGLE_ACCOUNT_ENTRY_EXPIRY_SESSIONS} 个交易日未触价自动撤单；毛收益未扣费用与滑点"
 )
 MODEL_SEPARATION_NOTE = (
     "前瞻执行路径与下方理论规则模拟采用不同入场与退出语义，不可直接合并。"
@@ -114,6 +130,7 @@ class ReportModel:
     execution_audit: dict[str, Any] | None = None
     shadow_monitor: dict[str, Any] | None = None
     shortlist: dict[str, Any] | None = None
+    single_account_performance: dict[str, Any] | None = None
 
 
 def _normalize_date(value: date | datetime | str) -> str:
@@ -591,8 +608,15 @@ def _watchlist_rows(
     return rows
 
 
-def _daily_shortlist(watchlist, observations, watchlist_bytes, limit):
-    """Use only this run's verified T-known observations, never tracker state."""
+def _daily_shortlist(
+    watchlist,
+    observations,
+    watchlist_bytes,
+    limit,
+    *,
+    account_exclusions: Mapping[str, Mapping[str, Any]] | None = None,
+):
+    """Use verified T-known observations plus T-close single-account dedup state."""
     if type(limit) is not int or limit not in (2, 3):
         raise ValueError("SHORTLIST_LIMIT_MUST_BE_2_OR_3")
     from b_structure_volume_observation import canonical, sha
@@ -607,7 +631,10 @@ def _daily_shortlist(watchlist, observations, watchlist_bytes, limit):
             feature_identity=selector.shadow.feature_identity(),
         )
         result = selector.build_preview(
-            watchlist, {"signal_date": watchlist["date"], "rows": source_rows}, limit=limit,
+            watchlist,
+            {"signal_date": watchlist["date"], "rows": source_rows},
+            limit=limit,
+            account_exclusions=account_exclusions,
         )
     except Exception as exc:
         # Fail closed for the shortlist, while retaining the formal report.
@@ -860,7 +887,6 @@ def build_report_model(
     research_observations = _load_b_research_observations(
         research_run_manifest, watchlist, watchlist_bytes, cal,
     )
-    shortlist = _daily_shortlist(watchlist, research_observations, watchlist_bytes, shortlist_limit)
     tracker, review_failures = _load_review_tracker(resolver, review_failure)
     performance_tracker = tracker if tracker is not None else {"version": 2, "signals": {}}
     canonical_watchlists = current_prospective_watchlists(resolver)
@@ -876,6 +902,23 @@ def build_report_model(
         normalized_date,
         calendar=cal,
         historical_provenance=historical_provenance,
+    )
+    single_account_performance = build_single_account_rule_performance(
+        canonical_watchlists,
+        historical_ohlc,
+        normalized_date,
+        calendar=cal,
+        historical_provenance=historical_provenance,
+    )
+    account_exclusions = single_account_shortlist_exclusions(
+        single_account_performance, normalized_date,
+    )
+    shortlist = _daily_shortlist(
+        watchlist,
+        research_observations,
+        watchlist_bytes,
+        shortlist_limit,
+        account_exclusions=account_exclusions,
     )
     shadow_monitor = _load_shadow_monitor(resolver, normalized_date, watchlist)
     volume_observations, volume_observation_status = _load_volume_observations(
@@ -1208,6 +1251,7 @@ def build_report_model(
         execution_audit=execution_audit,
         shadow_monitor=shadow_monitor,
         shortlist=shortlist,
+        single_account_performance=single_account_performance,
     )
 
 
@@ -1843,6 +1887,41 @@ def _watchlist_table(rows, earliest_execution=None, *, table_id='watchlist-table
     return f'<div id="{_esc(table_id)}" class="watchlist-list">{"".join(body)}</div>'
 
 
+def _account_skip_reason_label(info: Mapping[str, Any], *, short: bool = False) -> str:
+    reason = str(info.get('skip_reason') or '')
+    if short:
+        return {
+            SKIP_REASON_ALREADY_HOLDING: '模拟持仓中',
+            SKIP_REASON_RECENT_SIGNAL_COOLDOWN: f'{SINGLE_ACCOUNT_COOLDOWN_SESSIONS}日入选冷却中',
+            SKIP_REASON_PENDING_ORDER_ACTIVE: f'{SINGLE_ACCOUNT_ENTRY_EXPIRY_SESSIONS}日挂单观察中',
+            SKIP_REASON_RECENT_EXIT_COOLDOWN: f'平仓{SINGLE_ACCOUNT_COOLDOWN_SESSIONS}日冷却中',
+            SKIP_REASON_PRIOR_POSITION_UNRESOLVED: '前序持仓待核验',
+        }.get(reason, '冷却观察中')
+    if reason == SKIP_REASON_ALREADY_HOLDING:
+        return (
+            f"已在单账户模拟持仓中（{_text(info.get('blocking_entry_date'))} 买入持有中 · "
+            "今日形态再次达标，不重复开仓）"
+        )
+    if reason == SKIP_REASON_RECENT_SIGNAL_COOLDOWN:
+        return (
+            f"近 {SINGLE_ACCOUNT_COOLDOWN_SESSIONS} 个交易日内刚入选过"
+            f"（上次信号 {_text(info.get('blocking_signal_date'))} · 冷却期内不重复占名额）"
+        )
+    if reason == SKIP_REASON_PENDING_ORDER_ACTIVE:
+        return (
+            f"单账户已有未到期挂单（{_text(info.get('blocking_signal_date'))} 信号 "
+            f"{SINGLE_ACCOUNT_ENTRY_EXPIRY_SESSIONS} 日待触发期内 · 不重复占名额）"
+        )
+    if reason == SKIP_REASON_RECENT_EXIT_COOLDOWN:
+        return (
+            f"单账户模拟仓位刚结案未满 {SINGLE_ACCOUNT_COOLDOWN_SESSIONS} 个交易日"
+            f"（{_text(info.get('blocking_exit_date'))} 平仓冷却中 · 暂不重开）"
+        )
+    if reason == SKIP_REASON_PRIOR_POSITION_UNRESOLVED:
+        return '前序持仓因历史日线缺失待核验，暂不重复占名额'
+    return '处于单账户冷却观察期，不重复占重点名额'
+
+
 def _shortlist_reason_html(detail):
     if detail is None:
         return ''
@@ -1860,17 +1939,27 @@ def _shortlist_reason_html(detail):
             'LIMIT_REACHED': '未入选：按本轮比较顺序排在重点名额之后',
             'UNAVAILABLE': '未筛选：短名单资料缺失或未通过核验，保留原始候选供核对',
         }
-        reason = '；'.join(explanations.get(key, '暂未进入重点观察') for key in detail['reasons'])
+        exclusion = detail.get('account_exclusion')
+        parts = []
+        if isinstance(exclusion, Mapping):
+            parts.append('未占重点名额：' + _account_skip_reason_label(exclusion))
+        for key in detail.get('reasons', []):
+            if str(key).startswith('ACCOUNT_') and isinstance(exclusion, Mapping):
+                continue
+            parts.append(explanations.get(key, '暂未进入重点观察'))
+        reason = '；'.join(parts) or '暂未进入重点观察'
     return f'<p class="shortlist-reason">{_esc(reason)}</p>'
 
 
 def _shortlist_watchlist_html(model):
     shortlist = model.shortlist or {'status': 'UNAVAILABLE', 'rows': [], 'selected_codes': []}
     details = {r['signal_id']: r for r in shortlist['rows']}
-    selected, remaining = [], []
+    selected, remaining, dedup_excluded = [], [], []
     for row in model.watchlist_rows:
         detail = details.get(row['signal_id'], {'selected': False, 'reasons': ['UNAVAILABLE']})
         displayed = {**row, 'shortlist_detail': detail}
+        if isinstance(detail.get('account_exclusion'), Mapping):
+            dedup_excluded.append(displayed)
         if detail['selected']:
             displayed['display_index'] = detail['comparison_order']
             selected.append(displayed)
@@ -1880,11 +1969,25 @@ def _shortlist_watchlist_html(model):
     remaining.sort(key=lambda r: (str(r['code']), str(r['signal_id'])))
     for index, row in enumerate(remaining, 1):
         row['display_index'] = index
+    dedup_banner = ''
+    if dedup_excluded:
+        tags = '；'.join(
+            f"{_text(r.get('code'))} {_text(r.get('name'), '')} · "
+            f"{_account_skip_reason_label(r['shortlist_detail']['account_exclusion'], short=True)}"
+            for r in dedup_excluded
+        )
+        dedup_banner = (
+            '<div class="review-callout shortlist-dedup-callout">'
+            f'<strong>单账户去重提示 · 自动让出重点名额 {len(dedup_excluded)} 只</strong>'
+            f'<p>{_esc(tags)}（已在持仓或冷却观察期，不重复霸占今日重点名额，详见下方其余候选）。</p>'
+            '</div>'
+        )
     if selected:
         main = _watchlist_table(selected, model.metadata.get('earliest_execution'), table_id='shortlist-candidates')
     else:
         note = ('今日暂无新名单。' if not model.watchlist_rows else
                 '当轮结构或量能资料缺失、未通过核验，暂无法筛选重点候选。' if shortlist['status'] != 'AVAILABLE' else
+                '今日符合条件的候选处于单账户模拟持仓或冷却观察期，不重复占用重点名额。' if dedup_excluded else
                 '本轮没有符合比较条件的候选，今日不补足重点名额。')
         main = f'<div class="empty-state">{note}</div>'
     more = (
@@ -1895,7 +1998,7 @@ def _shortlist_watchlist_html(model):
         + '</div></details>'
         if remaining else ''
     )
-    return f'<div id="watchlist-table">{main}{more}</div>'
+    return f'<div id="watchlist-table">{dedup_banner}{main}{more}</div>'
 
 
 def _daily_note(row: Mapping[str, Any]) -> str:
@@ -1972,8 +2075,113 @@ def _active_review_html(rows: list[Mapping[str, Any]]) -> str:
     )
 
 
-def _daily_review_html(model: ReportModel) -> str:
-    """Keep tracker path changes and rule-simulation closures in separate panels."""
+def _single_account_holding_card(row: Mapping[str, Any]) -> str:
+    mark = row.get('mark_return_pct')
+    pnl_text = _percent(mark, signed=True) if mark is not None else '—'
+    pnl_tone = _numeric_tone(mark)
+    held = _integer(row.get('holding_sessions'), '—')
+    entry_price = _number(row.get('entry_price') if row.get('entry_price') is not None else row.get('trigger'))
+    return (
+        '<article class="account-holding-card">'
+        '<div class="account-holding-top">'
+        f'<div class="security"><strong>{_esc(row.get("code"))}</strong><span>{_esc(row.get("name"))}</span></div>'
+        '<div class="action-status">'
+        f'<span class="badge account-open-badge">单票持有 · {held} 天</span>'
+        f'<strong class="number {pnl_tone}">{_esc(pnl_text)}</strong>'
+        '</div></div>'
+        '<div class="action-facts">'
+        f'<span><label>信号日</label><strong>{_esc(row.get("signal_date"))}</strong></span>'
+        f'<span><label>模拟买入日</label><strong>{_esc(row.get("entry_date") or row.get("trigger_date"))}</strong></span>'
+        f'<span><label>买入价（触发）</label><strong>{_esc(entry_price)}</strong></span>'
+        f'<span><label>止损价</label><strong class="negative">{_esc(_number(row.get("stop")))}</strong></span>'
+        f'<span><label>目标价</label><strong class="positive">{_esc(_number(row.get("target")))}</strong></span>'
+        f'<span><label>最新收盘</label><strong>{_esc(_number(row.get("latest_close")))}</strong></span>'
+        '</div></article>'
+    )
+
+
+def _single_account_holdings_html(open_rows: list[Mapping[str, Any]]) -> str:
+    if not open_rows:
+        return '<div class="empty-state">当前无单账户模拟持仓。</div>'
+    ordered = sorted(
+        open_rows,
+        key=lambda r: (str(r.get('entry_date') or r.get('signal_date') or ''), str(r.get('code') or '')),
+        reverse=True,
+    )
+    visible = ordered[:6]
+    rest = ordered[6:]
+    visible_html = '<div class="account-holding-list">' + ''.join(_single_account_holding_card(r) for r in visible) + '</div>'
+    if not rest:
+        return visible_html
+    rest_html = (
+        f'<details class="review-details"><summary>展开其余单票模拟持仓 · {len(rest)} 只</summary>'
+        '<div class="account-holding-list">' + ''.join(_single_account_holding_card(r) for r in rest) + '</div></details>'
+    )
+    return visible_html + rest_html
+
+
+def _single_account_daily_close_html(rows: list[Mapping[str, Any]]) -> str:
+    if not rows:
+        return '<div class="empty-state">今日无单账户模拟仓位结案。</div>'
+    cards = []
+    for row in rows:
+        outcome = _rule_outcome_label(row.get('exit_reason'))
+        tone = 'positive' if outcome == '止盈' else 'negative' if outcome == '止损' else 'warning'
+        cards.append(
+            f'<article class="action-row {tone}">'
+            f'<div class="action-top"><div class="security"><strong>{_esc(row.get("code"))}</strong>'
+            f'<span>{_esc(row.get("name"))}</span></div>'
+            f'<div class="action-status"><span class="badge {tone}">单账户模拟 · {_esc(outcome)}</span></div></div>'
+            '<div class="action-facts">'
+            f'<span><label>模拟买入价</label><strong>{_esc(_number(row.get("entry_price")))}</strong></span>'
+            f'<span><label>模拟买入日</label><strong>{_esc(row.get("entry_date"))}</strong></span>'
+            f'<span><label>模拟退出价</label><strong>{_esc(_number(row.get("exit_price")))}</strong></span>'
+            f'<span><label>模拟退出日</label><strong>{_esc(row.get("exit_date"))}</strong></span>'
+            f'<span><label>持有交易日</label><strong>{_esc(_integer(row.get("holding_sessions")))}</strong></span>'
+            f'<span><label>单笔毛收益</label><strong class="{_numeric_tone(row.get("realized_return_pct"))}">'
+            f'{_esc(_percent(row.get("realized_return_pct"), signed=True))}</strong></span>'
+            '</div></article>'
+        )
+    return '<div class="action-list">' + ''.join(cards) + '</div>'
+
+
+def _single_account_daily_review_html(single_account: Mapping[str, Any]) -> str:
+    open_rows = list(single_account.get('open_position_rows') or [])
+    new_entries = list(single_account.get('new_entries_today') or [])
+    closed_today = list(single_account.get('closed_today_rows') or [])
+    expired_today = list(single_account.get('expired_today_rows') or [])
+    cards = (
+        ('当前单票持仓', _integer(single_account.get('open_rule_trades'), '0')),
+        ('今日新触发买入', _integer(len(new_entries), '0')),
+        ('今日平仓结案', _integer(len(closed_today), '0')),
+        ('待触发挂单中', _integer(single_account.get('pending_orders'), '0')),
+        ('今日10日撤单', _integer(len(expired_today), '0')),
+        ('今日过滤重复', _integer(single_account.get('skipped_today_count'), '0')),
+    )
+    cards_html = ''.join(
+        f'<article><span>{_esc(label)}</span><strong>{_esc(value)}</strong></article>'
+        for label, value in cards
+    )
+    return (
+        '<div class="model-panel model-s-panel">'
+        f'<div class="model-panel-head"><div><span class="model-label">{MODEL_S} · {MODEL_S_LABEL}（主展示）</span>'
+        '<h3>单账户模拟持仓与今日动态（同股不重复开仓）</h3></div>'
+        '<span class="badge account-open-badge">同股至多1仓 · 5日冷却 · 10日撤单</span></div>'
+        f'<p class="model-explanation">{_esc(MODEL_S_EXPLANATION)}。</p>'
+        f'<div class="review-summary-grid">{cards_html}</div>'
+        '<div class="subsection-head"><h4>今日单账户平仓结案</h4>'
+        f'<span class="count-label">{_integer(len(closed_today), "0")} 笔</span></div>'
+        f'{_single_account_daily_close_html(closed_today)}'
+        '<div class="subsection-head"><h4>当前单票模拟持仓</h4>'
+        f'<span class="count-label">{_integer(len(open_rows), "0")} 只独立股票 · 平均浮动收益 '
+        f'{_esc(_performance_value(single_account, "open_mtm_avg_return_pct", percent=True, signed=True))}</span></div>'
+        f'{_single_account_holdings_html(open_rows)}'
+        '</div>'
+    )
+
+
+def _daily_review_html(model: ReportModel, single_account: Mapping[str, Any] | None = None) -> str:
+    """Present single-account position changes first, keeping MODEL_P and folded MODEL_R separate."""
 
     summary = model.daily_summary
     changed = [
@@ -2002,7 +2210,13 @@ def _daily_review_html(model: ReportModel) -> str:
         if model.closed_today else '<div class="empty-state">今日没有前瞻执行路径结案。</div>'
     )
     report_date = str(model.metadata.get('review_date') or '')
+    raw_closures_today = sum(
+        1 for row in (model.trade_performance or {}).get('closed_trades', [])
+        if isinstance(row, Mapping) and str(row.get('exit_date') or '') == report_date
+    )
+    account_panel = _single_account_daily_review_html(single_account or {})
     return (
+        f'{account_panel}'
         f'<p class="section-summary">昨日名单今日表现 · {_esc(model.metadata.get("previous_date"))} · '
         f'共 {_esc(_integer(summary.get("previous_total"), "0"))} 个信号</p>'
         '<div class="model-panel model-p-panel">'
@@ -2022,13 +2236,15 @@ def _daily_review_html(model: ReportModel) -> str:
         f'<span class="count-label">{_integer(len(model.active_signals), "0")} 个 · 10天限时跟踪中</span></div>'
         f'{_active_review_html(model.active_signals)}'
         '</div>'
+        '<details class="model-r-fold">'
+        f'<summary>展开对照：原逐信号不去重规则模拟今日结案（{MODEL_R} · 今日 {_integer(raw_closures_today, "0")} 笔）</summary>'
         '<div class="model-panel model-r-panel">'
         f'<div class="model-panel-head"><div><span class="model-label">{MODEL_R} · {MODEL_R_LABEL}</span>'
         '<h3>理论规则模拟变化（不限时规则模拟）</h3></div>'
         '<span class="badge neutral">不限时规则模拟 · 非实盘持仓</span></div>'
         '<p class="model-explanation">按理论触发价模拟买入，不到目标价或止损价就一直持有（不设 10 天期限，不代表真实账户持仓）；当日结案收益标记为“理论模拟收益”，不代表前瞻执行收益。</p>'
         f'{_rule_daily_close_html(model.trade_performance or {}, report_date)}'
-        '</div>'
+        '</div></details>'
     )
 
 
@@ -2313,7 +2529,7 @@ def _performance_detail_table(performance: Mapping[str, Any]) -> str:
     return _simple_table(("补充交易绩效指标", "值"), body, table_class='metric-detail-table')
 
 
-def _trade_closed_table(rows: list[Mapping[str, Any]]) -> str:
+def _trade_closed_table(rows: list[Mapping[str, Any]], *, table_class: str = 'trade-table') -> str:
     headers = (
         "信号日", "代码", "名称", "触发日", "触发价", "最早可卖日", "退出日", "退出价",
         "退出类型", "模拟收益 %", "盈亏倍数 R", "持有交易日", "最大浮盈 MFE", "最大浮亏 MAE",
@@ -2330,10 +2546,10 @@ def _trade_closed_table(rows: list[Mapping[str, Any]]) -> str:
                    _esc(_signed_number(row.get("realized_r"))), _esc(_number(row.get("holding_sessions"))),
                    _esc(_percent(row.get("mfe_pct"), signed=True)), _esc(_percent(row.get("mae_pct"), signed=True))]
         body.append("<tr>" + "".join(f"<td>{value}</td>" for value in values) + "</tr>")
-    return _simple_table(headers, body, table_class='trade-table')
+    return _simple_table(headers, body, table_class=table_class)
 
 
-def _trade_open_table(rows: list[Mapping[str, Any]]) -> str:
+def _trade_open_table(rows: list[Mapping[str, Any]], *, table_class: str = 'trade-table') -> str:
     headers = (
         "信号日", "代码", "名称", "触发日", "触发价", "止损价", "目标价", "最新收盘",
         "浮动收益 %", "最大浮盈 MFE", "最大浮亏 MAE",
@@ -2349,7 +2565,140 @@ def _trade_open_table(rows: list[Mapping[str, Any]]) -> str:
                    f'<span class="number {_numeric_tone(row.get("mark_return_pct"))}">{_esc(_percent(row.get("mark_return_pct"), signed=True))}</span>',
                    _esc(_percent(row.get("mfe_pct"), signed=True)), _esc(_percent(row.get("mae_pct"), signed=True))]
         body.append("<tr>" + "".join(f"<td>{value}</td>" for value in values) + "</tr>")
-    return _simple_table(headers, body, table_class='trade-table')
+    return _simple_table(headers, body, table_class=table_class)
+
+
+def _single_account_skipped_table(rows: list[Mapping[str, Any]]) -> str:
+    headers = ("信号日", "代码", "名称", "跳过原因", "前序关联信号日", "前序买入日", "前序平仓日")
+    if not rows:
+        return '<div class="empty-state">暂无因持仓或冷却期过滤的重复信号。</div>'
+    body = []
+    for row in sorted(rows, key=lambda r: (str(r.get("signal_date") or ""), str(r.get("code") or "")), reverse=True):
+        values = [
+            _esc(row.get("signal_date")),
+            _esc(row.get("code")),
+            _esc(row.get("name")),
+            _esc(_account_skip_reason_label(row, short=True)),
+            _esc(row.get("blocking_signal_date")),
+            _esc(row.get("blocking_entry_date")),
+            _esc(row.get("blocking_exit_date")),
+        ]
+        body.append("<tr>" + "".join(f"<td>{value}</td>" for value in values) + "</tr>")
+    return _simple_table(headers, body, table_class='account-trade-table')
+
+
+def _single_account_cards(performance: Mapping[str, Any]) -> str:
+    closed_n = _integer(performance.get("resolved_closed_trades"), "—")
+    wins = _integer(performance.get("win_count"), "—")
+    losses = _integer(performance.get("loss_count"), "—")
+    sample_note = "单账户已结案 —" if closed_n == "—" else f"单账户 n={closed_n} · 胜/负 {wins}/{losses}"
+    skipped_total = _integer(performance.get("skipped_dedup_count"), "0")
+    pending_orders = _integer(performance.get("pending_orders"), "0")
+    cards = [
+        ("单账户胜率", "win_rate", True, False, sample_note),
+        ("单账户平均收益", "avg_return_pct", True, True, sample_note),
+        ("单账户盈亏比", "payoff_ratio", False, False, sample_note),
+        ("Profit Factor", "profit_factor", False, False, f"盈利因子 · {sample_note}"),
+        ("单账户已结案", "resolved_closed_trades", False, False, f"自动过滤重复信号 {skipped_total} 笔"),
+        ("当前单票持仓", "open_rule_trades", False, False, f"每只股票至多 1 笔 · 待触发 {pending_orders} 只"),
+    ]
+    integer_keys = {"resolved_closed_trades", "open_rule_trades"}
+    return ''.join(
+        f'<article class="kpi-card account-kpi">'
+        f'<div class="kpi-label">{_esc(label)}</div>'
+        f'<div class="kpi-value {_numeric_tone(performance.get(key))}">'
+        f'{_esc(_integer(performance.get(key)) if key in integer_keys else _performance_value(performance, key, percent=percent, signed=signed))}</div>'
+        f'<small>{_esc(note)}</small></article>'
+        for label, key, percent, signed, note in cards
+    )
+
+
+def _single_account_funnel(performance: Mapping[str, Any]) -> str:
+    items = [
+        ('原始总信号', performance.get('total_signals')),
+        ('过滤重复/冷却', performance.get('skipped_dedup_count')),
+        ('单账户接纳', performance.get('accepted_signals')),
+        ('已触发买入', performance.get('triggered')),
+        ('单账户已结案', performance.get('resolved_closed_trades')),
+        ('当前单票持仓', performance.get('open_rule_trades')),
+        ('待触发挂单', performance.get('pending_orders')),
+        ('10天未触发撤单', performance.get('expired_untriggered')),
+    ]
+    return '<div class="funnel">' + ''.join(
+        f'<div class="funnel-item"><span>{_esc(label)}</span><strong>{_esc(_integer(value, "0"))}</strong></div>'
+        for label, value in items
+    ) + '</div>'
+
+
+def _single_account_performance_html(performance: Mapping[str, Any]) -> str:
+    closed_count = int(performance.get('resolved_closed_trades') or 0)
+    open_count = int(performance.get('open_rule_trades') or 0)
+    skipped_count = int(performance.get('skipped_dedup_count') or 0)
+    if closed_count == 0:
+        status_html = (
+            '<div class="performance-status warning">'
+            '<span class="badge warning">样本待积累</span>'
+            '<div><strong>当前暂无单账户去重已结案交易。</strong>'
+            '<small>仅统计单账户去重后已明确止盈或止损的结案样本；未触发撤单、持仓中及过滤的重复信号不计入收益率。</small></div>'
+            '</div>'
+        )
+    elif closed_count < 10:
+        status_html = (
+            f'<div class="performance-status warning"><span class="badge warning">样本较小</span>'
+            f'<div><strong>单账户去重已结案 {closed_count} 笔，结果仅供阶段性参考。</strong>'
+            f'<small>已自动过滤同股持仓及冷却期重复信号 {skipped_count} 笔。</small></div></div>'
+        )
+    else:
+        status_html = (
+            f'<div class="performance-status ready"><span class="badge positive">单账户统计可用</span>'
+            f'<div><strong>单账户去重已结案 {closed_count} 笔（当前单票持仓 {open_count} 只，累计过滤重复信号 {skipped_count} 笔）。</strong>'
+            '<small>同一股票持仓期间不重复买，入选或平仓后冷却 5 个交易日，满 10 个交易日未触发自动撤单。</small></div></div>'
+        )
+    open_rows = list(performance.get('open_position_rows') or [])
+    closed_rows = list(performance.get('closed_trades') or [])
+    skipped_rows = list(performance.get('skipped_rows') or [])
+    open_summary = (
+        f'当前单票模拟持仓 · {_integer(open_count, "0")} 只独立股票 · '
+        f'平均浮动收益 {_performance_value(performance, "open_mtm_avg_return_pct", percent=True, signed=True)} · 展开明细'
+    )
+    closed_summary = (
+        f'单账户已结案明细 · {_integer(closed_count, "0")} 笔 · '
+        f'止盈平均 {_performance_value(performance, "avg_win_pct", percent=True, signed=True)} · '
+        f'止损平均 {_performance_value(performance, "avg_loss_pct", percent=True, signed=True)} · 展开明细'
+    )
+    skipped_summary = f'自动过滤的同股重复 / 冷却期信号 · {_integer(skipped_count, "0")} 笔 · 展开明细'
+    open_detail_html = (
+        _trade_open_table(open_rows, table_class="account-trade-table")
+        if open_rows
+        else '<div class="empty-state">当前无单账户模拟持仓。</div>'
+    )
+    return (
+        '<div class="model-panel model-s-panel">'
+        f'<div class="model-panel-head"><div><span class="model-label">{MODEL_S} · {MODEL_S_LABEL}（核心主展示）</span>'
+        '<h3>单账户去重模拟成绩单（真实单票仓位视角）</h3></div>'
+        '<span class="badge account-open-badge">同股不重复开仓 · 5日冷却 · 10日撤单</span></div>'
+        + status_html +
+        f'<div class="model-explanation"><strong>{MODEL_S} · {MODEL_S_LABEL}</strong> · {_esc(MODEL_S_EXPLANATION)}。'
+        '底层原始信号记录保持不变，此处展示单账户去重后的真实单票视角；原不去重逐信号统计折叠在最下方供对照。</div>'
+        f'<div class="primary-kpis">{_single_account_cards(performance)}</div>'
+        '<div class="secondary-label"><span>单账户去重辅助指标</span><small>以单账户已结案样本为分母；暂无样本时显示 —</small></div>'
+        f'{_performance_metric_strip(performance)}'
+        '<div class="subsection-head"><h3>单账户去重样本漏斗</h3><small>直观展示原始信号经过单票持仓与 5 日冷却过滤后的真实去向。</small></div>'
+        f'{_single_account_funnel(performance)}'
+        '<div class="performance-block"><div class="subsection-head"><h3>当前单票模拟持仓</h3>'
+        f'<span class="count-label">{_integer(open_count, "0")} 只独立股票 · 同股至多 1 笔</span></div>'
+        f'<details class="performance-list-details"><summary>{_esc(open_summary)}</summary>'
+        f'{open_detail_html}</details></div>'
+        '<div class="performance-block"><div class="subsection-head"><h3>单账户已结案交易</h3>'
+        f'<span class="count-label">{_integer(closed_count, "0")} 笔</span></div>'
+        f'<details class="performance-list-details"><summary>{_esc(closed_summary)}</summary>'
+        f'{_trade_closed_table(closed_rows, table_class="account-trade-table")}</details></div>'
+        '<div class="performance-block"><div class="subsection-head"><h3>已过滤重复与冷却信号</h3>'
+        f'<span class="count-label">{_integer(skipped_count, "0")} 笔 · 不重复开仓</span></div>'
+        f'<details class="performance-list-details"><summary>{_esc(skipped_summary)}</summary>'
+        f'{_single_account_skipped_table(skipped_rows)}</details></div>'
+        '</div>'
+    )
 
 
 def _trade_ambiguous_table(rows: list[Mapping[str, Any]]) -> str:
@@ -2625,6 +2974,11 @@ def render_html(model: ReportModel) -> str:
         {},
         metadata.get("review_date", date.today().isoformat()),
     )
+    single_account_performance = model.single_account_performance or build_single_account_rule_performance(
+        [],
+        {},
+        metadata.get("review_date", date.today().isoformat()),
+    )
     audit_performance = model.execution_audit or {}
     prospective_counters = overview.get("prospective_counters", {})
 
@@ -2665,6 +3019,7 @@ def render_html(model: ReportModel) -> str:
         f'{_esc(UNVERIFIED_MISSING_EXECUTION_OBSERVATION)}</code></div><div><span>节点标签（内部）</span><code>'
         'T+5 PRIMARY REVIEW · T+10 EXTENSION / CLOSURE</code></div>'
         f'<div><span>策略规则绩效模型</span><code>{_esc(STRATEGY_RULE_PERFORMANCE_MODEL)}</code></div>'
+        f'<div><span>单账户去重绩效模型</span><code>{_esc(SINGLE_ACCOUNT_PERFORMANCE_MODEL)}</code></div>'
         f'<div><span>策略绩效历史日线来源</span><code>{_esc(trade_performance.get("historical_data_source"))}</code></div>'
         f'<div><span>策略绩效 provider calls</span><code>{_esc(trade_performance.get("historical_provider_calls", 0))}</code></div></div>'
     )
@@ -2732,7 +3087,7 @@ def render_html(model: ReportModel) -> str:
     )
     shadow_monitor = model.shadow_monitor or {}
     shadow_html = _shadow_monitor_html(shadow_monitor)
-    daily_review_html = _daily_review_html(model)
+    daily_review_html = _daily_review_html(model, single_account_performance)
     research_panels = ''.join([
         _research_panel('T+3', '短期观察', model.review_sections['T+3']),
         _research_panel('T+5', '主评价', model.review_sections['T+5']),
@@ -2830,12 +3185,25 @@ input[type=search] {{ width: min(360px, 100%); padding: 8px 10px; border: 1px so
 .decision-grid strong, .review-summary-grid strong {{ display: block; margin-top: 4px; font-size: 18px; font-variant-numeric: tabular-nums; }}
 .decision-grid small {{ display: block; margin-top: 3px; color: var(--muted); font-size: 10px; }}
 .model-panel {{ min-width: 0; margin: 14px 0 0; padding: 14px; border: 1px solid var(--border); background: var(--surface); }}
+.model-s-panel {{ border-top: 3px solid #1e7a5c; }}
 .model-p-panel {{ border-top: 3px solid var(--accent); }}
 .model-r-panel {{ border-top: 3px solid var(--warning); }}
 .model-panel-head {{ display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; min-width: 0; }}
 .model-panel-head > div {{ min-width: 0; }}
 .model-label {{ display: block; margin-bottom: 3px; color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: .06em; }}
+.model-s-panel .model-label {{ color: #1e7a5c; }}
 .model-r-panel .model-label {{ color: var(--warning); }}
+.account-kpi {{ border-top-color: #1e7a5c; }}
+.badge.account-open-badge {{ color: #1e7a5c; }}
+.account-holding-list {{ display: grid; gap: 8px; margin-top: 8px; }}
+.account-holding-card {{ min-width: 0; padding: 11px 13px; border: 1px solid var(--border); border-left: 3px solid #1e7a5c; background: var(--surface-2); }}
+.account-holding-top {{ display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; min-width: 0; }}
+.model-r-fold {{ margin-top: 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); }}
+.model-r-fold > summary {{ padding: 10px 13px; color: var(--muted); font-size: 13px; font-weight: 650; cursor: pointer; }}
+.model-r-fold > .model-panel {{ margin: 0; border: 0; border-top: 2px solid var(--warning); }}
+.shortlist-dedup-callout {{ margin: 0 0 12px; }}
+.shortlist-dedup-callout p {{ margin: 4px 0 0; font-size: 13px; color: var(--muted); }}
+.account-trade-table {{ min-width: 1120px; }}
 .model-explanation, .model-footnote {{ margin: 7px 0 0; color: var(--muted); font-size: 12px; }}
 .model-explanation strong {{ color: var(--text); }}
 .prospective-kpis {{ grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 12px; }}
@@ -3136,9 +3504,10 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   <details class="guide-details">
     <summary>一分钟看懂本报告各模块（主策略 / 两套复盘 / 副线研究）</summary>
     <ul class="guide-list">
-      <li><strong>「今日重点观察 &amp; 正式候选」</strong>：当前主策略（B 突破回踩），正式候选列出全部达标股，重点最多挑 {shortlist['limit']} 只方便先看（试验排序，不代表新增买额）。</li>
+      <li><strong>「今日重点观察 &amp; 正式候选」</strong>：当前主策略（B 突破回踩），正式候选列出全部达标股，重点最多挑 {shortlist['limit']} 只方便先看（试验排序，不代表新增买额；已在单账户模拟持仓或 {SINGLE_ACCOUNT_COOLDOWN_SESSIONS} 日冷却期内的老票自动让出重点名额）。</li>
+      <li><strong>「单账户去重模拟（主展示 · MODEL_S）」</strong>：真实单票仓位视角——同一股票持仓期间不重复开仓，入选或平仓后冷却 {SINGLE_ACCOUNT_COOLDOWN_SESSIONS} 个交易日，满 {SINGLE_ACCOUNT_ENTRY_EXPIRY_SESSIONS} 个交易日未触价自动撤单。</li>
       <li><strong>「前瞻执行路径（MODEL_P）」</strong>：10 天限时跟踪——10 个交易日内触价算买、满 10 天按到期处理，缺某天实时记录则标待核验，不事后回填。</li>
-      <li><strong>「理论规则模拟（MODEL_R）」</strong>：不限时规则回测——按触发价模拟入场，不到目标价或止损价就一直持有，不代表真实单账户持仓或实盘收益。</li>
+      <li><strong>「理论规则模拟（MODEL_R · 折叠对照）」</strong>：不去重的不限时规则回测——逐张信号独立记账、不到目标价或止损价就一直持有，不代表真实单账户持仓或实盘收益，折叠在下方供对照。</li>
       <li><strong>底部的「C 研究 / C 模拟 / 固定节点 / Shadow」</strong>：独立副线研究或后台攒数据模块，与主策略 B 相互隔离；日常只需先看上半部分。</li>
     </ul>
   </details>
@@ -3159,22 +3528,26 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
 </section>
 
 <section id="tomorrow-watchlist">
-  <div class="section-head"><div><p class="section-kicker">WATCHLIST</p><h2>今日重点观察 · {shortlist_count}</h2><p class="section-subtitle">主策略（B 突破回踩）正式候选共 {watchlist_count} 只，重点最多 {shortlist['limit']} 只；资料不足或条件不符时不凑满。</p></div></div>
+  <div class="section-head"><div><p class="section-kicker">WATCHLIST</p><h2>今日重点观察 · {shortlist_count}</h2><p class="section-subtitle">主策略（B 突破回踩）正式候选共 {watchlist_count} 只，重点最多 {shortlist['limit']} 只；已在模拟持仓或 {SINGLE_ACCOUNT_COOLDOWN_SESSIONS} 日冷却期内的股票自动让出名额，资料不足或条件不符时不凑满。</p></div></div>
   <p class="note">试验筛选，收益优势尚未验证。每日重点名单不代表新增买入配额；已持有的股票再次出现时，不应仅凭重复入选加仓。</p>
-  <details class="audit-details"><summary>查看筛选依据</summary><div class="audit-content"><p>仅比较回踩后重新走强的同结构候选，分别比较下跌量占比、涨跌日均量比、参考止损距离与收益风险比。先取没有被其他候选在四项上同时不差且至少一项更好地超过的候选，再逐层比较；同层按参考收益风险比、止损距离、代码依次确定次序。第三项量能只展示。</p><p>参考买价取收盘价与触发价中较高者，不代表实际成交价或最高买价；参考比值未计费用与滑点。目标由原策略规则给出，相同风险倍数不提供额外区分。触发、止损、目标及计划盈亏比保留原计划参数。</p><p>现有绩效统计覆盖正式候选全集，不能当作这份重点名单的收益验证。</p></div></details>
+  <details class="audit-details"><summary>查看筛选依据</summary><div class="audit-content"><p>先排除当前已在单账户模拟持仓中、近 {SINGLE_ACCOUNT_COOLDOWN_SESSIONS} 个交易日内刚入选或刚平仓冷却中、以及仍有未到期 {SINGLE_ACCOUNT_ENTRY_EXPIRY_SESSIONS} 日待触发挂单的重复股票，避免老面孔反复霸占重点名额。随后仅比较回踩后重新走强的同结构候选，分别比较下跌量占比、涨跌日均量比、参考止损距离与收益风险比。先取没有被其他候选在四项上同时不差且至少一项更好地超过的候选，再逐层比较；同层按参考收益风险比、止损距离、代码依次确定次序。第三项量能只展示。</p><p>参考买价取收盘价与触发价中较高者，不代表实际成交价或最高买价；参考比值未计费用与滑点。目标由原策略规则给出，相同风险倍数不提供额外区分。触发、止损、目标及计划盈亏比保留原计划参数。</p><p>现有绩效统计覆盖正式候选全集，不能当作这份重点名单的收益验证。</p></div></details>
   <div class="toolbar"><label for="watchlist-search" class="note">搜索名单：</label><input id="watchlist-search" type="search" placeholder="输入代码、名称或行业" autocomplete="off"></div>
   {_shortlist_watchlist_html(model)}
 </section>
 
 <section id="daily-review">
-  <div class="section-head"><div><p class="section-kicker">REVIEW</p><h2>今日复盘</h2><p class="section-subtitle">老信号今日动态：上栏看「10天限时跟踪（MODEL_P）」逐日变化，下栏看「不限时规则模拟（MODEL_R）」当日结案，两套口径相互独立。</p></div></div>
+  <div class="section-head"><div><p class="section-kicker">REVIEW</p><h2>今日复盘</h2><p class="section-subtitle">老信号今日动态：首屏主展示「单账户去重模拟（MODEL_S）」单票持仓与结案，中栏为「10天限时跟踪（MODEL_P）」，原逐信号「不限时规则模拟（MODEL_R）」折叠在下方供对照。</p></div></div>
   {daily_review_html}
 </section>
 
 <section id="trade-performance">
-  <div class="section-head"><div><p class="section-kicker">PERFORMANCE · MODEL_P + MODEL_R</p><h2>策略表现</h2><p class="section-subtitle">{_esc(MODEL_SEPARATION_NOTE)}上栏为 10 天限时跟踪状态统计，下栏为不限时规则模拟（不代表真实账户持仓）。</p></div></div>
+  <div class="section-head"><div><p class="section-kicker">PERFORMANCE · MODEL_S + MODEL_P + MODEL_R</p><h2>策略表现</h2><p class="section-subtitle">首屏主展示「单账户去重模拟（同股不重复开仓 · 5日冷却 · 10日撤单）」；{_esc(MODEL_SEPARATION_NOTE)}原逐信号不去重的理论规则模拟已折叠在最下方供对照。</p></div></div>
+  {_single_account_performance_html(single_account_performance)}
   {_prospective_execution_html(audit_performance)}
-  {_trade_performance_html(trade_performance, new_signal_count=watchlist_count, list_date=metadata.get('list_date', '—'), earliest_execution=metadata.get('earliest_execution', '—'))}
+  <details class="model-r-fold">
+    <summary>展开对照：原逐信号不去重理论规则模拟（{MODEL_R} · 已结案 {_esc(_integer(trade_performance.get('resolved_closed_trades'), '0'))} 笔 / 未结案 {_esc(_integer(trade_performance.get('open_rule_trades'), '0'))} 笔）</summary>
+    {_trade_performance_html(trade_performance, new_signal_count=watchlist_count, list_date=metadata.get('list_date', '—'), earliest_execution=metadata.get('earliest_execution', '—'))}
+  </details>
 </section>
 
 <section id="research-data">

@@ -60,13 +60,23 @@ EXIT_REASON_EXPIRED_UNTRIGGERED = "EXPIRED_UNTRIGGERED"
 EXIT_REASON_AMBIGUOUS = "AMBIGUOUS_SAME_BAR"
 RETURN_BASIS_GROSS = "GROSS / BEFORE_FEES_AND_SLIPPAGE"
 STRATEGY_RULE_PERFORMANCE_MODEL = "STRATEGY_RULE_PERFORMANCE_TRIGGER_STOP_TARGET_T1_V1"
+SINGLE_ACCOUNT_PERFORMANCE_MODEL = "SINGLE_ACCOUNT_DEDUP_TRIGGER_10D_COOLDOWN_5D_T1_V1"
+SINGLE_ACCOUNT_COOLDOWN_SESSIONS = 5
+SINGLE_ACCOUNT_ENTRY_EXPIRY_SESSIONS = 10
 PERFORMANCE_DATA_INCOMPLETE = "PERFORMANCE_DATA_INCOMPLETE"
 STRATEGY_RULE_CONFIG_ERROR = "STRATEGY_RULE_CONFIG_ERROR"
 RULE_STATUS_NOT_YET_ELIGIBLE = "NOT_YET_ELIGIBLE"
 RULE_STATUS_UNTRIGGERED = "UNTRIGGERED"
+RULE_STATUS_EXPIRED_UNTRIGGERED = EXIT_REASON_EXPIRED_UNTRIGGERED
+RULE_STATUS_SKIPPED_DEDUP = "SKIPPED_ACCOUNT_DEDUP"
 RULE_STATUS_OPEN = "OPEN"
 RULE_STATUS_CLOSED = "CLOSED"
 RULE_STATUS_AMBIGUOUS = EXIT_REASON_AMBIGUOUS
+SKIP_REASON_ALREADY_HOLDING = "ALREADY_HOLDING"
+SKIP_REASON_RECENT_SIGNAL_COOLDOWN = "RECENT_SIGNAL_COOLDOWN"
+SKIP_REASON_PENDING_ORDER_ACTIVE = "PENDING_ORDER_ACTIVE"
+SKIP_REASON_RECENT_EXIT_COOLDOWN = "RECENT_EXIT_COOLDOWN"
+SKIP_REASON_PRIOR_POSITION_UNRESOLVED = "PRIOR_POSITION_UNRESOLVED"
 SKIP_LEGACY_OR_OUT_OF_SCOPE_WATCHLIST = "SKIP_LEGACY_OR_OUT_OF_SCOPE_WATCHLIST"
 SOURCE_MODE_LIVE_DAILY_TRACKER_QUOTE = "LIVE_DAILY_TRACKER_QUOTE"
 SOURCE_MODE_AUTHORIZED_WEEKEND_BACKFILL = "AUTHORIZED_WEEKEND_BACKFILL_OBSERVATION_V1"
@@ -1570,6 +1580,8 @@ def _strategy_rule_trade_row(
     historical_provenance: Mapping[str, Any] | None,
     report_date: date,
     calendar: TradingCalendar,
+    *,
+    entry_expiry_sessions: int | None = None,
 ) -> dict[str, Any]:
     signal_date = parse_date(signal["date"])
     code = str(signal.get("code", ""))
@@ -1642,7 +1654,7 @@ def _strategy_rule_trade_row(
     incomplete_reason: str | None = None
     terminal = False
 
-    for day in expected_sessions:
+    for session_index, day in enumerate(expected_sessions, start=1):
         if day in invalid_days or day not in bars:
             incomplete_reason = (
                 f"missing or unusable historical daily OHLC: {day.isoformat()}"
@@ -1665,6 +1677,17 @@ def _strategy_rule_trade_row(
                 row["sellable_from"] = sellable_from.isoformat()
                 row["entry_day_stop_touched"] = low is not None and low <= stop
                 row["entry_day_target_touched"] = high >= target
+            elif entry_expiry_sessions is not None and session_index >= entry_expiry_sessions:
+                row["status"] = RULE_STATUS_EXPIRED_UNTRIGGERED
+                row["exit_date"] = day.isoformat()
+                row["exit_reason"] = EXIT_REASON_EXPIRED_UNTRIGGERED
+                row["exit_type"] = EXIT_REASON_EXPIRED_UNTRIGGERED
+                row["reason"] = (
+                    f"no post-signal daily high reached trigger within "
+                    f"{entry_expiry_sessions} XSHG sessions"
+                )
+                terminal = True
+                break
             continue
 
         path_bars.append(bar)
@@ -1710,6 +1733,8 @@ def _strategy_rule_trade_row(
         row["status"] = RULE_STATUS_OPEN if entry_date is not None else RULE_STATUS_UNTRIGGERED
         if entry_date is None:
             row["reason"] = "no post-signal daily high reached trigger by report_date"
+            if entry_expiry_sessions is not None:
+                row["remaining_entry_sessions"] = max(0, entry_expiry_sessions - len(expected_sessions))
 
     if entry_date is not None and path_bars and row["historical_data_status"] == "COMPLETE":
         highs = [bar["high"] for bar in path_bars if bar["high"] is not None]
@@ -1734,6 +1759,8 @@ def _strategy_rule_trade_row(
         row["mark_return_pct"] = round((latest_close / trigger - 1.0) * 100.0, 6) if latest_close is not None else None
         row["unrealized_return_pct"] = row["mark_return_pct"]
         row["unrealized_r"] = round((latest_close - trigger) / (trigger - stop), 6) if latest_close is not None else None
+        if entry_expiry_sessions is not None and entry_date is not None:
+            row["holding_sessions"] = _session_span(entry_date, latest_day, calendar)
     if row["status"] == RULE_STATUS_AMBIGUOUS:
         row["realized_return_pct"] = None
         row["realized_r"] = None
@@ -1867,6 +1894,393 @@ def build_strategy_rule_performance(
         ],
         "all_rows": rows,
     }
+
+
+def _single_account_skip_decision(
+    prior_signal: Mapping[str, Any],
+    prior_at_signal: Mapping[str, Any],
+    signal_day: date,
+    calendar: TradingCalendar,
+    *,
+    cooldown_sessions: int,
+    entry_expiry_sessions: int,
+) -> dict[str, Any] | None:
+    """Determine whether an earlier accepted signal blocks a new same-stock signal on signal_day."""
+
+    prior_signal_day = parse_date(prior_signal["date"])
+    sessions_since_signal = trading_days_after(prior_signal_day, signal_day, calendar)
+    prior_status = prior_at_signal.get("status")
+
+    if prior_status == RULE_STATUS_OPEN:
+        return {
+            "skip_reason": SKIP_REASON_ALREADY_HOLDING,
+            "blocking_signal_id": prior_signal.get("signal_id"),
+            "blocking_signal_date": prior_signal_day.isoformat(),
+            "blocking_entry_date": prior_at_signal.get("entry_date"),
+            "blocking_exit_date": None,
+            "blocking_exit_reason": None,
+            "sessions_since_signal": sessions_since_signal,
+            "sessions_since_exit": None,
+        }
+
+    if prior_status == PERFORMANCE_DATA_INCOMPLETE and prior_at_signal.get("entry_date") is not None:
+        return {
+            "skip_reason": SKIP_REASON_PRIOR_POSITION_UNRESOLVED,
+            "blocking_signal_id": prior_signal.get("signal_id"),
+            "blocking_signal_date": prior_signal_day.isoformat(),
+            "blocking_entry_date": prior_at_signal.get("entry_date"),
+            "blocking_exit_date": None,
+            "blocking_exit_reason": None,
+            "sessions_since_signal": sessions_since_signal,
+            "sessions_since_exit": None,
+        }
+
+    if prior_status in {RULE_STATUS_CLOSED, RULE_STATUS_AMBIGUOUS} and prior_at_signal.get("exit_date"):
+        exit_day = parse_date(prior_at_signal["exit_date"])
+        sessions_since_exit = trading_days_after(exit_day, signal_day, calendar)
+        if sessions_since_exit <= cooldown_sessions:
+            return {
+                "skip_reason": SKIP_REASON_RECENT_EXIT_COOLDOWN,
+                "blocking_signal_id": prior_signal.get("signal_id"),
+                "blocking_signal_date": prior_signal_day.isoformat(),
+                "blocking_entry_date": prior_at_signal.get("entry_date"),
+                "blocking_exit_date": exit_day.isoformat(),
+                "blocking_exit_reason": prior_at_signal.get("exit_reason"),
+                "sessions_since_signal": sessions_since_signal,
+                "sessions_since_exit": sessions_since_exit,
+            }
+        return None
+
+    if sessions_since_signal <= cooldown_sessions:
+        return {
+            "skip_reason": SKIP_REASON_RECENT_SIGNAL_COOLDOWN,
+            "blocking_signal_id": prior_signal.get("signal_id"),
+            "blocking_signal_date": prior_signal_day.isoformat(),
+            "blocking_entry_date": prior_at_signal.get("entry_date"),
+            "blocking_exit_date": None,
+            "blocking_exit_reason": None,
+            "sessions_since_signal": sessions_since_signal,
+            "sessions_since_exit": None,
+        }
+
+    if prior_status == RULE_STATUS_UNTRIGGERED or (
+        prior_status == PERFORMANCE_DATA_INCOMPLETE and sessions_since_signal < entry_expiry_sessions
+    ):
+        return {
+            "skip_reason": SKIP_REASON_PENDING_ORDER_ACTIVE,
+            "blocking_signal_id": prior_signal.get("signal_id"),
+            "blocking_signal_date": prior_signal_day.isoformat(),
+            "blocking_entry_date": None,
+            "blocking_exit_date": None,
+            "blocking_exit_reason": None,
+            "sessions_since_signal": sessions_since_signal,
+            "sessions_since_exit": None,
+        }
+
+    return None
+
+
+def build_single_account_rule_performance(
+    canonical_watchlists: Any,
+    historical_ohlc: Mapping[str, Any] | None,
+    as_of_date: date | datetime | str,
+    calendar: TradingCalendar | None = None,
+    *,
+    historical_provenance: Mapping[str, Any] | None = None,
+    cooldown_sessions: int = SINGLE_ACCOUNT_COOLDOWN_SESSIONS,
+    entry_expiry_sessions: int = SINGLE_ACCOUNT_ENTRY_EXPIRY_SESSIONS,
+) -> dict[str, Any]:
+    """Reconstruct single-account deduplicated performance without mutating raw signals.
+
+    Rules (evaluated strictly causally at each signal's own close date):
+    1. One active order/position per stock: never open a duplicate position while
+       an earlier accepted position is still OPEN.
+    2. Cooldown: skip new signals within ``cooldown_sessions`` XSHG sessions after
+       an accepted signal date OR after a position exit date.
+    3. Entry order expiry: an accepted signal expires as ``EXPIRED_UNTRIGGERED`` if
+       daily high does not reach canonical trigger within ``entry_expiry_sessions``
+       post-signal XSHG sessions; while still active in that window, same-stock
+       follow-up signals are skipped.
+    """
+
+    if cooldown_sessions < 0 or entry_expiry_sessions < 1:
+        raise ValueError("invalid single-account cooldown or entry expiry sessions")
+
+    cal = calendar or default_calendar()
+    report_date = parse_date(as_of_date)
+    signals = _canonical_rule_signals(canonical_watchlists, report_date)
+
+    last_accepted_by_code: dict[str, Mapping[str, Any]] = {}
+    rows: list[dict[str, Any]] = []
+    accepted_rows: list[dict[str, Any]] = []
+    skipped_rows: list[dict[str, Any]] = []
+
+    for signal in signals:
+        code = str(signal.get("code", ""))
+        signal_day = parse_date(signal["date"])
+        prior_signal = last_accepted_by_code.get(code)
+        skip_info: dict[str, Any] | None = None
+        if prior_signal is not None:
+            prior_at_signal = _strategy_rule_trade_row(
+                prior_signal,
+                historical_ohlc,
+                historical_provenance,
+                signal_day,
+                cal,
+                entry_expiry_sessions=entry_expiry_sessions,
+            )
+            skip_info = _single_account_skip_decision(
+                prior_signal,
+                prior_at_signal,
+                signal_day,
+                cal,
+                cooldown_sessions=cooldown_sessions,
+                entry_expiry_sessions=entry_expiry_sessions,
+            )
+
+        if skip_info is not None:
+            skipped_row: dict[str, Any] = {
+                "signal_id": signal.get("signal_id"),
+                "strategy_version": signal.get("strategy_version"),
+                "signal_date": signal_day.isoformat(),
+                "code": code,
+                "name": signal.get("name"),
+                "setup": signal.get("setup"),
+                "score": signal.get("score"),
+                "trigger": signal.get("trigger"),
+                "stop": signal.get("stop"),
+                "target": signal.get("target"),
+                "rr": signal.get("rr"),
+                "entry_date": None,
+                "trigger_date": None,
+                "entry_price": None,
+                "sellable_from": None,
+                "exit_date": None,
+                "exit_price": None,
+                "exit_reason": None,
+                "exit_type": None,
+                "ambiguous_low": None,
+                "ambiguous_high": None,
+                "realized_return_pct": None,
+                "return_pct": None,
+                "realized_r": None,
+                "r": None,
+                "holding_sessions": None,
+                "entry_day_stop_touched": False,
+                "entry_day_target_touched": False,
+                "mfe_pct": None,
+                "mae_pct": None,
+                "latest_bar_date": None,
+                "latest_close": None,
+                "mark_return_pct": None,
+                "unrealized_return_pct": None,
+                "unrealized_r": None,
+                "status": RULE_STATUS_SKIPPED_DEDUP,
+                "skip_reason": skip_info["skip_reason"],
+                "blocking_signal_id": skip_info["blocking_signal_id"],
+                "blocking_signal_date": skip_info["blocking_signal_date"],
+                "blocking_entry_date": skip_info["blocking_entry_date"],
+                "blocking_exit_date": skip_info["blocking_exit_date"],
+                "blocking_exit_reason": skip_info["blocking_exit_reason"],
+                "sessions_since_signal": skip_info["sessions_since_signal"],
+                "sessions_since_exit": skip_info["sessions_since_exit"],
+                "reason": f"skipped by single-account dedup: {skip_info['skip_reason']}",
+                "historical_data_status": "NOT_REQUIRED",
+                "historical_source": "SINGLE_ACCOUNT_DEDUP_GATE",
+                "historical_provenance": None,
+            }
+            rows.append(skipped_row)
+            skipped_rows.append(skipped_row)
+            continue
+
+        last_accepted_by_code[code] = signal
+        accepted_row = _strategy_rule_trade_row(
+            signal,
+            historical_ohlc,
+            historical_provenance,
+            report_date,
+            cal,
+            entry_expiry_sessions=entry_expiry_sessions,
+        )
+        rows.append(accepted_row)
+        accepted_rows.append(accepted_row)
+
+    eligible_rows = [row for row in accepted_rows if row["status"] != RULE_STATUS_NOT_YET_ELIGIBLE]
+    not_yet_rows = [row for row in accepted_rows if row["status"] == RULE_STATUS_NOT_YET_ELIGIBLE]
+    triggered_rows = [row for row in accepted_rows if row.get("entry_date") is not None]
+    target_rows = [
+        row for row in accepted_rows
+        if row["status"] == RULE_STATUS_CLOSED and row["exit_reason"] == EXIT_REASON_TARGET
+    ]
+    stop_rows = [
+        row for row in accepted_rows
+        if row["status"] == RULE_STATUS_CLOSED and row["exit_reason"] == EXIT_REASON_STOP
+    ]
+    closed_rows = [
+        row for row in accepted_rows
+        if row["status"] == RULE_STATUS_CLOSED
+        and row["exit_reason"] in {EXIT_REASON_TARGET, EXIT_REASON_STOP}
+    ]
+    open_rows = [row for row in accepted_rows if row["status"] == RULE_STATUS_OPEN]
+    ambiguous_rows = [row for row in accepted_rows if row["status"] == RULE_STATUS_AMBIGUOUS]
+    incomplete_rows = [row for row in accepted_rows if row["status"] == PERFORMANCE_DATA_INCOMPLETE]
+    config_rows = [row for row in accepted_rows if row["status"] == STRATEGY_RULE_CONFIG_ERROR]
+    untriggered_rows = [row for row in accepted_rows if row["status"] == RULE_STATUS_UNTRIGGERED]
+    expired_rows = [row for row in accepted_rows if row["status"] == RULE_STATUS_EXPIRED_UNTRIGGERED]
+
+    returns = [row["realized_return_pct"] for row in closed_rows]
+    r_values = [row["realized_r"] for row in closed_rows]
+    wins = [row["realized_return_pct"] for row in target_rows]
+    losses = [row["realized_return_pct"] for row in stop_rows]
+    mean_win = _mean_or_none(wins)
+    mean_loss = _mean_or_none(losses)
+    positive_sum = sum(_numeric_values(wins))
+    negative_sum = sum(_numeric_values(losses))
+    source_labels = sorted({
+        str(row["historical_source"])
+        for row in accepted_rows
+        if row.get("historical_source") and row["status"] != RULE_STATUS_NOT_YET_ELIGIBLE
+    })
+    by_code = (historical_provenance or {}).get("by_code", {}) if isinstance(historical_provenance, Mapping) else {}
+    cache_meta = (historical_provenance or {}).get("__meta__", {}) if isinstance(historical_provenance, Mapping) else {}
+    resolved_count = len(closed_rows)
+    report_day_iso = report_date.isoformat()
+    skip_counts = Counter(str(row.get("skip_reason") or "UNKNOWN") for row in skipped_rows)
+
+    return {
+        "as_of_date": report_day_iso,
+        "strategy": CURRENT_PROSPECTIVE_STRATEGY,
+        "performance_model": SINGLE_ACCOUNT_PERFORMANCE_MODEL,
+        "return_basis": RETURN_BASIS_GROSS,
+        "theoretical_rule_price": True,
+        "cooldown_sessions": cooldown_sessions,
+        "entry_expiry_sessions": entry_expiry_sessions,
+        "entry_rule": (
+            f"single-account dedup ({cooldown_sessions}D signal/exit cooldown); "
+            f"first post-signal XSHG session within {entry_expiry_sessions} sessions "
+            "with high >= canonical trigger; entry_price=canonical trigger"
+        ),
+        "exit_rule": (
+            "sellable sessions only; low <= stop or high >= target at canonical rule price; "
+            "same-bar both=AMBIGUOUS_SAME_BAR; untriggered expires after entry window"
+        ),
+        "t1_rule": "entry day cannot exit; sellable_from=next XSHG session",
+        "time_exit": False,
+        "total_signals": len(rows),
+        "accepted_signals": len(accepted_rows),
+        "accepted_pending_t1": len(not_yet_rows),
+        "skipped_dedup_count": len(skipped_rows),
+        "skipped_today_count": sum(1 for row in skipped_rows if row["signal_date"] == report_day_iso),
+        "skip_reason_counts": dict(sorted(skip_counts.items())),
+        "signals_with_t1_opportunity": len(eligible_rows),
+        "eligible_signals": len(eligible_rows),
+        "triggered": len(triggered_rows),
+        "entered": len(triggered_rows),
+        "trigger_rate": round(len(triggered_rows) / len(eligible_rows) * 100.0, 6) if eligible_rows else None,
+        "resolved_target": len(target_rows),
+        "resolved_stop": len(stop_rows),
+        "target_wins": len(target_rows),
+        "stop_losses": len(stop_rows),
+        "resolved_closed_trades": resolved_count,
+        "confirmed_closed_count": resolved_count,
+        "open_rule_trades": len(open_rows),
+        "open_positions_count": len(open_rows),
+        "open_positions": len(open_rows),
+        "untriggered": len(untriggered_rows),
+        "pending_orders": len(untriggered_rows),
+        "expired_untriggered": len(expired_rows),
+        "ambiguous": len(ambiguous_rows),
+        "performance_data_incomplete": len(incomplete_rows),
+        "strategy_config_errors": len(config_rows),
+        "win_count": len(target_rows),
+        "loss_count": len(stop_rows),
+        "flat_count": 0,
+        "win_rate": round(len(target_rows) / resolved_count * 100.0, 6) if resolved_count else None,
+        "avg_return_pct": _mean_or_none(returns),
+        "median_return_pct": _median_or_none(returns),
+        "avg_win_pct": mean_win,
+        "avg_loss_pct": mean_loss,
+        "payoff_ratio": round(mean_win / abs(mean_loss), 6) if mean_win is not None and mean_loss not in (None, 0) else None,
+        "profit_factor": round(positive_sum / abs(negative_sum), 6) if negative_sum < 0 else None,
+        "expectancy_pct": _mean_or_none(returns),
+        "avg_r": _mean_or_none(r_values),
+        "median_r": _median_or_none(r_values),
+        "expectancy_r": _mean_or_none(r_values),
+        "target_exit_count": len(target_rows),
+        "stop_exit_count": len(stop_rows),
+        "time_exit_count": 0,
+        "target_hit_rate": round(len(target_rows) / resolved_count * 100.0, 6) if resolved_count else None,
+        "stop_hit_rate": round(len(stop_rows) / resolved_count * 100.0, 6) if resolved_count else None,
+        "time_exit_rate": None,
+        "avg_holding_sessions": _mean_or_none([row["holding_sessions"] for row in closed_rows]),
+        "median_holding_sessions": _median_or_none([row["holding_sessions"] for row in closed_rows]),
+        "avg_mfe_pct": _mean_or_none([row["mfe_pct"] for row in closed_rows]),
+        "avg_mae_pct": _mean_or_none([row["mae_pct"] for row in closed_rows]),
+        "median_mfe_pct": _median_or_none([row["mfe_pct"] for row in closed_rows]),
+        "median_mae_pct": _median_or_none([row["mae_pct"] for row in closed_rows]),
+        "open_mtm_avg_return_pct": _mean_or_none([row["mark_return_pct"] for row in open_rows]),
+        "historical_data_source": (
+            source_labels[0]
+            if len(source_labels) == 1
+            else ("MIXED_OR_PARTIAL" if source_labels else "NO_HISTORICAL_SOURCE")
+        ),
+        "historical_provider_calls": cache_meta.get("provider_calls", 0),
+        "historical_cache_hits": cache_meta.get(
+            "cache_hits", len(by_code) if isinstance(by_code, Mapping) else 0
+        ),
+        "historical_symbols_loaded": len({
+            row["code"]
+            for row in accepted_rows
+            if row["status"] != RULE_STATUS_NOT_YET_ELIGIBLE
+            and row.get("historical_data_status") == "COMPLETE"
+        }),
+        "new_entries_today": [row for row in accepted_rows if row.get("entry_date") == report_day_iso],
+        "closed_today_rows": [row for row in closed_rows if row.get("exit_date") == report_day_iso],
+        "expired_today_rows": [row for row in expired_rows if row.get("exit_date") == report_day_iso],
+        "skipped_today_rows": [row for row in skipped_rows if row["signal_date"] == report_day_iso],
+        "closed_trades": closed_rows,
+        "open_position_rows": open_rows,
+        "ambiguous_rows": ambiguous_rows,
+        "untriggered_rows": untriggered_rows,
+        "expired_untriggered_rows": expired_rows,
+        "skipped_rows": skipped_rows,
+        "performance_data_incomplete_rows": incomplete_rows,
+        "config_error_rows": config_rows,
+        "excluded_rows": [
+            row for row in rows
+            if row not in closed_rows and row not in open_rows
+        ],
+        "all_rows": rows,
+    }
+
+
+def single_account_shortlist_exclusions(
+    single_account_performance: Mapping[str, Any] | None,
+    report_date: date | datetime | str,
+) -> dict[str, dict[str, Any]]:
+    """Return same-day candidate codes blocked from occupying top-3 shortlist slots."""
+
+    if not isinstance(single_account_performance, Mapping):
+        return {}
+    target = parse_date(report_date).isoformat()
+    exclusions: dict[str, dict[str, Any]] = {}
+    for row in single_account_performance.get("skipped_rows", []):
+        if not isinstance(row, Mapping) or row.get("signal_date") != target:
+            continue
+        code = str(row.get("code") or "")
+        if not code:
+            continue
+        exclusions[code] = {
+            "skip_reason": row.get("skip_reason"),
+            "blocking_signal_id": row.get("blocking_signal_id"),
+            "blocking_signal_date": row.get("blocking_signal_date"),
+            "blocking_entry_date": row.get("blocking_entry_date"),
+            "blocking_exit_date": row.get("blocking_exit_date"),
+            "blocking_exit_reason": row.get("blocking_exit_reason"),
+            "sessions_since_signal": row.get("sessions_since_signal"),
+            "sessions_since_exit": row.get("sessions_since_exit"),
+        }
+    return exclusions
 
 
 def load_strategy_rule_historical_ohlc(

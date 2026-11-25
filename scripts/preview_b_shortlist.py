@@ -14,6 +14,8 @@ from pathlib import Path
 import subprocess
 import tempfile
 
+from typing import Any, Mapping
+
 from b_breakout_retest_v1_1 import STRATEGY_SPEC_SHA256, STRATEGY_VERSION
 import b_structure_volume_shadow as shadow
 from b_structure_volume_observation import FIELDS, INVALID, TRANSITION, canonical, sha
@@ -38,6 +40,18 @@ REASONS = {
     "V1_V2_UNAVAILABLE_OR_INVALID": "V1/V2 缺失、非法或带有缺失标记",
     "INVALID_REFERENCE_PRICES": "参考价格须满足 0 < 止损 < 触发价，且参考买价 < 目标",
     "LIMIT_REACHED": "按固定比较次序排在本次名额之后",
+    "ACCOUNT_ALREADY_HOLDING": "已在单账户模拟持仓中，不重复占用重点名额",
+    "ACCOUNT_SIGNAL_COOLDOWN": "近 5 个交易日内刚入选过，冷却期内不重复占重点名额",
+    "ACCOUNT_PENDING_ORDER": "单账户已有未到期挂单观察中（10日内），不重复占重点名额",
+    "ACCOUNT_EXIT_COOLDOWN": "单账户模拟仓位刚结案未满 5 个交易日，冷却期内不重复占重点名额",
+    "ACCOUNT_PRIOR_UNRESOLVED": "单账户前序持仓因历史日线缺失待核验，暂不重复占重点名额",
+}
+ACCOUNT_REASON_MAP = {
+    "ALREADY_HOLDING": "ACCOUNT_ALREADY_HOLDING",
+    "RECENT_SIGNAL_COOLDOWN": "ACCOUNT_SIGNAL_COOLDOWN",
+    "PENDING_ORDER_ACTIVE": "ACCOUNT_PENDING_ORDER",
+    "RECENT_EXIT_COOLDOWN": "ACCOUNT_EXIT_COOLDOWN",
+    "PRIOR_POSITION_UNRESOLVED": "ACCOUNT_PRIOR_UNRESOLVED",
 }
 
 
@@ -46,7 +60,13 @@ def _finite(value) -> bool:
             and math.isfinite(value))
 
 
-def build_preview(watchlist: dict, observations: dict, *, limit: int = 3) -> dict:
+def build_preview(
+    watchlist: dict,
+    observations: dict,
+    *,
+    limit: int = 3,
+    account_exclusions: Mapping[str, Mapping[str, Any]] | None = None,
+) -> dict:
     """Pure selection from identity-verified inputs, retaining every candidate."""
     if type(limit) is not int or limit not in (2, 3):
         raise ValueError("SHORTLIST_LIMIT_MUST_BE_2_OR_3")
@@ -106,6 +126,13 @@ def build_preview(watchlist: dict, observations: dict, *, limit: int = 3) -> dic
             row["reasons"].append("V1_V2_UNAVAILABLE_OR_INVALID")
         if stage != TRANSITION:
             row["reasons"].append("OUTSIDE_COMPARISON_STAGE")
+        if account_exclusions is not None and c["code"] in account_exclusions:
+            exclusion = dict(account_exclusions[c["code"]])
+            mapped_reason = ACCOUNT_REASON_MAP.get(
+                str(exclusion.get("skip_reason") or ""), "ACCOUNT_SIGNAL_COOLDOWN"
+            )
+            row["reasons"].insert(0, mapped_reason)
+            row["account_exclusion"] = exclusion
         rows.append(row)
 
     eligible = [row for row in rows if not row["reasons"]]
@@ -139,19 +166,23 @@ def build_preview(watchlist: dict, observations: dict, *, limit: int = 3) -> dic
         remaining = [row for row in remaining if row not in front]
 
     coverage = watch.get("input_coverage", {})
-    return {"schema_version": VERSION, "signal_date": day, "mode": "OFFLINE_AS_OF_REPLAY",
-            "evidence_status": "NEEDS_MORE_EVIDENCE", "production_validated": False,
-            "outcome_accessed": False, "limit": limit,
-            "rules_commit": RULES_COMMIT, "candidate_count": len(rows),
-            "eligible_count": len(eligible), "selected_codes": [r["code"] for r in ordered[:limit]],
-            "input_coverage": {key: coverage.get(key) for key in
-                               ("coverage_status", "evaluated_symbol_count", "excluded_symbol_count")},
-            "market_grade": watch["market_env"].get("grade"),
-            "preference_hypotheses": {FIELDS[0]: "LOWER", FIELDS[1]: "HIGHER",
-                                      "reference_risk_fraction": "LOWER", "reference_reward_risk": "HIGHER"},
-            "selection_method": "PARETO_FRONTS_THEN_REWARD_RISK_DESC_RISK_ASC_CODE_ASC",
-            "comparison_decimal_places": COMPARISON_DECIMALS,
-            "rows": rows}
+    payload = {"schema_version": VERSION, "signal_date": day, "mode": "OFFLINE_AS_OF_REPLAY",
+               "evidence_status": "NEEDS_MORE_EVIDENCE", "production_validated": False,
+               "outcome_accessed": False, "limit": limit,
+               "rules_commit": RULES_COMMIT, "candidate_count": len(rows),
+               "eligible_count": len(eligible), "selected_codes": [r["code"] for r in ordered[:limit]],
+               "input_coverage": {key: coverage.get(key) for key in
+                                  ("coverage_status", "evaluated_symbol_count", "excluded_symbol_count")},
+               "market_grade": watch["market_env"].get("grade"),
+               "preference_hypotheses": {FIELDS[0]: "LOWER", FIELDS[1]: "HIGHER",
+                                         "reference_risk_fraction": "LOWER", "reference_reward_risk": "HIGHER"},
+               "selection_method": "PARETO_FRONTS_THEN_REWARD_RISK_DESC_RISK_ASC_CODE_ASC",
+               "comparison_decimal_places": COMPARISON_DECIMALS,
+               "rows": rows}
+    if account_exclusions is not None:
+        payload["account_dedup_enabled"] = True
+        payload["account_excluded_codes"] = [r["code"] for r in rows if "account_exclusion" in r]
+    return payload
 
 
 def _git(*args: str) -> bytes:
