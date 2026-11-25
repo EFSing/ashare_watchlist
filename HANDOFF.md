@@ -1,5 +1,24 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-11-25 — 主策略 B 单账户去重模拟与重点短名单让位已合并
+
+- Deferred improvement / STRICT PATH，归类保持。用户确认规则并授权推送合并后，
+  [PR #121](https://github.com/EFSing/ashare_watchlist/pull/121) 已 squash merge 至 `master`，
+  合并提交 `59e4081f90dfb47da240e8852521247432f6d4e0`（原 PR HEAD
+  `d377e0ac5eaec53b36898b95b6fb6ad3dc3be908` 的
+  [PR correctness](https://github.com/EFSing/ashare_watchlist/actions/runs/45572941805) 与
+  [push correctness](https://github.com/EFSing/ashare_watchlist/actions/runs/45572933706) 均成功，
+  合并时为 CLEAN / MERGEABLE）。此前 #119（C 模拟结构字段修复）与 #120（日报白话精简改版）也已在 `master`。
+- 新增 `MODEL_S` 单账户去重模拟（`SINGLE_ACCOUNT_DEDUP_TRIGGER_10D_COOLDOWN_5D_T1_V1`）：
+  按信号当日收盘因果判定，同股持仓期间不重复开仓，入选或平仓后冷却 5 个交易日，满 10 个交易日未触价自动记
+  `EXPIRED_UNTRIGGERED` 撤单。日报「今日复盘」与「策略表现」以 `MODEL_S` 为主展示，原逐信号 `MODEL_R`
+  折叠在下方供对照；「今日重点观察（0–3 只）」自动排除处于单账户持仓或冷却期的重复候选并说明让位原因。
+- 底层 canonical `watchlist_YYYYMMDD.json`、`perf_tracker.json`、B Shadow、C 研究模拟与密封 `Final OOS`
+  均保持 0 改动。
+- REMOTE_RECOVERY_CHECKPOINT 在远端 `master`；fetch 后通过 `git rev-parse origin/master` 解析当前
+  remote HEAD。无仅存本机的依赖。next action：1) 观察下一次正常收盘调度的日报交付；2) 按用户计划继续攻关
+  剩余问题 2（止盈与盈利回撤保护验证）与问题 3（选股缩圈与大盘环境过滤）。
+
 ## 2026-11-20 — B+C 日报通知分流已合并
 
 - Correctness blocker / STRICT PATH，归类保持。用户授权后，[PR #116](https://github.com/EFSing/ashare_watchlist/pull/116)

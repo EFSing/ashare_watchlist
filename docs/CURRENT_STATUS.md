@@ -1,5 +1,14 @@
 # CURRENT STATUS
 
+## 2026-11-25 — 主策略 B 单账户去重模拟与重点短名单让位已合并
+
+- [PR #121](https://github.com/EFSing/ashare_watchlist/pull/121) 已 squash merge 至 `master`，
+  合并提交 `59e4081f90dfb47da240e8852521247432f6d4e0`（连同此前合并的 #119 C 模拟结构字段修复与
+  #120 日报白话精简改版）。
+- 日报新增并置顶 `MODEL_S` 单账户去重模拟（同股持仓不重开、入选或平仓后 5 个交易日冷却、10 个交易日未触价撤单），
+  原不去重逐信号 `MODEL_R` 折叠于下方供对照；每日重点短名单（最多 3 只）自动排除单账户已持仓及冷却期内的重复股票。
+- canonical B 全集、交易参数、`MODEL_P`、B Shadow、C 研究模拟及现有 Delivery Ladder 保持不变。
+
 ## 2026-11-20 — B+C 日报通知分流已合并
 
 - [PR #116](https://github.com/EFSing/ashare_watchlist/pull/116) 已 squash merge 至

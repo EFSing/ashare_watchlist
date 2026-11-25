@@ -1,5 +1,15 @@
 # DECISION LOG
 
+## 2026-11-25 — ADOPT 主策略 B 单账户去重模拟与重点短名单冷却让位
+
+- 按用户确认的产品规则，在保留底层 canonical `watchlist_YYYYMMDD.json`、`perf_tracker.json`、
+  `MODEL_P`、`MODEL_R` 及后台 B Shadow 原始记录不变的前提下，新增 `MODEL_S` 单账户去重模拟层
+  （`SINGLE_ACCOUNT_DEDUP_TRIGGER_10D_COOLDOWN_5D_T1_V1`）：同股持仓期间不重复开仓，接纳信号后或平仓结案后
+  冷却 5 个交易日，满 10 个交易日未触及触发价自动按 `EXPIRED_UNTRIGGERED` 撤单。
+- 日报「今日复盘」与「策略表现」以 `MODEL_S` 作为首屏主展示，原逐信号不去重的 `MODEL_R` 折叠在下方供对照；
+  每日最多 3 只的重点短名单在进入比较前自动排除当日命中单账户持仓或冷却期的候选，不重复霸占名额。副线 C 研究模拟
+  保持原有独立口径不变。实现已随 [PR #121](https://github.com/EFSing/ashare_watchlist/pull/121) 合并至 `master`。
+
 ## 2026-11-20 — B+C 日报投递与告警分流
 
 - 按用户确定的通知规则，有效日报（含 0 候选及有效的部分输入）由 Email 交付。
