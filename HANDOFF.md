@@ -1,13 +1,14 @@
 # HANDOFF — 跨设备最小恢复入口
 
-## 2026-11-26 — G2 轮空防守 ETF 日报卡待审
+## 2026-11-26 — G2 轮空防守 ETF 日报卡已合并
 
 - Deferred improvement / STRICT PATH，归类保持。每日 B+C HTML 重点观察区接入
-  `DEFENSIVE_ETF_NON_G2_V1` 的 `R1/A1` 收盘参考卡，等待 PR 审阅。
-- `REMOTE_RECOVERY_CHECKPOINT` 在 `origin/codex/daily-report-defensive-etf-card-v1`。
-  Fetch 后运行 `git rev-parse origin/codex/daily-report-defensive-etf-card-v1` 获取远端 HEAD。
-  下一步审阅该分支指向 `master` 的 [PR #124](https://github.com/EFSing/ashare_watchlist/pull/124)
-  及其 correctness。前瞻效果待未来真实运行观察。
+  `DEFENSIVE_ETF_NON_G2_V1` 的 `R1/A1` 收盘参考卡。
+  用户授权后，[PR #124](https://github.com/EFSing/ashare_watchlist/pull/124) 已 squash merge
+  至 `master`，合并提交 `c8e1e3541d3caa6e445f0c99b52dd668a1ceb99a`。
+- `REMOTE_RECOVERY_CHECKPOINT` 在 `origin/master`。Fetch 后用 `git rev-parse origin/master`
+  获取远端 HEAD。下一次正常收盘日报可核对参考卡与当日市场状态，前瞻效果待真实运行观察。
+  合并及验证记录见 [CURRENT_STATUS.md](docs/CURRENT_STATUS.md)。
 - `WEAK_REGIME_PANIC_MEAN_REVERSION_V1 = REJECT`，`DEFENSIVE_ETF_NON_G2_V1 = ADOPT`
   （`R1/A1`，仅日报展示），A 股期权策略为 `OUT OF PRODUCT SCOPE`。
   两轮冻结证据与哈希见 [DECISION_LOG.md](docs/DECISION_LOG.md)。
