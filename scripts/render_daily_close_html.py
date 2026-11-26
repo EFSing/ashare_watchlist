@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from data_paths import DataPaths
+from defensive_etf_report import build_defensive_etf_card
 from b_shadow_monitor import ShadowMonitorError, build_report_view, load_store
 from volume_observation import (
     VOLUME_OBSERVATION_STORE_SCHEMA,
@@ -131,6 +132,7 @@ class ReportModel:
     shadow_monitor: dict[str, Any] | None = None
     shortlist: dict[str, Any] | None = None
     single_account_performance: dict[str, Any] | None = None
+    defensive_etf: dict[str, Any] | None = None
 
 
 def _normalize_date(value: date | datetime | str) -> str:
@@ -526,17 +528,17 @@ def _load_b_research_observations(
     watchlist: Mapping[str, Any],
     watchlist_bytes: bytes,
     calendar: TradingCalendar,
-) -> tuple[dict, dict, dict, str | None]:
+) -> tuple[dict, dict, dict, str | None, Any]:
     """Read only the canonical generation inputs supplied by this T-close run."""
     from preview_b_shortlist import build_market_gate, load_run_context
 
-    gate, positions, manifest_sha = build_market_gate(watchlist), {}, None
+    gate, positions, manifest_sha, index = build_market_gate(watchlist), {}, None, None
     if run_manifest_path is None:
-        return {}, gate, positions, manifest_sha
+        return {}, gate, positions, manifest_sha, index
     try:
         from b_structure_volume_observation import add_coordinates, observe
 
-        by_code, gate, positions, manifest_sha = load_run_context(
+        by_code, gate, positions, manifest_sha, index = load_run_context(
             run_manifest_path, watchlist, hashlib.sha256(watchlist_bytes).hexdigest(), calendar=calendar,
         )
         rows = [
@@ -544,10 +546,10 @@ def _load_b_research_observations(
             for candidate in watchlist["candidates"]
         ]
         add_coordinates(rows)
-        return {row["signal_id"]: row for row in rows}, gate, positions, manifest_sha
+        return {row["signal_id"]: row for row in rows}, gate, positions, manifest_sha, index
     except Exception:
         # Research is optional even when its inputs or computation fail.
-        return {}, gate, positions, manifest_sha
+        return {}, gate, positions, manifest_sha, index
 
 
 def _watchlist_rows(
@@ -899,7 +901,7 @@ def build_report_model(
     coverage_metadata = _input_coverage_metadata(watchlist.get("input_coverage"))
 
     cal = calendar or default_calendar()
-    research_observations, market_gate, positions, manifest_sha = _load_b_research_observations(
+    research_observations, market_gate, positions, manifest_sha, index = _load_b_research_observations(
         research_run_manifest, watchlist, watchlist_bytes, cal,
     )
     tracker, review_failures = _load_review_tracker(resolver, review_failure)
@@ -1270,6 +1272,7 @@ def build_report_model(
         shadow_monitor=shadow_monitor,
         shortlist=shortlist,
         single_account_performance=single_account_performance,
+        defensive_etf=build_defensive_etf_card(watchlist, index, cal),
     )
 
 
@@ -1986,6 +1989,41 @@ def _shortlist_reason_html(detail):
     return f'{badge}<p class="shortlist-reason">{_esc(reason)}</p>'
 
 
+def _defensive_etf_html(card: Mapping[str, Any] | None) -> str:
+    title = 'G2 轮空防守承接参考卡（R1/A1）'
+    status = card['status'] if card else 'UNAVAILABLE'
+    if status == 'G2':
+        return (f'<p class="note defensive-etf-card"><strong>{title}</strong> '
+                '当前处于 G2 顺势进攻期，防守袖套休眠（目标 0%），资金由主策略 B 使用。</p>')
+    css = ' warning' if status == 'RECOVERY' else ''
+    if status == 'RECOVERY':
+        content = '<strong>状态切换：上证恢复 G2 顺势，次一交易日开盘先清空防守 ETF，释放现金归还主策略 B</strong>'
+    elif status == 'BUFFER':
+        content = (f'大盘暂未站稳上升 20 日线（连续第 {card["days"]} 日非 G2，未满 3 日确认），'
+                   'B 暂停新开重点仓；防守 ETF 处于防假破位观察期，暂持现金不动。')
+    elif status == 'ACTIVE':
+        schedule = {
+            'FIRST': '首次激活日（次日开盘按参考配比建仓）',
+            'WEEKLY': ('周度调仓检查日（当周最后交易日收盘）。按真实仓位核对，ETF 权重差额绝对值之和'
+                       '达到总账户权益的 10%，或持有 ETF 已失去站上均线资格时，次日开盘调仓。'),
+            'DAILY': '日常持仓观察日（非调仓节点，维持既定配比免除摩擦）',
+        }[card['schedule']]
+        legs = ''.join(
+            f'<li><strong>{etf["symbol"]} {etf["name"]}</strong> · '
+            f'收盘 {etf["close"]:.3f} · MA20 {etf["ma20"]:.4f} · '
+            f'{"站上均线" if etf["above"] else "未站上均线"} · <strong>{etf["weight"]}%</strong></li>'
+            for etf in card['etfs']
+        )
+        content = (f'<strong>{schedule}</strong><p>今日 A1 参考配比（占空闲资金）</p>'
+                   f'<ul>{legs}<li>现金留白 <strong>{card["cash"]}%</strong></li></ul>'
+                   '<p>仅使用主策略 B 存量持仓之外的真实空闲现金槽位，不加杠杆。'
+                   '历史冻结样本离线验证不代表未来收益保证。</p>')
+    else:
+        content = '防守 ETF 行情待核验，今日不生成配比建议'
+    return (f'<aside class="review-callout defensive-etf-card{css}"><strong>{title}</strong>'
+            f'<div>{content}</div></aside>')
+
+
 def _shortlist_watchlist_html(model):
     shortlist = model.shortlist or {'status': 'UNAVAILABLE', 'rows': [], 'selected_codes': []}
     details = {r['signal_id']: r for r in shortlist['rows']}
@@ -2054,7 +2092,8 @@ def _shortlist_watchlist_html(model):
         + '</div></details>'
         if remaining else ''
     )
-    return f'<div id="watchlist-table">{regime_banner}{dedup_banner}{main}{more}</div>'
+    defensive_etf = _defensive_etf_html(model.defensive_etf)
+    return f'<div id="watchlist-table">{regime_banner}{defensive_etf}{dedup_banner}{main}{more}</div>'
 
 
 def _daily_note(row: Mapping[str, Any]) -> str:
@@ -3259,6 +3298,9 @@ input[type=search] {{ width: min(360px, 100%); padding: 8px 10px; border: 1px so
 .model-r-fold > .model-panel {{ margin: 0; border: 0; border-top: 2px solid var(--warning); }}
 .shortlist-dedup-callout, .shortlist-regime-callout {{ margin: 0 0 12px; }}
 .shortlist-dedup-callout p, .shortlist-regime-callout p {{ margin: 4px 0 0; font-size: 13px; color: var(--muted); }}
+.defensive-etf-card {{ margin: 0 0 12px; }}
+.defensive-etf-card div, .defensive-etf-card p {{ margin: 5px 0 0; }}
+.defensive-etf-card ul {{ margin: 5px 0; padding-left: 20px; }}
 .account-trade-table {{ min-width: 1120px; }}
 .model-explanation, .model-footnote {{ margin: 7px 0 0; color: var(--muted); font-size: 12px; }}
 .model-explanation strong {{ color: var(--text); }}

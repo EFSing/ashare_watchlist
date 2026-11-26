@@ -1,5 +1,25 @@
 # DECISION LOG
 
+## 2026-11-26 — 弱市个股超跌反抽 REJECT，防守 ETF 日报参考 ADOPT
+
+- `WEAK_REGIME_PANIC_MEAN_REVERSION_V1 = REJECT`。冻结主板样本的 12 组 `TOP2`
+  无一在 2023、2026 两个部分年份同时取得正的扣费单笔均值。限额下的 `TOP2` 表现弱于
+  对应的全信号诊断组，出现逆向选择。保留研究证据
+  `origin/codex/weak-regime-panic-reversion-v1@fe42bc6abea36aa70a63dc11513fde3f57dfc4db`，
+  汇总 SHA-256 `88a9697527a5ebe5a551240fa5f7ecb1bf758a491fb7e9f1bbde8a689fd71228`。
+  [冻结研究报告](https://github.com/EFSing/ashare_watchlist/blob/fe42bc6abea36aa70a63dc11513fde3f57dfc4db/docs/research/weak_regime_panic_reversion_v1_report.md)
+- A 股期权策略为 `OUT OF PRODUCT SCOPE`。
+- `DEFENSIVE_ETF_NON_G2_V1 = ADOPT`。冻结开发样本中 `R1/A1` 通过全部四项预注册门槛。
+  研究证据保留于
+  `origin/codex/defensive-etf-non-g2-v1@8a7a528dd2df89bdeab9cf18304da5835143364d`，
+  预注册提交 `1d1f0177e6e588bfb0c3fa4371e248cbfbb168c4`，汇总 SHA-256
+  `c1b97ede42755fad2c68b26117a3f6abe08bab07129ebde72212c68e3c3e7da8`。
+  [冻结研究报告](https://github.com/EFSing/ashare_watchlist/blob/8a7a528dd2df89bdeab9cf18304da5835143364d/docs/research/defensive_etf_non_g2_v1_report.md)
+- 采纳范围为每日 B+C HTML 重点观察区的 T-known 参考卡。连续三日非 G2 启用 A1，
+  国债和黄金 ETF 站上因果 MA20 时各占真实空闲资金的 50%，余量留现金。
+  周度检查使用真实 ETF 权重，按预注册的账户权益口径核对 10% 门槛。
+  真实运行的前瞻效果、成交和摩擦待未来观察。
+
 ## 2026-11-26 — C 漏斗及底部抬高早启动研究收口
 
 - `C_FUNNEL_AND_BOTTOM_HIGHER_LOW_EARLY_START_V1` 的预注册协议提交为

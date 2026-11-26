@@ -147,12 +147,13 @@ def load_run_context(run_manifest_path, watchlist, watchlist_sha256, *, calendar
     if run["output"]["file_sha256"] != watchlist_sha256:
         raise ValueError("SHORTLIST_WATCHLIST_HASH_MISMATCH")
     day, _, inputs, by_code = _source_validation(watchlist, run, calendar=calendar)
-    gate = build_market_gate(watchlist, inputs.get("index"))
+    index = inputs.get("index")
+    gate = build_market_gate(watchlist, index)
     positions = {
         c["signal_id"]: _position_metrics(by_code.get(c["code"], {}).get("bars"), day)
         for c in watchlist["candidates"]
     }
-    return by_code, gate, positions, sha(raw)
+    return by_code, gate, positions, sha(raw), index
 
 
 def build_preview(
@@ -487,7 +488,7 @@ def main(argv=None) -> int:
     if ruleset == "v2":
         from trading_calendar import default_calendar
 
-        _, gate, positions, run_sha = load_run_context(
+        _, gate, positions, run_sha, _ = load_run_context(
             args.run_manifest, watch, source["input_sha256"][f"data/watchlist_{args.date.replace('-', '')}.json"],
             calendar=default_calendar(),
         )
