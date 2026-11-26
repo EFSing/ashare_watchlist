@@ -138,7 +138,7 @@ def _position_context(metrics: Mapping[str, Any]) -> dict:
     ))
 
 
-def load_run_context(run_manifest_path, watchlist, watchlist_sha256, *, calendar):
+def load_run_context(run_manifest_path, watchlist, watchlist_sha256, *, calendar, include_index=False):
     """Bind the supplied same-run manifest to the canonical watchlist before use."""
     from b_prospective_observation import _source_validation
 
@@ -153,7 +153,8 @@ def load_run_context(run_manifest_path, watchlist, watchlist_sha256, *, calendar
         c["signal_id"]: _position_metrics(by_code.get(c["code"], {}).get("bars"), day)
         for c in watchlist["candidates"]
     }
-    return by_code, gate, positions, sha(raw), index
+    context = by_code, gate, positions, sha(raw)
+    return (*context, index) if include_index else context
 
 
 def build_preview(
@@ -488,7 +489,7 @@ def main(argv=None) -> int:
     if ruleset == "v2":
         from trading_calendar import default_calendar
 
-        _, gate, positions, run_sha, _ = load_run_context(
+        _, gate, positions, run_sha = load_run_context(
             args.run_manifest, watch, source["input_sha256"][f"data/watchlist_{args.date.replace('-', '')}.json"],
             calendar=default_calendar(),
         )

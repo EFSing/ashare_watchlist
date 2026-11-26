@@ -528,28 +528,33 @@ def _load_b_research_observations(
     watchlist: Mapping[str, Any],
     watchlist_bytes: bytes,
     calendar: TradingCalendar,
-) -> tuple[dict, dict, dict, str | None, Any]:
+    *,
+    include_index: bool = False,
+):
     """Read only the canonical generation inputs supplied by this T-close run."""
     from preview_b_shortlist import build_market_gate, load_run_context
 
     gate, positions, manifest_sha, index = build_market_gate(watchlist), {}, None, None
-    if run_manifest_path is None:
-        return {}, gate, positions, manifest_sha, index
-    try:
-        from b_structure_volume_observation import add_coordinates, observe
+    observations = {}
+    if run_manifest_path is not None:
+        try:
+            from b_structure_volume_observation import add_coordinates, observe
 
-        by_code, gate, positions, manifest_sha, index = load_run_context(
-            run_manifest_path, watchlist, hashlib.sha256(watchlist_bytes).hexdigest(), calendar=calendar,
-        )
-        rows = [
-            observe(candidate, by_code.get(candidate["code"], {}).get("bars"), watchlist["date"])
-            for candidate in watchlist["candidates"]
-        ]
-        add_coordinates(rows)
-        return {row["signal_id"]: row for row in rows}, gate, positions, manifest_sha, index
-    except Exception:
-        # Research is optional even when its inputs or computation fail.
-        return {}, gate, positions, manifest_sha, index
+            by_code, gate, positions, manifest_sha, index = load_run_context(
+                run_manifest_path, watchlist, hashlib.sha256(watchlist_bytes).hexdigest(),
+                calendar=calendar, include_index=True,
+            )
+            rows = [
+                observe(candidate, by_code.get(candidate["code"], {}).get("bars"), watchlist["date"])
+                for candidate in watchlist["candidates"]
+            ]
+            add_coordinates(rows)
+            observations = {row["signal_id"]: row for row in rows}
+        except Exception:
+            # Research is optional even when its inputs or computation fail.
+            pass
+    context = observations, gate, positions, manifest_sha
+    return (*context, index) if include_index else context
 
 
 def _watchlist_rows(
@@ -902,7 +907,7 @@ def build_report_model(
 
     cal = calendar or default_calendar()
     research_observations, market_gate, positions, manifest_sha, index = _load_b_research_observations(
-        research_run_manifest, watchlist, watchlist_bytes, cal,
+        research_run_manifest, watchlist, watchlist_bytes, cal, include_index=True,
     )
     tracker, review_failures = _load_review_tracker(resolver, review_failure)
     performance_tracker = tracker if tracker is not None else {"version": 2, "signals": {}}
