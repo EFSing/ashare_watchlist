@@ -1,5 +1,20 @@
 # DECISION LOG
 
+## 2026-11-26 — ADOPT 日报重点观察顺势与低位筛选
+
+- `REJECT` 修改 Formal B 静态出场 `E0`。预注册的 `B_EXIT_PROFIT_PROTECTION_V1/V2`
+  在冻结的沪深主板 `DEVELOPMENT` `MODEL_S` 单账户模拟口径下，13 个封顶、移动止损、分批和自适应变体
+  的净期望均低于静态基线。V2 报告中的六个变体收益回撤比也全部下降。
+- `DEFER` Formal B 主升浪捕获的单参数调整。60 日平台改 30 日、回踩上限从 +4% 放宽至
+  +8%、跳过 V0 扫描中止条件，各自恢复的漏捕或晚捕底部 +30%/20 日波段均不足 4%，
+  非平台型底部反转仍未覆盖。保留 `B_BREAKOUT_RETEST_LEGACY_V1_1`。
+- `ADOPT` 用户授权采用 `B_SHORTLIST_PREVIEW_V2` 作为日报展示筛选。依据历史
+  `DEVELOPMENT` 分层，先检查上证指数是否在上升的 20 日均线之上（G2），再要求一年位置
+  ≤55%、近 20 日涨幅 ≤20%、近 60 日涨幅 ≤30%（L1）。符合条件的候选按一年位置、V1、代码
+  升序取最多 3 只。候选卡标注一年位置，G4 底部共振仅作观察提示。同日横截面收益优势及前瞻有效性仍为
+  `NEEDS_MORE_EVIDENCE`。沿用正式候选名单、`MODEL_P/R/S`、C 流程和
+  `B_STRUCTURE_FIRST_VOLUME_INCREMENTAL_SHADOW_V1`。Final OOS 保持 `SEALED / UNREAD`。
+
 ## 2026-11-25 — ADOPT 主策略 B 单账户去重模拟与重点短名单冷却让位
 
 - 按用户确认的产品规则，在保留底层 canonical `watchlist_YYYYMMDD.json`、`perf_tracker.json`、

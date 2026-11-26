@@ -439,7 +439,7 @@ def test_early_episode_can_later_supply_first_transition_without_double_count(tm
     assert row["episode"]["first_transition_observation"]
 
 
-def test_future_bar_values_and_forbidden_outcome_paths_never_read(tmp_path):
+def test_future_bar_values_and_forbidden_outcome_paths_never_read(tmp_path, monkeypatch):
     from render_daily_close_html import _load_b_research_observations
 
     class FutureBar(dict):
@@ -459,11 +459,16 @@ def test_future_bar_values_and_forbidden_outcome_paths_never_read(tmp_path):
     run["input_manifest"]["stock_klines"][0]["bars"].append({"date": "2099-01-01"})
     run_path.write_bytes(shadow.canonical(run))
     watch_path = Path(b["watchlist"]["path"])
-    displayed = _load_b_research_observations(run_path, load_watchlist(watch_path), watch_path.read_bytes(), CAL)
+    displayed, _, positions, _ = _load_b_research_observations(
+        run_path, load_watchlist(watch_path), watch_path.read_bytes(), CAL,
+    )
     shadow.add_coordinates([row])
     assert displayed == {candidate["signal_id"]: row}
-    with pytest.raises(ValueError, match="FORBIDDEN_INPUT_PATH"):
-        shadow._read(tmp_path / "final_oos" / "never-created.json")
+    assert positions[candidate["signal_id"]]["pos250"] is None
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "is_symlink", lambda _: False)
+        with pytest.raises(ValueError, match="FORBIDDEN_INPUT_PATH"):
+            shadow._read(tmp_path / "final_oos" / "never-created.json")
 
 
 @pytest.mark.parametrize("sessions,episodes,status", [(59, 999, "COLLECTING"), (60, 199, "COLLECTING"),

@@ -1,9 +1,4 @@
-"""Offline, outcome-blind B shortlist experiment; never a production buy list.
-
-Read exactly one canonical list and its original structure/volume records from
-Git. Rules were fixed in HANDOFF at 0f2d349 before inspecting these candidates.
-No acquisition, holdings, delivery, historical outcomes or strategy changes.
-"""
+"""B shortlist selection and offline replay from T-known inputs."""
 from __future__ import annotations
 
 import argparse
@@ -11,6 +6,7 @@ from datetime import date
 import json
 import math
 from pathlib import Path
+from statistics import mean
 import subprocess
 import tempfile
 
@@ -23,10 +19,13 @@ from volume_observation import VOLUME_OBSERVATION_PROTOCOL_COMMIT_SHA, VOLUME_OB
 from watchlist_schema import load_watchlist, validate_watchlist
 
 
-VERSION = "B_SHORTLIST_PREVIEW_V1"
+VERSION = "B_SHORTLIST_PREVIEW_V2"
+LEGACY_VERSION = "B_SHORTLIST_PREVIEW_V1"
 RULES_COMMIT = "0f2d349054df3cdc5f7756a59a83a82125f53890"
-# Arithmetic tails of the same ratio must not invent dominance or tie order.
+MARKET_GATE_ID = "G2_INDEX_ABOVE_RISING_MA20"
+SELECTION_METHOD = "G2_GATE_THEN_L1_LOW_POS250_ASC_V1_ASC_CODE_ASC"
 COMPARISON_DECIMALS = 12
+POSITION_FIELDS = ("pos250", "chg20", "chg60")
 ROOT = Path(__file__).resolve().parents[1]
 STAGES = {
     "EARLY_PULLBACK": "回踩前段",
@@ -40,6 +39,11 @@ REASONS = {
     "V1_V2_UNAVAILABLE_OR_INVALID": "V1/V2 缺失、非法或带有缺失标记",
     "INVALID_REFERENCE_PRICES": "参考价格须满足 0 < 止损 < 触发价，且参考买价 < 目标",
     "LIMIT_REACHED": "按固定比较次序排在本次名额之后",
+    "POSITION_250D_UNAVAILABLE": "一年位置资料不足或无效，暂不比较",
+    "HIGH_POSITION_250D": "一年位置超过 55%，防高位追涨跳过",
+    "RECENT_RUNUP_TOO_HIGH": "近 20 日涨超 20% 或近 60 日涨超 30%，防短期透支跳过",
+    "MARKET_REGIME_HALT": "大盘未站稳上升 20 日均线，今日重点名额轮空休整",
+    "MARKET_GATE_UNAVAILABLE": "上证指数日线资料不足或未通过核验，暂不筛选重点",
     "ACCOUNT_ALREADY_HOLDING": "已在单账户模拟持仓中，不重复占用重点名额",
     "ACCOUNT_SIGNAL_COOLDOWN": "近 5 个交易日内刚入选过，冷却期内不重复占重点名额",
     "ACCOUNT_PENDING_ORDER": "单账户已有未到期挂单观察中（10日内），不重复占重点名额",
@@ -56,8 +60,99 @@ ACCOUNT_REASON_MAP = {
 
 
 def _finite(value) -> bool:
-    return (not isinstance(value, bool) and isinstance(value, (int, float))
-            and math.isfinite(value))
+    try:
+        return (not isinstance(value, bool) and isinstance(value, (int, float))
+                and math.isfinite(value))
+    except OverflowError:
+        return False
+
+
+def _is_t_ending(bars, day: str, minimum: int) -> bool:
+    if not isinstance(bars, list) or len(bars) < minimum:
+        return False
+    previous = ""
+    for bar in bars:
+        bar_date = bar.get("date") if isinstance(bar, Mapping) else None
+        if not isinstance(bar_date, str) or not previous < bar_date <= day:
+            return False
+        try:
+            if date.fromisoformat(bar_date).isoformat() != bar_date:
+                return False
+        except ValueError:
+            return False
+        previous = bar_date
+    return previous == day
+
+
+def build_market_gate(watchlist: Mapping[str, Any], index=None) -> dict:
+    """Evaluate G2 on a strictly T-ending Shanghai Composite series."""
+    gate = dict(gate_id=MARKET_GATE_ID, status="UNAVAILABLE", g2_pass=False,
+                above_ma20=None, ma20_rising=None, index_close=None,
+                index_ma20=None, index_ma20_5d_ago=None)
+    # The production manifest serializes the Shanghai Composite as sh000001.
+    symbol = index.get("symbol") if isinstance(index, Mapping) else None
+    if isinstance(symbol, str) and symbol.lower() in ("sh000001", "000001.sh"):
+        bars = index.get("bars")
+        if _is_t_ending(bars, watchlist["date"], 25):
+            closes = [bar.get("close") for bar in bars]
+            if all(_finite(value) and value > 0 for value in closes):
+                close = closes[-1]
+                ma20 = mean(closes[-20:])
+                ma20_5d_ago = mean(closes[-25:-5])
+                above, rising = close > ma20, ma20 > ma20_5d_ago
+                gate.update(status="PASS" if above and rising else "HALT",
+                            g2_pass=above and rising, above_ma20=above, ma20_rising=rising,
+                            index_close=close, index_ma20=ma20, index_ma20_5d_ago=ma20_5d_ago)
+    gate["g4_turn_hint"] = (not gate["g2_pass"]
+                            and watchlist["market_env"].get("grade") in ("A", "B")
+                            and len(watchlist["candidates"]) >= 5)
+    return gate
+
+
+def _position_metrics(bars, day: str) -> dict:
+    unavailable = _position_context({})
+    if not _is_t_ending(bars, day, 250):
+        return unavailable
+    window = bars[-250:]
+    highs, lows, closes = ([bar.get(field) for bar in window] for field in ("high", "low", "close"))
+    if (not all(_finite(value) and value > 0 for values in (highs, lows, closes) for value in values)
+            or any(high < low for high, low in zip(highs, lows))):
+        return unavailable
+    high, low, close = max(highs), min(lows), closes[-1]
+    if high == low or low - close > 1e-12 or close - high > 1e-12:
+        return unavailable
+    return _position_context({
+        "pos250": (min(max(close, low), high) - low) / (high - low),
+        "chg20": close / closes[-21] - 1.0,
+        "chg60": close / closes[-61] - 1.0,
+    })
+
+
+def _position_context(metrics: Mapping[str, Any]) -> dict:
+    result = {key: metrics[key] if _finite(metrics.get(key)) else None for key in POSITION_FIELDS}
+    pos = result["pos250"]
+    zone = ("UNAVAILABLE" if pos is None else "BOTTOM_250D" if pos < 0.35 else
+            "LOW_MID_250D" if pos <= 0.55 else "HIGH_250D")
+    return dict(result, position_zone=zone, position_missing_reason=(
+        "INSUFFICIENT_250D_BARS" if any(value is None for value in result.values()) else None
+    ))
+
+
+def load_run_context(run_manifest_path, watchlist, watchlist_sha256, *, calendar):
+    """Bind the supplied same-run manifest to the canonical watchlist before use."""
+    from b_prospective_observation import _source_validation
+
+    raw = run_manifest_path.read_bytes()
+    run = json.loads(raw)
+    if run["output"]["file_sha256"] != watchlist_sha256:
+        raise ValueError("SHORTLIST_WATCHLIST_HASH_MISMATCH")
+    day, _, inputs, by_code = _source_validation(watchlist, run, calendar=calendar)
+    gate = build_market_gate(watchlist, inputs.get("index"))
+    positions = {
+        c["signal_id"]: _position_metrics(by_code.get(c["code"], {}).get("bars"), day)
+        for c in watchlist["candidates"]
+    }
+    return by_code, gate, positions, sha(raw)
 
 
 def build_preview(
@@ -66,11 +161,20 @@ def build_preview(
     *,
     limit: int = 3,
     account_exclusions: Mapping[str, Mapping[str, Any]] | None = None,
+    market_gate: Mapping[str, Any] | None = None,
+    position_by_signal_id: Mapping[str, Mapping[str, Any]] | None = None,
+    ruleset: str = "v2",
 ) -> dict:
     """Pure selection from identity-verified inputs, retaining every candidate."""
     if type(limit) is not int or limit not in (2, 3):
         raise ValueError("SHORTLIST_LIMIT_MUST_BE_2_OR_3")
     watch = validate_watchlist(watchlist)
+    if ruleset not in ("v1", "v2"):
+        raise ValueError("SHORTLIST_UNKNOWN_RULESET")
+    use_v2 = ruleset == "v2"
+    if use_v2 and market_gate is None:
+        market_gate = build_market_gate(watch)
+    positions = position_by_signal_id or {}
     day = watch["date"]
     if watch["strategy_version"] != STRATEGY_VERSION or observations["signal_date"] != day:
         raise ValueError("SHORTLIST_DATE_OR_STRATEGY_MISMATCH")
@@ -124,7 +228,7 @@ def build_preview(
         if not (_finite(v1) and 0 <= v1 <= 1 and _finite(v2) and v2 >= 0
                 and not any(missing[field] for field in FIELDS[:2])):
             row["reasons"].append("V1_V2_UNAVAILABLE_OR_INVALID")
-        if stage != TRANSITION:
+        if stage != TRANSITION and not (use_v2 and stage == "EARLY_PULLBACK"):
             row["reasons"].append("OUTSIDE_COMPARISON_STAGE")
         if account_exclusions is not None and c["code"] in account_exclusions:
             exclusion = dict(account_exclusions[c["code"]])
@@ -133,10 +237,60 @@ def build_preview(
             )
             row["reasons"].insert(0, mapped_reason)
             row["account_exclusion"] = exclusion
+        if use_v2:
+            row.update(_position_context(positions.get(c["signal_id"], {})))
+            if any(row[field] is None for field in POSITION_FIELDS):
+                row["reasons"].append("POSITION_250D_UNAVAILABLE")
+            else:
+                pos250, chg20, chg60 = (round(row[field], COMPARISON_DECIMALS) for field in POSITION_FIELDS)
+                if pos250 > 0.55:
+                    row["reasons"].append("HIGH_POSITION_250D")
+                if chg20 > 0.20 or chg60 > 0.30:
+                    row["reasons"].append("RECENT_RUNUP_TOO_HIGH")
         rows.append(row)
 
     eligible = [row for row in rows if not row["reasons"]]
+    if use_v2:
+        if market_gate["status"] != "PASS" or market_gate["g2_pass"] is not True:
+            reason = "MARKET_REGIME_HALT" if market_gate["status"] == "HALT" else "MARKET_GATE_UNAVAILABLE"
+            for row in eligible:
+                row["reasons"] = [reason]
+            eligible = []
+        ordered = sorted(eligible, key=lambda row: (round(row["pos250"], COMPARISON_DECIMALS),
+                         round(row["volume"][FIELDS[0]], COMPARISON_DECIMALS), row["code"]))
+    else:
+        ordered = _order_legacy(eligible)
+    for index, row in enumerate(ordered, 1):
+        row.update(comparison_order=index, selected=index <= limit,
+                   reasons=["SELECTED" if index <= limit else "LIMIT_REACHED"])
 
+    coverage = watch.get("input_coverage", {})
+    payload = {"schema_version": VERSION if use_v2 else LEGACY_VERSION,
+               "signal_date": day, "mode": "OFFLINE_AS_OF_REPLAY",
+               "evidence_status": "NEEDS_MORE_EVIDENCE", "production_validated": False,
+               "outcome_accessed": False, "limit": limit, "candidate_count": len(rows),
+               "eligible_count": len(eligible), "selected_codes": [r["code"] for r in ordered[:limit]],
+               "input_coverage": {key: coverage.get(key) for key in
+                                  ("coverage_status", "evaluated_symbol_count", "excluded_symbol_count")},
+               "market_grade": watch["market_env"].get("grade"),
+               "comparison_decimal_places": COMPARISON_DECIMALS,
+               "rows": rows}
+    if use_v2:
+        payload.update(market_gate=dict(market_gate), selection_method=SELECTION_METHOD)
+    else:
+        payload.update(
+            rules_commit=RULES_COMMIT,
+            preference_hypotheses={FIELDS[0]: "LOWER", FIELDS[1]: "HIGHER",
+                                   "reference_risk_fraction": "LOWER", "reference_reward_risk": "HIGHER"},
+            selection_method="PARETO_FRONTS_THEN_REWARD_RISK_DESC_RISK_ASC_CODE_ASC",
+        )
+    if account_exclusions is not None:
+        payload["account_dedup_enabled"] = True
+        payload["account_excluded_codes"] = [r["code"] for r in rows if "account_exclusion" in r]
+    return payload
+
+
+def _order_legacy(eligible):
     def vector(row):
         # All four coordinates below point toward the hypothesized preference.
         return tuple(round(value, COMPARISON_DECIMALS) for value in
@@ -159,30 +313,9 @@ def build_preview(
         front.sort(key=lambda row: (-vector(row)[3], -vector(row)[2], row["code"]))
         for row in front:
             row["front"] = front_number
-            row["comparison_order"] = len(ordered) + 1
-            row["selected"] = len(ordered) < limit
-            row["reasons"] = ["SELECTED" if row["selected"] else "LIMIT_REACHED"]
             ordered.append(row)
         remaining = [row for row in remaining if row not in front]
-
-    coverage = watch.get("input_coverage", {})
-    payload = {"schema_version": VERSION, "signal_date": day, "mode": "OFFLINE_AS_OF_REPLAY",
-               "evidence_status": "NEEDS_MORE_EVIDENCE", "production_validated": False,
-               "outcome_accessed": False, "limit": limit,
-               "rules_commit": RULES_COMMIT, "candidate_count": len(rows),
-               "eligible_count": len(eligible), "selected_codes": [r["code"] for r in ordered[:limit]],
-               "input_coverage": {key: coverage.get(key) for key in
-                                  ("coverage_status", "evaluated_symbol_count", "excluded_symbol_count")},
-               "market_grade": watch["market_env"].get("grade"),
-               "preference_hypotheses": {FIELDS[0]: "LOWER", FIELDS[1]: "HIGHER",
-                                         "reference_risk_fraction": "LOWER", "reference_reward_risk": "HIGHER"},
-               "selection_method": "PARETO_FRONTS_THEN_REWARD_RISK_DESC_RISK_ASC_CODE_ASC",
-               "comparison_decimal_places": COMPARISON_DECIMALS,
-               "rows": rows}
-    if account_exclusions is not None:
-        payload["account_dedup_enabled"] = True
-        payload["account_excluded_codes"] = [r["code"] for r in rows if "account_exclusion" in r]
-    return payload
+    return ordered
 
 
 def _git(*args: str) -> bytes:
@@ -239,6 +372,28 @@ def render_markdown(preview: dict) -> str:
         if value is None:
             return "缺失"
         return f"{value:.2%}" if percent else f"{value:.3f}"
+
+    if preview["schema_version"] == VERSION:
+        gate = preview["market_gate"]
+        gate_label = {"PASS": "顺势", "HALT": "轮空", "UNAVAILABLE": "资料不足"}[gate["status"]]
+        lines = [
+            f"# B 候选重点观察 · {preview['signal_date']}", "",
+            f"上证指数趋势判定为「{gate_label}」，正式候选 {preview['candidate_count']} 只，"
+            f"重点入选 {len(preview['selected_codes'])} 只（上限 {preview['limit']}）。", "",
+            "这是按当日资料计算的离线重放。筛选依据来自历史 DEVELOPMENT 分层，同日选股优势仍为 NEEDS_MORE_EVIDENCE。",
+            "通过大盘趋势条件后，要求一年位置不超过 55%、近 20 日涨幅不超过 20%、近 60 日涨幅不超过 30%。"
+            "依次按一年位置、下跌量占比、代码升序取到名额上限。", "",
+        ]
+        if gate["g4_turn_hint"] and gate["status"] == "HALT":
+            lines += ["市场分级已达 A/B 级且正式候选至少 5 只，可留意一年底部区候选。", ""]
+        lines += ["| 次序 | 股票 | 一年位置 | 近 20 日 | 近 60 日 | 原因 |",
+                  "| --- | --- | --- | --- | --- | --- |"]
+        for row in preview["rows"]:
+            metrics = " | ".join(number(row[field], percent=True) for field in POSITION_FIELDS)
+            reasons = "。".join(REASONS[key] for key in row["reasons"])
+            lines.append(f"| {row['comparison_order'] or '—'} | {row['code']} {cell(row['name'])} | "
+                         f"{metrics} | {cell(reasons)} |")
+        return "\n".join(lines) + "\n"
 
     selected = sorted((r for r in preview["rows"] if r["selected"]), key=lambda r: r["comparison_order"])
     coverage = preview["input_coverage"]
@@ -309,15 +464,36 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--date", required=True)
     parser.add_argument("--runtime-ref", default="origin/runtime-state")
+    parser.add_argument("--run-manifest", type=Path, help="同轮生成清单，提供 V2 所需的 T 日线")
+    parser.add_argument("--ruleset", choices=("v2", "v1"),
+                        help="提供同轮生成清单时默认 v2，仅使用 runtime-state 时默认 v1")
     parser.add_argument("--limit", type=int, choices=(2, 3), default=3)
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args(argv)
+    ruleset = args.ruleset or ("v2" if args.run_manifest else "v1")
+    if ruleset == "v2" and args.run_manifest is None:
+        parser.error("V2 需要 --run-manifest 提供同轮指数及个股日线")
+    forbidden = {".git", "final_oos", "continuous_speed_probe"}
+    if forbidden.intersection(p.lower() for p in args.output_dir.parts):
+        parser.error("预览须写入独立目录，不能写入生产 data、Git 或封存研究目录")
     output = args.output_dir.resolve()
-    if output.is_relative_to(ROOT / "data") or {".git", "final_oos", "continuous_speed_probe"}.intersection(
+    if output.is_relative_to(ROOT / "data") or forbidden.intersection(
             p.lower() for p in output.parts):
         parser.error("预览须写入独立目录，不能写入生产 data、Git 或封存研究目录")
+    if ruleset == "v2" and forbidden.intersection(p.lower() for p in args.run_manifest.parts):
+        parser.error("生成清单不能来自 Git 或封存研究目录")
     watch, observations, source = load_inputs(args.date, args.runtime_ref)
-    preview = build_preview(watch, observations, limit=args.limit)
+    gate, positions = None, None
+    if ruleset == "v2":
+        from trading_calendar import default_calendar
+
+        _, gate, positions, run_sha = load_run_context(
+            args.run_manifest, watch, source["input_sha256"][f"data/watchlist_{args.date.replace('-', '')}.json"],
+            calendar=default_calendar(),
+        )
+        source.update(run_manifest_sha256=run_sha, raw_bars_recomputed=True)
+    preview = build_preview(watch, observations, limit=args.limit, ruleset=ruleset,
+                            market_gate=gate, position_by_signal_id=positions)
     preview["source"] = source
     output.mkdir(parents=True, exist_ok=True)
     stem = f"b_shortlist_preview_{args.date.replace('-', '')}_top{args.limit}"

@@ -526,27 +526,28 @@ def _load_b_research_observations(
     watchlist: Mapping[str, Any],
     watchlist_bytes: bytes,
     calendar: TradingCalendar,
-) -> dict[str, dict[str, Any]]:
+) -> tuple[dict, dict, dict, str | None]:
     """Read only the canonical generation inputs supplied by this T-close run."""
-    if run_manifest_path is None or not watchlist["candidates"]:
-        return {}
+    from preview_b_shortlist import build_market_gate, load_run_context
+
+    gate, positions, manifest_sha = build_market_gate(watchlist), {}, None
+    if run_manifest_path is None:
+        return {}, gate, positions, manifest_sha
     try:
-        from b_prospective_observation import _source_validation
         from b_structure_volume_observation import add_coordinates, observe
 
-        run = json.loads(run_manifest_path.read_text(encoding="utf-8"))
-        if run["output"]["file_sha256"] != hashlib.sha256(watchlist_bytes).hexdigest():
-            return {}
-        day, _, _, by_code = _source_validation(watchlist, run, calendar=calendar)
+        by_code, gate, positions, manifest_sha = load_run_context(
+            run_manifest_path, watchlist, hashlib.sha256(watchlist_bytes).hexdigest(), calendar=calendar,
+        )
         rows = [
-            observe(candidate, by_code.get(candidate["code"], {}).get("bars"), day)
+            observe(candidate, by_code.get(candidate["code"], {}).get("bars"), watchlist["date"])
             for candidate in watchlist["candidates"]
         ]
         add_coordinates(rows)
-        return {row["signal_id"]: row for row in rows}
+        return {row["signal_id"]: row for row in rows}, gate, positions, manifest_sha
     except Exception:
         # Research is optional even when its inputs or computation fail.
-        return {}
+        return {}, gate, positions, manifest_sha
 
 
 def _watchlist_rows(
@@ -614,6 +615,9 @@ def _daily_shortlist(
     watchlist_bytes,
     limit,
     *,
+    market_gate: Mapping[str, Any],
+    position_by_signal_id: Mapping[str, Mapping[str, Any]],
+    run_manifest_sha256: str | None,
     account_exclusions: Mapping[str, Mapping[str, Any]] | None = None,
 ):
     """Use verified T-known observations plus T-close single-account dedup state."""
@@ -624,6 +628,8 @@ def _daily_shortlist(
 
     source_rows = [observations[key] for key in sorted(observations)]
     source = {"watchlist_sha256": sha(watchlist_bytes)}
+    if run_manifest_sha256 is not None:
+        source["run_manifest_sha256"] = run_manifest_sha256
     try:
         source.update(
             observations_sha256=sha(canonical(source_rows)),
@@ -635,13 +641,22 @@ def _daily_shortlist(
             {"signal_date": watchlist["date"], "rows": source_rows},
             limit=limit,
             account_exclusions=account_exclusions,
+            market_gate=market_gate,
+            position_by_signal_id=position_by_signal_id,
         )
     except Exception as exc:
         # Fail closed for the shortlist, while retaining the formal report.
+        rows = [
+            {"signal_id": c["signal_id"], "code": c["code"], "selected": False,
+             "reasons": ["UNAVAILABLE"], **position_by_signal_id[c["signal_id"]]}
+            for c in sorted(watchlist["candidates"], key=lambda c: c["code"])
+            if c["signal_id"] in position_by_signal_id
+        ]
         result = {"schema_version": selector.VERSION, "signal_date": watchlist["date"],
                   "limit": limit, "candidate_count": len(watchlist["candidates"]),
-                  "selected_codes": [], "rows": [], "status": "UNAVAILABLE",
+                  "selected_codes": [], "rows": rows, "status": "UNAVAILABLE",
                   "failure_reason": f"{type(exc).__name__}: {exc}",
+                  "market_gate": market_gate, "selection_method": selector.SELECTION_METHOD,
                   "evidence_status": "NEEDS_MORE_EVIDENCE", "production_validated": False}
     else:
         result["status"] = "AVAILABLE"
@@ -884,7 +899,7 @@ def build_report_model(
     coverage_metadata = _input_coverage_metadata(watchlist.get("input_coverage"))
 
     cal = calendar or default_calendar()
-    research_observations = _load_b_research_observations(
+    research_observations, market_gate, positions, manifest_sha = _load_b_research_observations(
         research_run_manifest, watchlist, watchlist_bytes, cal,
     )
     tracker, review_failures = _load_review_tracker(resolver, review_failure)
@@ -918,6 +933,9 @@ def build_report_model(
         research_observations,
         watchlist_bytes,
         shortlist_limit,
+        market_gate=market_gate,
+        position_by_signal_id=positions,
+        run_manifest_sha256=manifest_sha,
         account_exclusions=account_exclusions,
     )
     shadow_monitor = _load_shadow_monitor(resolver, normalized_date, watchlist)
@@ -1925,13 +1943,30 @@ def _account_skip_reason_label(info: Mapping[str, Any], *, short: bool = False) 
 def _shortlist_reason_html(detail):
     if detail is None:
         return ''
+    badge = ''
+    zone = {
+        'BOTTOM_250D': ('一年底部区', 'bottom'),
+        'LOW_MID_250D': ('一年中低位', 'low-mid'),
+        'HIGH_250D': ('一年中高位', 'high'),
+    }.get(detail.get('position_zone'))
+    if zone is not None:
+        label, tone = zone
+        chg20, chg60 = detail.get('chg20'), detail.get('chg60')
+        changes = (f'<span class="position-changes">近20日 {chg20:+.1%} · 近60日 {chg60:+.1%}</span>'
+                   if chg20 is not None and chg60 is not None else '')
+        badge = (
+            '<div class="watch-position">'
+            f'<span class="position-badge {tone}">{label} · 位置 {detail["pos250"]:.1%}</span>'
+            f'{changes}</div>'
+        )
     if detail.get('selected'):
         reason = (
-            f"入选重点观察：参考买价 {_number(detail['reference_entry'])}，"
-            f"参考止损幅度 {_percent(detail['reference_risk_fraction'] * 100)}，"
-            f"参考盈亏比 {_number(detail['reference_reward_risk'])}。"
+            f"按一年位置优先入选。参考买价 {_number(detail['reference_entry'])}，"
+            f"止损价 {_number(detail['prices']['stop'])}，目标价 {_number(detail['prices']['target'])}。"
         )
     else:
+        from preview_b_shortlist import REASONS
+
         explanations = {
             'OUTSIDE_COMPARISON_STAGE': '未入选：形态不在本轮重点比较阶段',
             'V1_V2_UNAVAILABLE_OR_INVALID': '未入选：两项主要量能资料不完整，暂不比较',
@@ -1946,9 +1981,9 @@ def _shortlist_reason_html(detail):
         for key in detail.get('reasons', []):
             if str(key).startswith('ACCOUNT_') and isinstance(exclusion, Mapping):
                 continue
-            parts.append(explanations.get(key, '暂未进入重点观察'))
+            parts.append(explanations.get(key) or REASONS.get(key, '暂未进入重点观察'))
         reason = '；'.join(parts) or '暂未进入重点观察'
-    return f'<p class="shortlist-reason">{_esc(reason)}</p>'
+    return f'{badge}<p class="shortlist-reason">{_esc(reason)}</p>'
 
 
 def _shortlist_watchlist_html(model):
@@ -1982,13 +2017,34 @@ def _shortlist_watchlist_html(model):
             f'<p>{_esc(tags)}（已在持仓或冷却观察期，不重复霸占今日重点名额，详见下方其余候选）。</p>'
             '</div>'
         )
+    gate = shortlist.get('market_gate', {})
+    regime_banner = ''
+    if shortlist['status'] == 'AVAILABLE' and gate.get('status') == 'HALT':
+        trend = '向上' if gate['ma20_rising'] else '未向上'
+        candidate_count = len(model.watchlist_rows)
+        retained = f'下方折叠保留 {candidate_count} 只正式候选供跟踪。' if candidate_count else ''
+        turn_hint = (
+            f'<p>观察提示：今日市场分级已达 A/B 级且正式候选共 {candidate_count} 只'
+            '（出现底部集中放量迹象），可展开下方列表留意处于“一年底部区”的候选。</p>'
+            if gate['g4_turn_hint'] else ''
+        )
+        regime_banner = (
+            '<div class="review-callout shortlist-regime-callout">'
+            '<strong>大盘环境休息提示 · 今日重点观察轮空（0 只）</strong>'
+            f'<p>上证指数收于 {_number(gate["index_close"])}，20 日均线为 {_number(gate["index_ma20"])}，'
+            f'较 5 个交易日前的 {_number(gate["index_ma20_5d_ago"])} {trend}。'
+            '上证指数未同时满足“站上 20 日均线”且“20 日均线向上”，'
+            f'按顺势纪律今日不推重点观察。{retained}</p>{turn_hint}</div>'
+        )
     if selected:
         main = _watchlist_table(selected, model.metadata.get('earliest_execution'), table_id='shortlist-candidates')
+    elif regime_banner:
+        main = ''
     else:
         note = ('今日暂无新名单。' if not model.watchlist_rows else
                 '当轮结构或量能资料缺失、未通过核验，暂无法筛选重点候选。' if shortlist['status'] != 'AVAILABLE' else
-                '今日符合条件的候选处于单账户模拟持仓或冷却观察期，不重复占用重点名额。' if dedup_excluded else
-                '本轮没有符合比较条件的候选，今日不补足重点名额。')
+                '上证指数日线资料不足或未通过核验，暂无法筛选重点候选。' if gate.get('status') == 'UNAVAILABLE' else
+                '今日大盘顺势，目前没有候选同时满足低位、防追涨等重点条件，今日不补足重点名额。')
         main = f'<div class="empty-state">{note}</div>'
     more = (
         '<details id="remaining-candidates-details" class="audit-details">'
@@ -1998,7 +2054,7 @@ def _shortlist_watchlist_html(model):
         + '</div></details>'
         if remaining else ''
     )
-    return f'<div id="watchlist-table">{dedup_banner}{main}{more}</div>'
+    return f'<div id="watchlist-table">{regime_banner}{dedup_banner}{main}{more}</div>'
 
 
 def _daily_note(row: Mapping[str, Any]) -> str:
@@ -3201,8 +3257,8 @@ input[type=search] {{ width: min(360px, 100%); padding: 8px 10px; border: 1px so
 .model-r-fold {{ margin-top: 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); }}
 .model-r-fold > summary {{ padding: 10px 13px; color: var(--muted); font-size: 13px; font-weight: 650; cursor: pointer; }}
 .model-r-fold > .model-panel {{ margin: 0; border: 0; border-top: 2px solid var(--warning); }}
-.shortlist-dedup-callout {{ margin: 0 0 12px; }}
-.shortlist-dedup-callout p {{ margin: 4px 0 0; font-size: 13px; color: var(--muted); }}
+.shortlist-dedup-callout, .shortlist-regime-callout {{ margin: 0 0 12px; }}
+.shortlist-dedup-callout p, .shortlist-regime-callout p {{ margin: 4px 0 0; font-size: 13px; color: var(--muted); }}
 .account-trade-table {{ min-width: 1120px; }}
 .model-explanation, .model-footnote {{ margin: 7px 0 0; color: var(--muted); font-size: 12px; }}
 .model-explanation strong {{ color: var(--text); }}
@@ -3254,6 +3310,12 @@ input[type=search] {{ width: min(360px, 100%); padding: 8px 10px; border: 1px so
 .security strong {{ color: var(--text); font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; }}
 .security span {{ min-width: 0; overflow: hidden; color: var(--muted); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }}
 .shortlist-reason {{ margin: 10px 0 0 38px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }}
+.watch-position {{ display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 10px 0 0 38px; font-size: 12px; }}
+.position-badge {{ display: inline-block; border-radius: 999px; padding: 3px 8px; font-weight: 650; }}
+.position-badge.bottom {{ color: #176044; background: #e3f4ea; }}
+.position-badge.low-mid {{ color: #27516d; background: #e7eff5; }}
+.position-badge.high {{ color: #765121; background: #f7efdf; }}
+.position-changes {{ color: var(--muted); font-variant-numeric: tabular-nums; }}
 .watch-state {{ display: flex; align-items: center; justify-content: flex-end; gap: 7px; }}
 .watch-state small {{ color: var(--muted); font-size: 11px; }}
 .watch-facts {{ display: flex; flex-wrap: wrap; gap: 5px 24px; min-width: 0; margin: 10px 0 0 38px; }}
@@ -3412,7 +3474,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
   .funnel {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
   .watch-row {{ padding: 11px 10px; }}
   .watch-primary {{ grid-template-columns: 26px minmax(0, 1fr); align-items: start; gap: 8px; }}
-  .shortlist-reason {{ margin-left: 34px; }}
+  .shortlist-reason, .watch-position {{ margin-left: 34px; }}
   .watch-state {{ grid-column: 2 / -1; justify-content: flex-start; flex-wrap: wrap; gap: 5px 7px; }}
   .security {{ display: block; }}
   .security strong {{ display: block; font-size: 15px; }}
@@ -3529,8 +3591,8 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
 
 <section id="tomorrow-watchlist">
   <div class="section-head"><div><p class="section-kicker">WATCHLIST</p><h2>今日重点观察 · {shortlist_count}</h2><p class="section-subtitle">主策略（B 突破回踩）正式候选共 {watchlist_count} 只，重点最多 {shortlist['limit']} 只；已在模拟持仓或 {SINGLE_ACCOUNT_COOLDOWN_SESSIONS} 日冷却期内的股票自动让出名额，资料不足或条件不符时不凑满。</p></div></div>
-  <p class="note">试验筛选，收益优势尚未验证。每日重点名单不代表新增买入配额；已持有的股票再次出现时，不应仅凭重复入选加仓。</p>
-  <details class="audit-details"><summary>查看筛选依据</summary><div class="audit-content"><p>先排除当前已在单账户模拟持仓中、近 {SINGLE_ACCOUNT_COOLDOWN_SESSIONS} 个交易日内刚入选或刚平仓冷却中、以及仍有未到期 {SINGLE_ACCOUNT_ENTRY_EXPIRY_SESSIONS} 日待触发挂单的重复股票，避免老面孔反复霸占重点名额。随后仅比较回踩后重新走强的同结构候选，分别比较下跌量占比、涨跌日均量比、参考止损距离与收益风险比。先取没有被其他候选在四项上同时不差且至少一项更好地超过的候选，再逐层比较；同层按参考收益风险比、止损距离、代码依次确定次序。第三项量能只展示。</p><p>参考买价取收盘价与触发价中较高者，不代表实际成交价或最高买价；参考比值未计费用与滑点。目标由原策略规则给出，相同风险倍数不提供额外区分。触发、止损、目标及计划盈亏比保留原计划参数。</p><p>现有绩效统计覆盖正式候选全集，不能当作这份重点名单的收益验证。</p></div></details>
+  <p class="note">基于历史开发样本分层的展示筛选，同日选股的收益优势尚未验证。每日重点名单不代表新增买入配额。</p>
+  <details class="audit-details"><summary>查看筛选依据</summary><div class="audit-content"><p>上证指数收盘须站上 20 日均线，且均线高于 5 个交易日前。通过后，观察处于回踩前段或回踩后重新走强、两项主要量能与参考价位可用的候选。</p><p>一年位置按最近 250 个交易日的高低区间计算，须不超过 55%。近 20 日涨幅须不超过 20%，近 60 日须不超过 30%。符合条件的候选依次按一年位置、下跌量占比、股票代码从低到高排列。单账户模拟持仓、待触发挂单及冷却期内的候选让出名额。</p><p>参考买价取收盘价与触发价中较高者，供观察触发时参考。现有绩效统计覆盖正式候选全集，不能当作这份重点名单的收益验证。</p></div></details>
   <div class="toolbar"><label for="watchlist-search" class="note">搜索名单：</label><input id="watchlist-search" type="search" placeholder="输入代码、名称或行业" autocomplete="off"></div>
   {_shortlist_watchlist_html(model)}
 </section>

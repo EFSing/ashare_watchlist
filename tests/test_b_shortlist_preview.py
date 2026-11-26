@@ -1,6 +1,6 @@
 """User-visible shortlist behavior and original-input identity boundaries."""
 import copy
-from datetime import datetime
+from datetime import date, datetime, timedelta
 import html
 import json
 from pathlib import Path
@@ -42,11 +42,123 @@ def _inputs(specs=None):
                    "feature_identity": preview.shadow.feature_identity(), "rows": rows}
 
 
+def _dated_bars(day, closes):
+    first = date.fromisoformat(day) - timedelta(days=len(closes) - 1)
+    return [{"date": (first + timedelta(days=i)).isoformat(), "close": close}
+            for i, close in enumerate(closes)]
+
+
+def _index(day, closes=range(3000, 3061)):
+    return {"symbol": "sh000001", "bars": _dated_bars(day, closes)}
+
+
+def _positions(watch, *, pos250=.3, chg20=.01, chg60=.05):
+    return {c["signal_id"]: dict(pos250=pos250, chg20=chg20, chg60=chg60) for c in watch["candidates"]}
+
+
+def test_v2_position_uses_last_250_highs_and_lows_and_exact_return_offsets():
+    bars = _dated_bars(DAY, [12] * 251)
+    for bar in bars:
+        bar.update(high=16, low=8)
+    bars[0].update(high=100, low=1)
+    bars[-21]["close"] = 10
+    bars[-61]["close"] = 15
+    result = preview._position_metrics(bars, DAY)
+    assert result["pos250"] == .5 and result["position_zone"] == "LOW_MID_250D"
+    assert result["chg20"] == pytest.approx(.2) and result["chg60"] == pytest.approx(-.2)
+    bars[-1]["close"] = 16 + 1e-13
+    assert preview._position_metrics(bars, DAY)["pos250"] == 1
+    bars[-1]["close"] = 16 + 1e-10
+    assert preview._position_metrics(bars, DAY)["position_missing_reason"] == "INSUFFICIENT_250D_BARS"
+
+
+@pytest.mark.parametrize("closes,above,rising", [
+    ([90] * 5 + [100] * 20, False, True),   # Close equals MA20.
+    ([102] * 5 + [100] * 19 + [110], True, False),  # MA20 equals its prior value.
+    (list(range(100, 124)) + [100], False, True),
+    ([120] * 5 + [100] * 19 + [110], True, False),
+])
+def test_v2_regime_halts_when_either_condition_fails_and_keeps_stock_reasons(closes, above, rising):
+    watch, observations = _inputs()
+    gate = preview.build_market_gate(watch, _index(DAY, closes))
+    assert (gate["status"], gate["g2_pass"], gate["above_ma20"], gate["ma20_rising"]) == (
+        "HALT", False, above, rising,
+    )
+    positions = _positions(watch)
+    positions[watch["candidates"][0]["signal_id"]]["pos250"] = .56
+    result = preview.build_preview(watch, observations, market_gate=gate, position_by_signal_id=positions)
+    assert result["selected_codes"] == []
+    assert result["rows"][0]["reasons"] == ["HIGH_POSITION_250D"]
+    assert all(row["reasons"] == ["MARKET_REGIME_HALT"] for row in result["rows"][1:])
+    assert all(row["comparison_order"] is None for row in result["rows"])
+
+
+@pytest.mark.parametrize("failure", ["missing", "short", "future", "nonfinite", "duplicate", "stale", "wrong_index"])
+def test_v2_refuses_invalid_index_context(failure):
+    watch, observations = _inputs()
+    index = _index(DAY)
+    if failure == "missing":
+        index = None
+    elif failure == "short":
+        index["bars"] = index["bars"][-24:]
+    elif failure == "future":
+        index["bars"].append({"date": "2099-01-01", "close": 3200})
+    elif failure == "nonfinite":
+        index["bars"][-1]["close"] = float("inf")
+    elif failure == "duplicate":
+        index["bars"][-2]["date"] = DAY
+    elif failure == "stale":
+        index["bars"].pop()
+    else:
+        index["symbol"] = "sz399001"
+    gate = preview.build_market_gate(watch, index)
+    result = preview.build_preview(watch, observations, market_gate=gate, position_by_signal_id=_positions(watch))
+    assert gate["status"] == "UNAVAILABLE" and gate["g2_pass"] is False
+    assert gate["index_close"] is gate["index_ma20"] is None
+    assert result["selected_codes"] == []
+    assert all(row["reasons"] == ["MARKET_GATE_UNAVAILABLE"] for row in result["rows"])
+
+
+def test_v2_l1_thresholds_stages_and_order_are_deterministic():
+    specs = [(f"60000{i}", v1, 2, 12) for i, v1 in enumerate(
+        [.02, .01, .02 - 1e-14, .9, .01, .01, .01, .01, .01], 1,
+    )]
+    watch, observations = _inputs(specs)
+    observations["rows"][0].update(structure={"state": "EARLY_PULLBACK"}, is_w2w3_transition=False)
+    observations["rows"][4].update(structure={"state": "POST_H1_CONTINUATION_PROXY"}, is_w2w3_transition=False)
+    gate = preview.build_market_gate(watch, _index(DAY))
+    assert gate == {
+        "gate_id": "G2_INDEX_ABOVE_RISING_MA20", "status": "PASS", "g2_pass": True,
+        "above_ma20": True, "ma20_rising": True, "index_close": 3060,
+        "index_ma20": 3050.5, "index_ma20_5d_ago": 3045.5, "g4_turn_hint": False,
+    }
+    positions = _positions(watch, pos250=.55, chg20=.20 + 1e-14, chg60=.30 + 1e-14)
+    for index, overrides in enumerate([
+        {}, {}, {"pos250": .55 - 1e-14}, {"pos250": .34}, {}, {"pos250": .551},
+        {"chg20": .201}, {"chg60": .301}, {"pos250": None},
+    ]):
+        positions[watch["candidates"][index]["signal_id"]].update(overrides)
+
+    result = preview.build_preview(watch, observations, market_gate=gate, position_by_signal_id=positions)
+    assert result["schema_version"] == "B_SHORTLIST_PREVIEW_V2"
+    assert result["selection_method"] == "G2_GATE_THEN_L1_LOW_POS250_ASC_V1_ASC_CODE_ASC"
+    assert result["selected_codes"] == ["600004", "600002", "600001"]
+    assert [row["comparison_order"] for row in result["rows"]] == [3, 2, 4, 1, None, None, None, None, None]
+    assert [row["reasons"] for row in result["rows"][2:]] == [
+        ["LIMIT_REACHED"], ["SELECTED"], ["OUTSIDE_COMPARISON_STAGE"], ["HIGH_POSITION_250D"],
+        ["RECENT_RUNUP_TOO_HIGH"], ["RECENT_RUNUP_TOO_HIGH"], ["POSITION_250D_UNAVAILABLE"],
+    ]
+    assert result["rows"][-1]["position_missing_reason"] == "INSUFFICIENT_250D_BARS"
+    watch["candidates"].reverse()
+    observations["rows"].reverse()
+    assert preview.build_preview(watch, observations, market_gate=gate, position_by_signal_id=positions) == result
+
+
 def test_fronts_tradeoffs_ties_and_two_or_three_cap_are_deterministic():
     watch, observations = _inputs()
     original = copy.deepcopy((watch, observations))
-    two = preview.build_preview(watch, observations, limit=2)
-    three = preview.build_preview(watch, observations, limit=3)
+    two = preview.build_preview(watch, observations, ruleset="v1", limit=2)
+    three = preview.build_preview(watch, observations, ruleset="v1", limit=3)
     assert two["selected_codes"] == ["600001", "600004"]
     assert three["selected_codes"] == ["600001", "600004", "600005"]
     by_code = {r["code"]: r for r in three["rows"]}
@@ -59,14 +171,14 @@ def test_fronts_tradeoffs_ties_and_two_or_three_cap_are_deterministic():
     assert (watch, observations) == original
     watch["candidates"].reverse()
     observations["rows"].reverse()
-    assert preview.build_preview(watch, observations) == three
+    assert preview.build_preview(watch, observations, ruleset="v1") == three
 
 
 def test_reference_entry_uses_trigger_or_close_and_recomputes_distances():
     watch, observations = _inputs([("600001", .1, 2, 12), ("600002", .1, 2, 12)])
     watch["candidates"][0].update(price=9.5, rr=999, risk=.001)
     watch["candidates"][1].update(price=11, rr=999, risk=.001)
-    result = preview.build_preview(watch, observations)
+    result = preview.build_preview(watch, observations, ruleset="v1")
     first, second = result["rows"]
     assert first["reference_entry"] == 10
     assert first["reference_risk_fraction"] == pytest.approx(.1)
@@ -81,7 +193,7 @@ def test_same_front_uses_risk_then_code_when_reward_risk_tied():
     watch, observations = _inputs([("600001", .1, 2, 12), ("600002", .2, 2, 12)])
     watch["candidates"][0].update(price=8, trigger=8, stop=6, target=10)
     watch["candidates"][1].update(price=8, trigger=8, stop=7, target=9)
-    result = preview.build_preview(watch, observations)
+    result = preview.build_preview(watch, observations, ruleset="v1")
     assert result["selected_codes"] == ["600002", "600001"]
     assert all(row["front"] == 1 for row in result["rows"])
     assert "次序由参考风险距离决定" in preview.render_markdown(result)
@@ -92,14 +204,14 @@ def test_float_tails_cannot_invent_dominance_or_override_risk_tie_break():
     watch["candidates"][0].update(price=4.79, trigger=4.79, stop=4.58, target=5.315)
     watch["candidates"][1].update(price=23.43, trigger=23.43, stop=22.63, target=25.43)
     # Both targets are 2.5R. Binary arithmetic must not prefer the higher risk.
-    result = preview.build_preview(watch, observations)
+    result = preview.build_preview(watch, observations, ruleset="v1")
     assert result["selected_codes"] == ["600002", "600001"]
     assert result["rows"][0]["front"] == 2
     assert result["rows"][0]["dominated_by"] == ["600002"]
     # Equivalent formulas also cannot push one otherwise identical row to a later front.
     watch["candidates"][0].update(price=10, trigger=10, stop=9, target=12.5)
     watch["candidates"][1].update(price=10, trigger=10, stop=9, target=12.5 + 1e-14)
-    result = preview.build_preview(watch, observations)
+    result = preview.build_preview(watch, observations, ruleset="v1")
     assert result["selected_codes"] == ["600001", "600002"]
     assert all(row["front"] == 1 for row in result["rows"])
 
@@ -111,7 +223,7 @@ def test_missing_invalid_and_other_stages_remain_visible_without_padding():
     watch["candidates"][2]["target"] = 10
     observations["rows"][3]["volume"][FIELDS[0]] = float("nan")
     observations["rows"][4]["volume"].update({FIELDS[2]: None, "missing_reason": {FIELDS[2]: "PULLBACK_WINDOW_LT_4"}})
-    result = preview.build_preview(watch, observations)
+    result = preview.build_preview(watch, observations, ruleset="v1")
     assert result["selected_codes"] == ["600005"]
     assert result["candidate_count"] == 5 and result["eligible_count"] == 1
     assert [r["reasons"] for r in result["rows"]] == [
@@ -128,14 +240,14 @@ def test_missing_invalid_and_other_stages_remain_visible_without_padding():
 
 def test_v3_score_and_unrelated_fields_never_change_selection():
     watch, observations = _inputs()
-    baseline = preview.build_preview(watch, observations)
+    baseline = preview.build_preview(watch, observations, ruleset="v1")
     for i, (c, row) in enumerate(zip(watch["candidates"], observations["rows"])):
         c["score"] = -1000 * i
         c["rr"] = 1000 * (i + 1)
         row["volume"][FIELDS[2]] = 9999 - i
         row["coordinates"] = {"synthetic_ignored": 9999}
         row["future_return"] = -9999  # Synthetic canary, never read from an outcome source.
-    changed = preview.build_preview(watch, observations)
+    changed = preview.build_preview(watch, observations, ruleset="v1")
     assert changed["selected_codes"] == baseline["selected_codes"]
     assert [r["comparison_order"] for r in changed["rows"]] == [r["comparison_order"] for r in baseline["rows"]]
     assert all("score" not in r and "future_return" not in r for r in changed["rows"])
@@ -150,19 +262,19 @@ def test_invalid_volume_or_contradictory_missing_flag_is_not_eligible(field, val
     observations["rows"][0]["volume"][field] = value
     if reason:
         observations["rows"][0]["volume"]["missing_reason"][field] = reason
-    result = preview.build_preview(watch, observations)
+    result = preview.build_preview(watch, observations, ruleset="v1")
     assert result["selected_codes"] == []
     assert result["rows"][0]["reasons"] == ["V1_V2_UNAVAILABLE_OR_INVALID"]
 
 
 def test_empty_list_is_explicit_and_limits_are_restricted():
     watch, observations = _inputs([])
-    result = preview.build_preview(watch, observations)
+    result = preview.build_preview(watch, observations, ruleset="v1")
     assert result["selected_codes"] == [] and result["rows"] == []
     assert "不补足名额" in preview.render_markdown(result)
     for limit in (0, 1, 4, True, 2.0):
         with pytest.raises(ValueError, match="LIMIT"):
-            preview.build_preview(watch, observations, limit=limit)
+            preview.build_preview(watch, observations, ruleset="v1", limit=limit)
 
 
 @pytest.mark.parametrize("change", ["date", "code", "strategy", "set", "duplicate", "stage_flag", "volume_protocol"])
@@ -183,7 +295,7 @@ def test_mismatched_candidate_identity_fails_closed(change):
     else:
         observations["rows"][0]["volume"]["protocol_commit_sha"] = "wrong"
     with pytest.raises(ValueError, match="MISMATCH"):
-        preview.build_preview(watch, observations)
+        preview.build_preview(watch, observations, ruleset="v1")
 
 
 @pytest.fixture
@@ -236,10 +348,13 @@ def test_cli_verifies_only_named_inputs_and_writes_reproducible_offline_preview(
     assert len(files) == 2
     payload = json.loads(files["b_shortlist_preview_20261116_top2.json"])
     assert payload["selected_codes"] == ["600001", "600004"]
+    assert payload["schema_version"] == "B_SHORTLIST_PREVIEW_V1"
     assert payload["mode"] == "OFFLINE_AS_OF_REPLAY"
     assert payload["outcome_accessed"] is False and payload["production_validated"] is False
     assert set(payload["source"]["input_sha256"]) == set(blobs)
     assert preview.main(args) == 0
+    assert {p.name: p.read_bytes() for p in output.iterdir()} == files
+    assert preview.main(args + ["--ruleset", "v1"]) == 0
     assert {p.name: p.read_bytes() for p in output.iterdir()} == files
     assert blobs == originals
     assert all("outcomes" not in str(call) and "final_oos" not in str(call) for call in calls)
@@ -278,6 +393,38 @@ def test_cli_refuses_production_output_before_reading_inputs(monkeypatch):
             preview.main(["--date", DAY, "--output-dir", str(output)])
 
 
+def test_cli_v2_requires_manifest_and_uses_it_to_compute_t_known_context(git_inputs, tmp_path, capsys):
+    from test_b_structure_volume_shadow import _inputs as original_inputs, CAL
+
+    watch, _, _, blobs, _, _ = git_inputs
+    args = ["--date", DAY, "--output-dir", str(tmp_path / "v2")]
+    with pytest.raises(SystemExit):
+        preview.main(args + ["--ruleset", "v2"])
+    assert "V2 需要 --run-manifest" in capsys.readouterr().err
+    assert not (tmp_path / "v2").exists()
+    built, _, _ = original_inputs(tmp_path, day=DAY, codes=tuple(c["code"] for c in watch["candidates"]))
+    manifest_path = Path(built["watchlist"]["run_manifest_path"])
+    run = json.loads(manifest_path.read_bytes())
+    run["output"]["file_sha256"] = sha(blobs["data/watchlist_20261116.json"])
+    run["input_manifest"]["earliest_execution_date"] = run["earliest_execution_date"] = (
+        preview.shadow._next_horizon_date(DAY, 1, CAL)
+    )
+    run["input_manifest"]["index"] = _index(DAY)
+    for item in run["input_manifest"]["stock_klines"]:
+        item["bars"][10]["high"] = 14
+    manifest_path.write_bytes(canonical(run))
+    assert preview.main(args + ["--run-manifest", str(manifest_path)]) == 0
+    output = tmp_path / "v2" / "b_shortlist_preview_20261116_top3"
+    payload = json.loads(output.with_suffix(".json").read_bytes())
+    assert payload["schema_version"] == "B_SHORTLIST_PREVIEW_V2"
+    assert payload["source"]["run_manifest_sha256"] == sha(manifest_path.read_bytes())
+    assert payload["selected_codes"] == ["600004", "600005", "600001"]
+    assert "NEEDS_MORE_EVIDENCE" in output.with_suffix(".md").read_text(encoding="utf-8")
+    manifest_path.write_bytes(canonical({**run, "output": {"file_sha256": "0" * 64}}))
+    with pytest.raises(ValueError, match="WATCHLIST_HASH_MISMATCH"):
+        preview.main(args + ["--run-manifest", str(manifest_path), "--ruleset", "v2"])
+
+
 @pytest.fixture
 def daily_inputs(tmp_path):
     from data_paths import DataPaths
@@ -289,6 +436,7 @@ def daily_inputs(tmp_path):
     paths = DataPaths(state / "data")
     watch_path = paths.watchlist_file(day)
     watch = json.loads(watch_path.read_bytes())
+    watch["market_env"]["grade"] = "B"
     for c in watch["candidates"]:
         c.pop("signal_id")
         c.update(setup="B_BREAKOUT_RETEST", price=10.4)
@@ -297,6 +445,9 @@ def daily_inputs(tmp_path):
     run_path = Path(b["watchlist"]["run_manifest_path"])
     run = json.loads(run_path.read_bytes())
     run["output"]["file_sha256"] = sha(watch_path.read_bytes())
+    run["input_manifest"]["index"] = _index(day)
+    for item in run["input_manifest"]["stock_klines"]:
+        item["bars"][10]["high"] = 14
     run_path.write_bytes(canonical(run))
     return day, CAL, paths, watch_path, run_path
 
@@ -331,8 +482,51 @@ def test_daily_report_selects_before_shadow_delivery_and_retains_all_inputs(dail
     assert "Score" not in text and "watch-score" not in text and "名单评分" not in text
     saved = json.loads(html.unescape(re.search(r'<meta name="b-shortlist-json" content="([^"]*)">', text)[1]))
     assert saved == model.shortlist and saved["mode"] == "REPORT_AS_OF_SELECTION"
+    assert saved["schema_version"] == "B_SHORTLIST_PREVIEW_V2"
     assert saved["source"]["watchlist_sha256"] == sha(watch_path.read_bytes())
-    assert saved["production_validated"] is False
+    assert saved["source"]["run_manifest_sha256"] == sha(run_path.read_bytes())
+    assert saved["production_validated"] is False and saved["evidence_status"] == "NEEDS_MORE_EVIDENCE"
+
+
+@pytest.mark.parametrize("status", ["HALT", "PASS", "UNAVAILABLE"])
+def test_daily_report_renders_regime_and_all_three_position_badges(daily_inputs, status):
+    import render_daily_close_html as renderer
+
+    day, cal, paths, _, run_path = daily_inputs
+    run = json.loads(run_path.read_bytes())
+    if status == "HALT":
+        run["input_manifest"]["index"] = _index(day, [3000] * 25)
+    elif status == "UNAVAILABLE":
+        del run["input_manifest"]["index"]
+    stocks = {item["symbol"]: item["bars"] for item in run["input_manifest"]["stock_klines"]}
+    stocks["600002"][10]["high"] = 11.9
+    stocks["600003"][10]["high"] = 10.2
+    stocks["600004"][:] = stocks["600004"][-249:]
+    run_path.write_bytes(canonical(run))
+    model = renderer.build_report_model(day, paths=paths, calendar=cal, research_run_manifest=run_path)
+    text = renderer._shortlist_watchlist_html(model)
+    assert model.shortlist["market_gate"]["status"] == status
+    assert model.shortlist["selected_codes"] == (["600001", "600002"] if status == "PASS" else [])
+    assert "一年底部区 · 位置 20.0%" in text
+    assert "一年中低位 · 位置 37.5%" in text
+    assert "一年中高位 · 位置 56.3%" in text
+    assert "近20日 +4.0% · 近60日 +4.0%" in text
+    assert "一年位置资料不足或无效" in text
+    assert "一年位置超过 55%" in text
+    assert f"其余候选 · {3 if status == 'PASS' else 5}" in text
+    if status == "HALT":
+        assert "大盘环境休息提示 · 今日重点观察轮空（0 只）" in text
+        assert "观察提示：今日市场分级已达 A/B 级且正式候选共 5 只" in text
+        assert "下方折叠保留 5 只正式候选供跟踪" in text
+        assert model.shortlist["market_gate"]["g4_turn_hint"] is True
+    elif status == "UNAVAILABLE":
+        assert "暂无法筛选重点候选" in text
+        assert "大盘环境休息提示" not in text and "观察提示：" not in text
+    else:
+        assert "按一年位置优先入选。参考买价" in text
+    by_code = {row["code"]: row for row in model.shortlist["rows"]}
+    assert by_code["600004"]["position_zone"] == "UNAVAILABLE"
+    assert by_code["600004"]["position_missing_reason"] == "INSUFFICIENT_250D_BARS"
 
 
 def test_daily_limit_two_and_score_changes_do_not_affect_selection(daily_inputs):
@@ -382,6 +576,11 @@ def test_daily_selection_unavailable_never_falls_back_to_score(daily_inputs, mon
     text = dated.read_text(encoding="utf-8")
     assert "暂无法筛选重点候选" in text and "其余候选 · 5" in text
     assert text.count('class="watch-row"') == 5 and "Score" not in text
+    if failure == "missing_manifest":
+        assert 'class="position-badge ' not in text and "近20日" not in text
+        assert model.shortlist["market_gate"]["status"] == "UNAVAILABLE"
+    elif failure == "selector":
+        assert "一年底部区 · 位置 20.0%" in text
 
 
 def test_future_bars_cannot_enter_daily_shortlist(daily_inputs):
@@ -395,6 +594,7 @@ def test_future_bars_cannot_enter_daily_shortlist(daily_inputs):
     model = renderer.build_report_model(day, paths=paths, calendar=cal, research_run_manifest=run_path)
     assert model.shortlist["selected_codes"] == [] and len(model.watchlist_rows) == 5
     assert model.shortlist["eligible_count"] == 0
+    assert all(row["pos250"] is None for row in model.shortlist["rows"])
     assert "今日不补足重点名额" in renderer.render_html(model)
 
 
