@@ -138,7 +138,7 @@ def _position_context(metrics: Mapping[str, Any]) -> dict:
     ))
 
 
-def load_run_context(run_manifest_path, watchlist, watchlist_sha256, *, calendar):
+def load_run_context(run_manifest_path, watchlist, watchlist_sha256, *, calendar, include_index=False):
     """Bind the supplied same-run manifest to the canonical watchlist before use."""
     from b_prospective_observation import _source_validation
 
@@ -147,12 +147,14 @@ def load_run_context(run_manifest_path, watchlist, watchlist_sha256, *, calendar
     if run["output"]["file_sha256"] != watchlist_sha256:
         raise ValueError("SHORTLIST_WATCHLIST_HASH_MISMATCH")
     day, _, inputs, by_code = _source_validation(watchlist, run, calendar=calendar)
-    gate = build_market_gate(watchlist, inputs.get("index"))
+    index = inputs.get("index")
+    gate = build_market_gate(watchlist, index)
     positions = {
         c["signal_id"]: _position_metrics(by_code.get(c["code"], {}).get("bars"), day)
         for c in watchlist["candidates"]
     }
-    return by_code, gate, positions, sha(raw)
+    context = by_code, gate, positions, sha(raw)
+    return (*context, index) if include_index else context
 
 
 def build_preview(

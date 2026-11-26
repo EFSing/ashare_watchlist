@@ -1,5 +1,17 @@
 # CURRENT STATUS
 
+## 2026-11-26 — 弱市研究收口，防守 ETF 日报参考卡待审
+
+- `WEAK_REGIME_PANIC_MEAN_REVERSION_V1 = REJECT`。主板个股超跌反抽的 12 组 `TOP2`
+  均未同时在 2023、2026 取得正的扣费单笔均值，实际限额组合呈现逆向选择。A 股期权策略
+  列为 `OUT OF PRODUCT SCOPE`。
+- `DEFENSIVE_ETF_NON_G2_V1 = ADOPT`。冻结开发样本通过四项预注册门槛，选定 `R1/A1`。
+  待审分支 `codex/daily-report-defensive-etf-card-v1` 将展示范围限定为每日 B+C HTML
+  的 T-known 收盘参考卡。盘后行情核验失败时卡片降级，日报继续交付。
+- 真实账户执行与前瞻效果待未来实际运行观察。本次交付处于 PR 审阅阶段，Formal B、
+  C 模拟、canonical 输出、账户模拟和调度维持既有口径。证据与决策见
+  [DECISION_LOG.md](DECISION_LOG.md)。
+
 ## 2026-11-26 — C 底部候选研究收口，C 研究模拟修复已合并
 
 - [PR #123](https://github.com/EFSing/ashare_watchlist/pull/123) 已 squash merge 至 `master`，
