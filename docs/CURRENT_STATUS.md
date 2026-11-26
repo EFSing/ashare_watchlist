@@ -1,14 +1,20 @@
 # CURRENT STATUS
 
-## 2026-11-26 — C 底部候选研究收口，C 研究模拟修复待审阅
+## 2026-11-26 — C 底部候选研究收口，C 研究模拟修复已合并
 
+- [PR #123](https://github.com/EFSing/ashare_watchlist/pull/123) 已 squash merge 至 `master`，
+  合并提交 `dc68890c2ffbaa0d76638ac379cbdf335648c3af`。合并时为 CLEAN / MERGEABLE，
+  原 PR HEAD `9e383fa286aa8a89a5d95b6324d4e71fe28c2960` 的两路 correctness 均通过。
+  [push CI](https://github.com/EFSing/ashare_watchlist/actions/runs/45767112562) ·
+  [pull_request CI](https://github.com/EFSing/ashare_watchlist/actions/runs/45767146508) ·
+  [合并提交 CI](https://github.com/EFSing/ashare_watchlist/actions/runs/45767835922)
 - `C_FUNNEL_AND_BOTTOM_HIGHER_LOW_EARLY_START_V1` 已收口。`REJECT` C1/C2/C3 作为日常
   常驻底部双底副线，18 个组合均未通过预注册采纳门槛。13 个真实运行日的 79,084 条观测
   定位了 F2 趋势门、F4 浅回撤上限和 F5 波峰确认的主要瓶颈。证据身份见 [DECISION_LOG.md](DECISION_LOG.md)。
 - 漏斗诊断使用截至 2026-11-25 的冻结观测。`C_RULE_FUNNEL_CAPTURE_V1` 沿用冻结采集身份，
   累计满 15 个真实运行日后自动停采。
 - `ADOPT` C 研究模拟新信号的 2R 阶段前高门槛、2.5R 回退和价格舍入，以及同 B 口径的
-  信号日一年位置 HTML 徽标。历史账本按原价位读回与结算。实现待 PR 审阅。
+  信号日一年位置 HTML 徽标。历史账本按原价位读回与结算。
 - **Deferred Backlog** 收录极端市场底部高宽度共振脉冲观察。
 
 ## 2026-11-26 — B 日报重点观察顺势与低位筛选（V2）已合并
