@@ -1,5 +1,21 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-11-26 — C 漏斗诊断与底部双底早启动研究
+
+- 非阻塞 `research question` / STRICT PATH，归类保持。研究分支为
+  `codex/c-bottom-higher-low-early-v1`，同步后用
+  `git rev-parse origin/codex/c-bottom-higher-low-early-v1` 解析远端 HEAD。
+  预注册提交 `a0d464c5b2c6497c3ac116d79e06c07d6e52d666`，前瞻快照
+  `cce76bf0a205a57b4fbde0ce279e89f4a3c26267`。
+- 前瞻漏斗保留 `COLLECTING_PRE_15D_CHECKPOINT_DIAGNOSTIC`。13 个运行日、79,084 条完整
+  双规则观测，F8 平衡版 54 条、保守版 0 条。开发样本的一年底部命中占比分别为 7.06% 和 0%。
+- 冻结重放决定 `NEEDS_MORE_EVIDENCE`。锁定扫描找到完整窗 2,140 轮、B 盲区 2,083 轮，
+  各比既有参考多 3 轮。18 个候选均未通过净期望门槛。若后续恢复评估，先取得既有波段身份、
+  去重时钟和 B 捕获分类逐轮对账。现有 B 日报与 C 漏斗采集可继续。
+- [研究报告](docs/research/c_bottom_higher_low_early_v1_report.md)和
+  [汇总](data/validation/c_bottom_higher_low_early_v1/summary.json)可从该研究分支恢复。
+  重放依赖由冻结登记表管理的输入，使用项目内 `.venv` 离线执行。
+
 ## 2026-11-26 — B 日报重点观察顺势与低位筛选（V2）已合并
 
 - Deferred improvement / STRICT PATH，归类保持。用户授权后，短名单 V2 已 squash merge 至
