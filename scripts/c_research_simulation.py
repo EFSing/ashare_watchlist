@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import Counter
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal, ROUND_HALF_UP
 from hashlib import sha256
 from html import escape
 import json
@@ -15,6 +16,7 @@ from typing import Any, Mapping
 from c_daily_watchlist import build_watchlist
 from c_pre_outcome_design import canonical_json
 from generation_contract import AUTHORIZED_WEEKEND_BACKFILL
+from preview_b_shortlist import _position_metrics
 from track_perf import (
     PERFORMANCE_DATA_INCOMPLETE,
     RULE_STATUS_AMBIGUOUS,
@@ -65,6 +67,11 @@ def _price_identity(bar: Mapping[str, Any]) -> str:
     return _digest([bar[key] for key in ("date", "open", "high", "low", "close")])
 
 
+def _matches_price_anchor(signal: Mapping[str, Any], bars: list[dict[str, Any]]) -> bool:
+    anchor = next((bar for bar in bars if bar["date"] == signal["date"]), None)
+    return anchor is not None and _price_identity(anchor) == signal["price_anchor_sha256"]
+
+
 def _signals(watchlist: Mapping[str, Any], histories: Mapping[str, Any]) -> list[dict[str, Any]]:
     day = watchlist["signal_date"]
     signals = []
@@ -93,7 +100,16 @@ def _signals(watchlist: Mapping[str, Any], histories: Mapping[str, Any]) -> list
             trigger = round(max(structure["rebound_high"], ma5), 2)
             stop = round(structure["support_floor"] * .98, 2)
             pressure = structure["stage_prior_high"]
-            target = pressure if pressure > close * 1.03 else close + 2.5 * (close - stop)
+            ref_entry = Decimal(str(max(close, trigger)))
+            risk = ref_entry - Decimal(str(stop))
+            if risk <= 0:
+                target = round(close + 2.5 * (close - stop), 2)
+            elif Decimal(str(pressure)) - ref_entry >= 2 * risk:
+                target = round(pressure, 2)
+            else:
+                target = float((ref_entry + Decimal("2.5") * risk).quantize(
+                    Decimal("0.01"), rounding=ROUND_HALF_UP
+                ))
             signals.append({
                 "signal_id": stable_signal_id(VERSION, day, code, rule_name),
                 "strategy_version": VERSION, "date": day, "code": code,
@@ -108,8 +124,7 @@ def _simulate(signal: Mapping[str, Any], histories: Mapping[str, Any], day: str,
     code = signal["code"]
     history = histories.get(code, {})
     bars = history.get("bars", [])
-    anchor = next((bar for bar in bars if bar["date"] == signal["date"]), None)
-    comparable = anchor is not None and _price_identity(anchor) == signal["price_anchor_sha256"]
+    comparable = _matches_price_anchor(signal, bars)
     provenance = {"by_code": {code: {"source": "SAME_RUNNER_QFQ_PREFIX",
                                      "normalized_data_sha256": history.get("normalized_data_sha256")}}}
     row = _strategy_rule_trade_row(signal, {code: bars} if comparable else {}, provenance, parse_date(day), calendar)
@@ -165,6 +180,13 @@ def capture(b_result: Mapping[str, Any], consumed: Mapping[str, Any], record: Pa
         settled[identity] if identity in settled else _simulate(signal, histories, day, calendar)
         for identity, signal in signals.items()
     ]
+    positions = {}
+    for identity, signal in signals.items():
+        bars = histories.get(signal["code"], {}).get("bars", [])
+        if _matches_price_anchor(signal, bars):
+            signal_day = signal["date"]
+            prefix = [bar for bar in bars if bar["date"] <= signal_day]
+            positions[identity] = _position_metrics(prefix, signal_day)
     payload = {
         "version": VERSION, "date": day, "c_manifest_sha256": report["manifest_sha256"],
         "c_observation_sha256": consumed["record_sha256"], "package_sha256": package_info["file_sha256"],
@@ -180,7 +202,7 @@ def capture(b_result: Mapping[str, Any], consumed: Mapping[str, Any], record: Pa
     ledger = directory / "c-simulation.json"
     ledger.write_bytes((canonical_json(payload) + "\n").encode("utf-8"))
     section = directory / "c-simulation.html"
-    section.write_bytes(render_section(day, rows).encode("utf-8"))
+    section.write_bytes(render_section(day, rows, positions=positions).encode("utf-8"))
     return {"ledger": str(ledger), "ledger_sha256": sha256(ledger.read_bytes()).hexdigest(),
             "section": str(section), "section_sha256": sha256(section.read_bytes()).hexdigest()}
 
@@ -188,6 +210,11 @@ def capture(b_result: Mapping[str, Any], consumed: Mapping[str, Any], record: Pa
 _RULE_LABELS = {
     "BALANCED_A": "平衡版",
     "CONSERVATIVE_B": "保守版",
+}
+_POSITION_BADGES = {
+    "BOTTOM_250D": ("一年底部区", "bottom"),
+    "LOW_MID_250D": ("一年中低位", "low-mid"),
+    "HIGH_250D": ("一年中高位", "high"),
 }
 _SIM_STYLE = """
 #c-research-simulation { min-width: 0; margin: 14px 0 0; padding: 14px; border: 1px solid var(--border, #d9e0e5); border-top: 3px solid var(--accent, #28658a); border-radius: var(--radius, 7px); background: var(--surface, #ffffff); }
@@ -224,6 +251,11 @@ _SIM_STYLE = """
 #c-research-simulation .c-sim-pnl.negative { color: var(--negative, #23825a); }
 #c-research-simulation .c-sim-pnl.neutral { color: var(--text, #18232d); }
 #c-research-simulation .badge.c-sim-open { color: var(--accent, #28658a); }
+#c-research-simulation .position-badge { display: inline-block; border-radius: 999px; padding: 3px 8px; font-size: 11px; font-weight: 650; }
+#c-research-simulation .position-badge.bottom { color: #176044; background: #e3f4ea; }
+#c-research-simulation .position-badge.low-mid { color: #27516d; background: #e7eff5; }
+#c-research-simulation .position-badge.high { color: #765121; background: #f7efdf; }
+#c-research-simulation td .position-badge { margin-inline-start: 4px; }
 #c-research-simulation .c-sim-rule-gloss { margin-left: 4px; color: var(--muted, #667581); font-size: 11px; }
 @media (max-width: 900px) {
   #c-research-simulation .c-sim-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -301,7 +333,16 @@ def _rules_details_html() -> str:
     )
 
 
-def _open_holdings_html(rows: list[dict[str, Any]]) -> str:
+def _position_badge_html(position: Mapping[str, Any]) -> str:
+    zone = _POSITION_BADGES.get(position.get("position_zone"))
+    pos250 = position.get("pos250")
+    if zone is None or pos250 is None:
+        return ""
+    label, tone = zone
+    return f'<span class="position-badge {tone}">{label} · 位置 {pos250:.1%}</span>'
+
+
+def _open_holdings_html(rows: list[dict[str, Any]], positions: Mapping[str, Mapping[str, Any]]) -> str:
     open_rows = [row for row in rows if row.get("status") == RULE_STATUS_OPEN]
     if not open_rows:
         return ""
@@ -318,6 +359,7 @@ def _open_holdings_html(rows: list[dict[str, Any]]) -> str:
             f'<span class="badge neutral">{escape(setup_label)}</span></div>'
             '<div class="c-sim-holding-badges">'
             '<span class="badge c-sim-open">模拟持有</span>'
+            f'{_position_badge_html(positions.get(row.get("signal_id"), {}))}'
             f'<span class="c-sim-pnl {pnl_tone}">{escape(pnl_text)}</span>'
             '</div></div>'
             '<div class="c-sim-holding-facts">'
@@ -340,7 +382,12 @@ def _open_holdings_html(rows: list[dict[str, Any]]) -> str:
     )
 
 
-def render_section(day: str, rows: list[dict[str, Any]] | None = None) -> str:
+def render_section(
+    day: str,
+    rows: list[dict[str, Any]] | None = None,
+    *,
+    positions: Mapping[str, Mapping[str, Any]] | None = None,
+) -> str:
     safe_day = escape(day)
     style = f'<style data-c-simulation-inline-style>{_SIM_STYLE}</style>'
     if rows is None:
@@ -355,6 +402,7 @@ def render_section(day: str, rows: list[dict[str, Any]] | None = None) -> str:
             '<p>主策略 B 正式名单与复盘不受影响，待下次正常收盘运行后自动恢复跟踪。</p></div>'
             '</section>'
         )
+    positions = positions or {}
     counts = Counter(row["status"] for row in rows)
     open_count = counts[RULE_STATUS_OPEN]
     not_yet_count = counts[RULE_STATUS_NOT_YET_ELIGIBLE]
@@ -398,10 +446,11 @@ def render_section(day: str, rows: list[dict[str, Any]] | None = None) -> str:
         status_label, status_tone = _status_presentation(row)
         pnl_text, pnl_tone = _format_pnl(row)
         stock_label = f'{row["code"]} {row["name"]}'
+        position_badge = _position_badge_html(positions.get(row.get("signal_id"), {}))
         cells.append(
             "<tr>"
             f'<td>{escape(str(row["signal_date"]))}</td>'
-            f'<td>{escape(stock_label)}</td>'
+            f'<td>{escape(stock_label)}{position_badge}</td>'
             f'<td>{_rule_cell_html(row.get("setup"))}</td>'
             f'<td>{_format_price(row.get("trigger"))}</td>'
             f'<td>{_format_price(row.get("stop"))}</td>'
@@ -434,7 +483,7 @@ def render_section(day: str, rows: list[dict[str, Any]] | None = None) -> str:
         f'</div>{head_badge}</div>'
         f'{kpi_grid}'
         f'<p class="c-sim-status-line">截至 {safe_day} · {summary or "暂无 C 模拟信号"}（毛收益未扣费用及滑点）</p>'
-        f'{_open_holdings_html(rows)}'
+        f'{_open_holdings_html(rows, positions)}'
         f'{_rules_details_html()}'
         f'{detail}</section>'
     )

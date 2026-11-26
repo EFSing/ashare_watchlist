@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, time, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -14,7 +14,7 @@ import run_c_daily_watchlist as runner
 from c_daily_watchlist import write_report
 from test_c_daily_watchlist import _init_c_state_repo
 from test_c_pre_outcome_design import _synthetic_entry_bars
-from track_perf import RULE_STATUS_AMBIGUOUS, RULE_STATUS_CLOSED, RULE_STATUS_OPEN
+from track_perf import RULE_STATUS_AMBIGUOUS, RULE_STATUS_CLOSED, RULE_STATUS_OPEN, STRATEGY_RULE_CONFIG_ERROR
 from trading_calendar import TradingCalendar
 
 
@@ -39,7 +39,7 @@ def _inputs(tmp_path, day, bars, *, match):
     }]}}), encoding="utf-8")
     package_sha = sha256(package.read_bytes()).hexdigest()
     rules = {"BALANCED_A": {"price_structure_match": match, "price_structure_observation": {"structure": {
-        "rebound_high": 10.2, "support_floor": 9.7, "stage_prior_high": 11.5,
+        "rebound_high": 10.2, "support_floor": 9.7, "stage_prior_high": 11.6,
     }}}, "CONSERVATIVE_B": {"price_structure_match": False}}
     record = directory / "observation.json"
     record.write_text(json.dumps({
@@ -96,7 +96,7 @@ def test_c_simulation_daily_report_and_append_only_ledger(tmp_path, monkeypatch)
     t2_files = _capture(t2, state)
     closed, = json.loads(Path(t2_files["ledger"]).read_bytes())["settled"]
     assert (closed["status"], closed["entry_date"], closed["entry_price"]) == (RULE_STATUS_CLOSED, T1, 10.2)
-    assert (closed["exit_date"], closed["exit_reason"], closed["exit_price"]) == (T2, "TARGET", 11.5)
+    assert (closed["exit_date"], closed["exit_reason"], closed["exit_price"]) == (T2, "TARGET", 11.6)
     assert "open" not in closed and "ambiguous_high" not in closed
     formal = tmp_path / "formal.html"
     b_html = b'<html><head></head><body><nav></nav><main><section id="research-data"></section></main></body></html>'
@@ -108,7 +108,7 @@ def test_c_simulation_daily_report_and_append_only_ledger(tmp_path, monkeypatch)
     assert composite["simulation_rendered"] is True
     html = Path(composite["delivery_report_path"]).read_text(encoding="utf-8")
     assert '<h2>C研究模拟</h2>' in html and 'href="#c-research-simulation"' in html
-    assert "模拟止盈" in html and "+12.75%" in html and formal.read_bytes() == b_html
+    assert "模拟止盈" in html and "+13.73%" in html and formal.read_bytes() == b_html
     composite["c_result"] = c_result
     b_result, delivery_result, prepared_result = (tmp_path / name for name in ("b.json", "delivery.json", "prepared.json"))
     for path, value in ((b_result, result), (delivery_result, {}), (prepared_result, composite)):
@@ -120,6 +120,98 @@ def test_c_simulation_daily_report_and_append_only_ledger(tmp_path, monkeypatch)
     assert outcome["simulation_status"] == "C_SIMULATION_PUBLISHED"
     assert (state / simulation.STATE_PATH / "20261106.json").read_bytes() == Path(t2_files["ledger"]).read_bytes()
     assert (state / simulation.STATE_PATH / "20261104.json").read_bytes() == original_ledger
+
+
+@pytest.mark.parametrize(("pressure", "close", "support", "target"), [
+    (10.5, 10.0, 9.7, 11.93),
+    (11.5, 10.0, 9.7, 11.93),
+    (11.58, 10.0, 9.7, 11.58),
+    (11.604, 10.0, 9.7, 11.6),
+    (11.8, 10.4, 9.7, 12.63),
+    (12.0, 10.0, 10.41, 9.5),
+    (12.0, 10.0, 10.5, 9.28),
+])
+def test_c_simulation_signal_targets_use_reference_risk(pressure, close, support, target):
+    watchlist = {"signal_date": T, "rows": [{
+        "symbol": CODE, "name": "模拟测试", "matched_rules": ["BALANCED_A"],
+        "rules": {"BALANCED_A": {"price_structure_observation": {"structure": {
+            "rebound_high": 10.2, "support_floor": support, "stage_prior_high": pressure,
+        }}}},
+    }]}
+    bars = [_bar(T, 9.9, 10.5, close=close)]
+    histories = {CODE: {"bars": bars}}
+
+    signal, = simulation._signals(watchlist, histories)
+
+    assert signal["target"] == target == round(target, 2)
+    if support >= 10.41:
+        assert simulation._simulate(signal, histories, T1, TradingCalendar([]))["status"] == STRATEGY_RULE_CONFIG_ERROR
+
+
+def test_c_simulation_rounding_preserves_published_legacy_signal(tmp_path, monkeypatch):
+    monkeypatch.setattr(simulation, "default_calendar", lambda: TradingCalendar([], session_close_time=time(15)))
+    state = tmp_path / "runtime-state"
+    previous = state / simulation.STATE_PATH / "20261104.json"
+    previous.parent.mkdir(parents=True)
+    anchor = _bar(T, 9.9, 10.1)
+    first = _capture(_inputs(tmp_path, T, [anchor], match=True), state)
+    payload = json.loads(Path(first["ledger"]).read_bytes())
+    old_signal, = payload["signals"]
+    old_signal["target"] = 11.719999999999997
+    raw = (simulation.canonical_json(payload) + "\n").encode("utf-8")
+    previous.write_bytes(raw)
+
+    entry = _bar(T1, 9.7, 10.5)
+    next_day = _capture(_inputs(tmp_path, T1, [anchor, entry], match=False), state)
+    assert "模拟持有 1" in simulation.read_section(next_day)
+    assert json.loads(Path(next_day["ledger"]).read_bytes())["settled"] == []
+
+    exit_bar = _bar(T2, 9.9, 11.72)
+    later = _capture(_inputs(tmp_path, T2, [anchor, entry, exit_bar], match=False), state)
+    closed, = json.loads(Path(later["ledger"]).read_bytes())["settled"]
+    assert closed["signal_id"] == old_signal["signal_id"]
+    assert closed["status"] == RULE_STATUS_CLOSED
+    assert closed["target"] == closed["exit_price"] == old_signal["target"]
+    assert previous.read_bytes() == raw
+
+
+@pytest.mark.parametrize(("low", "high", "days", "anchor_state", "badge"), [
+    (8.0, 16.0, 250, "matched", '<span class="position-badge bottom">一年底部区 · 位置 25.0%</span>'),
+    (6.0, 14.0, 250, "matched", '<span class="position-badge low-mid">一年中低位 · 位置 50.0%</span>'),
+    (4.0, 12.0, 250, "matched", '<span class="position-badge high">一年中高位 · 位置 75.0%</span>'),
+    (8.0, 16.0, 249, "matched", None),
+    (8.0, 16.0, 250, "rebased", None),
+    (8.0, 16.0, 250, "missing", None),
+])
+def test_c_simulation_badge_uses_matching_signal_day_prefix(tmp_path, monkeypatch, low, high, days, anchor_state, badge):
+    monkeypatch.setattr(simulation, "default_calendar", lambda: TradingCalendar([], session_close_time=time(15)))
+    state = tmp_path / "runtime-state"
+    previous = state / simulation.STATE_PATH / "20261104.json"
+    previous.parent.mkdir(parents=True)
+    signal_day = date.fromisoformat(T)
+    history = [_bar((signal_day - timedelta(days=offset)).isoformat(), low, high)
+               for offset in range(days - 1, 0, -1)]
+    anchor = _bar(T, 9.9, 10.1)
+    first = _capture(_inputs(tmp_path, T, [*history, anchor], match=True), state)
+    previous.write_bytes(Path(first["ledger"]).read_bytes())
+    if anchor_state == "matched":
+        history.append(anchor)
+    elif anchor_state == "rebased":
+        history.append(dict(anchor, open=9.95))
+    history.append(_bar(T1, 9.8, 60.0))
+
+    second = _capture(_inputs(tmp_path, T1, history, match=False), state)
+
+    section = simulation.read_section(second)
+    assert section.count('<th scope="col">') == 10
+    assert b"pos250" not in previous.read_bytes()
+    assert b"pos250" not in Path(second["ledger"]).read_bytes()
+    if badge is None:
+        assert 'class="position-badge ' not in section
+    else:
+        holdings, detail = section.split('<details class="research-data-details c-sim-detail">')
+        assert badge in holdings.split('<div class="c-sim-holding-badges">')[1]
+        assert f"<td>{CODE} 模拟测试{badge}</td>" in detail
 
 
 def test_c_simulation_same_bar_ambiguity_and_missing_or_rebased_prices():
@@ -198,15 +290,10 @@ def test_c_simulation_consumes_real_price_only_observation_schema(tmp_path, monk
     ma5 = mean(bar["close"] for bar in bars[-5:])
     expected_trigger = round(max(structure["rebound_high"], ma5), 2)
     expected_stop = round(structure["support_floor"] * 0.98, 2)
-    expected_target = (
-        structure["stage_prior_high"]
-        if structure["stage_prior_high"] > close * 1.03
-        else close + 2.5 * (close - expected_stop)
-    )
     assert (signal["code"], signal["setup"]) == (CODE, "BALANCED_A")
     assert signal["trigger"] == expected_trigger
     assert signal["stop"] == expected_stop
-    assert signal["target"] == expected_target
+    assert signal["target"] == 167.65
 
     section = simulation.read_section(files)
     assert '<h2>C研究模拟</h2>' in section
