@@ -1,0 +1,103 @@
+{
+  "cloud_target": "ashare_watchlist/daily_checkpoints/20261126",
+  "code_git_sha": "2f8bd00627a7606bc783a14020609c83ef400791",
+  "created_at_bjt": "2026-11-26T15:00:00+08:00",
+  "dated_html": {
+    "byte_length": 668379,
+    "filename": "daily_close_20261126.html",
+    "sha256": "50fa8efdd588dd70e7ebfce2f6c1c3f67a2b350f4394915f509db1a375a71980"
+  },
+  "earliest_execution": "2026-11-27",
+  "input_coverage": {
+    "coverage_status": "DEGRADED",
+    "evaluated_symbol_count": 3193,
+    "excluded_reason_counts": {
+      "TARGET_DAY_HISTORICAL_STALE": 1
+    },
+    "excluded_symbol_count": 1,
+    "excluded_symbols": [
+      {
+        "detail": "INPUT_DATE_MISMATCH: HiThink historical latest bar for 002717.SZ is 2026-10-12 != 2026-11-26",
+        "display_name": "*ST岭南",
+        "evidence": {
+          "historical": {
+            "classification": "TARGET_DAY_HISTORICAL_STALE",
+            "detail": "INPUT_DATE_MISMATCH: HiThink historical latest bar for 002717.SZ is 2026-10-12 != 2026-11-26",
+            "historical_bar_count": 340,
+            "historical_quality": {
+              "future_data": false,
+              "non_empty": true,
+              "structure_valid": true
+            },
+            "latest_historical_date": "2026-10-12",
+            "provider": "HiThink Financial-API",
+            "retry_count": 1,
+            "symbol": "002717",
+            "target_date": "2026-11-26",
+            "thscode": "002717.SZ"
+          },
+          "quote": {
+            "chg_pct": null,
+            "code": "002717",
+            "high": null,
+            "low": null,
+            "name": "*ST岭南",
+            "open": null,
+            "prev_close": 0.45,
+            "price": null,
+            "quote_date": "2026-11-26",
+            "quote_date_evidence": "NOT_PROVIDER_VERIFIED",
+            "symbol": "002717",
+            "timestamp": null,
+            "trade_state": "UNKNOWN",
+            "turnover_amount": 0.0,
+            "volume": 0.0
+          }
+        },
+        "failure_stage": "stock_kline",
+        "failure_status": "INPUT_DATE_MISMATCH",
+        "latest_historical_date": "2026-10-12",
+        "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+        "provider": "HiThink Financial-API",
+        "provider_symbol": "002717.SZ",
+        "quote_trade_state": "UNKNOWN",
+        "reason": "TARGET_DAY_HISTORICAL_STALE",
+        "status": "EXCLUDED_INPUT_ANOMALY",
+        "symbol": "002717",
+        "target_date": "2026-11-26"
+      }
+    ],
+    "formal_result_valid": true,
+    "policy_version": "PER_SYMBOL_FAIL_SOFT_PRODUCTION_V1",
+    "qualified_symbol_count": 3194,
+    "raw_symbol_count": 5584,
+    "schema_version": "INPUT_COVERAGE_V1"
+  },
+  "latest_html": {
+    "byte_length": 668379,
+    "filename": "latest.html",
+    "sha256": "50fa8efdd588dd70e7ebfce2f6c1c3f67a2b350f4394915f509db1a375a71980"
+  },
+  "list_date": "2026-11-26",
+  "perf_tracker": {
+    "byte_length": 3715255,
+    "filename": "perf_tracker.json",
+    "sha256": "0f7563c79cfe5f695a049a912717bf317f6947ea42478c451b09d981810a27e2"
+  },
+  "schema_version": "DAILY_LIGHTWEIGHT_CLOUD_CHECKPOINT_V1",
+  "strategy_version": "B_BREAKOUT_RETEST_LEGACY_V1_1",
+  "upload_scope": [
+    "watchlist_20261126.json",
+    "perf_tracker.json",
+    "daily_close_20261126.html",
+    "daily_checkpoint_20261126.json",
+    "latest.html",
+    "latest_checkpoint.json"
+  ],
+  "verification_status": "LOCAL_INPUTS_VERIFIED",
+  "watchlist": {
+    "byte_length": 3761,
+    "filename": "watchlist_20261126.json",
+    "sha256": "2fb3dec19109aa71702b7887714774a32554e00fbf1eba27f5a2c88f5cc5d88f"
+  }
+}
