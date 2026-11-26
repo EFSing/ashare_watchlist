@@ -1,5 +1,18 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-11-26 — C 研究模拟修复与底部候选研究收口
+
+- STRICT PATH。目标价倒挂为 correctness blocker，徽标为 deferred improvement，
+  底部候选为非阻塞 research question。研究决定已记录，C1/C2/C3 常驻方案 `REJECT`，
+  极端市场共振观察 `DEFER`，C 模拟目标价与一年位置展示 `ADOPT`。
+- 修复分支为 `origin/codex/c-sim-rr-fix-and-pos250-v1`。Fetch 后用
+  `git rev-parse origin/codex/c-sim-rr-fix-and-pos250-v1` 获取远端 HEAD，并通过该分支
+  指向 `master` 的 PR 核对 exact-head push 和 pull_request correctness。
+  后续只需用户审阅并决定是否合并。恢复所需代码、测试与证据均在远端。
+- 研究分支 `origin/codex/c-bottom-higher-low-early-v1` 保留在
+  `23bcaa79762e57dcf6c339daef9f762844aa0551`。证据身份见
+  [DECISION_LOG.md](docs/DECISION_LOG.md)。线上 C 漏斗按既定冻结身份自然收满 15 个真实运行日。
+
 ## 2026-11-26 — B 日报重点观察顺势与低位筛选（V2）已合并
 
 - Deferred improvement / STRICT PATH，归类保持。用户授权后，短名单 V2 已 squash merge 至

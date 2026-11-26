@@ -1,5 +1,38 @@
 # DECISION LOG
 
+## 2026-11-26 — C 漏斗及底部抬高早启动研究收口
+
+- `C_FUNNEL_AND_BOTTOM_HIGHER_LOW_EARLY_START_V1` 的预注册协议提交为
+  `a0d464c5b2c6497c3ac116d79e06c07d6e52d666`，实现及冻结结果提交为
+  `23bcaa79762e57dcf6c339daef9f762844aa0551`，汇总 JSON SHA-256 为
+  `63975c7d132c22d17fd0d9833194bd37c473ac6c6d7ab26ecac43cd993b68bbc`。
+  `origin/codex/c-bottom-higher-low-early-v1` 独立归档。
+  [预注册协议](https://github.com/EFSing/ashare_watchlist/blob/a0d464c5b2c6497c3ac116d79e06c07d6e52d666/docs/research/c_bottom_higher_low_early_v1_protocol.md) ·
+  [归档报告](https://github.com/EFSing/ashare_watchlist/blob/23bcaa79762e57dcf6c339daef9f762844aa0551/docs/research/c_bottom_higher_low_early_v1_report.md)
+- 2026-11-05 至 2026-11-25 的 13 个真实运行日覆盖 79,084 条完整双规则观测。主要瓶颈为 F2 趋势门
+  （含 `up_close_fraction` 与均线多头，`BALANCED_A` 和 `CONSERVATIVE_B` 分别淘汰 98.31% 和
+  99.86%）、F4 浅回撤上限（分别为 12% 和 15%）及 F5 要求在右脚 L2 之后确认波峰 R。
+  冻结 `DEVELOPMENT` 重放的一年位置中位数分别为 0.798 和 0.932，`pos250 <= 0.40`
+  占比分别为 7.06% 和 0.00%。前瞻 13 日内 `CONSERVATIVE_B` 零命中。
+- `REJECT` 将 C1/C2/C3 引入日常常驻底部双底副线。原始规则资格与 Formal B 的同股同日重叠
+  均低于 0.6%，按锁定扫描恢复 B 底部主升浪盲区的最高值约 6.5%（C2 原始规则资格），低于
+  15% 采纳门槛。`C3 · G4 · S_ALL` 的 `MODEL_S` 净均收益为 +3.46%、利润因子 1.75，
+  T+5 净均为 +2.93%。同门 `TOP2` 分别降为 +1.19%、1.23 和 +0.58%，且 2023、2026 弱市
+  净均收益为负。18 个候选组合均未通过采纳门槛。`DEFER` 极端市场底部高宽度共振脉冲观察。
+- 归档报告保留 `NEEDS_MORE_EVIDENCE / B_BLINDSPOT_DENOMINATOR_NOT_REPRODUCED`。本次收口
+  按已确认的同股冷却 `<30` 与 `<=30` 的一日边界解释完整窗和 B 盲区分母各多 3 轮。
+  该差异不改变采纳门槛判定，逐轮对账在此停止。`C_RULE_FUNNEL_CAPTURE_V1` 依原冻结身份
+  累计满 15 个真实运行日后自动停采。
+
+## 2026-11-26 — ADOPT C 研究模拟目标价修正与信号日一年位置徽标
+
+- 新信号以收盘价与触发价的较高值计算参考风险。阶段前高提供至少 2R 时才采用，否则正风险
+  使用 2.5R 回退目标，目标价保留到分。价位异常沿用现有标记。历史账本沿用原始目标价、
+  信号身份及结算字段。
+- 同轮 QFQ 历史与信号日 OHLC 锚点一致且有足够的信号日及以前样本时，C 研究模拟 HTML
+  复用 B 的 250 根日线位置口径和徽标。变更范围限 C 模拟计划与展示，Formal B、C 底层规则
+  和 15 日漏斗采集继续沿用既有身份及口径。
+
 ## 2026-11-26 — ADOPT 日报重点观察顺势与低位筛选
 
 - `REJECT` 修改 Formal B 静态出场 `E0`。预注册的 `B_EXIT_PROFIT_PROTECTION_V1/V2`
