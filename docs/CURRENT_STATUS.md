@@ -1,5 +1,21 @@
 # CURRENT STATUS
 
+## 2026-11-26 — B 日报重点观察顺势与低位筛选（V2）已合并
+
+- `master` squash 提交为 `221174329bdaf5526eddbbe5677c45a25ca8238b`。原 PR HEAD
+  `f4a05ef02bf88da363b0f559527d35618943976e` 的 push 及 pull_request correctness 和
+  合并后的 master correctness 均成功。
+  [PR #122](https://github.com/EFSing/ashare_watchlist/pull/122) ·
+  [push CI](https://github.com/EFSing/ashare_watchlist/actions/runs/45746791461) ·
+  [pull_request CI](https://github.com/EFSing/ashare_watchlist/actions/runs/45746893195) ·
+  [master CI](https://github.com/EFSing/ashare_watchlist/actions/runs/45747256740)
+- `B_SHORTLIST_PREVIEW_V2` 在上证指数站上上升的 20 日均线时启用 G2 + L1 筛选。要求一年位置
+  ≤55%、近 20 日涨幅 ≤20%、近 60 日涨幅 ≤30%，按一年位置、V1、代码升序取最多 3 只。
+  候选卡标注一年位置，G4 底部共振仅作观察提示，`MODEL_S` 持仓和冷却让位规则继续适用。
+- 同日横截面收益优势及前瞻有效性仍为 `NEEDS_MORE_EVIDENCE`。改动限日报展示与离线预览。
+  正式 B 及 canonical 名单、`perf_tracker.json`、`MODEL_P/R/S` 计算、B Shadow 和 C 流程沿用现有口径。
+  Final OOS 为 `SEALED / UNREAD`。
+
 ## 2026-11-25 — 主策略 B 单账户去重模拟与重点短名单让位已合并
 
 - [PR #121](https://github.com/EFSing/ashare_watchlist/pull/121) 已 squash merge 至 `master`，

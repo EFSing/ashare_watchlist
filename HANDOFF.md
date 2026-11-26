@@ -1,5 +1,18 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-11-26 — B 日报重点观察顺势与低位筛选（V2）已合并
+
+- Deferred improvement / STRICT PATH，归类保持。用户授权后，短名单 V2 已 squash merge 至
+  `master`，合并提交 `221174329bdaf5526eddbbe5677c45a25ca8238b`。原 PR HEAD 的两次
+  correctness 与合并后的 master correctness 均成功，精确运行链接见 CURRENT_STATUS。
+  [PR #122](https://github.com/EFSing/ashare_watchlist/pull/122)
+- 两项诊断已有决定。出场保护继续采用 Formal B 静态 `E0`，日报重点展示采用 G2 + L1。
+  同日选股收益仍为 `NEEDS_MORE_EVIDENCE`。
+- `REMOTE_RECOVERY_CHECKPOINT` 在 `origin/master`。同步后运行 `git rev-parse origin/master`
+  获取当前远端 HEAD。后续工作可从远端恢复。
+- 观察今日正常收盘调度后的 B+C 邮件，核对 V2 重点观察、轮空提示和候选卡。若用户另行发起，
+  可用 2026-11-05 起启用的 `C_RULE_FUNNEL_CAPTURE_V1` 复核早期底部反转覆盖。
+
 ## 2026-11-25 — 主策略 B 单账户去重模拟与重点短名单让位已合并
 
 - Deferred improvement / STRICT PATH，归类保持。用户确认规则并授权推送合并后，
