@@ -21,6 +21,7 @@ import tempfile
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from statistics import mean
 from typing import Any, Iterable, Mapping
 
 from data_paths import DataPaths
@@ -67,7 +68,7 @@ from track_perf import (
     SOURCE_MODE_EXACT_DATE_IMMUTABLE_EVIDENCE_RECOVERY_V1,
 )
 from trading_calendar import TradingCalendar, default_calendar, previous_trading_day
-from universe_policy import policy_display_label
+from universe_policy import is_live_universe_eligible, policy_display_label
 from watchlist_schema import (
     INPUT_COVERAGE_COMPLETE,
     INPUT_COVERAGE_DEGRADED,
@@ -133,6 +134,7 @@ class ReportModel:
     shortlist: dict[str, Any] | None = None
     single_account_performance: dict[str, Any] | None = None
     defensive_etf: dict[str, Any] | None = None
+    market_temperature: tuple[int, int] | None = None
 
 
 def _normalize_date(value: date | datetime | str) -> str:
@@ -523,18 +525,40 @@ def _load_volume_observations(
     return result, status
 
 
+def _market_temperature_counts(by_code, day: str) -> tuple[int, int] | None:
+    """Count main-board stocks above their own T-close 20-day average."""
+    from preview_b_shortlist import _finite, _is_t_ending
+
+    total_count = above_count = 0
+    for code, item in by_code.items():
+        bars = item.get("bars")
+        if not is_live_universe_eligible(code) or not _is_t_ending(bars, day, 250):
+            continue
+        volume = bars[-1].get("volume")
+        if not _finite(volume) or volume <= 0:
+            continue
+        closes = [bar.get("close") for bar in bars]
+        valid = [_finite(close) and close > 0 for close in closes]
+        if sum(valid) < 250 or not all(valid[-20:]):
+            continue
+        total_count += 1
+        above_count += closes[-1] > mean(closes[-20:])
+    return (above_count, total_count) if total_count >= 100 else None
+
+
 def _load_b_research_observations(
     run_manifest_path: Path | None,
     watchlist: Mapping[str, Any],
     watchlist_bytes: bytes,
     calendar: TradingCalendar,
     *,
-    include_index: bool = False,
+    include_report_context: bool = False,
 ):
     """Read only the canonical generation inputs supplied by this T-close run."""
     from preview_b_shortlist import build_market_gate, load_run_context
 
     gate, positions, manifest_sha, index = build_market_gate(watchlist), {}, None, None
+    by_code = {}
     observations = {}
     if run_manifest_path is not None:
         try:
@@ -554,7 +578,9 @@ def _load_b_research_observations(
             # Research is optional even when its inputs or computation fail.
             pass
     context = observations, gate, positions, manifest_sha
-    return (*context, index) if include_index else context
+    if include_report_context:
+        return *context, index, _market_temperature_counts(by_code, watchlist["date"])
+    return context
 
 
 def _watchlist_rows(
@@ -906,8 +932,10 @@ def build_report_model(
     coverage_metadata = _input_coverage_metadata(watchlist.get("input_coverage"))
 
     cal = calendar or default_calendar()
-    research_observations, market_gate, positions, manifest_sha, index = _load_b_research_observations(
-        research_run_manifest, watchlist, watchlist_bytes, cal, include_index=True,
+    research_observations, market_gate, positions, manifest_sha, index, market_temperature = (
+        _load_b_research_observations(
+            research_run_manifest, watchlist, watchlist_bytes, cal, include_report_context=True,
+        )
     )
     tracker, review_failures = _load_review_tracker(resolver, review_failure)
     performance_tracker = tracker if tracker is not None else {"version": 2, "signals": {}}
@@ -1278,6 +1306,7 @@ def build_report_model(
         shortlist=shortlist,
         single_account_performance=single_account_performance,
         defensive_etf=build_defensive_etf_card(watchlist, index, cal),
+        market_temperature=market_temperature,
     )
 
 
@@ -2029,6 +2058,33 @@ def _defensive_etf_html(card: Mapping[str, Any] | None) -> str:
             f'<div>{content}</div></aside>')
 
 
+def _market_temperature_html(counts: tuple[int, int] | None, *, resting: bool = False) -> str:
+    if counts is None:
+        return ''
+    above_count, total_count = counts
+    at_least_half = 2 * above_count >= total_count
+    percent = f'{100 * above_count / total_count:.2f}'.rstrip('0').rstrip('.') + '%'
+    stocks = f'{above_count:,} / {total_count:,} 只'
+    if resting:
+        if at_least_half:
+            return (f'盘面上主板已有 {percent} 的股票站上近一月均线（{stocks}），'
+                    '个股已有提前回暖迹象，等待大盘均线确认。')
+        return f'盘面上主板目前仅有 {percent} 的股票站上近一月均线（{stocks}），多数个股仍在偏弱区。'
+    if at_least_half:
+        return (
+            '<p class="note"><strong>市场冷暖 · 指数与个股同步走强</strong> '
+            f'主板约 {percent} 的股票站上 20 日均线（近一月均线，{stocks}），'
+            '多数股票在跟涨，整体环境健康。</p>'
+        )
+    return (
+        '<p class="review-callout warning">'
+        '<strong>市场冷暖提醒 · 指数红但多数股票偏弱（防“赚了指数不赚钱”）</strong> '
+        f'虽然上证指数还在 20 日均线上方，但主板只有 {percent} 的股票站上近一月均线'
+        f'（{stocks}，不到一半在走强，常见于权重护盘、多数个股分化回落）。'
+        '今日重点名单照常展示，建议更挑低位、别急着追高。（仅作盘面冷暖参考，不改变筛选规则）</p>'
+    )
+
+
 def _shortlist_watchlist_html(model):
     shortlist = model.shortlist or {'status': 'UNAVAILABLE', 'rows': [], 'selected_codes': []}
     details = {r['signal_id']: r for r in shortlist['rows']}
@@ -2077,7 +2133,8 @@ def _shortlist_watchlist_html(model):
             f'<p>上证指数收于 {_number(gate["index_close"])}，20 日均线为 {_number(gate["index_ma20"])}，'
             f'较 5 个交易日前的 {_number(gate["index_ma20_5d_ago"])} {trend}。'
             '上证指数未同时满足“站上 20 日均线”且“20 日均线向上”，'
-            f'按顺势纪律今日不推重点观察。{retained}</p>{turn_hint}</div>'
+            f'按顺势纪律今日不推重点观察。{retained}'
+            f'{_market_temperature_html(model.market_temperature, resting=True)}</p>{turn_hint}</div>'
         )
     if selected:
         main = _watchlist_table(selected, model.metadata.get('earliest_execution'), table_id='shortlist-candidates')
@@ -3638,6 +3695,7 @@ footer {{ padding: 10px 0 0; color: var(--muted); font-size: 11px; }}
 
 <section id="tomorrow-watchlist">
   <div class="section-head"><div><p class="section-kicker">WATCHLIST</p><h2>今日重点观察 · {shortlist_count}</h2><p class="section-subtitle">主策略（B 突破回踩）正式候选共 {watchlist_count} 只，重点最多 {shortlist['limit']} 只；已在模拟持仓或 {SINGLE_ACCOUNT_COOLDOWN_SESSIONS} 日冷却期内的股票自动让出名额，资料不足或条件不符时不凑满。</p></div></div>
+  {_market_temperature_html(model.market_temperature) if shortlist.get('market_gate', {}).get('g2_pass') else ''}
   <p class="note">基于历史开发样本分层的展示筛选，同日选股的收益优势尚未验证。每日重点名单不代表新增买入配额。</p>
   <details class="audit-details"><summary>查看筛选依据</summary><div class="audit-content"><p>上证指数收盘须站上 20 日均线，且均线高于 5 个交易日前。通过后，观察处于回踩前段或回踩后重新走强、两项主要量能与参考价位可用的候选。</p><p>一年位置按最近 250 个交易日的高低区间计算，须不超过 55%。近 20 日涨幅须不超过 20%，近 60 日须不超过 30%。符合条件的候选依次按一年位置、下跌量占比、股票代码从低到高排列。单账户模拟持仓、待触发挂单及冷却期内的候选让出名额。</p><p>参考买价取收盘价与触发价中较高者，供观察触发时参考。现有绩效统计覆盖正式候选全集，不能当作这份重点名单的收益验证。</p></div></details>
   <div class="toolbar"><label for="watchlist-search" class="note">搜索名单：</label><input id="watchlist-search" type="search" placeholder="输入代码、名称或行业" autocomplete="off"></div>

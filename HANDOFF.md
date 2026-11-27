@@ -1,5 +1,21 @@
 # HANDOFF — 跨设备最小恢复入口
 
+## 2026-11-27 — 三态市场与红利研究收口，日报市场冷暖提示待审
+
+- `THREE_STATE_REGIME_AND_DIVIDEND_LEADERS_V1` 为非阻塞 research question，日报提示为
+  deferred improvement，本轮走 STRICT PATH。冻结证据身份见 [DECISION_LOG.md](docs/DECISION_LOG.md)。
+- `DECISION_STAGE1_BREADTH_GATE = NEEDS_MORE_EVIDENCE`。`W45` 与 `W50` 在 5/10 bps
+  均通过经济门，全期和 2026 年收益提高、回撤减小。全期日均超额的 95% 块自举区间跨零。
+  正式 `G2` 与 `R1/A1` 沿用原规则，日报提供白话冷暖参考。
+- `DECISION_STAGE2_DIVIDEND_SLEEVE = REJECT`。四组独立两槽红利袖套在 2023、2026 与全期
+  均净亏损，全期最大回撤均超过 8%。并入六槽后，两档费用下弱年合计收益均落后同宽度
+  Stage 1 债金承接。
+- `REMOTE_RECOVERY_CHECKPOINT` 在 `origin/codex/market-temperature-daily-report`，以
+  `b6c937d5518e6b08014f7bf19a6ee588fbda0949` 为开发基线。Fetch 后用
+  `git rev-parse origin/codex/market-temperature-daily-report` 获取远端 HEAD。
+  下一步审阅该分支面向 `master` 的 PR。Stage 1 正式采纳仍需按预注册口径补足独立前瞻冻结日证据，
+  现行日报可继续。首次实际展示留待后续正常收盘调度观察。
+
 ## 2026-11-26 — G2 轮空防守 ETF 日报卡已合并
 
 - Deferred improvement / STRICT PATH，归类保持。每日 B+C HTML 重点观察区接入

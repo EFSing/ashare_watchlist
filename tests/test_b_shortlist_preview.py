@@ -470,6 +470,7 @@ def test_daily_report_selects_before_shadow_delivery_and_retains_all_inputs(dail
     assert len(model.watchlist_rows) == model.metadata["candidate_count"] == 5
     assert all(p.read_bytes() == raw for p, raw in originals.items())
     text = dated.read_text(encoding="utf-8")
+    assert "市场冷暖" not in text
     assert dated.read_bytes() == latest.read_bytes()
     main, more = renderer._shortlist_watchlist_html(model).split('<details id="remaining-candidates-details"')
     assert main.count('class="watch-row"') == 3 and more.count('class="watch-row"') == 2
@@ -529,6 +530,79 @@ def test_daily_report_renders_regime_and_all_three_position_badges(daily_inputs,
     assert by_code["600004"]["position_missing_reason"] == "INSUFFICIENT_250D_BARS"
 
 
+def _temperature_stocks(day, rising_count):
+    rising = _dated_bars(day, [10] * 249 + [11])
+    flat = _dated_bars(day, [10] * 250)
+    for bars in (rising, flat):
+        bars[-1]["volume"] = 100
+    return [
+        {"symbol": f"00{index:04}", "bars": rising if index < rising_count else flat}
+        for index in range(96)
+    ]
+
+
+@pytest.mark.parametrize(
+    ("g2_pass", "above_count", "message"),
+    [
+        (True, 50, "市场冷暖 · 指数与个股同步走强"),
+        (True, 49, "市场冷暖提醒 · 指数红但多数股票偏弱"),
+        (False, 50, "个股已有提前回暖迹象，等待大盘均线确认。"),
+        (False, 49, "多数个股仍在偏弱区。"),
+    ],
+)
+def test_daily_market_temperature_is_display_only(daily_inputs, g2_pass, above_count, message):
+    import render_daily_close_html as renderer
+
+    day, cal, paths, watch_path, run_path = daily_inputs
+    original_watch_bytes = watch_path.read_bytes()
+    run = json.loads(run_path.read_bytes())
+    if not g2_pass:
+        run["input_manifest"]["index"] = _index(day, [3000] * 25)
+    stocks = run["input_manifest"]["stock_klines"]
+    extra = _temperature_stocks(day, above_count - 4)
+    rising = extra[0]["bars"]
+    stocks.extend([
+        {"symbol": "300001", "bars": rising},
+        {"symbol": "688001", "bars": rising},
+        {"symbol": "601001", "bars": rising[1:]},
+        {"symbol": "601002", "bars": [*rising[:-1], {**rising[-1], "volume": 0}]},
+        {"symbol": "601003", "bars": [*rising[:-1], {**rising[-1], "close": 0}]},
+        {"symbol": "601004", "bars": [*rising, {"date": "2026-11-06", "close": 12, "volume": 100}]},
+        {"symbol": "601005", "bars": _dated_bars("2026-11-04", [10] * 250)},
+        {"symbol": "601006", "bars": [{**rising[0], "close": None}, *rising[1:]]},
+    ])
+    stocks.extend(extra[:-1])
+    run_path.write_bytes(canonical(run))
+    baseline = renderer.build_report_model(day, paths=paths, calendar=cal, research_run_manifest=run_path)
+    assert baseline.market_temperature is None
+    baseline_html = renderer.render_html(baseline)
+    assert "市场冷暖" not in baseline_html and "的股票站上近一月均线" not in baseline_html
+
+    stocks.append(extra[-1])
+    run_path.write_bytes(canonical(run))
+    model = renderer.build_report_model(day, paths=paths, calendar=cal, research_run_manifest=run_path)
+    assert model.market_temperature == (above_count, 100)
+    assert model.shortlist["selected_codes"] == (["600001", "600002", "600003"] if g2_pass else [])
+    assert model.shortlist == {**baseline.shortlist, "source": {
+        **baseline.shortlist["source"], "run_manifest_sha256": sha(run_path.read_bytes()),
+    }}
+    assert model.watchlist_rows == baseline.watchlist_rows
+    assert model.defensive_etf == baseline.defensive_etf
+    assert watch_path.read_bytes() == original_watch_bytes
+
+    section = renderer.render_html(model).split('<section id="tomorrow-watchlist">')[1].split('</section>')[0]
+    assert message in section
+    assert f"{above_count}%" in section and f"{above_count} / 100 只" in section
+    if g2_pass:
+        opening = '<p class="note">' if above_count == 50 else '<p class="review-callout warning">'
+        assert f"{opening}<strong>{message}" in section
+        assert section.index(message) < section.index("查看筛选依据")
+    else:
+        rest_paragraph = section.split("大盘环境休息提示")[1].split("</p>")[0]
+        assert message in rest_paragraph
+        assert "市场冷暖提醒" not in section
+
+
 def test_daily_limit_two_and_score_changes_do_not_affect_selection(daily_inputs):
     import render_daily_close_html as renderer
 
@@ -569,11 +643,13 @@ def test_daily_selection_unavailable_never_falls_back_to_score(daily_inputs, mon
             run["signal_date"] = "2026-11-06"
         else:
             run["strategy_spec_sha256"] = "0" * 64
+        run["input_manifest"]["stock_klines"].extend(_temperature_stocks(day, 46))
         run_path.write_bytes(canonical(run))
     model, dated, _ = renderer.render_daily_close(day, paths=paths, calendar=cal, research_run_manifest=run_path)
     assert model.shortlist["status"] == "UNAVAILABLE" and model.shortlist["selected_codes"] == []
     assert len(model.watchlist_rows) == 5
     text = dated.read_text(encoding="utf-8")
+    assert model.market_temperature is None and "市场冷暖" not in text
     assert "暂无法筛选重点候选" in text and "其余候选 · 5" in text
     assert text.count('class="watch-row"') == 5 and "Score" not in text
     if failure == "missing_manifest":

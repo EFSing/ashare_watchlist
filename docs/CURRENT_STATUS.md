@@ -1,5 +1,18 @@
 # CURRENT STATUS
 
+## 2026-11-27 — 三态市场与红利研究收口
+
+- `THREE_STATE_REGIME_AND_DIVIDEND_LEADERS_V1` 为非阻塞 research question / STRICT PATH。
+  冻结证据及后续采用条件见 [DECISION_LOG.md](DECISION_LOG.md)。
+- `DECISION_STAGE1_BREADTH_GATE = NEEDS_MORE_EVIDENCE`。`W45` 与 `W50` 在 5/10 bps
+  下均通过全部经济门，全期与 2026 年收益提高、回撤表现改善，全期日均超额的 95% 块自举区间跨零。
+  正式 `G2` 与 `R1/A1` 沿用原规则。
+- `DECISION_STAGE2_DIVIDEND_SLEEVE = REJECT`。四组独立两槽红利袖套在 2023、2026 和全期
+  均净亏损，全期最大回撤均超过 8%。六槽组合在两档费用下的弱年合计收益均低于同宽度
+  Stage 1 债金承接。
+- 日报「市场冷暖」提示为 deferred improvement，待 PR 审阅。提示使用同轮信号日已核验的
+  主板行情，至少有 100 只有效样本才展示。现行 B+C 日报与既有 Delivery Ladder 继续适用。
+
 ## 2026-11-26 — 弱市研究收口，防守 ETF 日报参考卡已合并
 
 - [PR #124](https://github.com/EFSing/ashare_watchlist/pull/124) 已 squash merge 至 `master`，

@@ -1,5 +1,29 @@
 # DECISION LOG
 
+## 2026-11-27 — 三态市场与高股息大盘龙头研究的两项独立决定
+
+- `THREE_STATE_REGIME_AND_DIVIDEND_LEADERS_V1` 为非阻塞 research question / STRICT PATH。
+  预注册分别检验加入主板同步强弱条件能否改善 `G2 + R1/A1` 基线，以及弱年加入两槽红利
+  能否跑赢同宽度的债金承接。两项判断用于决定是否值得进一步提议变更日常参考规则。
+- 输入与停止条件按预注册协议执行。冻结开发样本为 2023-06-30 至 2026-08-28 的 769 个
+  XSHG 交易日，2023 与 2026 为部分年份。Stage 0 先与原 `R1/A1` 两档费用归档逐日对齐，
+  身份、覆盖、因果、基线或资金约束校验失败即停止。此轮收口使用已归档判定。
+- 研究证据保留于
+  `origin/codex/three-state-dividend-leaders-v1@182b6cbdf05b44f6c42c5401427988f6af83ee7b`，
+  预注册提交 `d268e74690251d5f3eeebf93fa1db6cbcd00622d`，`summary.json` SHA-256
+  `adce6b21fb2289313f9941c25c6e03fac32adf501a89b7697902b44db74d59ed`。
+  [预注册协议](https://github.com/EFSing/ashare_watchlist/blob/d268e74690251d5f3eeebf93fa1db6cbcd00622d/docs/research/three_state_dividend_leaders_v1_protocol.md) ·
+  [冻结研究报告](https://github.com/EFSing/ashare_watchlist/blob/182b6cbdf05b44f6c42c5401427988f6af83ee7b/docs/research/three_state_dividend_leaders_v1_report.md)
+- `DECISION_STAGE1_BREADTH_GATE = NEEDS_MORE_EVIDENCE`。`W45` 与 `W50` 在 ETF 双边
+  5/10 bps 均通过全部经济门，全期及 2026 年收益提高、回撤改善。全期配对日均超额的
+  95% 块自举区间在两组两档费用下均跨零。未来独立观察提案需以预先冻结的前瞻交易日样本
+  缩窄超额区间，供统计门复核。正式 `G2` 和 `R1/A1` 沿用原规则，现行 B+C 日报可继续，
+  主板站上近一月均线的比例只作盘面冷暖参考。
+- `DECISION_STAGE2_DIVIDEND_SLEEVE = REJECT`。`W45_X1`、`W45_X2`、`W50_X1`、
+  `W50_X2` 的独立两槽账户在 2023、2026 与全期均净亏损，全期最大回撤均超过 8%。
+  并入六槽后，四组在两档费用下的 2023 与 2026 合计收益都低于同宽度 Stage 1 债金承接。
+  日报继续使用既有防守 ETF 参考卡。
+
 ## 2026-11-26 — 弱市个股超跌反抽 REJECT，防守 ETF 日报参考 ADOPT
 
 - `WEAK_REGIME_PANIC_MEAN_REVERSION_V1 = REJECT`。冻结主板样本的 12 组 `TOP2`
