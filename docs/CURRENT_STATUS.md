@@ -1,6 +1,12 @@
 # CURRENT STATUS
 
-## 2026-11-27 — 三态市场与红利研究收口
+## 2026-11-27 — 三态市场与红利研究收口，日报市场冷暖提示已合并
+
+- [PR #125](https://github.com/EFSing/ashare_watchlist/pull/125) 已 squash merge 至 `master`，
+  合并提交 `c32686567888e99cc8f8c0b687f35e103797b4ed`。合并时为 CLEAN / MERGEABLE，
+  PR HEAD `eae093d0b3563a2ac452b20c4174147e2b538197` 的两路 correctness 均通过。
+  [push CI](https://github.com/EFSing/ashare_watchlist/actions/runs/45930537731) ·
+  [PR CI](https://github.com/EFSing/ashare_watchlist/actions/runs/45930572212)
 
 - `THREE_STATE_REGIME_AND_DIVIDEND_LEADERS_V1` 为非阻塞 research question / STRICT PATH。
   冻结证据及后续采用条件见 [DECISION_LOG.md](DECISION_LOG.md)。
@@ -10,8 +16,9 @@
 - `DECISION_STAGE2_DIVIDEND_SLEEVE = REJECT`。四组独立两槽红利袖套在 2023、2026 和全期
   均净亏损，全期最大回撤均超过 8%。六槽组合在两档费用下的弱年合计收益均低于同宽度
   Stage 1 债金承接。
-- 日报「市场冷暖」提示为 deferred improvement，待 PR 审阅。提示使用同轮信号日已核验的
-  主板行情，至少有 100 只有效样本才展示。现行 B+C 日报与既有 Delivery Ladder 继续适用。
+- 日报「市场冷暖」提示为 deferred improvement，使用同轮信号日已核验的主板行情，
+  至少有 100 只有效样本才展示。首次实际展示待下一次正常收盘调度核对。
+  现行 B+C 日报与既有 Delivery Ladder 继续适用。
 
 ## 2026-11-26 — 弱市研究收口，防守 ETF 日报参考卡已合并
 

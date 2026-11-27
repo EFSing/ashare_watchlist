@@ -1,6 +1,6 @@
 # HANDOFF — 跨设备最小恢复入口
 
-## 2026-11-27 — 三态市场与红利研究收口，日报市场冷暖提示待审
+## 2026-11-27 — 三态市场与红利研究收口，日报市场冷暖提示已合并
 
 - `THREE_STATE_REGIME_AND_DIVIDEND_LEADERS_V1` 为非阻塞 research question，日报提示为
   deferred improvement，本轮走 STRICT PATH。冻结证据身份见 [DECISION_LOG.md](docs/DECISION_LOG.md)。
@@ -10,11 +10,12 @@
 - `DECISION_STAGE2_DIVIDEND_SLEEVE = REJECT`。四组独立两槽红利袖套在 2023、2026 与全期
   均净亏损，全期最大回撤均超过 8%。并入六槽后，两档费用下弱年合计收益均落后同宽度
   Stage 1 债金承接。
-- `REMOTE_RECOVERY_CHECKPOINT` 在 `origin/codex/market-temperature-daily-report`，以
-  `b6c937d5518e6b08014f7bf19a6ee588fbda0949` 为开发基线。Fetch 后用
-  `git rev-parse origin/codex/market-temperature-daily-report` 获取远端 HEAD。
-  下一步审阅该分支面向 `master` 的 PR。Stage 1 正式采纳仍需按预注册口径补足独立前瞻冻结日证据，
-  现行日报可继续。首次实际展示留待后续正常收盘调度观察。
+- 用户授权后，[PR #125](https://github.com/EFSing/ashare_watchlist/pull/125) 已 squash merge
+  至 `master`，合并提交 `c32686567888e99cc8f8c0b687f35e103797b4ed`。
+  验证记录见 [CURRENT_STATUS.md](docs/CURRENT_STATUS.md)。
+- `REMOTE_RECOVERY_CHECKPOINT` 在 `origin/master`。Fetch 后用 `git rev-parse origin/master`
+  获取远端 HEAD。下一次正常收盘日报核对「市场冷暖」与当日盘面，样本不足时应省略提示。
+  Stage 1 正式采纳仍需按预注册口径补足独立前瞻冻结日证据，现行日报可继续。
 
 ## 2026-11-26 — G2 轮空防守 ETF 日报卡已合并
 
